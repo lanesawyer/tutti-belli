@@ -13,6 +13,10 @@ default-run = "choir_management_software-cli"
 loco-rs = { version = "0.15" }
 
 [dependencies]
+shuttle-axum = "0.53.0"
+shuttle-runtime = { version = "0.53.0", default-features = false }
+shuttle-shared-db = { version = "0.53.0", features = ["postgres"] }
+
 loco-rs = { workspace = true  }
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1" }
@@ -41,6 +45,10 @@ axum-extra = { version = "0.10", features = ["form"] }
 name = "choir_management_software-cli"
 path = "src/bin/main.rs"
 required-features = []
+
+[[bin]]
+name = "choir-management-software"
+path = "src/bin/shuttle.rs"
 
 [dev-dependencies]
 loco-rs = { workspace = true, features = ["testing"] }
