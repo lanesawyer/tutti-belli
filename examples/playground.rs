@@ -1,4 +1,4 @@
-use choir_management_software::app::App;
+use ensemble_management_software::app::App;
 #[allow(unused_imports)]
 use loco_rs::{cli::playground, prelude::*};
 

@@ -70,7 +70,7 @@ mailer:
 # Database Configuration
 database:
   # Database connection URI
-  uri: {{ get_env(name="DATABASE_URL", default="postgres://postgres:postgres@localhost:5432/choir-management-software_test") }}
+  uri: {{ get_env(name="DATABASE_URL", default="postgres://postgres:postgres@localhost:5432/ensemble-management-software_test") }}
   # When enabled, the sql query will be logged.
   enable_logging: false
   # Set the timeout duration when acquiring a connection.
