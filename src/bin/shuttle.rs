@@ -1,13 +1,13 @@
 use loco_rs::boot::{create_app, StartMode};
 use loco_rs::environment::Environment;
-use choir_management_software::app::App;
+use ensemble_management_software::app::App;
 use migration::Migrator;
 use shuttle_runtime::DeploymentMetadata;
 
 #[shuttle_runtime::main]
 async fn main(
   #[shuttle_shared_db::Postgres(
-    local_uri = "postgres://postgres:{secrets.PASSWORD}@localhost:5432/choir-management-software_development",
+    local_uri = "postgres://postgres:{secrets.PASSWORD}@localhost:5432/ensemble-management-software_development",
   )] conn_str: String,
   #[shuttle_runtime::Metadata] meta: DeploymentMetadata,
 ) -> shuttle_axum::ShuttleAxum {

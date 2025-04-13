@@ -1,5 +1,5 @@
 use axum::http::{HeaderName, HeaderValue};
-use choir_management_software::{models::users, views::auth::LoginResponse};
+use ensemble_management_software::{models::users, views::auth::LoginResponse};
 use loco_rs::{app::AppContext, TestServer};
 
 const USER_EMAIL: &str = "test@loco.com";

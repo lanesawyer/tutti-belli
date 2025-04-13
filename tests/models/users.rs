@@ -1,4 +1,4 @@
-use choir_management_software::{
+use ensemble_management_software::{
     app::App,
     models::users::{self, Model, RegisterParams},
 };

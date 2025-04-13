@@ -1,4 +1,4 @@
-use choir_management_software::app::App;
+use ensemble_management_software::app::App;
 use loco_rs::cli;
 use migration::Migrator;
 

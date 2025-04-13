@@ -1,11 +1,11 @@
 [workspace]
 
 [package]
-name = "choir-management-software"
+name = "ensemble-management-software"
 version = "0.1.0"
 edition = "2021"
 publish = false
-default-run = "choir_management_software-cli"
+default-run = "ensemble_management_software-cli"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -42,12 +42,12 @@ include_dir = { version = "0.7" }
 axum-extra = { version = "0.10", features = ["form"] }
 
 [[bin]]
-name = "choir_management_software-cli"
+name = "ensemble_management_software-cli"
 path = "src/bin/main.rs"
 required-features = []
 
 [[bin]]
-name = "choir-management-software"
+name = "ensemble-management-software"
 path = "src/bin/shuttle.rs"
 
 [dev-dependencies]

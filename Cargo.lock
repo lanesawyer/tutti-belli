@@ -773,34 +773,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "613afe47fcd5fac7ccf1db93babcb082c5994d996f20b8b159f2ad1658eb5724"
 
 [[package]]
-name = "choir-management-software"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "axum",
- "axum-extra",
- "chrono",
- "include_dir",
- "insta",
- "loco-rs",
- "migration",
- "regex",
- "rstest",
- "sea-orm",
- "serde",
- "serde_json",
- "serial_test",
- "shuttle-axum",
- "shuttle-runtime",
- "shuttle-shared-db",
- "tokio",
- "tracing",
- "tracing-subscriber",
- "uuid",
- "validator",
-]
-
-[[package]]
 name = "chrono"
 version = "0.4.40"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1417,6 +1389,34 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1a13a7d5e0ab3872c3ee478366eae624d89ab953d30276b0eee08169774ceb73"
 dependencies = [
  "regex",
+]
+
+[[package]]
+name = "ensemble-management-software"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "axum",
+ "axum-extra",
+ "chrono",
+ "include_dir",
+ "insta",
+ "loco-rs",
+ "migration",
+ "regex",
+ "rstest",
+ "sea-orm",
+ "serde",
+ "serde_json",
+ "serial_test",
+ "shuttle-axum",
+ "shuttle-runtime",
+ "shuttle-shared-db",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+ "uuid",
+ "validator",
 ]
 
 [[package]]

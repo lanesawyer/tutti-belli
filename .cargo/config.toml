@@ -1,5 +1,5 @@
 [alias]
-loco = "run --bin choir_management_software-cli --"
+loco = "run --bin ensemble_management_software-cli --"
 loco-tool = "run --"
 
 playground = "run --example playground"
