@@ -14,7 +14,9 @@ use migration::Migrator;
 use std::path::Path;
 
 #[allow(unused_imports)]
-use crate::{controllers, models::_entities::users, tasks, workers::downloader::DownloadWorker};
+use crate::{
+    controllers, initializers, models::_entities::users, tasks, workers::downloader::DownloadWorker,
+};
 
 pub struct App;
 #[async_trait]
@@ -42,7 +44,9 @@ impl Hooks for App {
     }
 
     async fn initializers(_ctx: &AppContext) -> Result<Vec<Box<dyn Initializer>>> {
-        Ok(vec![])
+        Ok(vec![Box::new(
+            initializers::view_engine::ViewEngineInitializer,
+        )])
     }
 
     fn routes(_ctx: &AppContext) -> AppRoutes {
