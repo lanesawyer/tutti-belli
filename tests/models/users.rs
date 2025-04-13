@@ -1,8 +1,8 @@
+use chrono::{offset::Local, Duration};
 use ensemble_management_software::{
     app::App,
     models::users::{self, Model, RegisterParams},
 };
-use chrono::{offset::Local, Duration};
 use insta::assert_debug_snapshot;
 use loco_rs::testing::prelude::*;
 use sea_orm::{ActiveModelTrait, ActiveValue, IntoActiveModel};
