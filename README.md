@@ -57,3 +57,11 @@ You can check your [configuration](config/development.yaml) to pick either front
 ## Getting help
 
 Check out [a quick tour](https://loco.rs/docs/getting-started/tour/) or [the complete guide](https://loco.rs/docs/getting-started/guide/).
+
+## Development
+
+Run the following to ignore changes to the `frontend/dist/index.html` file:
+```bash
+git update-index --assume-unchanged frontend/dist/index.html
+```
+This is a temporary workaround until we find a better solution to handle the frontend build process. The CI Test fails if there isn't an `index.html` in the repo.
