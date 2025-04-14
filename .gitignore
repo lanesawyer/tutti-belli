@@ -22,4 +22,3 @@ target/
 .shuttle*
 Secrets*.toml
 
-frontend/dist
