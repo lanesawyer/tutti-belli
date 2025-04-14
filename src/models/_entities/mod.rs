@@ -3,4 +3,5 @@
 pub mod prelude;
 
 pub mod ensembles;
+pub mod events;
 pub mod users;
