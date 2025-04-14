@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+  <head><link rel="modulepreload" href="/ensemble-management-software-client-1c27b5b3173c934d.js" crossorigin="anonymous" integrity="sha384-gcGLjF1Mbep0TQjga05b4dJYxaf2k45SbzgFFzGOvb5AlFcZB3OzvRMmX6kBcT92"><link rel="preload" href="/ensemble-management-software-client-1c27b5b3173c934d_bg.wasm" crossorigin="anonymous" integrity="sha384-hn+unqAZb55PIZ2ukOGg6cbO8QkYysIxk9GnJV5/tpAC6xCOSMz5DMu+baKmfMbw" as="fetch" type="application/wasm"></head>
+  <body>
+<script type="module">
+import init, * as bindings from '/ensemble-management-software-client-1c27b5b3173c934d.js';
+const wasm = await init({ module_or_path: '/ensemble-management-software-client-1c27b5b3173c934d_bg.wasm' });
+
+
+window.wasmBindings = bindings;
+
+
+dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
+
+</script></body>
+</html>

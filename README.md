@@ -9,6 +9,7 @@ It also include configuration sections that help you pick either a frontend or a
 ## Quick Start
 
 ```sh
+cargo trunk build
 cargo loco start
 ```
 
