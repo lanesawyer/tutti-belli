@@ -10,17 +10,17 @@ pub struct Event {
     date: String,
     start_time: String,
     end_time: String,
-    notes: Option<String>
+    notes: Option<String>,
 }
 
 async fn fetch_events() -> Result<Vec<Event>, Error> {
     // make the request
     let res = reqwasm::http::Request::get("/api/events")
-    .send()
-    .await?
-    // convert it to JSON
-    .json::<Vec<Event>>()
-    .await?;
+        .send()
+        .await?
+        // convert it to JSON
+        .json::<Vec<Event>>()
+        .await?;
     Ok(res)
 }
 
