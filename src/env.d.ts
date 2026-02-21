@@ -7,6 +7,7 @@ declare namespace App {
       id: string;
       email: string;
       name: string;
+      avatarUrl: string | null;
       role: string;
       createdAt: Date;
     } | null;

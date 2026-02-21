@@ -1,6 +1,7 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import { db, eq, User, Ensemble, EnsembleMember, Part } from 'astro:db';
+import { fileToDataUri, validateImageFile } from '../lib/upload';
 
 const user = Astro.locals.user;
 
@@ -69,6 +70,43 @@ if (Astro.request.method === 'POST') {
       message = 'Name cannot be empty';
       messageType = 'danger';
     }
+  } else if (action === 'update-avatar') {
+    try {
+      const avatarFile = formData.get('avatar') as File;
+      const removeAvatar = formData.get('removeAvatar')?.toString() === 'true';
+
+      let avatarUrl = user.avatarUrl;
+
+      // Handle avatar removal
+      if (removeAvatar && avatarUrl) {
+        avatarUrl = null;
+      }
+
+      // Handle new avatar upload
+      if (avatarFile && avatarFile.size > 0) {
+        const validation = validateImageFile(avatarFile, 2);
+        if (!validation.valid) {
+          message = validation.error!;
+          messageType = 'danger';
+        } else {
+          // Convert image to data URI and store in database
+          avatarUrl = await fileToDataUri(avatarFile);
+        }
+      }
+
+      if (!message) {
+        await db
+          .update(User)
+          .set({ avatarUrl })
+          .where(eq(User.id, user.id));
+
+        return Astro.redirect('/profile');
+      }
+    } catch (error) {
+      console.error('Error updating avatar:', error);
+      message = 'Failed to update avatar';
+      messageType = 'danger';
+    }
   } else if (action === 'update-part') {
     const membershipId = formData.get('membershipId')?.toString();
     const partId = formData.get('partId')?.toString();
@@ -104,7 +142,67 @@ if (Astro.request.method === 'POST') {
         <div class="box">
           <h2 class="title is-4">Personal Information</h2>
           
-          <form method="POST">
+          {user.avatarUrl && (
+            <div class="mb-4 has-text-centered">
+              <figure class="image is-128x128" style="margin: 0 auto;">
+                <img src={user.avatarUrl} alt={user.name} style="object-fit: cover; border-radius: 50%;" />
+              </figure>
+            </div>
+          )}
+
+          <form method="POST" enctype="multipart/form-data" class="mb-5">
+            <input type="hidden" name="action" value="update-avatar" />
+            
+            <div class="field">
+              <label class="label">Profile Picture</label>
+              {user.avatarUrl && (
+                <label class="checkbox mb-2">
+                  <input type="checkbox" name="removeAvatar" value="true" />
+                  Remove current avatar
+                </label>
+              )}
+              <div class="control">
+                <div class="file has-name is-fullwidth">
+                  <label class="file-label">
+                    <input
+                      class="file-input"
+                      type="file"
+                      name="avatar"
+                      accept="image/*"
+                      id="avatarInput"
+                    />
+                    <span class="file-cta">
+                      <span class="file-icon">
+                        <i class="fas fa-upload"></i>
+                      </span>
+                      <span class="file-label">
+                        {user.avatarUrl ? 'Change avatar…' : 'Upload avatar…'}
+                      </span>
+                    </span>
+                    <span class="file-name" id="avatarFileName">
+                      No file selected
+                    </span>
+                  </label>
+                </div>
+              </div>
+              <p class="help">Max 2MB. Square images work best.</p>
+            </div>
+
+            <div class="field">
+              <div class="control">
+                <button type="submit" class="button is-primary">
+                  <span class="icon">
+                    <i class="fas fa-save"></i>
+                  </span>
+                  <span>Update Avatar</span>
+                </button>
+              </div>
+            </div>
+          </form>
+
+          <hr />
+          
+          <form method="POST" class="mt-4">
             <input type="hidden" name="action" value="update-name" />
             
             <div class="field">
@@ -236,4 +334,21 @@ if (Astro.request.method === 'POST') {
       </a>
     </div>
   </div>
+
+  <script>
+    // Update file name display for avatar upload
+    const avatarInput = document.getElementById('avatarInput') as HTMLInputElement;
+    const avatarFileName = document.getElementById('avatarFileName');
+    
+    avatarInput?.addEventListener('change', () => {
+      if (avatarInput.files && avatarInput.files.length > 0) {
+        const file = avatarInput.files[0];
+        if (avatarFileName) {
+          avatarFileName.textContent = file.name;
+        }
+      } else if (avatarFileName) {
+        avatarFileName.textContent = 'No file selected';
+      }
+    });
+  </script>
 </Layout>

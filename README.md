@@ -14,9 +14,10 @@ A web application for managing musical ensembles built with Astro, Astro DB, and
 
 - **Authentication**: User registration, login, and session management
 - **Invite System**: Ensembles are private and require invite codes to join
-- **Ensemble Management**: Create and manage musical groups
+- **Ensemble Management**: Create and manage musical groups with images
 - **Voice Parts**: Define and manage voice parts (e.g., soprano, alto, tenor, baritone, bass) for each ensemble
 - **Member Organization**: Group members by their assigned voice parts
+- **Profile Pictures**: Users can upload avatars to personalize their profiles
 - **Rehearsal Scheduling**: Schedule rehearsals with date, time, and location
 - **Attendance Tracking**: Multiple check-in methods for rehearsals:
   - Manual check-in button
@@ -24,7 +25,7 @@ A web application for managing musical ensembles built with Astro, Astro DB, and
   - Admin can manually mark attendance
 - **Member Management**: Add/remove members, assign ensemble admin roles
 - **Role-based Access Control**: Different permissions for site admins, ensemble admins, and members
-- **Profile Management**: Users can edit their name and select their voice part for each ensemble
+- **Profile Management**: Users can edit their name, upload profile pictures, and select their voice part for each ensemble
 - **Responsive UI**: Mobile-friendly interface using Bulma CSS
 
 ## Getting Started
@@ -83,7 +84,8 @@ On first run, the database is seeded with:
 │   │   └── Layout.astro   # Main layout with Bulma CSS
 │   ├── lib/
 │   │   ├── auth.ts        # Authentication utilities
-│   │   └── session.ts     # Session management
+│   │   ├── session.ts     # Session management
+│   │   └── upload.ts      # File upload utilities
 │   ├── pages/
 │   │   ├── index.astro              # Home page
 │   │   ├── login.astro              # Login page
@@ -99,6 +101,7 @@ On first run, the database is seeded with:
 │   │       ├── index.astro                      # List of user's ensembles
 │   │       └── [id]/
 │   │           ├── astro                        # Ensemble detail page
+│   │           ├── edit.astro                   # Edit ensemble (name, description, image)
 │   │           ├── parts.astro                  # Manage voice parts (admin)
 │   │           └── rehearsals/
 │   │               ├── index.astro              # Rehearsal list & scheduling
@@ -115,6 +118,7 @@ On first run, the database is seeded with:
 - `email`: Unique email address
 - `passwordHash`: Hashed password
 - `name`: User's full name
+- `avatarUrl`: Optional profile picture (stored as base64 data URI)
 - `role`: 'admin' or 'user'
 - `createdAt`: Account creation timestamp
 
@@ -122,6 +126,7 @@ On first run, the database is seeded with:
 - `id`: Primary key
 - `name`: Ensemble name
 - `description`: Optional description
+- `imageUrl`: Optional ensemble image (stored as base64 data URI)
 - `createdBy`: Reference to User who created it
 - `createdAt`: Creation timestamp
 
@@ -206,6 +211,7 @@ On first run, the database is seeded with:
 3. Click "Join with Invite Code" and enter the code
 4. **Set Your Profile**:
    - Go to "Profile" to edit your name
+   - Upload a profile picture (max 2MB, square images recommended)
    - Select your voice part for each ensemble you've joined
 5. View your ensemble's upcoming rehearsals
 6. Check in to rehearsals by:

@@ -36,6 +36,7 @@ const membersData = await db
     id: User.id,
     name: User.name,
     email: User.email,
+    avatarUrl: User.avatarUrl,
     role: EnsembleMember.role,
     joinedAt: EnsembleMember.joinedAt,
     membershipId: EnsembleMember.id,
@@ -130,6 +131,16 @@ if (Astro.request.method === 'POST') {
 ---
 
 <Layout title={ensemble.name}>
+  {ensemble.imageUrl && (
+    <div class="columns">
+      <div class="column">
+        <figure class="image is-128x128 mb-4">
+          <img src={ensemble.imageUrl} alt={ensemble.name} style="object-fit: cover; border-radius: 8px;" />
+        </figure>
+      </div>
+    </div>
+  )}
+
   <div class="level">
     <div class="level-left">
       <div class="level-item">
@@ -144,6 +155,14 @@ if (Astro.request.method === 'POST') {
     <div class="level-right">
       <div class="level-item">
         <div class="buttons">
+          {isAdmin && (
+            <a href={`/ensembles/${id}/edit`} class="button is-warning">
+              <span class="icon">
+                <i class="fas fa-edit"></i>
+              </span>
+              <span>Edit Ensemble</span>
+            </a>
+          )}
           <a href={`/ensembles/${id}/rehearsals`} class="button is-primary">
             <span class="icon">
               <i class="fas fa-music"></i>
@@ -237,6 +256,7 @@ if (Astro.request.method === 'POST') {
               <table class="table is-fullwidth is-striped">
                 <thead>
                   <tr>
+                    <th style="width: 60px;"></th>
                     <th>Name</th>
                     <th>Email</th>
                     <th>Role</th>
@@ -247,6 +267,15 @@ if (Astro.request.method === 'POST') {
                 <tbody>
                   {partMembers.map((member: any) => (
                     <tr>
+                      <td>
+                        <figure class="image is-48x48">
+                          {member.avatarUrl ? (
+                            <img src={member.avatarUrl} alt={member.name} style="object-fit: cover; border-radius: 50%;" />
+                          ) : (
+                            <img src="https://bulma.io/assets/images/placeholders/128x128.png" alt="No avatar" style="border-radius: 50%;" />
+                          )}
+                        </figure>
+                      </td>
                       <td>{member.name}</td>
                       <td>{member.email}</td>
                       <td>
@@ -299,6 +328,7 @@ if (Astro.request.method === 'POST') {
             <table class="table is-fullwidth is-striped">
               <thead>
                 <tr>
+                  <th style="width: 60px;"></th>
                   <th>Name</th>
                   <th>Email</th>
                   <th>Role</th>
@@ -309,6 +339,15 @@ if (Astro.request.method === 'POST') {
               <tbody>
                 {membersWithoutPart.map((member) => (
                   <tr>
+                    <td>
+                      <figure class="image is-48x48">
+                        {member.avatarUrl ? (
+                          <img src={member.avatarUrl} alt={member.name} style="object-fit: cover; border-radius: 50%;" />
+                        ) : (
+                          <img src="https://bulma.io/assets/images/placeholders/128x128.png" alt="No avatar" style="border-radius: 50%;" />
+                        )}
+                      </figure>
+                    </td>
                     <td>{member.name}</td>
                     <td>{member.email}</td>
                     <td>
@@ -358,6 +397,7 @@ if (Astro.request.method === 'POST') {
       <table class="table is-fullwidth is-striped">
         <thead>
           <tr>
+            <th style="width: 60px;"></th>
             <th>Name</th>
             <th>Email</th>
             <th>Role</th>
@@ -368,6 +408,15 @@ if (Astro.request.method === 'POST') {
         <tbody>
           {members.map((member) => (
             <tr>
+              <td>
+                <figure class="image is-48x48">
+                  {member.avatarUrl ? (
+                    <img src={member.avatarUrl} alt={member.name} style="object-fit: cover; border-radius: 50%;" />
+                  ) : (
+                    <img src="https://bulma.io/assets/images/placeholders/128x128.png" alt="No avatar" style="border-radius: 50%;" />
+                  )}
+                </figure>
+              </td>
               <td>{member.name}</td>
               <td>{member.email}</td>
               <td>

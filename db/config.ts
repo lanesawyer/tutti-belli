@@ -5,8 +5,7 @@ const User = defineTable({
     id: column.text({ primaryKey: true }),
     email: column.text({ unique: true }),
     passwordHash: column.text(),
-    name: column.text(),
-    role: column.text({ default: 'user' }), // 'admin', 'user'
+    name: column.text(),    avatarUrl: column.text({ optional: true }),    role: column.text({ default: 'user' }), // 'admin', 'user'
     createdAt: column.date({ default: NOW }),
   }
 });
@@ -16,6 +15,7 @@ const Ensemble = defineTable({
     id: column.text({ primaryKey: true }),
     name: column.text(),
     description: column.text({ optional: true }),
+    imageUrl: column.text({ optional: true }),
     createdBy: column.text({ references: () => User.columns.id }),
     createdAt: column.date({ default: NOW }),
   }
