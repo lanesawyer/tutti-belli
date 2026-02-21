@@ -1,6 +1,6 @@
 ---
 import Layout from '../../layouts/Layout.astro';
-import { db, eq, and, Ensemble, EnsembleMember, User, EnsembleInvite, Part } from 'astro:db';
+import { db, eq, and, desc, Ensemble, EnsembleMember, User, EnsembleInvite, Part, Announcement } from 'astro:db';
 
 const user = Astro.locals.user;
 if (!user) {
@@ -73,6 +73,21 @@ for (const member of membersData) {
 
 // For backwards compatibility, keep members array
 const members = membersData;
+
+// Get latest announcements (limit to 3 most recent)
+const latestAnnouncements = await db
+  .select({
+    id: Announcement.id,
+    title: Announcement.title,
+    content: Announcement.content,
+    createdAt: Announcement.createdAt,
+    creatorName: User.name,
+  })
+  .from(Announcement)
+  .innerJoin(User, eq(Announcement.createdBy, User.id))
+  .where(eq(Announcement.ensembleId, id))
+  .orderBy(desc(Announcement.createdAt))
+  .limit(3);
 
 // Get invite codes (if admin)
 const invites = isAdmin
@@ -163,6 +178,12 @@ if (Astro.request.method === 'POST') {
               <span>Edit Ensemble</span>
             </a>
           )}
+          <a href={`/ensembles/${id}/announcements`} class="button is-link">
+            <span class="icon">
+              <i class="fas fa-bullhorn"></i>
+            </span>
+            <span>Announcements</span>
+          </a>
           <a href={`/ensembles/${id}/rehearsals`} class="button is-primary">
             <span class="icon">
               <i class="fas fa-music"></i>
@@ -240,6 +261,61 @@ if (Astro.request.method === 'POST') {
       )}
     </div>
   )}
+
+  <!-- Announcements Section -->
+  <div class="box mb-5">
+    <div class="level">
+      <div class="level-left">
+        <div class="level-item">
+          <h2 class="title is-4">
+            <span class="icon-text">
+              <span class="icon">
+                <i class="fas fa-bullhorn"></i>
+              </span>
+              <span>Recent Announcements</span>
+            </span>
+          </h2>
+        </div>
+      </div>
+      <div class="level-right">
+        <div class="level-item">
+          <a href={`/ensembles/${id}/announcements`} class="button is-small is-link">
+            View All
+          </a>
+        </div>
+      </div>
+    </div>
+
+    {latestAnnouncements.length === 0 ? (
+      <div class="notification is-info is-light">
+        <p class="has-text-centered">No announcements yet.</p>
+        {isAdmin && (
+          <p class="has-text-centered mt-2">
+            <a href={`/ensembles/${id}/announcements`} class="button is-small is-link">
+              Create First Announcement
+            </a>
+          </p>
+        )}
+      </div>
+    ) : (
+      latestAnnouncements.map((announcement) => (
+        <article class="message is-link">
+          <div class="message-header">
+            <p>{announcement.title}</p>
+            <small class="has-text-weight-normal">
+              {new Date(announcement.createdAt).toLocaleDateString()}
+            </small>
+          </div>
+          <div class="message-body">
+            <p style="white-space: pre-wrap;">{announcement.content}</p>
+            <p class="mt-2">
+              <small><em>— {announcement.creatorName}</em></small>
+            </p>
+          </div>
+        </article>
+      ))
+    )}
+  </div>
 
   <div class="box">
     <h2 class="title is-4">Members ({members.length})</h2>

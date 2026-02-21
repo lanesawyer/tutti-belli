@@ -76,6 +76,18 @@ const Attendance = defineTable({
   }
 });
 
+const Announcement = defineTable({
+  columns: {
+    id: column.text({ primaryKey: true }),
+    ensembleId: column.text({ references: () => Ensemble.columns.id }),
+    title: column.text(),
+    content: column.text(),
+    createdBy: column.text({ references: () => User.columns.id }),
+    createdAt: column.date({ default: NOW }),
+    updatedAt: column.date({ default: NOW }),
+  }
+});
+
 export default defineDb({
-  tables: { User, Ensemble, EnsembleMember, Part, EnsembleInvite, Rehearsal, Attendance }
+  tables: { User, Ensemble, EnsembleMember, Part, EnsembleInvite, Rehearsal, Attendance, Announcement }
 });
