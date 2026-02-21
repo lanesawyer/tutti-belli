@@ -1,6 +1,6 @@
 ---
 import Layout from '../../layouts/Layout.astro';
-import { db, eq, and, desc, Ensemble, EnsembleMember, User, EnsembleInvite, Part, Announcement, Group, GroupMembership } from 'astro:db';
+import { db, eq, and, desc, Ensemble, EnsembleMember, User, EnsembleInvite, Part, Announcement, Group, GroupMembership, Rehearsal } from 'astro:db';
 import { canManageEnsemble } from '../../lib/permissions';
 
 const user = Astro.locals.user;
@@ -117,6 +117,22 @@ const latestAnnouncements = await db
   .orderBy(desc(Announcement.createdAt))
   .limit(3);
 
+// Get upcoming rehearsals (next 5)
+const allRehearsals = await db
+  .select()
+  .from(Rehearsal)
+  .where(eq(Rehearsal.ensembleId, id))
+  .orderBy(Rehearsal.scheduledAt);
+
+const now = new Date();
+const upcomingRehearsals = allRehearsals
+  .filter(r => {
+    const scheduledTime = new Date(r.scheduledAt);
+    const endTime = new Date(scheduledTime.getTime() + (r.durationMinutes * 60 * 1000));
+    return endTime > now;
+  })
+  .slice(0, 5);
+
 // Get invite codes (if admin)
 const invites = isAdmin
   ? await db
@@ -186,27 +202,36 @@ if (Astro.request.method === 'POST') {
 
   <!-- Header Section - Full Width -->
   <div class="mb-5">
-    <h1 class="title">{ensemble.name}</h1>
-    {ensemble.description && (
-      <p class="subtitle">{ensemble.description}</p>
-    )}
-    
-    <div class="buttons are-medium mt-4" style="flex-wrap: wrap;">
-      <a href={`/ensembles/${id}/announcements`} class="button is-link">
-        <span class="icon">
-          <i class="fas fa-bullhorn"></i>
-        </span>
-        <span>Announcements</span>
-      </a>
-      <a href={`/ensembles/${id}/rehearsals`} class="button is-primary">
-        <span class="icon">
-          <i class="fas fa-music"></i>
-        </span>
-        <span>Rehearsals</span>
-      </a>
-      <span class={`tag is-large ${isAdmin ? 'is-warning' : 'is-info'}`}>
-        {isAdmin ? 'Ensemble Admin' : 'Member'}
-      </span>
+    <div class="level">
+      <div class="level-left">
+        <div class="level-item">
+          <div>
+            <h1 class="title">{ensemble.name}</h1>
+            {ensemble.description && (
+              <p class="subtitle">{ensemble.description}</p>
+            )}
+          </div>
+        </div>
+      </div>
+      <div class="level-right">
+        <div class="level-item">
+          <div class="tags has-addons are-large">
+            <span class={`tag ${isAdmin ? 'is-warning' : 'is-info'}`}>
+              {isAdmin ? 'Ensemble Admin' : 'Member'}
+            </span>
+          </div>
+        </div>
+        {ensemble.discordLink && (
+          <div class="level-item">
+            <a href={ensemble.discordLink} target="_blank" rel="noopener noreferrer" class="button is-link" title="Join Discord Server">
+              <span class="icon">
+                <i class="fab fa-discord"></i>
+              </span>
+              <span>Discord</span>
+            </a>
+          </div>
+        )}
+      </div>
     </div>
   </div>
 
@@ -265,6 +290,83 @@ if (Astro.request.method === 'POST') {
         </article>
       ))
     )}
+      </div>
+
+      <!-- Upcoming Rehearsals Section -->
+      <div class="box mb-5">
+        <div class="level">
+          <div class="level-left">
+            <div class="level-item">
+              <h2 class="title is-4">
+                <span class="icon-text">
+                  <span class="icon">
+                    <i class="fas fa-music"></i>
+                  </span>
+                  <span>Upcoming Rehearsals</span>
+                </span>
+              </h2>
+            </div>
+          </div>
+          <div class="level-right">
+            <div class="level-item">
+              <a href={`/ensembles/${id}/rehearsals`} class="button is-small is-primary">
+                View All
+              </a>
+            </div>
+          </div>
+        </div>
+
+        {upcomingRehearsals.length === 0 ? (
+          <div class="notification is-info is-light">
+            <p class="has-text-centered">No upcoming rehearsals.</p>
+            {isAdmin && (
+              <p class="has-text-centered mt-2">
+                <a href={`/ensembles/${id}/rehearsals`} class="button is-small is-primary">
+                  Schedule Rehearsal
+                </a>
+              </p>
+            )}
+          </div>
+        ) : (
+          <div class="content">
+            {upcomingRehearsals.map((rehearsal) => {
+              const scheduledDate = new Date(rehearsal.scheduledAt);
+              const isToday = scheduledDate.toDateString() === new Date().toDateString();
+              
+              return (
+                <article class={`message ${isToday ? 'is-success' : 'is-primary'}`}>
+                  <div class="message-header">
+                    <p>
+                      {rehearsal.title}
+                      {isToday && <span class="tag is-light ml-2">Today</span>}
+                    </p>
+                    <small class="has-text-weight-normal">
+                      {scheduledDate.toLocaleDateString()} at {scheduledDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </small>
+                  </div>
+                  <div class="message-body">
+                    {rehearsal.location && (
+                      <p class="mb-2">
+                        <span class="icon-text">
+                          <span class="icon">
+                            <i class="fas fa-map-marker-alt"></i>
+                          </span>
+                          <span>{rehearsal.location}</span>
+                        </span>
+                      </p>
+                    )}
+                    {rehearsal.description && (
+                      <p style="white-space: pre-wrap;">{rehearsal.description}</p>
+                    )}
+                    <p class="mt-2">
+                      <small>Duration: {rehearsal.durationMinutes} minutes</small>
+                    </p>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       <div class="box">
@@ -520,6 +622,18 @@ if (Astro.request.method === 'POST') {
                 <i class="fas fa-edit"></i>
               </span>
               <span>Edit Ensemble</span>
+            </a>
+            <a href={`/ensembles/${id}/rehearsals`} class="button is-fullwidth">
+              <span class="icon">
+                <i class="fas fa-music"></i>
+              </span>
+              <span>Manage Rehearsals</span>
+            </a>
+            <a href={`/ensembles/${id}/announcements`} class="button is-fullwidth">
+              <span class="icon">
+                <i class="fas fa-bullhorn"></i>
+              </span>
+              <span>Manage Announcements</span>
             </a>
             <a href={`/ensembles/${id}/parts`} class="button is-fullwidth">
               <span class="icon">

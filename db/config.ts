@@ -16,6 +16,7 @@ const Ensemble = defineTable({
     name: column.text(),
     description: column.text({ optional: true }),
     imageUrl: column.text({ optional: true }),
+    discordLink: column.text({ optional: true }),
     checkInStartMinutes: column.number({ default: 30 }), // Minutes before rehearsal check-in opens
     checkInEndMinutes: column.number({ default: 15 }), // Minutes after rehearsal start check-in closes
     createdBy: column.text({ references: () => User.columns.id }),

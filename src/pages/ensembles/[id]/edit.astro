@@ -43,6 +43,7 @@ if (Astro.request.method === 'POST') {
   const formData = await Astro.request.formData();
   const name = formData.get('name')?.toString();
   const description = formData.get('description')?.toString();
+  const discordLink = formData.get('discordLink')?.toString();
   const imageFile = formData.get('image') as File;
   const removeImage = formData.get('removeImage')?.toString() === 'true';
   const checkInStartMinutes = parseInt(formData.get('checkInStartMinutes')?.toString() || '30');
@@ -78,6 +79,7 @@ if (Astro.request.method === 'POST') {
           .set({
             name: name.trim(),
             description: description?.trim() || null,
+            discordLink: discordLink?.trim() || null,
             imageUrl,
             checkInStartMinutes,
             checkInEndMinutes,
@@ -143,6 +145,24 @@ if (Astro.request.method === 'POST') {
                     placeholder="Optional description..."
                   >{ensemble.description || ''}</textarea>
                 </div>
+              </div>
+
+              <div class="field">
+                <label class="label" for="discordLink">Discord Link</label>
+                <div class="control has-icons-left">
+                  <input
+                    class="input"
+                    type="url"
+                    id="discordLink"
+                    name="discordLink"
+                    value={ensemble.discordLink || ''}
+                    placeholder="https://discord.gg/..."
+                  />
+                  <span class="icon is-small is-left">
+                    <i class="fab fa-discord"></i>
+                  </span>
+                </div>
+                <p class="help">Optional Discord server invite link for this ensemble</p>
               </div>
 
               <div class="field">

@@ -1,4 +1,4 @@
-import { db, User, Ensemble, EnsembleMember, Part, EnsembleInvite, Season, SeasonMembership, Rehearsal, Group, GroupMembership } from 'astro:db';
+import { db, User, Ensemble, EnsembleMember, Part, EnsembleInvite, Season, SeasonMembership, Rehearsal, Announcement, Group, GroupMembership } from 'astro:db';
 import bcrypt from 'bcryptjs';
 
 export default async function seed() {
@@ -54,6 +54,7 @@ export default async function seed() {
       id: ensembleId,
       name: 'Chamber Orchestra',
       description: 'A test ensemble for development and testing',
+      discordLink: 'https://discord.gg/example',
       createdBy: adminId,
     },
   ]);
@@ -215,6 +216,39 @@ export default async function seed() {
       id: crypto.randomUUID(),
       groupId: boardMembersGroupId,
       userId: ensembleAdminId,
+    },
+  ]);
+
+  // Create sample announcements
+  const recentAnnouncementDate = new Date();
+  recentAnnouncementDate.setDate(recentAnnouncementDate.getDate() - 2); // 2 days ago
+
+  const olderAnnouncementDate = new Date();
+  olderAnnouncementDate.setDate(olderAnnouncementDate.getDate() - 7); // 1 week ago
+
+  await db.insert(Announcement).values([
+    {
+      id: crypto.randomUUID(),
+      ensembleId: ensembleId,
+      title: 'Welcome to the Spring 2026 Season!',
+      content: 'We\'re excited to begin our Spring 2026 season together! Please make sure to check the rehearsal schedule and mark your calendars. Don\'t forget to join our Discord server to stay connected with everyone between rehearsals.',
+      createdBy: adminId,
+      createdAt: olderAnnouncementDate,
+    },
+    {
+      id: crypto.randomUUID(),
+      ensembleId: ensembleId,
+      title: 'Reminder: Concert Attire',
+      content: 'Just a friendly reminder that our spring concert is coming up next month. Please ensure you have your concert attire ready. If you need assistance with ordering, please reach out to the board members.',
+      createdBy: ensembleAdminId,
+      createdAt: recentAnnouncementDate,
+    },
+    {
+      id: crypto.randomUUID(),
+      ensembleId: ensembleId,
+      title: 'New Check-In System',
+      content: 'We\'ve implemented a new digital check-in system for rehearsals! When you arrive at rehearsal, look for the check-in code displayed on the screen. Use the code to mark your attendance through the app. The check-in window opens 30 minutes before rehearsal starts.',
+      createdBy: adminId,
     },
   ]);
 
