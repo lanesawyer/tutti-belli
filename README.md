@@ -7,23 +7,29 @@ A web application for managing musical ensembles built with Astro, Astro DB, and
 ### User Roles
 
 - **Site Admin**: Can create ensembles and manage all users
-- **Ensemble Admin**: Has full control over a specific ensemble (add/remove members, promote to admin)
-- **Regular User**: Can join ensembles and view ensemble information
+- **Ensemble Admin**: Has full control over a specific ensemble (manage members, create rehearsals, track attendance)
+- **Regular User**: Can join ensembles via invite codes, check in to rehearsals, view attendance
 
 ### Core Functionality
 
-- User authentication (registration, login, logout)
-- Ensemble creation and management
-- Member management within ensembles
-- Role-based access control
-- Responsive UI with Bulma CSS
+- **Authentication**: User registration, login, and session management
+- **Invite System**: Ensembles are private and require invite codes to join
+- **Ensemble Management**: Create and manage musical groups
+- **Rehearsal Scheduling**: Schedule rehearsals with date, time, and location
+- **Attendance Tracking**: Multiple check-in methods for rehearsals:
+  - Manual check-in button
+  - QR code scanning for touch-free check-in
+  - Admin can manually mark attendance
+- **Member Management**: Add/remove members, assign ensemble admin roles
+- **Role-based Access Control**: Different permissions for site admins, ensemble admins, and members
+- **Responsive UI**: Mobile-friendly interface using Bulma CSS
 
 ## Getting Started
 
 ### Prerequisites
 
 - Node.js (v18 or higher)
-- npm or yarn
+- pnpm (v10 or higher)
 
 ### Installation
 
@@ -35,12 +41,12 @@ cd ensemble-management-software
 
 2. Install dependencies:
 ```bash
-npm install
+pnpm install
 ```
 
 3. Start the development server:
 ```bash
-npm run dev
+pnpm dev
 ```
 
 The application will be available at `http://localhost:4321/`
@@ -68,16 +74,23 @@ On first run, the database is seeded with a default admin account:
 │   │   ├── auth.ts        # Authentication utilities
 │   │   └── session.ts     # Session management
 │   ├── pages/
-│   │   ├── index.astro    # Home page
-│   │   ├── login.astro    # Login page
-│   │   ├── register.astro # Registration page
-│   │   ├── logout.astro   # Logout handler
-│   │   ├── profile.astro  # User profile
-│   │   ├── admin.astro    # Site admin panel
+│   │   ├── index.astro              # Home page
+│   │   ├── login.astro              # Login page
+│   │   ├── register.astro           # Registration page
+│   │   ├── logout.astro             # Logout handler
+│   │   ├── profile.astro            # User profile
+│   │   ├── admin.astro              # Site admin panel
+│   │   ├── invite/
+│   │   │   └── join.astro           # Join ensemble with invite code
+│   │   ├── checkin/
+│   │   │   └── [code].astro         # QR code check-in landing page
 │   │   └── ensembles/
-│   │       ├── index.astro           # List of ensembles
-│   │       ├── [id].astro            # Ensemble detail page
-│   │       └── [id]/join.astro       # Join ensemble handler
+│   │       ├── index.astro                      # List of user's ensembles
+│   │       └── [id]/
+│   │           ├── astro                        # Ensemble detail page
+│   │           └── rehearsals/
+│   │               ├── index.astro              # Rehearsal list & scheduling
+│   │               └── [rehearsalId].astro      # Rehearsal detail & attendance
 │   ├── middleware.ts      # Authentication middleware
 │   └── env.d.ts          # TypeScript definitions
 └── astro.config.mjs      # Astro configuration
@@ -107,42 +120,92 @@ On first run, the database is seeded with a default admin account:
 - `role`: 'admin' or 'member' (ensemble-specific role)
 - `joinedAt`: Timestamp when user joined
 
+### EnsembleInvite Table
+- `id`: Primary key
+- `ensembleId`: Reference to Ensemble
+- `code`: Unique 8-character invite code
+- `createdBy`: Reference to User who created the invite
+- `expiresAt`: Optional expiration date
+- `createdAt`: Creation timestamp
+
+### Rehearsal Table
+- `id`: Primary key
+- `ensembleId`: Reference to Ensemble
+- `title`: Rehearsal title
+- `description`: Optional description
+- `scheduledAt`: Date and time of rehearsal
+- `location`: Optional location
+- `checkInCode`: Unique code for QR check-in
+- `createdAt`: Creation timestamp
+
+### Attendance Table
+- `id`: Primary key
+- `rehearsalId`: Reference to Rehearsal
+- `userId`: Reference to User
+- `checkedInAt`: Timestamp of check-in
+- `checkedInMethod`: 'qr', 'manual', or 'admin'
+
 ## Usage Guide
 
 ### For Site Administrators
 
 1. Log in with the admin account
 2. Go to the Admin Panel
-3. Create new ensembles
+3. Create new ensembles (you'll automatically become an ensemble admin)
 4. Promote users to site admin or demote them
 5. Delete ensembles if needed
 
 ### For Ensemble Admins
 
-1. Navigate to your ensemble
-2. View all members
-3. Promote members to ensemble admin or demote them
-4. Remove members from the ensemble
+1. Navigate to your ensemble from "My Ensembles"
+2. **Manage Invite Codes**:
+   - Generate new invite codes to share with prospective members
+   - Delete old invite codes
+3. **Manage Members**:
+   - View all members and their roles
+   - Promote members to ensemble admin
+   - Remove members from the ensemble
+4. **Schedule Rehearsals**:
+   - Create rehearsals with date, time, and location
+   - View upcoming and past rehearsals
+5. **Track Attendance**:
+   - Display QR code for members to scan at the door
+   - View who has checked in to each rehearsal
+   - Manually mark members present if needed
+   - View attendance statistics
 
 ### For Regular Users
 
 1. Register for an account
-2. Browse available ensembles
-3. Join ensembles you're interested in
-4. View ensemble details and members
+2. Receive an invite code from your ensemble admin
+3. Click "Join with Invite Code" and enter the code
+4. View your ensemble's upcoming rehearsals
+5. Check in to rehearsals by:
+   - Clicking the "Check In Now" button
+   - Scanning the QR code displayed at the venue
+   - Or visiting the check-in URL
+
+## Check-In Methods
+
+The system supports three ways for members to mark their attendance:
+
+1. **QR Code Scanning**: Admins can display a QR code that members scan with their phones to instantly check in
+2. **Manual Check-In**: Members can visit the rehearsal page and click "Check In Now"
+3. **Admin Override**: Ensemble admins can manually mark any member as present
+
+All attendance records include timestamps and the method used for check-in.
 
 ## Development
 
-### Building for Production
+### Available Scripts
 
 ```bash
-npm run build
-```
-
-### Preview Production Build
-
-```bash
-npm run preview
+pnpm dev        # Start development server
+pnpm build      # Build for production
+pnpm preview    # Preview production build
+pnpm check      # Run TypeScript type checking
+pnpm lint       # Run linter and type check
+pnpm fmt        # Auto-fix linting issues
 ```
 
 ## Technology Stack
@@ -151,13 +214,17 @@ npm run preview
 - **Database**: [Astro DB](https://docs.astro.build/en/guides/astro-db/)
 - **CSS Framework**: [Bulma](https://bulma.io/) v1.0
 - **Icons**: [Font Awesome](https://fontawesome.com/) v6
+- **QR Codes**: qrcode package
 - **Authentication**: bcryptjs for password hashing
 - **SSR Adapter**: @astrojs/node
+- **Linting**: Oxlint for TypeScript files
 
 ## Security Notes
 
 - Passwords are hashed using bcrypt (10 rounds)
 - Sessions are stored server-side with HTTP-only cookies
+- Ensembles are private and require invite codes
+- Check-in codes are unique per rehearsal
 - CSRF protection should be added for production use
 - Always use HTTPS in production
 - Change the default admin password immediately

@@ -1,0 +1,325 @@
+---
+import Layout from '../../../../layouts/Layout.astro';
+import { db, eq, and, Ensemble, EnsembleMember, Rehearsal, Attendance, User } from 'astro:db';
+import QRCode from 'qrcode';
+
+const user = Astro.locals.user;
+if (!user) {
+  return Astro.redirect('/login');
+}
+
+const { id, rehearsalId } = Astro.params;
+if (!id || !rehearsalId) {
+  return Astro.redirect('/ensembles');
+}
+
+// Get ensemble details
+const [ensemble] = await db.select().from(Ensemble).where(eq(Ensemble.id, id));
+if (!ensemble) {
+  return Astro.redirect('/ensembles');
+}
+
+// Check if user is a member
+const [membership] = await db
+  .select()
+  .from(EnsembleMember)
+  .where(and(eq(EnsembleMember.ensembleId, id), eq(EnsembleMember.userId, user.id)));
+
+if (!membership) {
+  return Astro.redirect('/ensembles');
+}
+
+const isAdmin = membership.role === 'admin';
+
+// Get rehearsal details
+const [rehearsal] = await db.select().from(Rehearsal).where(eq(Rehearsal.id, rehearsalId));
+if (!rehearsal) {
+  return Astro.redirect(`/ensembles/${id}/rehearsals`);
+}
+
+let message = '';
+
+// Handle attendance actions
+if (Astro.request.method === 'POST') {
+  const formData = await Astro.request.formData();
+  const action = formData.get('action')?.toString();
+
+  if (action === 'checkin') {
+    // Check if already checked in
+    const [existing] = await db
+      .select()
+      .from(Attendance)
+      .where(and(eq(Attendance.rehearsalId, rehearsalId), eq(Attendance.userId, user.id)));
+
+    if (!existing) {
+      await db.insert(Attendance).values({
+        id: crypto.randomUUID(),
+        rehearsalId,
+        userId: user.id,
+        checkedInMethod: 'manual',
+      });
+      message = 'Successfully checked in!';
+    } else {
+      message = 'You have already checked in for this rehearsal.';
+    }
+  } else if (action === 'remove' && isAdmin) {
+    const attendanceId = formData.get('attendanceId')?.toString();
+    if (attendanceId) {
+      await db.delete(Attendance).where(eq(Attendance.id, attendanceId));
+      message = 'Attendance removed.';
+    }
+  } else if (action === 'add' && isAdmin) {
+    const userId = formData.get('userId')?.toString();
+    if (userId) {
+      // Check if already checked in
+      const [existing] = await db
+        .select()
+        .from(Attendance)
+        .where(and(eq(Attendance.rehearsalId, rehearsalId), eq(Attendance.userId, userId)));
+
+      if (!existing) {
+        await db.insert(Attendance).values({
+          id: crypto.randomUUID(),
+          rehearsalId,
+          userId,
+          checkedInMethod: 'admin',
+        });
+        message = 'Member marked as present.';
+      }
+    }
+  }
+}
+
+// Get attendance records
+const attendanceRecords = await db
+  .select({
+    id: Attendance.id,
+    userId: User.id,
+    userName: User.name,
+    checkedInAt: Attendance.checkedInAt,
+    checkedInMethod: Attendance.checkedInMethod,
+  })
+  .from(Attendance)
+  .innerJoin(User, eq(Attendance.userId, User.id))
+  .where(eq(Attendance.rehearsalId, rehearsalId));
+
+// Get all members for admin to mark attendance
+const allMembers = await db
+  .select({
+    id: User.id,
+    name: User.name,
+    email: User.email,
+  })
+  .from(EnsembleMember)
+  .innerJoin(User, eq(EnsembleMember.userId, User.id))
+  .where(eq(EnsembleMember.ensembleId, id));
+
+const attendedUserIds = new Set(attendanceRecords.map(a => a.userId));
+const absentMembers = allMembers.filter(m => !attendedUserIds.has(m.id));
+
+// Generate QR code for check-in
+const checkInUrl = `${Astro.url.origin}/checkin/${rehearsal.checkInCode}`;
+const qrCodeDataUrl = await QRCode.toDataURL(checkInUrl, {
+  width: 300,
+  margin: 2,
+});
+
+const scheduledDate = new Date(rehearsal.scheduledAt);
+const isPast = scheduledDate < new Date();
+const isUserCheckedIn = attendedUserIds.has(user.id);
+---
+
+<Layout title={`${rehearsal.title} - ${ensemble.name}`}>
+  <div class="level mb-5">
+    <div class="level-left">
+      <div class="level-item">
+        <div>
+          <h1 class="title">{rehearsal.title}</h1>
+          <p class="subtitle">
+            <span class="icon-text">
+              <span class="icon">
+                <i class="fas fa-calendar"></i>
+              </span>
+              <span>{scheduledDate.toLocaleDateString()}</span>
+            </span>
+            <span class="ml-3 icon-text">
+              <span class="icon">
+                <i class="fas fa-clock"></i>
+              </span>
+              <span>{scheduledDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+            </span>
+            {rehearsal.location && (
+              <span class="ml-3 icon-text">
+                <span class="icon">
+                  <i class="fas fa-map-marker-alt"></i>
+                </span>
+                <span>{rehearsal.location}</span>
+              </span>
+            )}
+          </p>
+        </div>
+      </div>
+    </div>
+    <div class="level-right">
+      <div class="level-item">
+        <a href={`/ensembles/${id}/rehearsals`} class="button">
+          <span class="icon">
+            <i class="fas fa-arrow-left"></i>
+          </span>
+          <span>Back to Rehearsals</span>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  {message && (
+    <div class="notification is-success is-light">
+      {message}
+    </div>
+  )}
+
+  {rehearsal.description && (
+    <div class="box">
+      <p class="content">{rehearsal.description}</p>
+    </div>
+  )}
+
+  <div class="columns">
+    <div class="column">
+      <div class="box">
+        <h2 class="title is-4">Check-In</h2>
+        
+        {!isPast && !isUserCheckedIn && (
+          <form method="POST">
+            <input type="hidden" name="action" value="checkin" />
+            <button type="submit" class="button is-primary is-large is-fullwidth">
+              <span class="icon">
+                <i class="fas fa-check"></i>
+              </span>
+              <span>Check In Now</span>
+            </button>
+          </form>
+        )}
+
+        {!isPast && isUserCheckedIn && (
+          <div class="notification is-success">
+            <p class="has-text-centered">
+              <span class="icon is-large">
+                <i class="fas fa-check-circle fa-2x"></i>
+              </span>
+            </p>
+            <p class="has-text-centered has-text-weight-bold">You're checked in!</p>
+          </div>
+        )}
+
+        {isPast && !isUserCheckedIn && (
+          <div class="notification is-warning">
+            This rehearsal has passed and you did not check in.
+          </div>
+        )}
+      </div>
+
+      {isAdmin && (
+        <div class="box">
+          <h2 class="title is-4">QR Code Check-In</h2>
+          <p class="mb-4">Display this QR code for members to scan and check in</p>
+          
+          <div class="has-text-centered">
+            <img src={qrCodeDataUrl} alt="QR Code for check-in" class="image is-inline-block" />
+          </div>
+          
+          <div class="field mt-4">
+            <label class="label">Check-in URL</label>
+            <div class="control">
+              <input
+                class="input is-family-monospace"
+                type="text"
+                value={checkInUrl}
+                readonly
+                onclick="this.select()"
+              />
+            </div>
+            <p class="help">Members can scan the QR code or visit this URL to check in</p>
+          </div>
+        </div>
+      )}
+    </div>
+
+    <div class="column">
+      <div class="box">
+        <h2 class="title is-4">Attendance ({attendanceRecords.length} / {allMembers.length})</h2>
+        
+        {attendanceRecords.length > 0 ? (
+          <table class="table is-fullwidth is-striped">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Checked In</th>
+                <th>Method</th>
+                {isAdmin && <th>Actions</th>}
+              </tr>
+            </thead>
+            <tbody>
+              {attendanceRecords.map((record) => (
+                <tr>
+                  <td>{record.userName}</td>
+                  <td>{new Date(record.checkedInAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
+                  <td>
+                    <span class={`tag is-small ${
+                      record.checkedInMethod === 'qr' ? 'is-success' :
+                      record.checkedInMethod === 'manual' ? 'is-info' :
+                      'is-warning'
+                    }`}>
+                      {record.checkedInMethod === 'qr' ? 'QR Scan' :
+                       record.checkedInMethod === 'manual' ? 'Manual' :
+                       'Admin'}
+                    </span>
+                  </td>
+                  {isAdmin && (
+                    <td>
+                      <form method="POST" style="display: inline;">
+                        <input type="hidden" name="action" value="remove" />
+                        <input type="hidden" name="attendanceId" value={record.id} />
+                        <button type="submit" class="button is-danger is-small">
+                          Remove
+                        </button>
+                      </form>
+                    </td>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : (
+          <div class="notification is-info is-light">
+            No one has checked in yet.
+          </div>
+        )}
+
+        {isAdmin && absentMembers.length > 0 && (
+          <>
+            <hr />
+            <h3 class="title is-5 mt-4">Mark Attendance</h3>
+            <p class="mb-3">Members who haven't checked in:</p>
+            {absentMembers.map((member) => (
+              <div class="field is-grouped mb-2">
+                <div class="control is-expanded">
+                  <input class="input is-static" type="text" value={member.name} readonly />
+                </div>
+                <div class="control">
+                  <form method="POST" style="display: inline;">
+                    <input type="hidden" name="action" value="add" />
+                    <input type="hidden" name="userId" value={member.id} />
+                    <button type="submit" class="button is-success">
+                      Mark Present
+                    </button>
+                  </form>
+                </div>
+              </div>
+            ))}
+          </>
+        )}
+      </div>
+    </div>
+  </div>
+</Layout>

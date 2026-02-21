@@ -1,0 +1,125 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { db, eq, and, Rehearsal, Attendance, Ensemble } from 'astro:db';
+
+const user = Astro.locals.user;
+if (!user) {
+  return Astro.redirect(`/login?redirect=/checkin/${Astro.params.code}`);
+}
+
+const { code } = Astro.params;
+if (!code) {
+  return Astro.redirect('/ensembles');
+}
+
+// Find rehearsal by check-in code
+const [rehearsal] = await db
+  .select()
+  .from(Rehearsal)
+  .where(eq(Rehearsal.checkInCode, code.toUpperCase()));
+
+if (!rehearsal) {
+  return new Response('Invalid check-in code', { status: 404 });
+}
+
+// Get ensemble name
+const [ensemble] = await db.select().from(Ensemble).where(eq(Ensemble.id, rehearsal.ensembleId));
+
+let message = '';
+let success = false;
+
+if (Astro.request.method === 'POST') {
+  // Check if already checked in
+  const [existing] = await db
+    .select()
+    .from(Attendance)
+    .where(and(eq(Attendance.rehearsalId, rehearsal.id), eq(Attendance.userId, user.id)));
+
+  if (!existing) {
+    await db.insert(Attendance).values({
+      id: crypto.randomUUID(),
+      rehearsalId: rehearsal.id,
+      userId: user.id,
+      checkedInMethod: 'qr',
+    });
+    message = 'Successfully checked in!';
+    success = true;
+  } else {
+    message = 'You have already checked in for this rehearsal.';
+    success = false;
+  }
+}
+
+const scheduledDate = new Date(rehearsal.scheduledAt);
+---
+
+<Layout title="Check In">
+  <div class="columns is-centered">
+    <div class="column is-6-tablet is-5-desktop">
+      <div class="box has-text-centered">
+        <span class="icon is-large has-text-primary mb-3">
+          <i class="fas fa-qrcode fa-3x"></i>
+        </span>
+        
+        <h1 class="title">Rehearsal Check-In</h1>
+        
+        {ensemble && (
+          <p class="subtitle">{ensemble.name}</p>
+        )}
+
+        <div class="content mt-4">
+          <p><strong>{rehearsal.title}</strong></p>
+          <p>
+            <span class="icon-text">
+              <span class="icon">
+                <i class="fas fa-calendar"></i>
+              </span>
+              <span>{scheduledDate.toLocaleDateString()}</span>
+            </span>
+            <span class="ml-3 icon-text">
+              <span class="icon">
+                <i class="fas fa-clock"></i>
+              </span>
+              <span>{scheduledDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+            </span>
+          </p>
+          {rehearsal.location && (
+            <p>
+              <span class="icon-text">
+                <span class="icon">
+                  <i class="fas fa-map-marker-alt"></i>
+                </span>
+                <span>{rehearsal.location}</span>
+              </span>
+            </p>
+          )}
+        </div>
+
+        {message && (
+          <div class={`notification ${success ? 'is-success' : 'is-warning'} is-light mt-4`}>
+            {message}
+          </div>
+        )}
+
+        {!message && (
+          <form method="POST" class="mt-5">
+            <button type="submit" class="button is-primary is-large is-fullwidth">
+              <span class="icon">
+                <i class="fas fa-check"></i>
+              </span>
+              <span>Check In Now</span>
+            </button>
+          </form>
+        )}
+
+        {success && (
+          <div class="mt-4">
+            <a href={`/ensembles/${rehearsal.ensembleId}/rehearsals/${rehearsal.id}`} class="button is-info">
+              View Rehearsal Details
+            </a>
+          </div>
+        )}
+      </div>
+    </div>
+  </div>
+</Layout>

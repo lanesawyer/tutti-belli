@@ -20,15 +20,26 @@ const userEnsembles = await db
   .from(EnsembleMember)
   .innerJoin(Ensemble, eq(EnsembleMember.ensembleId, Ensemble.id))
   .where(eq(EnsembleMember.userId, user.id));
-
-// Get all available ensembles (for joining)
-const allEnsembles = await db.select().from(Ensemble);
-const userEnsembleIds = new Set(userEnsembles.map(e => e.id));
-const availableEnsembles = allEnsembles.filter(e => !userEnsembleIds.has(e.id));
 ---
 
 <Layout title="My Ensembles">
-  <h1 class="title">My Ensembles</h1>
+  <div class="level">
+    <div class="level-left">
+      <div class="level-item">
+        <h1 class="title">My Ensembles</h1>
+      </div>
+    </div>
+    <div class="level-right">
+      <div class="level-item">
+        <a href="/invite/join" class="button is-primary">
+          <span class="icon">
+            <i class="fas fa-ticket"></i>
+          </span>
+          <span>Join with Invite Code</span>
+        </a>
+      </div>
+    </div>
+  </div>
 
   {userEnsembles.length > 0 ? (
     <div class="columns is-multiline">
@@ -50,6 +61,9 @@ const availableEnsembles = allEnsembles.filter(e => !userEnsembleIds.has(e.id));
               <a href={`/ensembles/${ensemble.id}`} class="card-footer-item">
                 View Details
               </a>
+              <a href={`/ensembles/${ensemble.id}/rehearsals`} class="card-footer-item">
+                Rehearsals
+              </a>
             </footer>
           </div>
         </div>
@@ -57,35 +71,7 @@ const availableEnsembles = allEnsembles.filter(e => !userEnsembleIds.has(e.id));
     </div>
   ) : (
     <div class="notification is-info is-light">
-      <p>You haven't joined any ensembles yet.</p>
+      <p>You haven't joined any ensembles yet. Ask your ensemble admin for an invite code!</p>
     </div>
-  )}
-
-  {availableEnsembles.length > 0 && (
-    <>
-      <hr />
-      <h2 class="title is-4 mt-5">Available Ensembles</h2>
-      <div class="columns is-multiline">
-        {availableEnsembles.map((ensemble) => (
-          <div class="column is-4">
-            <div class="card">
-              <div class="card-content">
-                <p class="title is-4">{ensemble.name}</p>
-                {ensemble.description && (
-                  <p class="subtitle is-6">{ensemble.description}</p>
-                )}
-              </div>
-              <footer class="card-footer">
-                <form method="POST" action={`/ensembles/${ensemble.id}/join`} class="card-footer-item">
-                  <button type="submit" class="button is-primary is-small">
-                    Join Ensemble
-                  </button>
-                </form>
-              </footer>
-            </div>
-          </div>
-        ))}
-      </div>
-    </>
   )}
 </Layout>

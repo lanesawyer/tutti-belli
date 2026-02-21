@@ -1,6 +1,6 @@
 ---
 import Layout from '../../layouts/Layout.astro';
-import { db, eq, and, Ensemble, EnsembleMember, User } from 'astro:db';
+import { db, eq, and, Ensemble, EnsembleMember, User, EnsembleInvite } from 'astro:db';
 
 const user = Astro.locals.user;
 if (!user) {
@@ -44,6 +44,14 @@ const members = await db
   .innerJoin(User, eq(EnsembleMember.userId, User.id))
   .where(eq(EnsembleMember.ensembleId, id));
 
+// Get invite codes (if admin)
+const invites = isAdmin
+  ? await db
+      .select()
+      .from(EnsembleInvite)
+      .where(eq(EnsembleInvite.ensembleId, id))
+  : [];
+
 // Handle member actions
 if (Astro.request.method === 'POST') {
   if (!isAdmin) {
@@ -52,23 +60,42 @@ if (Astro.request.method === 'POST') {
 
   const formData = await Astro.request.formData();
   const action = formData.get('action')?.toString();
-  const membershipId = formData.get('membershipId')?.toString();
 
-  if (action === 'remove' && membershipId) {
-    await db.delete(EnsembleMember).where(eq(EnsembleMember.id, membershipId));
+  if (action === 'create-invite') {
+    // Generate random 8-character code
+    const code = Math.random().toString(36).substring(2, 10).toUpperCase();
+    await db.insert(EnsembleInvite).values({
+      id: crypto.randomUUID(),
+      ensembleId: id,
+      code,
+      createdBy: user.id,
+    });
     return Astro.redirect(`/ensembles/${id}`);
-  } else if (action === 'promote' && membershipId) {
-    await db
-      .update(EnsembleMember)
-      .set({ role: 'admin' })
-      .where(eq(EnsembleMember.id, membershipId));
-    return Astro.redirect(`/ensembles/${id}`);
-  } else if (action === 'demote' && membershipId) {
-    await db
-      .update(EnsembleMember)
-      .set({ role: 'member' })
-      .where(eq(EnsembleMember.id, membershipId));
-    return Astro.redirect(`/ensembles/${id}`);
+  } else if (action === 'delete-invite') {
+    const inviteId = formData.get('inviteId')?.toString();
+    if (inviteId) {
+      await db.delete(EnsembleInvite).where(eq(EnsembleInvite.id, inviteId));
+      return Astro.redirect(`/ensembles/${id}`);
+    }
+  } else {
+    const membershipId = formData.get('membershipId')?.toString();
+
+    if (action === 'remove' && membershipId) {
+      await db.delete(EnsembleMember).where(eq(EnsembleMember.id, membershipId));
+      return Astro.redirect(`/ensembles/${id}`);
+    } else if (action === 'promote' && membershipId) {
+      await db
+        .update(EnsembleMember)
+        .set({ role: 'admin' })
+        .where(eq(EnsembleMember.id, membershipId));
+      return Astro.redirect(`/ensembles/${id}`);
+    } else if (action === 'demote' && membershipId) {
+      await db
+        .update(EnsembleMember)
+        .set({ role: 'member' })
+        .where(eq(EnsembleMember.id, membershipId));
+      return Astro.redirect(`/ensembles/${id}`);
+    }
   }
 }
 ---
@@ -87,12 +114,76 @@ if (Astro.request.method === 'POST') {
     </div>
     <div class="level-right">
       <div class="level-item">
-        <span class={`tag is-medium ${isAdmin ? 'is-warning' : 'is-info'}`}>
-          {isAdmin ? 'Ensemble Admin' : 'Member'}
-        </span>
+        <div class="buttons">
+          <a href={`/ensembles/${id}/rehearsals`} class="button is-primary">
+            <span class="icon">
+              <i class="fas fa-music"></i>
+            </span>
+            <span>Rehearsals</span>
+          </a>
+          <span class={`tag is-medium ${isAdmin ? 'is-warning' : 'is-info'}`}>
+            {isAdmin ? 'Ensemble Admin' : 'Member'}
+          </span>
+        </div>
       </div>
     </div>
   </div>
+
+  {isAdmin && (
+    <div class="box mb-5">
+      <h2 class="title is-4">Invite Codes</h2>
+      <p class="mb-4">Share these codes with new members to join the ensemble</p>
+      
+      <div class="buttons mb-4">
+        <form method="POST" style="display: inline;">
+          <input type="hidden" name="action" value="create-invite" />
+          <button type="submit" class="button is-success">
+            <span class="icon">
+              <i class="fas fa-plus"></i>
+            </span>
+            <span>Generate New Invite Code</span>
+          </button>
+        </form>
+      </div>
+
+      {invites.length > 0 ? (
+        <table class="table is-fullwidth">
+          <thead>
+            <tr>
+              <th>Code</th>
+              <th>Created</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {invites.map((invite) => (
+              <tr>
+                <td>
+                  <span class="tag is-large is-family-monospace">
+                    {invite.code}
+                  </span>
+                </td>
+                <td>{new Date(invite.createdAt).toLocaleDateString()}</td>
+                <td>
+                  <form method="POST" style="display: inline;">
+                    <input type="hidden" name="action" value="delete-invite" />
+                    <input type="hidden" name="inviteId" value={invite.id} />
+                    <button type="submit" class="button is-danger is-small">
+                      Delete
+                    </button>
+                  </form>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      ) : (
+        <div class="notification is-info is-light">
+          No invite codes created yet.
+        </div>
+      )}
+    </div>
+  )}
 
   <div class="box">
     <h2 class="title is-4">Members ({members.length})</h2>
