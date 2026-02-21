@@ -3,11 +3,7 @@ import Layout from '../layouts/Layout.astro';
 import { db, eq, User, Ensemble, EnsembleMember, Part } from 'astro:db';
 import { fileToDataUri, validateImageFile } from '../lib/upload';
 
-const user = Astro.locals.user;
-
-if (!user) {
-  return Astro.redirect('/login');
-}
+const user = Astro.locals.user!;
 
 // Get user's ensembles with part information
 const memberships = await db

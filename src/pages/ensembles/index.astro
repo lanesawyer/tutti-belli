@@ -2,11 +2,7 @@
 import Layout from '../../layouts/Layout.astro';
 import { db, eq, Ensemble, EnsembleMember } from 'astro:db';
 
-const user = Astro.locals.user;
-
-if (!user) {
-  return Astro.redirect('/login');
-}
+const user = Astro.locals.user!;
 
 // Get all ensembles the user is a member of
 const userEnsembles = await db

@@ -4,10 +4,7 @@ import { db, eq, and, Ensemble, EnsembleMember } from 'astro:db';
 import { fileToDataUri, validateImageFile } from '../../../lib/upload';
 import { canManageEnsemble } from '../../../lib/permissions';
 
-const user = Astro.locals.user;
-if (!user) {
-  return Astro.redirect('/login');
-}
+const user = Astro.locals.user!;
 
 const { id } = Astro.params;
 

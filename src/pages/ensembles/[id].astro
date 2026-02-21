@@ -5,10 +5,7 @@ import { db, eq, and, desc, Ensemble, EnsembleMember, User, EnsembleInvite, Part
 import { canManageEnsemble } from '../../lib/permissions';
 import { getInitials, getColorFromInitials } from '../../lib/avatar';
 
-const user = Astro.locals.user;
-if (!user) {
-  return Astro.redirect('/login');
-}
+const user = Astro.locals.user!;
 
 const { id } = Astro.params;
 if (!id) {

@@ -1,10 +1,8 @@
 ---
 import Layout from '../../../layouts/Layout.astro';
-import { db, eq, and, Ensemble, EnsembleMember, Part } from 'astro:db';import { canManageEnsemble } from '../../../lib/permissions';
-const user = Astro.locals.user;
-if (!user) {
-  return Astro.redirect('/login');
-}
+import { db, eq, and, Ensemble, EnsembleMember, Part } from 'astro:db';
+import { canManageEnsemble } from '../../../lib/permissions';
+const user = Astro.locals.user!;
 
 const { id } = Astro.params;
 

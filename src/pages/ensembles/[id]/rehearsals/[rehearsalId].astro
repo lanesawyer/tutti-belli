@@ -4,10 +4,7 @@ import { db, eq, and, Ensemble, EnsembleMember, Rehearsal, Attendance, User } fr
 import QRCode from 'qrcode';
 import { canManageEnsemble } from '../../../../lib/permissions';
 
-const user = Astro.locals.user;
-if (!user) {
-  return Astro.redirect('/login');
-}
+const user = Astro.locals.user!;
 
 const { id, rehearsalId } = Astro.params;
 if (!id || !rehearsalId) {
