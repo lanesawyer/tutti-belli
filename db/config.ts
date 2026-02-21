@@ -17,6 +17,7 @@ const Ensemble = defineTable({
     description: column.text({ optional: true }),
     imageUrl: column.text({ optional: true }),
     discordLink: column.text({ optional: true }),
+    codeOfConduct: column.text({ optional: true }),
     checkInStartMinutes: column.number({ default: 30 }), // Minutes before rehearsal check-in opens
     checkInEndMinutes: column.number({ default: 15 }), // Minutes after rehearsal start check-in closes
     createdBy: column.text({ references: () => User.columns.id }),
@@ -30,7 +31,9 @@ const EnsembleMember = defineTable({
     ensembleId: column.text({ references: () => Ensemble.columns.id }),
     userId: column.text({ references: () => User.columns.id }),
     role: column.text({ default: 'member' }), // 'admin', 'member'
+    status: column.text({ default: 'pending' }), // 'pending', 'active'
     partId: column.text({ optional: true, references: () => Part.columns.id }),
+    agreedToCodeOfConductAt: column.date({ optional: true }),
     joinedAt: column.date({ default: NOW }),
   }
 });

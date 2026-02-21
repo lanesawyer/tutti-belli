@@ -55,6 +55,38 @@ export default async function seed() {
       name: 'Chamber Orchestra',
       description: 'A test ensemble for development and testing',
       discordLink: 'https://discord.gg/example',
+      codeOfConduct: `Welcome to the Chamber Orchestra!
+
+We are committed to creating a positive and inclusive environment for all members. Please review and follow these guidelines:
+
+1. Respect and Professionalism
+   - Treat all members with respect and courtesy
+   - Be punctual for rehearsals and performances
+   - Give your full attention during rehearsals
+
+2. Communication
+   - Keep ensemble communications professional
+   - Respond promptly to messages from administrators
+   - Use appropriate channels for different types of communication
+
+3. Attendance and Participation
+   - Notify leadership in advance if you cannot attend a rehearsal
+   - Come prepared having practiced your parts
+   - Participate actively in ensemble activities
+
+4. Community Standards
+   - No harassment, discrimination, or bullying will be tolerated
+   - Maintain confidentiality of internal ensemble discussions
+   - Support fellow members in their musical growth
+
+5. Instruments and Materials
+   - Care for ensemble property and shared spaces
+   - Bring all necessary materials to each rehearsal
+   - Keep your music organized and marked
+
+Violations of this code of conduct may result in removal from the ensemble. If you have concerns, please reach out to ensemble leadership.
+
+Thank you for being part of our musical community!`,
       createdBy: adminId,
     },
   ]);
@@ -106,6 +138,7 @@ export default async function seed() {
       ensembleId: ensembleId,
       userId: adminId,
       role: 'admin',
+      status: 'active',
       partId: tenorId,
     },
   ]);
@@ -117,6 +150,7 @@ export default async function seed() {
       ensembleId: ensembleId,
       userId: ensembleAdminId,
       role: 'admin',
+      status: 'active',
       partId: sopranoId,
     },
   ]);
@@ -128,6 +162,7 @@ export default async function seed() {
       ensembleId: ensembleId,
       userId: testUserId,
       role: 'member',
+      status: 'active',
       partId: bassId,
     },
   ]);

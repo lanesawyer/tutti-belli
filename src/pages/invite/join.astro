@@ -1,18 +1,37 @@
 ---
 import Layout from '../../layouts/Layout.astro';
-import { db, eq, and, EnsembleInvite, EnsembleMember } from 'astro:db';
+import { db, eq, and, EnsembleInvite, EnsembleMember, Ensemble } from 'astro:db';
 
 const user = Astro.locals.user;
-if (!user) {
-  return Astro.redirect('/login');
-}
 
 let error = '';
 let success = false;
+let ensemble = null;
+
+const codeParam = Astro.url.searchParams.get('code');
+if (codeParam) {
+  // Pre-fetch ensemble info if code is in URL
+  const [invite] = await db
+    .select()
+    .from(EnsembleInvite)
+    .where(eq(EnsembleInvite.code, codeParam.toUpperCase()));
+  
+  if (invite) {
+    [ensemble] = await db
+      .select()
+      .from(Ensemble)
+      .where(eq(Ensemble.id, invite.ensembleId));
+  }
+}
 
 if (Astro.request.method === 'POST') {
+  if (!user) {
+    return Astro.redirect('/login');
+  }
+
   const formData = await Astro.request.formData();
   const code = formData.get('code')?.toString()?.trim().toUpperCase();
+  const agreedToCodeOfConduct = formData.get('agreedToCodeOfConduct')?.toString() === 'on';
 
   if (!code) {
     error = 'Please enter an invite code';
@@ -28,29 +47,42 @@ if (Astro.request.method === 'POST') {
     } else if (invite.expiresAt && new Date(invite.expiresAt) < new Date()) {
       error = 'This invite code has expired';
     } else {
-      // Check if already a member
-      const [existing] = await db
+      // Fetch ensemble to check for code of conduct
+      [ensemble] = await db
         .select()
-        .from(EnsembleMember)
-        .where(
-          and(
-            eq(EnsembleMember.ensembleId, invite.ensembleId),
-            eq(EnsembleMember.userId, user.id)
-          )
-        );
+        .from(Ensemble)
+        .where(eq(Ensemble.id, invite.ensembleId));
 
-      if (existing) {
-        error = 'You are already a member of this ensemble';
+      // Check if code of conduct agreement is required
+      if (ensemble?.codeOfConduct && !agreedToCodeOfConduct) {
+        error = 'You must agree to the code of conduct to join this ensemble';
       } else {
-        // Add user to ensemble
-        await db.insert(EnsembleMember).values({
-          id: crypto.randomUUID(),
-          ensembleId: invite.ensembleId,
-          userId: user.id,
-          role: 'member',
-        });
+        // Check if already a member
+        const [existing] = await db
+          .select()
+          .from(EnsembleMember)
+          .where(
+            and(
+              eq(EnsembleMember.ensembleId, invite.ensembleId),
+              eq(EnsembleMember.userId, user.id)
+            )
+          );
 
-        return Astro.redirect(`/ensembles/${invite.ensembleId}`);
+        if (existing) {
+          error = 'You are already a member of this ensemble';
+        } else {
+          // Add user to ensemble with pending status
+          await db.insert(EnsembleMember).values({
+            id: crypto.randomUUID(),
+            ensembleId: invite.ensembleId,
+            userId: user.id,
+            role: 'member',
+            status: 'pending',
+            agreedToCodeOfConductAt: ensemble?.codeOfConduct ? new Date() : null,
+          });
+
+          return Astro.redirect(`/ensembles/${invite.ensembleId}?joined=pending`);
+        }
       }
     }
   }
@@ -59,9 +91,9 @@ if (Astro.request.method === 'POST') {
 
 <Layout title="Join Ensemble">
   <div class="columns is-centered">
-    <div class="column is-6-tablet is-5-desktop">
+    <div class="column is-8-tablet is-7-desktop">
       <h1 class="title">Join an Ensemble</h1>
-      <p class="subtitle">Enter your invite code to join an ensemble</p>
+      <p class="subtitle">{user ? 'Enter your invite code to join an ensemble' : 'Sign in or create an account to join'}</p>
 
       {error && (
         <div class="notification is-danger is-light">
@@ -75,6 +107,45 @@ if (Astro.request.method === 'POST') {
         </div>
       )}
 
+      {!user && ensemble && (
+        <div class="box mb-5">
+          <h2 class="title is-4">{ensemble.name}</h2>
+          <p class="subtitle is-6">You've been invited to join this ensemble</p>
+        </div>
+      )}
+
+      {!user && ensemble?.codeOfConduct && (
+        <div class="box mb-5">
+          <h2 class="title is-5">Code of Conduct</h2>
+          <p class="subtitle is-6 mb-4">This ensemble requires agreement to its code of conduct</p>
+          <div class="content" style="max-height: 400px; overflow-y: auto; border: 1px solid #4a4a4a; border-radius: 4px; padding: 1.25rem; background-color: #363636; color: #f5f5f5;">
+            <div style="white-space: pre-wrap;">{ensemble.codeOfConduct}</div>
+          </div>
+        </div>
+      )}
+
+      {!user ? (
+        <div class="box">
+          <div class="content has-text-centered mb-5">
+            <p class="is-size-5">You need an Ensemble Management account to join</p>
+          </div>
+          <div class="buttons is-centered">
+            <a href={`/register?redirect=${encodeURIComponent(Astro.url.pathname + Astro.url.search)}`} class="button is-primary is-large">
+              <span class="icon">
+                <i class="fas fa-user-plus"></i>
+              </span>
+              <span>Create Account</span>
+            </a>
+            <a href={`/login?redirect=${encodeURIComponent(Astro.url.pathname + Astro.url.search)}`} class="button is-light is-large">
+              <span class="icon">
+                <i class="fas fa-sign-in-alt"></i>
+              </span>
+              <span>Sign In</span>
+            </a>
+          </div>
+          <p class="has-text-centered mt-4 help">Already have an account? Click "Sign In" to continue</p>
+        </div>
+      ) : (
       <form method="POST">
         <div class="field">
           <label class="label" for="code">Invite Code</label>
@@ -84,6 +155,7 @@ if (Astro.request.method === 'POST') {
               type="text"
               id="code"
               name="code"
+              value={codeParam || ''}
               placeholder="ABCD1234"
               style="text-transform: uppercase;"
               required
@@ -96,19 +168,37 @@ if (Astro.request.method === 'POST') {
           <p class="help">Enter the 8-character code provided by your ensemble admin</p>
         </div>
 
-        <div class="field is-grouped">
+        {ensemble?.codeOfConduct && (
+          <div class="box mt-5">
+            <h2 class="title is-5">Code of Conduct</h2>
+            <p class="subtitle is-6 mb-4">Please review and agree to the {ensemble.name} code of conduct</p>
+            <div class="content" style="max-height: 400px; overflow-y: auto; border: 1px solid #4a4a4a; border-radius: 4px; padding: 1.25rem; background-color: #363636; color: #f5f5f5;">
+              <div style="white-space: pre-wrap;">{ensemble.codeOfConduct}</div>
+            </div>
+            <label class="checkbox mt-4">
+              <input type="checkbox" name="agreedToCodeOfConduct" required />
+              <strong class="ml-2">I have read and agree to the code of conduct</strong>
+            </label>
+          </div>
+        )}
+
+        <div class="field is-grouped mt-5">
           <div class="control">
-            <button type="submit" class="button is-primary">
-              Join Ensemble
+            <button type="submit" class="button is-primary is-large">
+              <span class="icon">
+                <i class="fas fa-check"></i>
+              </span>
+              <span>Join Ensemble</span>
             </button>
           </div>
           <div class="control">
-            <a href="/ensembles" class="button is-light">
+            <a href="/ensembles" class="button is-light is-large">
               Cancel
             </a>
           </div>
         </div>
       </form>
+      )}
     </div>
   </div>
 </Layout>

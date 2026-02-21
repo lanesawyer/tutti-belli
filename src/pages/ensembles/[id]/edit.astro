@@ -44,6 +44,7 @@ if (Astro.request.method === 'POST') {
   const name = formData.get('name')?.toString();
   const description = formData.get('description')?.toString();
   const discordLink = formData.get('discordLink')?.toString();
+  const codeOfConduct = formData.get('codeOfConduct')?.toString();
   const imageFile = formData.get('image') as File;
   const removeImage = formData.get('removeImage')?.toString() === 'true';
   const checkInStartMinutes = parseInt(formData.get('checkInStartMinutes')?.toString() || '30');
@@ -80,6 +81,7 @@ if (Astro.request.method === 'POST') {
             name: name.trim(),
             description: description?.trim() || null,
             discordLink: discordLink?.trim() || null,
+            codeOfConduct: codeOfConduct?.trim() || null,
             imageUrl,
             checkInStartMinutes,
             checkInEndMinutes,
@@ -163,6 +165,20 @@ if (Astro.request.method === 'POST') {
                   </span>
                 </div>
                 <p class="help">Optional Discord server invite link for this ensemble</p>
+              </div>
+
+              <div class="field">
+                <label class="label" for="codeOfConduct">Code of Conduct</label>
+                <div class="control">
+                  <textarea
+                    class="textarea"
+                    id="codeOfConduct"
+                    name="codeOfConduct"
+                    rows="8"
+                    placeholder="Optional code of conduct for new members. If set, new members must agree to these terms before joining."
+                  >{ensemble.codeOfConduct || ''}</textarea>
+                </div>
+                <p class="help">New members will be required to read and agree to this code of conduct before joining</p>
               </div>
 
               <div class="field">
