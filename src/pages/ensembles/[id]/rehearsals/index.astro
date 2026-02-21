@@ -294,7 +294,7 @@ const pastRehearsals = rehearsals.filter(r => new Date(r.scheduledAt) <= now);
               <div class="level-right">
                 <div class="level-item">
                   <a href={`/ensembles/${id}/rehearsals/${rehearsal.id}`} class="button is-small">
-                    View Attendance
+                    {isAdmin ? 'View Attendance' : 'View Details'}
                   </a>
                 </div>
               </div>
