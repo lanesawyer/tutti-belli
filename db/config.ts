@@ -16,6 +16,8 @@ const Ensemble = defineTable({
     name: column.text(),
     description: column.text({ optional: true }),
     imageUrl: column.text({ optional: true }),
+    checkInStartMinutes: column.number({ default: 30 }), // Minutes before rehearsal check-in opens
+    checkInEndMinutes: column.number({ default: 15 }), // Minutes after rehearsal start check-in closes
     createdBy: column.text({ references: () => User.columns.id }),
     createdAt: column.date({ default: NOW }),
   }
@@ -60,6 +62,7 @@ const Rehearsal = defineTable({
     title: column.text(),
     description: column.text({ optional: true }),
     scheduledAt: column.date(),
+    durationMinutes: column.number({ default: 90 }), // Default 90 minute rehearsal
     location: column.text({ optional: true }),
     checkInCode: column.text({ unique: true }),
     createdAt: column.date({ default: NOW }),

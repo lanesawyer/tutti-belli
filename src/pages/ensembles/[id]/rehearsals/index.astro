@@ -43,6 +43,7 @@ if (Astro.request.method === 'POST' && isAdmin) {
     const date = formData.get('date')?.toString();
     const time = formData.get('time')?.toString();
     const location = formData.get('location')?.toString();
+    const durationMinutes = parseInt(formData.get('durationMinutes')?.toString() || '90');
 
     if (title && date && time) {
       const scheduledAt = new Date(`${date}T${time}`);
@@ -54,6 +55,7 @@ if (Astro.request.method === 'POST' && isAdmin) {
         title,
         description: description || '',
         scheduledAt,
+        durationMinutes,
         location: location || '',
         checkInCode,
       });
@@ -77,8 +79,17 @@ const rehearsals = await db
   .orderBy(desc(Rehearsal.scheduledAt));
 
 const now = new Date();
-const upcomingRehearsals = rehearsals.filter(r => new Date(r.scheduledAt) > now);
-const pastRehearsals = rehearsals.filter(r => new Date(r.scheduledAt) <= now);
+// A rehearsal is considered past if it has ended (scheduled time + duration)
+const upcomingRehearsals = rehearsals.filter(r => {
+  const scheduledTime = new Date(r.scheduledAt);
+  const endTime = new Date(scheduledTime.getTime() + (r.durationMinutes * 60 * 1000));
+  return endTime > now;
+});
+const pastRehearsals = rehearsals.filter(r => {
+  const scheduledTime = new Date(r.scheduledAt);
+  const endTime = new Date(scheduledTime.getTime() + (r.durationMinutes * 60 * 1000));
+  return endTime <= now;
+});
 ---
 
 <Layout title={`${ensemble.name} - Rehearsals`}>
@@ -160,7 +171,7 @@ const pastRehearsals = rehearsals.filter(r => new Date(r.scheduledAt) <= now);
         </div>
 
         <div class="columns">
-          <div class="column is-6">
+          <div class="column is-4">
             <div class="field">
               <label class="label" for="date">Date</label>
               <div class="control">
@@ -174,7 +185,7 @@ const pastRehearsals = rehearsals.filter(r => new Date(r.scheduledAt) <= now);
               </div>
             </div>
           </div>
-          <div class="column is-6">
+          <div class="column is-4">
             <div class="field">
               <label class="label" for="time">Time</label>
               <div class="control">
@@ -186,6 +197,24 @@ const pastRehearsals = rehearsals.filter(r => new Date(r.scheduledAt) <= now);
                   required
                 />
               </div>
+            </div>
+          </div>
+          <div class="column is-4">
+            <div class="field">
+              <label class="label" for="durationMinutes">Duration (minutes)</label>
+              <div class="control">
+                <input
+                  class="input"
+                  type="number"
+                  id="durationMinutes"
+                  name="durationMinutes"
+                  value="90"
+                  min="15"
+                  max="480"
+                  required
+                />
+              </div>
+              <p class="help">Default: 90 minutes (1.5 hours)</p>
             </div>
           </div>
         </div>
@@ -279,7 +308,7 @@ const pastRehearsals = rehearsals.filter(r => new Date(r.scheduledAt) <= now);
       {pastRehearsals.map((rehearsal) => {
         const scheduledDate = new Date(rehearsal.scheduledAt);
         return (
-          <div class="box has-background-light">
+          <div class="box">
             <div class="level">
               <div class="level-left">
                 <div class="level-item">

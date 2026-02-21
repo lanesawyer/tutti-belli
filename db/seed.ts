@@ -32,6 +32,21 @@ export default async function seed() {
     },
   ]);
 
+  // Create an ensemble admin user (not site admin, but admin of specific ensemble)
+  // Password: ensadmin123
+  const ensembleAdminId = crypto.randomUUID();
+  const ensembleAdminPasswordHash = await bcrypt.hash('ensadmin123', 10);
+  
+  await db.insert(User).values([
+    {
+      id: ensembleAdminId,
+      email: 'ensadmin@example.com',
+      passwordHash: ensembleAdminPasswordHash,
+      name: 'Ensemble Admin User',
+      role: 'user',
+    },
+  ]);
+
   // Create a test ensemble
   const ensembleId = crypto.randomUUID();
   await db.insert(Ensemble).values([
@@ -94,6 +109,17 @@ export default async function seed() {
     },
   ]);
 
+  // Add ensemble admin user as ensemble admin
+  await db.insert(EnsembleMember).values([
+    {
+      id: crypto.randomUUID(),
+      ensembleId: ensembleId,
+      userId: ensembleAdminId,
+      role: 'admin',
+      partId: sopranoId,
+    },
+  ]);
+
   // Add test user as member
   await db.insert(EnsembleMember).values([
     {
@@ -115,7 +141,44 @@ export default async function seed() {
     },
   ]);
 
-  // Create an upcoming rehearsal
+  // Create rehearsals for testing
+  
+  // Past rehearsal (1 month ago)
+  const pastDate = new Date();
+  pastDate.setMonth(pastDate.getMonth() - 1);
+  pastDate.setHours(19, 0, 0, 0); // 7 PM
+
+  await db.insert(Rehearsal).values([
+    {
+      id: crypto.randomUUID(),
+      ensembleId: ensembleId,
+      title: 'Past Rehearsal',
+      description: 'A rehearsal that already happened for testing',
+      scheduledAt: pastDate,
+      durationMinutes: 90,
+      location: 'Music Hall, Room 101',
+      checkInCode: crypto.randomUUID().substring(0, 8).toUpperCase(),
+    },
+  ]);
+
+  // Current time rehearsal (happening right now - for testing check-in)
+  const currentDate = new Date();
+  // Set to current time, members should be able to check in now
+
+  await db.insert(Rehearsal).values([
+    {
+      id: crypto.randomUUID(),
+      ensembleId: ensembleId,
+      title: 'Current Rehearsal (Check-in Available)',
+      description: 'This rehearsal is happening right now - test check-in functionality',
+      scheduledAt: currentDate,
+      durationMinutes: 120, // 2 hours
+      location: 'Music Hall, Room 101',
+      checkInCode: 'CHECKIN1',
+    },
+  ]);
+
+  // Near future rehearsal (1 week from now)
   const futureDate = new Date();
   futureDate.setDate(futureDate.getDate() + 7); // 1 week from now
   futureDate.setHours(19, 0, 0, 0); // 7 PM
@@ -127,6 +190,7 @@ export default async function seed() {
       title: 'Weekly Rehearsal',
       description: 'Regular practice session',
       scheduledAt: futureDate,
+      durationMinutes: 90,
       location: 'Music Hall, Room 101',
       checkInCode: crypto.randomUUID().substring(0, 8).toUpperCase(),
     },
@@ -134,16 +198,26 @@ export default async function seed() {
 
   console.log('✓ Seeded database successfully!');
   console.log('');
-  console.log('Admin Account:');
+  console.log('Site Admin Account:');
   console.log('  Email: admin@example.com');
   console.log('  Password: admin123');
   console.log('');
-  console.log('Test User Account:');
+  console.log('Ensemble Admin Account (admin of Chamber Orchestra):');
+  console.log('  Email: ensadmin@example.com');
+  console.log('  Password: ensadmin123');
+  console.log('');
+  console.log('Test User Account (regular member):');
   console.log('  Email: test@example.com');
   console.log('  Password: test123');
   console.log('');
   console.log('Test Ensemble: Chamber Orchestra');
   console.log('  Invite Code: TEST1234');
+  console.log('  Check-in window: 30 minutes before to 15 minutes after rehearsal start');
+  console.log('');
+  console.log('Test Rehearsals:');
+  console.log('  - Past rehearsal (1 month ago)');
+  console.log('  - Current rehearsal (happening now - check-in code: CHECKIN1)');
+  console.log('  - Weekly rehearsal (1 week from now)');
   console.log('');
   console.log('⚠️  Remember to change passwords in production!');
 }

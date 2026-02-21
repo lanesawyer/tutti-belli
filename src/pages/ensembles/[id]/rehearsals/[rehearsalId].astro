@@ -39,28 +39,48 @@ if (!rehearsal) {
 
 let message = '';
 
+// Calculate check-in window
+const now = new Date();
+const scheduledTime = new Date(rehearsal.scheduledAt);
+const checkInStartTime = new Date(scheduledTime.getTime() - (ensemble.checkInStartMinutes * 60 * 1000));
+const checkInEndTime = new Date(scheduledTime.getTime() + (ensemble.checkInEndMinutes * 60 * 1000));
+
+const canCheckIn = now >= checkInStartTime && now <= checkInEndTime;
+const isTooEarly = now < checkInStartTime;
+const isTooLate = now > checkInEndTime;
+
 // Handle attendance actions
 if (Astro.request.method === 'POST') {
   const formData = await Astro.request.formData();
   const action = formData.get('action')?.toString();
 
   if (action === 'checkin') {
-    // Check if already checked in
-    const [existing] = await db
-      .select()
-      .from(Attendance)
-      .where(and(eq(Attendance.rehearsalId, rehearsalId), eq(Attendance.userId, user.id)));
-
-    if (!existing) {
-      await db.insert(Attendance).values({
-        id: crypto.randomUUID(),
-        rehearsalId,
-        userId: user.id,
-        checkedInMethod: 'manual',
-      });
-      message = 'Successfully checked in!';
+    // Check time window (admins bypass this)
+    if (!canCheckIn && !isAdmin) {
+      if (isTooEarly) {
+        const minutesUntilOpen = Math.ceil((checkInStartTime.getTime() - now.getTime()) / (60 * 1000));
+        message = `Check-in opens ${ensemble.checkInStartMinutes} minutes before rehearsal (in ${minutesUntilOpen} minutes).`;
+      } else if (isTooLate) {
+        message = `Check-in closed ${ensemble.checkInEndMinutes} minutes after rehearsal start.`;
+      }
     } else {
-      message = 'You have already checked in for this rehearsal.';
+      // Check if already checked in
+      const [existing] = await db
+        .select()
+        .from(Attendance)
+        .where(and(eq(Attendance.rehearsalId, rehearsalId), eq(Attendance.userId, user.id)));
+
+      if (!existing) {
+        await db.insert(Attendance).values({
+          id: crypto.randomUUID(),
+          rehearsalId,
+          userId: user.id,
+          checkedInMethod: 'manual',
+        });
+        message = 'Successfully checked in!';
+      } else {
+        message = 'You have already checked in for this rehearsal.';
+      }
     }
   } else if (action === 'remove' && isAdmin) {
     const attendanceId = formData.get('attendanceId')?.toString();
@@ -125,7 +145,8 @@ const qrCodeDataUrl = await QRCode.toDataURL(checkInUrl, {
 });
 
 const scheduledDate = new Date(rehearsal.scheduledAt);
-const isPast = scheduledDate < new Date();
+const endTime = new Date(scheduledDate.getTime() + (rehearsal.durationMinutes * 60 * 1000));
+const isPast = endTime < new Date();
 const isUserCheckedIn = attendedUserIds.has(user.id);
 ---
 
@@ -147,6 +168,12 @@ const isUserCheckedIn = attendedUserIds.has(user.id);
                 <i class="fas fa-clock"></i>
               </span>
               <span>{scheduledDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+            </span>
+            <span class="ml-3 icon-text">
+              <span class="icon">
+                <i class="fas fa-hourglass-half"></i>
+              </span>
+              <span>{rehearsal.durationMinutes} min</span>
             </span>
             {rehearsal.location && (
               <span class="ml-3 icon-text">
@@ -189,7 +216,15 @@ const isUserCheckedIn = attendedUserIds.has(user.id);
       <div class="box">
         <h2 class="title is-4">Check-In</h2>
         
-        {!isPast && !isUserCheckedIn && (
+        {!isPast && (
+          <div class="notification is-info is-light mb-4">
+            <p class="has-text-weight-semibold">Check-in Window:</p>
+            <p>Opens {ensemble.checkInStartMinutes} minutes before rehearsal</p>
+            <p>Closes {ensemble.checkInEndMinutes} minutes after rehearsal start</p>
+          </div>
+        )}
+        
+        {!isPast && !isUserCheckedIn && canCheckIn && (
           <form method="POST">
             <input type="hidden" name="action" value="checkin" />
             <button type="submit" class="button is-primary is-large is-fullwidth">
@@ -197,6 +232,33 @@ const isUserCheckedIn = attendedUserIds.has(user.id);
                 <i class="fas fa-check"></i>
               </span>
               <span>Check In Now</span>
+            </button>
+          </form>
+        )}
+
+        {!isPast && !isUserCheckedIn && !canCheckIn && !isAdmin && (
+          <div>
+            <button type="button" class="button is-large is-fullwidth" disabled>
+              <span class="icon">
+                <i class="fas fa-lock"></i>
+              </span>
+              <span>Check-in {isTooEarly ? 'Not Yet Available' : 'Closed'}</span>
+            </button>
+            <p class="help mt-2 has-text-centered">
+              {isTooEarly && `Check-in opens ${ensemble.checkInStartMinutes} minutes before rehearsal`}
+              {isTooLate && `Check-in closed ${ensemble.checkInEndMinutes} minutes after rehearsal start`}
+            </p>
+          </div>
+        )}
+
+        {!isPast && !isUserCheckedIn && !canCheckIn && isAdmin && (
+          <form method="POST">
+            <input type="hidden" name="action" value="checkin" />
+            <button type="submit" class="button is-warning is-large is-fullwidth">
+              <span class="icon">
+                <i class="fas fa-user-shield"></i>
+              </span>
+              <span>Admin Check-In (Bypasses Time Window)</span>
             </button>
           </form>
         )}

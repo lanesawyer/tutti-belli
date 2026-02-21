@@ -44,6 +44,8 @@ if (Astro.request.method === 'POST') {
   const description = formData.get('description')?.toString();
   const imageFile = formData.get('image') as File;
   const removeImage = formData.get('removeImage')?.toString() === 'true';
+  const checkInStartMinutes = parseInt(formData.get('checkInStartMinutes')?.toString() || '30');
+  const checkInEndMinutes = parseInt(formData.get('checkInEndMinutes')?.toString() || '15');
 
   if (!name || !name.trim()) {
     message = 'Ensemble name is required';
@@ -76,6 +78,8 @@ if (Astro.request.method === 'POST') {
             name: name.trim(),
             description: description?.trim() || null,
             imageUrl,
+            checkInStartMinutes,
+            checkInEndMinutes,
           })
           .where(eq(Ensemble.id, id!));
 
@@ -179,6 +183,50 @@ if (Astro.request.method === 'POST') {
                   </div>
                 </div>
                 <p class="help">Maximum file size: 5MB. Supported formats: JPG, PNG, GIF, WebP</p>
+              </div>
+
+              <div class="field">
+                <label class="label">Check-in Window Settings</label>
+                <p class="help mb-3">Configure when members can check in for rehearsals</p>
+                
+                <div class="columns">
+                  <div class="column is-6">
+                    <div class="field">
+                      <label class="label" for="checkInStartMinutes">Check-in opens (minutes before)</label>
+                      <div class="control">
+                        <input
+                          class="input"
+                          type="number"
+                          id="checkInStartMinutes"
+                          name="checkInStartMinutes"
+                          value={ensemble.checkInStartMinutes}
+                          min="0"
+                          max="180"
+                          required
+                        />
+                      </div>
+                      <p class="help">Default: 30 minutes before rehearsal</p>
+                    </div>
+                  </div>
+                  <div class="column is-6">
+                    <div class="field">
+                      <label class="label" for="checkInEndMinutes">Check-in closes (minutes after start)</label>
+                      <div class="control">
+                        <input
+                          class="input"
+                          type="number"
+                          id="checkInEndMinutes"
+                          name="checkInEndMinutes"
+                          value={ensemble.checkInEndMinutes}
+                          min="0"
+                          max="180"
+                          required
+                        />
+                      </div>
+                      <p class="help">Default: 15 minutes after rehearsal starts</p>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <div class="field is-grouped">

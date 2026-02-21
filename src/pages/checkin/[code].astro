@@ -22,31 +22,57 @@ if (!rehearsal) {
   return new Response('Invalid check-in code', { status: 404 });
 }
 
-// Get ensemble name
+// Get ensemble with check-in window settings
 const [ensemble] = await db.select().from(Ensemble).where(eq(Ensemble.id, rehearsal.ensembleId));
+
+if (!ensemble) {
+  return new Response('Ensemble not found', { status: 404 });
+}
+
+// Calculate check-in window
+const now = new Date();
+const scheduledTime = new Date(rehearsal.scheduledAt);
+const checkInStartTime = new Date(scheduledTime.getTime() - (ensemble.checkInStartMinutes * 60 * 1000));
+const checkInEndTime = new Date(scheduledTime.getTime() + (ensemble.checkInEndMinutes  * 60 * 1000));
+
+const canCheckIn = now >= checkInStartTime && now <= checkInEndTime;
+const isTooEarly = now < checkInStartTime;
+const isTooLate = now > checkInEndTime;
 
 let message = '';
 let success = false;
 
 if (Astro.request.method === 'POST') {
-  // Check if already checked in
-  const [existing] = await db
-    .select()
-    .from(Attendance)
-    .where(and(eq(Attendance.rehearsalId, rehearsal.id), eq(Attendance.userId, user.id)));
-
-  if (!existing) {
-    await db.insert(Attendance).values({
-      id: crypto.randomUUID(),
-      rehearsalId: rehearsal.id,
-      userId: user.id,
-      checkedInMethod: 'qr',
-    });
-    message = 'Successfully checked in!';
-    success = true;
+  // Check time window
+  if (!canCheckIn) {
+    if (isTooEarly) {
+      const minutesUntilOpen = Math.ceil((checkInStartTime.getTime() - now.getTime()) / (60 * 1000));
+      message = `Check-in opens ${ensemble.checkInStartMinutes} minutes before rehearsal (in ${minutesUntilOpen} minutes).`;
+      success = false;
+    } else if (isTooLate) {
+      message = `Check-in closed ${ensemble.checkInEndMinutes} minutes after rehearsal start.`;
+      success = false;
+    }
   } else {
-    message = 'You have already checked in for this rehearsal.';
-    success = false;
+    // Check if already checked in
+    const [existing] = await db
+      .select()
+      .from(Attendance)
+      .where(and(eq(Attendance.rehearsalId, rehearsal.id), eq(Attendance.userId, user.id)));
+
+    if (!existing) {
+      await db.insert(Attendance).values({
+        id: crypto.randomUUID(),
+        rehearsalId: rehearsal.id,
+        userId: user.id,
+        checkedInMethod: 'qr',
+      });
+      message = 'Successfully checked in!';
+      success = true;
+    } else {
+      message = 'You have already checked in for this rehearsal.';
+      success = false;
+    }
   }
 }
 
@@ -95,13 +121,19 @@ const scheduledDate = new Date(rehearsal.scheduledAt);
           )}
         </div>
 
+        <div class="notification is-info is-light mt-4">
+          <p class="has-text-weight-semibold">Check-in Window:</p>
+          <p>Opens {ensemble.checkInStartMinutes} minutes before rehearsal</p>
+          <p>Closes {ensemble.checkInEndMinutes} minutes after rehearsal start</p>
+        </div>
+
         {message && (
           <div class={`notification ${success ? 'is-success' : 'is-warning'} is-light mt-4`}>
             {message}
           </div>
         )}
 
-        {!message && (
+        {!message && canCheckIn && (
           <form method="POST" class="mt-5">
             <button type="submit" class="button is-primary is-large is-fullwidth">
               <span class="icon">
@@ -110,6 +142,21 @@ const scheduledDate = new Date(rehearsal.scheduledAt);
               <span>Check In Now</span>
             </button>
           </form>
+        )}
+
+        {!message && !canCheckIn && (
+          <div class="mt-5">
+            <button type="button" class="button is-large is-fullwidth" disabled>
+              <span class="icon">
+                <i class="fas fa-lock"></i>
+              </span>
+              <span>Check-in {isTooEarly ? 'Not Yet Available' : 'Closed'}</span>
+            </button>
+            <p class="help mt-2">
+              {isTooEarly && `Check-in opens ${ensemble.checkInStartMinutes} minutes before rehearsal`}
+              {isTooLate && `Check-in closed ${ensemble.checkInEndMinutes} minutes after rehearsal start`}
+            </p>
+          </div>
         )}
 
         {success && (
