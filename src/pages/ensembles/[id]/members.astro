@@ -1,0 +1,366 @@
+---
+import Layout from '../../../layouts/Layout.astro';
+import { db, eq, and, Ensemble, EnsembleMember, User, Part } from 'astro:db';
+import { canManageEnsemble } from '../../../lib/permissions';
+import { getInitials, getColorFromInitials } from '../../../lib/avatar';
+
+const user = Astro.locals.user;
+if (!user) {
+  return Astro.redirect('/login');
+}
+
+const { id } = Astro.params;
+if (!id) {
+  return Astro.redirect('/ensembles');
+}
+
+// Get ensemble details
+const [ensemble] = await db.select().from(Ensemble).where(eq(Ensemble.id, id));
+if (!ensemble) {
+  return Astro.redirect('/ensembles');
+}
+
+// Check if user is a member
+const [membership] = await db
+  .select()
+  .from(EnsembleMember)
+  .where(and(eq(EnsembleMember.ensembleId, id), eq(EnsembleMember.userId, user.id)));
+
+if (!membership) {
+  return Astro.redirect('/ensembles');
+}
+
+const isAdmin = canManageEnsemble(user, membership);
+
+if (!isAdmin) {
+  return new Response('Unauthorized', { status: 403 });
+}
+
+// Get all active members with their parts
+const membersData = await db
+  .select({
+    id: User.id,
+    name: User.name,
+    email: User.email,
+    avatarUrl: User.avatarUrl,
+    role: EnsembleMember.role,
+    status: EnsembleMember.status,
+    joinedAt: EnsembleMember.joinedAt,
+    membershipId: EnsembleMember.id,
+    partId: EnsembleMember.partId,
+  })
+  .from(EnsembleMember)
+  .innerJoin(User, eq(EnsembleMember.userId, User.id))
+  .where(and(eq(EnsembleMember.ensembleId, id), eq(EnsembleMember.status, 'active')));
+
+// Get all parts for this ensemble
+const allParts = await db
+  .select()
+  .from(Part)
+  .where(eq(Part.ensembleId, id))
+  .all();
+
+// Sort parts by sortOrder
+allParts.sort((a, b) => a.sortOrder - b.sortOrder);
+
+// Group members by part
+const membersByPart = new Map();
+const membersWithoutPart = [];
+
+for (const member of membersData) {
+  if (member.partId) {
+    if (!membersByPart.has(member.partId)) {
+      membersByPart.set(member.partId, []);
+    }
+    membersByPart.get(member.partId).push(member);
+  } else {
+    membersWithoutPart.push(member);
+  }
+}
+
+const members = membersData;
+
+// Handle member actions
+if (Astro.request.method === 'POST') {
+  const formData = await Astro.request.formData();
+  const action = formData.get('action')?.toString();
+  const membershipId = formData.get('membershipId')?.toString();
+
+  if (action === 'remove' && membershipId) {
+    await db.delete(EnsembleMember).where(eq(EnsembleMember.id, membershipId));
+    return Astro.redirect(`/ensembles/${id}/members`);
+  } else if (action === 'promote' && membershipId) {
+    await db
+      .update(EnsembleMember)
+      .set({ role: 'admin' })
+      .where(eq(EnsembleMember.id, membershipId));
+    return Astro.redirect(`/ensembles/${id}/members`);
+  } else if (action === 'demote' && membershipId) {
+    await db
+      .update(EnsembleMember)
+      .set({ role: 'member' })
+      .where(eq(EnsembleMember.id, membershipId));
+    return Astro.redirect(`/ensembles/${id}/members`);
+  }
+}
+---
+
+<Layout title={`Manage Members - ${ensemble.name}`}>
+  <section class="section">
+    <div class="container">
+      <nav class="breadcrumb" aria-label="breadcrumbs">
+        <ul>
+          <li><a href="/ensembles">Ensembles</a></li>
+          <li><a href={`/ensembles/${id}`}>{ensemble.name}</a></li>
+          <li class="is-active"><a href="#" aria-current="page">Manage Members</a></li>
+        </ul>
+      </nav>
+
+      <div class="level mb-5">
+        <div class="level-left">
+          <div class="level-item">
+            <div>
+              <h1 class="title">Manage Members</h1>
+              <p class="subtitle">Total Members: {members.length}</p>
+            </div>
+          </div>
+        </div>
+        <div class="level-right">
+          <div class="level-item">
+            <a href={`/ensembles/${id}`} class="button">
+              <span class="icon">
+                <i class="fas fa-arrow-left"></i>
+              </span>
+              <span>Back to Ensemble</span>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <div class="box">
+        {allParts.length > 0 ? (
+          <>
+            {allParts.map((part) => {
+              const partMembers = membersByPart.get(part.id) || [];
+              if (partMembers.length === 0) return null;
+              
+              return (
+                <div class="mb-5">
+                  <h3 class="title is-5 has-text-primary">{part.name} ({partMembers.length})</h3>
+                  <table class="table is-fullwidth is-striped">
+                    <thead>
+                      <tr>
+                        <th style="width: 60px;"></th>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th>Joined</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {partMembers.map((member: any) => (
+                        <tr>
+                          <td>
+                            <figure class="image is-48x48">
+                              {member.avatarUrl ? (
+                                <img src={member.avatarUrl} alt={member.name} style="object-fit: cover; border-radius: 50%;" />
+                              ) : (
+                                <div style={`width: 48px; height: 48px; border-radius: 50%; background-color: ${getColorFromInitials(getInitials(member.name))}; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.25rem; font-weight: bold;`}>
+                                  {getInitials(member.name)}
+                                </div>
+                              )}
+                            </figure>
+                          </td>
+                          <td>{member.name}</td>
+                          <td>{member.email}</td>
+                          <td>
+                            <span class={`tag ${member.role === 'admin' ? 'is-warning' : 'is-info'}`}>
+                              {member.role === 'admin' ? 'Admin' : 'Member'}
+                            </span>
+                          </td>
+                          <td>{new Date(member.joinedAt).toLocaleDateString()}</td>
+                          {member.id !== user.id && (
+                            <td>
+                              <div class="buttons are-small">
+                                {member.role === 'member' ? (
+                                  <form method="POST" style="display: inline;">
+                                    <input type="hidden" name="action" value="promote" />
+                                    <input type="hidden" name="membershipId" value={member.membershipId} />
+                                    <button type="submit" class="button is-warning is-small">
+                                      Make Admin
+                                    </button>
+                                  </form>
+                                ) : (
+                                  <form method="POST" style="display: inline;">
+                                    <input type="hidden" name="action" value="demote" />
+                                    <input type="hidden" name="membershipId" value={member.membershipId} />
+                                    <button type="submit" class="button is-info is-small">
+                                      Remove Admin
+                                    </button>
+                                  </form>
+                                )}
+                                <form method="POST" style="display: inline;">
+                                  <input type="hidden" name="action" value="remove" />
+                                  <input type="hidden" name="membershipId" value={member.membershipId} />
+                                  <button type="submit" class="button is-danger is-small">
+                                    Remove
+                                  </button>
+                                </form>
+                              </div>
+                            </td>
+                          )}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              );
+            })}
+
+            {membersWithoutPart.length > 0 && (
+              <div class="mb-5">
+                <h3 class="title is-5 has-text-grey">No Part Assigned ({membersWithoutPart.length})</h3>
+                <table class="table is-fullwidth is-striped">
+                  <thead>
+                    <tr>
+                      <th style="width: 60px;"></th>
+                      <th>Name</th>
+                      <th>Email</th>
+                      <th>Role</th>
+                      <th>Joined</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {membersWithoutPart.map((member) => (
+                      <tr>
+                        <td>
+                          <figure class="image is-48x48">
+                            {member.avatarUrl ? (
+                              <img src={member.avatarUrl} alt={member.name} style="object-fit: cover; border-radius: 50%;" />
+                            ) : (
+                              <div style={`width: 48px; height: 48px; border-radius: 50%; background-color: ${getColorFromInitials(getInitials(member.name))}; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.25rem; font-weight: bold;`}>
+                                {getInitials(member.name)}
+                              </div>
+                            )}
+                          </figure>
+                        </td>
+                        <td>{member.name}</td>
+                        <td>{member.email}</td>
+                        <td>
+                          <span class={`tag ${member.role === 'admin' ? 'is-warning' : 'is-info'}`}>
+                            {member.role === 'admin' ? 'Admin' : 'Member'}
+                          </span>
+                        </td>
+                        <td>{new Date(member.joinedAt).toLocaleDateString()}</td>
+                        {member.id !== user.id && (
+                          <td>
+                            <div class="buttons are-small">
+                              {member.role === 'member' ? (
+                                <form method="POST" style="display: inline;">
+                                  <input type="hidden" name="action" value="promote" />
+                                  <input type="hidden" name="membershipId" value={member.membershipId} />
+                                  <button type="submit" class="button is-warning is-small">
+                                    Make Admin
+                                  </button>
+                                </form>
+                              ) : (
+                                <form method="POST" style="display: inline;">
+                                  <input type="hidden" name="action" value="demote" />
+                                  <input type="hidden" name="membershipId" value={member.membershipId} />
+                                  <button type="submit" class="button is-info is-small">
+                                    Remove Admin
+                                  </button>
+                                </form>
+                              )}
+                              <form method="POST" style="display: inline;">
+                                <input type="hidden" name="action" value="remove" />
+                                <input type="hidden" name="membershipId" value={member.membershipId} />
+                                <button type="submit" class="button is-danger is-small">
+                                  Remove
+                                </button>
+                              </form>
+                            </div>
+                          </td>
+                        )}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </>
+        ) : (
+          <table class="table is-fullwidth is-striped">
+            <thead>
+              <tr>
+                <th style="width: 60px;"></th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Joined</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {members.map((member) => (
+                <tr>
+                  <td>
+                    <figure class="image is-48x48">
+                      {member.avatarUrl ? (
+                        <img src={member.avatarUrl} alt={member.name} style="object-fit: cover; border-radius: 50%;" />
+                      ) : (
+                        <div style={`width: 48px; height: 48px; border-radius: 50%; background-color: ${getColorFromInitials(getInitials(member.name))}; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.25rem; font-weight: bold;`}>
+                          {getInitials(member.name)}
+                        </div>
+                      )}
+                    </figure>
+                  </td>
+                  <td>{member.name}</td>
+                  <td>{member.email}</td>
+                  <td>
+                    <span class={`tag ${member.role === 'admin' ? 'is-warning' : 'is-info'}`}>
+                      {member.role === 'admin' ? 'Admin' : 'Member'}
+                    </span>
+                  </td>
+                  <td>{new Date(member.joinedAt).toLocaleDateString()}</td>
+                  {member.id !== user.id && (
+                    <td>
+                      <div class="buttons are-small">
+                        {member.role === 'member' ? (
+                          <form method="POST" style="display: inline;">
+                            <input type="hidden" name="action" value="promote" />
+                            <input type="hidden" name="membershipId" value={member.membershipId} />
+                            <button type="submit" class="button is-warning is-small">
+                              Make Admin
+                            </button>
+                          </form>
+                        ) : (
+                          <form method="POST" style="display: inline;">
+                            <input type="hidden" name="action" value="demote" />
+                            <input type="hidden" name="membershipId" value={member.membershipId} />
+                            <button type="submit" class="button is-info is-small">
+                              Remove Admin
+                            </button>
+                          </form>
+                        )}
+                        <form method="POST" style="display: inline;">
+                          <input type="hidden" name="action" value="remove" />
+                          <input type="hidden" name="membershipId" value={member.membershipId} />
+                          <button type="submit" class="button is-danger is-small">
+                            Remove
+                          </button>
+                        </form>
+                      </div>
+                    </td>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </div>
+  </section>
+</Layout>

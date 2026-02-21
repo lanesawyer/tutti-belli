@@ -2,6 +2,7 @@
 import Layout from '../../layouts/Layout.astro';
 import { db, eq, and, desc, Ensemble, EnsembleMember, User, EnsembleInvite, Part, Announcement, Group, GroupMembership, Rehearsal, Season, SeasonMembership } from 'astro:db';
 import { canManageEnsemble } from '../../lib/permissions';
+import { getInitials, getColorFromInitials } from '../../lib/avatar';
 
 const user = Astro.locals.user;
 if (!user) {
@@ -245,25 +246,6 @@ if (Astro.request.method === 'POST') {
       await db.delete(EnsembleInvite).where(eq(EnsembleInvite.id, inviteId));
       return Astro.redirect(`/ensembles/${id}`);
     }
-  } else {
-    const membershipId = formData.get('membershipId')?.toString();
-
-    if (action === 'remove' && membershipId) {
-      await db.delete(EnsembleMember).where(eq(EnsembleMember.id, membershipId));
-      return Astro.redirect(`/ensembles/${id}`);
-    } else if (action === 'promote' && membershipId) {
-      await db
-        .update(EnsembleMember)
-        .set({ role: 'admin' })
-        .where(eq(EnsembleMember.id, membershipId));
-      return Astro.redirect(`/ensembles/${id}`);
-    } else if (action === 'demote' && membershipId) {
-      await db
-        .update(EnsembleMember)
-        .set({ role: 'member' })
-        .where(eq(EnsembleMember.id, membershipId));
-      return Astro.redirect(`/ensembles/${id}`);
-    }
   }
 }
 ---
@@ -475,7 +457,25 @@ if (Astro.request.method === 'POST') {
       </div>
 
       <div class="box">
-        <h2 class="title is-4">Members ({members.length})</h2>
+        <div class="level mb-4">
+          <div class="level-left">
+            <div class="level-item">
+              <h2 class="title is-4">Members ({members.length})</h2>
+            </div>
+          </div>
+          {isAdmin && (
+            <div class="level-right">
+              <div class="level-item">
+                <a href={`/ensembles/${id}/members`} class="button is-small">
+                  <span class="icon">
+                    <i class="fas fa-cog"></i>
+                  </span>
+                  <span>Manage Members</span>
+                </a>
+              </div>
+            </div>
+          )}
+        </div>
         
         {allParts.length > 0 ? (
           <>
@@ -485,218 +485,107 @@ if (Astro.request.method === 'POST') {
               
               return (
                 <div class="mb-5">
-                  <h3 class="title is-5 has-text-primary">{part.name} ({partMembers.length})</h3>
-                  <table class="table is-fullwidth is-striped">
-                    <thead>
-                      <tr>
-                        <th style="width: 60px;"></th>
-                        <th>Name</th>
-                        <th>Email</th>
-                        <th>Role</th>
-                        <th>Joined</th>
-                        {isAdmin && <th>Actions</th>}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {partMembers.map((member: any) => (
-                        <tr>
-                          <td>
-                            <figure class="image is-48x48">
+                  <h3 class="title is-5 has-text-primary mb-3">{part.name} ({partMembers.length})</h3>
+                  <div class="columns is-multiline">
+                    {partMembers.map((member: any) => (
+                      <div class="column is-6-tablet is-4-desktop is-3-widescreen">
+                        <div class="card">
+                          <div class="card-content has-text-centered">
+                            <figure class="image is-96x96 mx-auto mb-3">
                               {member.avatarUrl ? (
                                 <img src={member.avatarUrl} alt={member.name} style="object-fit: cover; border-radius: 50%;" />
                               ) : (
-                                <img src="https://bulma.io/assets/images/placeholders/128x128.png" alt="No avatar" style="border-radius: 50%;" />
+                                <div style={`width: 96px; height: 96px; border-radius: 50%; background-color: ${getColorFromInitials(getInitials(member.name))}; display: flex; align-items: center; justify-content: center; color: white; font-size: 2rem; font-weight: bold;`}>
+                                  {getInitials(member.name)}
+                                </div>
                               )}
                             </figure>
-                          </td>
-                          <td>{member.name}</td>
-                          <td>{member.email}</td>
-                          <td>
-                            <span class={`tag ${member.role === 'admin' ? 'is-warning' : 'is-info'}`}>
-                              {member.role === 'admin' ? 'Admin' : 'Member'}
-                            </span>
-                          </td>
-                          <td>{new Date(member.joinedAt).toLocaleDateString()}</td>
-                          {isAdmin && member.id !== user.id && (
-                            <td>
-                              <div class="buttons are-small">
-                                {member.role === 'member' ? (
-                                  <form method="POST" style="display: inline;">
-                                    <input type="hidden" name="action" value="promote" />
-                                    <input type="hidden" name="membershipId" value={member.membershipId} />
-                                    <button type="submit" class="button is-warning is-small">
-                                      Make Admin
-                                    </button>
-                                  </form>
-                                ) : (
-                                  <form method="POST" style="display: inline;">
-                                    <input type="hidden" name="action" value="demote" />
-                                    <input type="hidden" name="membershipId" value={member.membershipId} />
-                                    <button type="submit" class="button is-info is-small">
-                                      Remove Admin
-                                    </button>
-                                  </form>
-                                )}
-                                <form method="POST" style="display: inline;">
-                                  <input type="hidden" name="action" value="remove" />
-                                  <input type="hidden" name="membershipId" value={member.membershipId} />
-                                  <button type="submit" class="button is-danger is-small">
-                                    Remove
-                                  </button>
-                                </form>
+                            <p class="title is-6 mb-2">{member.name}</p>
+                            <p class="subtitle is-7 has-text-grey mb-2">{part.name}</p>
+                            {userGroups.has(member.id) && (
+                              <div class="tags are-small is-justify-content-center mt-2">
+                                {userGroups.get(member.id).map((group: any) => (
+                                  <span class={`tag is-${group.color}`} title={group.description || group.name}>
+                                    {group.name}
+                                  </span>
+                                ))}
                               </div>
-                            </td>
-                          )}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               );
             })}
 
             {membersWithoutPart.length > 0 && (
               <div class="mb-5">
-                <h3 class="title is-5 has-text-grey">No Part Assigned ({membersWithoutPart.length})</h3>
-                <table class="table is-fullwidth is-striped">
-                  <thead>
-                    <tr>
-                      <th style="width: 60px;"></th>
-                      <th>Name</th>
-                      <th>Email</th>
-                      <th>Role</th>
-                      <th>Joined</th>
-                      {isAdmin && <th>Actions</th>}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {membersWithoutPart.map((member) => (
-                      <tr>
-                        <td>
-                          <figure class="image is-48x48">
+                <h3 class="title is-5 has-text-grey mb-3">No Part Assigned ({membersWithoutPart.length})</h3>
+                <div class="columns is-multiline">
+                  {membersWithoutPart.map((member) => (
+                    <div class="column is-6-tablet is-4-desktop is-3-widescreen">
+                      <div class="card">
+                        <div class="card-content has-text-centered">
+                          <figure class="image is-96x96 mx-auto mb-3">
                             {member.avatarUrl ? (
                               <img src={member.avatarUrl} alt={member.name} style="object-fit: cover; border-radius: 50%;" />
                             ) : (
-                              <img src="https://bulma.io/assets/images/placeholders/128x128.png" alt="No avatar" style="border-radius: 50%;" />
+                              <div style={`width: 96px; height: 96px; border-radius: 50%; background-color: ${getColorFromInitials(getInitials(member.name))}; display: flex; align-items: center; justify-content: center; color: white; font-size: 2rem; font-weight: bold;`}>
+                                {getInitials(member.name)}
+                              </div>
                             )}
                           </figure>
-                        </td>
-                        <td>{member.name}</td>
-                        <td>{member.email}</td>
-                        <td>
-                          <span class={`tag ${member.role === 'admin' ? 'is-warning' : 'is-info'}`}>
-                            {member.role === 'admin' ? 'Admin' : 'Member'}
-                          </span>
-                        </td>
-                        <td>{new Date(member.joinedAt).toLocaleDateString()}</td>
-                        {isAdmin && member.id !== user.id && (
-                          <td>
-                            <div class="buttons are-small">
-                              {member.role === 'member' ? (
-                                <form method="POST" style="display: inline;">
-                                  <input type="hidden" name="action" value="promote" />
-                                  <input type="hidden" name="membershipId" value={member.membershipId} />
-                                  <button type="submit" class="button is-warning is-small">
-                                    Make Admin
-                                  </button>
-                                </form>
-                              ) : (
-                                <form method="POST" style="display: inline;">
-                                  <input type="hidden" name="action" value="demote" />
-                                  <input type="hidden" name="membershipId" value={member.membershipId} />
-                                  <button type="submit" class="button is-info is-small">
-                                    Remove Admin
-                                  </button>
-                                </form>
-                              )}
-                              <form method="POST" style="display: inline;">
-                                <input type="hidden" name="action" value="remove" />
-                                <input type="hidden" name="membershipId" value={member.membershipId} />
-                                <button type="submit" class="button is-danger is-small">
-                                  Remove
-                                </button>
-                              </form>
+                          <p class="title is-6 mb-2">{member.name}</p>
+                          <p class="subtitle is-7 has-text-grey mb-2">No part assigned</p>
+                          {userGroups.has(member.id) && (
+                            <div class="tags are-small is-justify-content-center mt-2">
+                              {userGroups.get(member.id).map((group: any) => (
+                                <span class={`tag is-${group.color}`} title={group.description || group.name}>
+                                  {group.name}
+                                </span>
+                              ))}
                             </div>
-                          </td>
-                        )}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </>
         ) : (
-          <table class="table is-fullwidth is-striped">
-            <thead>
-              <tr>
-                <th style="width: 60px;"></th>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Role</th>
-                <th>Joined</th>
-                {isAdmin && <th>Actions</th>}
-              </tr>
-            </thead>
-            <tbody>
-              {members.map((member) => (
-                <tr>
-                  <td>
-                    <figure class="image is-48x48">
+          <div class="columns is-multiline">
+            {members.map((member) => (
+              <div class="column is-6-tablet is-4-desktop is-3-widescreen">
+                <div class="card">
+                  <div class="card-content has-text-centered">
+                    <figure class="image is-96x96 mx-auto mb-3">
                       {member.avatarUrl ? (
                         <img src={member.avatarUrl} alt={member.name} style="object-fit: cover; border-radius: 50%;" />
                       ) : (
-                        <img src="https://bulma.io/assets/images/placeholders/128x128.png" alt="No avatar" style="border-radius: 50%;" />
+                        <div style={`width: 96px; height: 96px; border-radius: 50%; background-color: ${getColorFromInitials(getInitials(member.name))}; display: flex; align-items: center; justify-content: center; color: white; font-size: 2rem; font-weight: bold;`}>
+                          {getInitials(member.name)}
+                        </div>
                       )}
                     </figure>
-                  </td>
-                  <td>{member.name}</td>
-                  <td>{member.email}</td>
-                  <td>
-                    <span class={`tag ${member.role === 'admin' ? 'is-warning' : 'is-info'}`}>
-                      {member.role === 'admin' ? 'Admin' : 'Member'}
-                    </span>
-                    {userGroups.has(member.id) && userGroups.get(member.id).map((group: any) => (
-                      <span class={`tag is-${group.color} ml-1`} title={group.description || group.name}>
-                        {group.name}
-                      </span>
-                    ))}
-                  </td>
-                  <td>{new Date(member.joinedAt).toLocaleDateString()}</td>
-                  {isAdmin && member.id !== user.id && (
-                    <td>
-                      <div class="buttons are-small">
-                        {member.role === 'member' ? (
-                          <form method="POST" style="display: inline;">
-                            <input type="hidden" name="action" value="promote" />
-                            <input type="hidden" name="membershipId" value={member.membershipId} />
-                            <button type="submit" class="button is-warning is-small">
-                              Make Admin
-                            </button>
-                          </form>
-                        ) : (
-                          <form method="POST" style="display: inline;">
-                            <input type="hidden" name="action" value="demote" />
-                            <input type="hidden" name="membershipId" value={member.membershipId} />
-                            <button type="submit" class="button is-info is-small">
-                              Remove Admin
-                            </button>
-                          </form>
-                        )}
-                        <form method="POST" style="display: inline;">
-                          <input type="hidden" name="action" value="remove" />
-                          <input type="hidden" name="membershipId" value={member.membershipId} />
-                          <button type="submit" class="button is-danger is-small">
-                            Remove
-                          </button>
-                        </form>
+                    <p class="title is-6 mb-2">{member.name}</p>
+                    {userGroups.has(member.id) && (
+                      <div class="tags are-small is-justify-content-center mt-2">
+                        {userGroups.get(member.id).map((group: any) => (
+                          <span class={`tag is-${group.color}`} title={group.description || group.name}>
+                            {group.name}
+                          </span>
+                        ))}
                       </div>
-                    </td>
-                  )}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         )}
       </div>
 
@@ -727,6 +616,12 @@ if (Astro.request.method === 'POST') {
                 <i class="fas fa-edit"></i>
               </span>
               <span>Edit Ensemble</span>
+            </a>
+            <a href={`/ensembles/${id}/members`} class="button is-fullwidth">
+              <span class="icon">
+                <i class="fas fa-users"></i>
+              </span>
+              <span>Manage Members</span>
             </a>
             <a href={`/ensembles/${id}/rehearsals`} class="button is-fullwidth">
               <span class="icon">
@@ -782,7 +677,9 @@ if (Astro.request.method === 'POST') {
                         {member.avatarUrl ? (
                           <img src={member.avatarUrl} alt={member.name} style="object-fit: cover; border-radius: 50%;" />
                         ) : (
-                          <img src="https://bulma.io/assets/images/placeholders/128x128.png" alt="No avatar" style="border-radius: 50%;" />
+                          <div style={`width: 32px; height: 32px; border-radius: 50%; background-color: ${getColorFromInitials(getInitials(member.name))}; display: flex; align-items: center; justify-content: center; color: white; font-size: 0.75rem; font-weight: bold;`}>
+                            {getInitials(member.name)}
+                          </div>
                         )}
                       </figure>
                     </div>
