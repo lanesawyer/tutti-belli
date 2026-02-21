@@ -21,11 +21,13 @@
     "astro": "5.17.3",
     "bcryptjs": "3.0.3",
     "bulma": "1.0.4",
+    "jsonwebtoken": "^9.0.3",
     "qrcode": "1.5.4",
     "typescript": "5.9.3"
   },
   "devDependencies": {
     "@types/bcryptjs": "2.4.6",
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/qrcode": "1.5.5",
     "oxlint": "0.16.12"
   }
