@@ -48,12 +48,28 @@ cd ensemble-management-software
 pnpm install
 ```
 
-3. Start the development server:
+3. Set up environment variables:
+```bash
+cp .env.example .env
+```
+
+Edit `.env` and add your Astro DB connection details:
+```
+ASTRO_DB_REMOTE_URL=your_database_url
+ASTRO_DB_APP_TOKEN=your_app_token
+```
+
+4. Start the development server:
 ```bash
 pnpm dev
 ```
 
 The application will be available at `http://localhost:4321/`
+
+### Environment Variables
+
+- `ASTRO_DB_REMOTE_URL`: The remote database URL for Astro DB
+- `ASTRO_DB_APP_TOKEN`: Authentication token for connecting to the remote Astro DB
 
 ### Default Admin Account
 
