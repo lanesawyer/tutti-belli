@@ -1,0 +1,236 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { db, eq, Ensemble, User, EnsembleMember } from 'astro:db';
+
+const user = Astro.locals.user;
+
+if (!user || user.role !== 'admin') {
+  return Astro.redirect('/');
+}
+
+let message = '';
+let error = '';
+
+if (Astro.request.method === 'POST') {
+  const formData = await Astro.request.formData();
+  const action = formData.get('action')?.toString();
+
+  if (action === 'create-ensemble') {
+    const name = formData.get('name')?.toString();
+    const description = formData.get('description')?.toString();
+
+    if (!name) {
+      error = 'Ensemble name is required';
+    } else {
+      const ensembleId = crypto.randomUUID();
+      await db.insert(Ensemble).values({
+        id: ensembleId,
+        name,
+        description: description || '',
+        createdBy: user.id,
+      });
+
+      // Add creator as admin
+      await db.insert(EnsembleMember).values({
+        id: crypto.randomUUID(),
+        ensembleId,
+        userId: user.id,
+        role: 'admin',
+      });
+
+      message = `Ensemble "${name}" created successfully!`;
+    }
+  } else if (action === 'delete-ensemble') {
+    const ensembleId = formData.get('ensembleId')?.toString();
+    if (ensembleId) {
+      // Delete members first
+      await db.delete(EnsembleMember).where(eq(EnsembleMember.ensembleId, ensembleId));
+      // Delete ensemble
+      await db.delete(Ensemble).where(eq(Ensemble.id, ensembleId));
+      message = 'Ensemble deleted successfully!';
+    }
+  } else if (action === 'toggle-admin') {
+    const userId = formData.get('userId')?.toString();
+    if (userId && userId !== user.id) {
+      const [targetUser] = await db.select().from(User).where(eq(User.id, userId));
+      if (targetUser) {
+        const newRole = targetUser.role === 'admin' ? 'user' : 'admin';
+        await db.update(User).set({ role: newRole }).where(eq(User.id, userId));
+        message = `User ${targetUser.name} is now ${newRole === 'admin' ? 'a site admin' : 'a regular user'}`;
+      }
+    }
+  }
+
+  // Refresh page to show updates
+  if (message || error) {
+    return Astro.redirect('/admin?msg=' + encodeURIComponent(message || error));
+  }
+}
+
+// Get query message
+const urlMessage = Astro.url.searchParams.get('msg');
+if (urlMessage) {
+  message = urlMessage;
+}
+
+// Get all ensembles
+const allEnsembles = await db.select().from(Ensemble);
+
+// Get all users
+const allUsers = await db.select().from(User);
+---
+
+<Layout title="Admin Panel">
+  <h1 class="title">Site Administration</h1>
+
+  {message && (
+    <div class="notification is-success is-light">
+      {message}
+    </div>
+  )}
+
+  {error && (
+    <div class="notification is-danger is-light">
+      {error}
+    </div>
+  )}
+
+  <!-- Create Ensemble -->
+  <div class="box">
+    <h2 class="title is-4">Create New Ensemble</h2>
+    <form method="POST">
+      <input type="hidden" name="action" value="create-ensemble" />
+      
+      <div class="field">
+        <label class="label" for="name">Ensemble Name</label>
+        <div class="control">
+          <input
+            class="input"
+            type="text"
+            id="name"
+            name="name"
+            placeholder="e.g., Chamber Orchestra"
+            required
+          />
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="label" for="description">Description</label>
+        <div class="control">
+          <textarea
+            class="textarea"
+            id="description"
+            name="description"
+            placeholder="Optional description"
+          ></textarea>
+        </div>
+      </div>
+
+      <div class="field">
+        <div class="control">
+          <button type="submit" class="button is-primary">
+            <span class="icon">
+              <i class="fas fa-plus"></i>
+            </span>
+            <span>Create Ensemble</span>
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <!-- Manage Ensembles -->
+  <div class="box">
+    <h2 class="title is-4">Manage Ensembles ({allEnsembles.length})</h2>
+    
+    {allEnsembles.length > 0 ? (
+      <table class="table is-fullwidth is-striped">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Description</th>
+            <th>Created</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {allEnsembles.map((ensemble) => (
+            <tr>
+              <td><strong>{ensemble.name}</strong></td>
+              <td>{ensemble.description}</td>
+              <td>{new Date(ensemble.createdAt).toLocaleDateString()}</td>
+              <td>
+                <div class="buttons are-small">
+                  <a href={`/ensembles/${ensemble.id}`} class="button is-info is-small">
+                    View
+                  </a>
+                  <form method="POST" style="display: inline;">
+                    <input type="hidden" name="action" value="delete-ensemble" />
+                    <input type="hidden" name="ensembleId" value={ensemble.id} />
+                    <button
+                      type="submit"
+                      class="button is-danger is-small"
+                      onclick="return confirm('Are you sure you want to delete this ensemble?')"
+                    >
+                      Delete
+                    </button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    ) : (
+      <div class="notification is-info is-light">
+        No ensembles created yet.
+      </div>
+    )}
+  </div>
+
+  <!-- Manage Users -->
+  <div class="box">
+    <h2 class="title is-4">Manage Users ({allUsers.length})</h2>
+    
+    <table class="table is-fullwidth is-striped">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Email</th>
+          <th>Role</th>
+          <th>Joined</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {allUsers.map((u) => (
+          <tr>
+            <td>{u.name}</td>
+            <td>{u.email}</td>
+            <td>
+              <span class={`tag ${u.role === 'admin' ? 'is-danger' : 'is-info'}`}>
+                {u.role === 'admin' ? 'Site Admin' : 'User'}
+              </span>
+            </td>
+            <td>{new Date(u.createdAt).toLocaleDateString()}</td>
+            <td>
+              {u.id !== user.id && (
+                <form method="POST" style="display: inline;">
+                  <input type="hidden" name="action" value="toggle-admin" />
+                  <input type="hidden" name="userId" value={u.id} />
+                  <button
+                    type="submit"
+                    class={`button is-small ${u.role === 'admin' ? 'is-warning' : 'is-success'}`}
+                  >
+                    {u.role === 'admin' ? 'Remove Admin' : 'Make Admin'}
+                  </button>
+                </form>
+              )}
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+</Layout>

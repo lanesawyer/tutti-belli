@@ -1,0 +1,107 @@
+---
+interface Props {
+  title: string;
+}
+
+const { title } = Astro.props;
+const session = Astro.locals.session;
+const user = Astro.locals.user;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="description" content="Ensemble Management System" />
+    <meta name="viewport" content="width=device-width" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.0/css/bulma.min.css">
+    <script defer src="https://use.fontawesome.com/releases/v6.5.1/js/all.js"></script>
+    <title>{title} - Ensemble Management</title>
+  </head>
+  <body>
+    <nav class="navbar is-dark" role="navigation" aria-label="main navigation">
+      <div class="container">
+        <div class="navbar-brand">
+          <a class="navbar-item" href="/">
+            <strong>🎵 Ensemble Management</strong>
+          </a>
+          <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false" data-target="navbarMenu">
+            <span aria-hidden="true"></span>
+            <span aria-hidden="true"></span>
+            <span aria-hidden="true"></span>
+          </a>
+        </div>
+
+        <div id="navbarMenu" class="navbar-menu">
+          <div class="navbar-start">
+            <a class="navbar-item" href="/">Home</a>
+            {user && (
+              <>
+                <a class="navbar-item" href="/ensembles">My Ensembles</a>
+                {user.role === 'admin' && (
+                  <a class="navbar-item" href="/admin">Admin Panel</a>
+                )}
+              </>
+            )}
+          </div>
+
+          <div class="navbar-end">
+            {user ? (
+              <div class="navbar-item has-dropdown is-hoverable">
+                <a class="navbar-link">
+                  {user.name}
+                </a>
+                <div class="navbar-dropdown">
+                  <a class="navbar-item" href="/profile">Profile</a>
+                  <hr class="navbar-divider">
+                  <a class="navbar-item" href="/logout">Logout</a>
+                </div>
+              </div>
+            ) : (
+              <div class="navbar-item">
+                <div class="buttons">
+                  <a class="button is-primary" href="/register">
+                    <strong>Sign up</strong>
+                  </a>
+                  <a class="button is-light" href="/login">
+                    Log in
+                  </a>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <main class="section">
+      <div class="container">
+        <slot />
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="content has-text-centered">
+        <p>
+          <strong>Ensemble Management System</strong> - Managing musical ensembles with ease.
+        </p>
+      </div>
+    </footer>
+
+    <script>
+      // Mobile menu toggle
+      document.addEventListener('DOMContentLoaded', () => {
+        const $navbarBurgers = Array.prototype.slice.call(document.querySelectorAll('.navbar-burger'), 0);
+        $navbarBurgers.forEach(el => {
+          el.addEventListener('click', () => {
+            const target = el.dataset.target;
+            const $target = document.getElementById(target);
+            el.classList.toggle('is-active');
+            $target?.classList.toggle('is-active');
+          });
+        });
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,21 @@
+{
+  "name": "ensemble-management-software",
+  "type": "module",
+  "version": "0.0.1",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "@astrojs/db": "^0.19.0",
+    "@astrojs/node": "^9.5.4",
+    "astro": "^5.17.1",
+    "bcryptjs": "^3.0.3",
+    "bulma": "^1.0.4"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6"
+  }
+}

@@ -1,0 +1,163 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { db, eq, and, Ensemble, EnsembleMember, User } from 'astro:db';
+
+const user = Astro.locals.user;
+if (!user) {
+  return Astro.redirect('/login');
+}
+
+const { id } = Astro.params;
+if (!id) {
+  return Astro.redirect('/ensembles');
+}
+
+// Get ensemble details
+const [ensemble] = await db.select().from(Ensemble).where(eq(Ensemble.id, id));
+if (!ensemble) {
+  return Astro.redirect('/ensembles');
+}
+
+// Check if user is a member
+const [membership] = await db
+  .select()
+  .from(EnsembleMember)
+  .where(and(eq(EnsembleMember.ensembleId, id), eq(EnsembleMember.userId, user.id)));
+
+if (!membership) {
+  return Astro.redirect('/ensembles');
+}
+
+const isAdmin = membership.role === 'admin';
+
+// Get all members
+const members = await db
+  .select({
+    id: User.id,
+    name: User.name,
+    email: User.email,
+    role: EnsembleMember.role,
+    joinedAt: EnsembleMember.joinedAt,
+    membershipId: EnsembleMember.id,
+  })
+  .from(EnsembleMember)
+  .innerJoin(User, eq(EnsembleMember.userId, User.id))
+  .where(eq(EnsembleMember.ensembleId, id));
+
+// Handle member actions
+if (Astro.request.method === 'POST') {
+  if (!isAdmin) {
+    return new Response('Unauthorized', { status: 403 });
+  }
+
+  const formData = await Astro.request.formData();
+  const action = formData.get('action')?.toString();
+  const membershipId = formData.get('membershipId')?.toString();
+
+  if (action === 'remove' && membershipId) {
+    await db.delete(EnsembleMember).where(eq(EnsembleMember.id, membershipId));
+    return Astro.redirect(`/ensembles/${id}`);
+  } else if (action === 'promote' && membershipId) {
+    await db
+      .update(EnsembleMember)
+      .set({ role: 'admin' })
+      .where(eq(EnsembleMember.id, membershipId));
+    return Astro.redirect(`/ensembles/${id}`);
+  } else if (action === 'demote' && membershipId) {
+    await db
+      .update(EnsembleMember)
+      .set({ role: 'member' })
+      .where(eq(EnsembleMember.id, membershipId));
+    return Astro.redirect(`/ensembles/${id}`);
+  }
+}
+---
+
+<Layout title={ensemble.name}>
+  <div class="level">
+    <div class="level-left">
+      <div class="level-item">
+        <div>
+          <h1 class="title">{ensemble.name}</h1>
+          {ensemble.description && (
+            <p class="subtitle">{ensemble.description}</p>
+          )}
+        </div>
+      </div>
+    </div>
+    <div class="level-right">
+      <div class="level-item">
+        <span class={`tag is-medium ${isAdmin ? 'is-warning' : 'is-info'}`}>
+          {isAdmin ? 'Ensemble Admin' : 'Member'}
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <div class="box">
+    <h2 class="title is-4">Members ({members.length})</h2>
+    
+    <table class="table is-fullwidth is-striped">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Email</th>
+          <th>Role</th>
+          <th>Joined</th>
+          {isAdmin && <th>Actions</th>}
+        </tr>
+      </thead>
+      <tbody>
+        {members.map((member) => (
+          <tr>
+            <td>{member.name}</td>
+            <td>{member.email}</td>
+            <td>
+              <span class={`tag ${member.role === 'admin' ? 'is-warning' : 'is-info'}`}>
+                {member.role === 'admin' ? 'Admin' : 'Member'}
+              </span>
+            </td>
+            <td>{new Date(member.joinedAt).toLocaleDateString()}</td>
+            {isAdmin && member.id !== user.id && (
+              <td>
+                <div class="buttons are-small">
+                  {member.role === 'member' ? (
+                    <form method="POST" style="display: inline;">
+                      <input type="hidden" name="action" value="promote" />
+                      <input type="hidden" name="membershipId" value={member.membershipId} />
+                      <button type="submit" class="button is-warning is-small">
+                        Make Admin
+                      </button>
+                    </form>
+                  ) : (
+                    <form method="POST" style="display: inline;">
+                      <input type="hidden" name="action" value="demote" />
+                      <input type="hidden" name="membershipId" value={member.membershipId} />
+                      <button type="submit" class="button is-info is-small">
+                        Remove Admin
+                      </button>
+                    </form>
+                  )}
+                  <form method="POST" style="display: inline;">
+                    <input type="hidden" name="action" value="remove" />
+                    <input type="hidden" name="membershipId" value={member.membershipId} />
+                    <button type="submit" class="button is-danger is-small">
+                      Remove
+                    </button>
+                  </form>
+                </div>
+              </td>
+            )}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+
+  <a href="/ensembles" class="button">
+    <span class="icon">
+      <i class="fas fa-arrow-left"></i>
+    </span>
+    <span>Back to Ensembles</span>
+  </a>
+</Layout>

@@ -1,0 +1,51 @@
+---
+import Layout from '../layouts/Layout.astro';
+
+const user = Astro.locals.user;
+
+if (!user) {
+  return Astro.redirect('/login');
+}
+---
+
+<Layout title="Profile">
+  <div class="box">
+    <h1 class="title">My Profile</h1>
+    
+    <div class="content">
+      <table class="table">
+        <tbody>
+          <tr>
+            <th>Name:</th>
+            <td>{user.name}</td>
+          </tr>
+          <tr>
+            <th>Email:</th>
+            <td>{user.email}</td>
+          </tr>
+          <tr>
+            <th>Role:</th>
+            <td>
+              <span class={`tag ${user.role === 'admin' ? 'is-danger' : 'is-info'}`}>
+                {user.role === 'admin' ? 'Site Administrator' : 'User'}
+              </span>
+            </td>
+          </tr>
+          <tr>
+            <th>Member Since:</th>
+            <td>{new Date(user.createdAt).toLocaleDateString()}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="buttons">
+      <a href="/ensembles" class="button is-primary">
+        <span class="icon">
+          <i class="fas fa-users"></i>
+        </span>
+        <span>My Ensembles</span>
+      </a>
+    </div>
+  </div>
+</Layout>

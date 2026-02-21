@@ -1,0 +1,91 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { db, eq, and, Ensemble, EnsembleMember } from 'astro:db';
+
+const user = Astro.locals.user;
+
+if (!user) {
+  return Astro.redirect('/login');
+}
+
+// Get all ensembles the user is a member of
+const userEnsembles = await db
+  .select({
+    id: Ensemble.id,
+    name: Ensemble.name,
+    description: Ensemble.description,
+    role: EnsembleMember.role,
+    joinedAt: EnsembleMember.joinedAt,
+  })
+  .from(EnsembleMember)
+  .innerJoin(Ensemble, eq(EnsembleMember.ensembleId, Ensemble.id))
+  .where(eq(EnsembleMember.userId, user.id));
+
+// Get all available ensembles (for joining)
+const allEnsembles = await db.select().from(Ensemble);
+const userEnsembleIds = new Set(userEnsembles.map(e => e.id));
+const availableEnsembles = allEnsembles.filter(e => !userEnsembleIds.has(e.id));
+---
+
+<Layout title="My Ensembles">
+  <h1 class="title">My Ensembles</h1>
+
+  {userEnsembles.length > 0 ? (
+    <div class="columns is-multiline">
+      {userEnsembles.map((ensemble) => (
+        <div class="column is-4">
+          <div class="card">
+            <div class="card-content">
+              <p class="title is-4">{ensemble.name}</p>
+              {ensemble.description && (
+                <p class="subtitle is-6">{ensemble.description}</p>
+              )}
+              <div class="tags mt-2">
+                <span class={`tag ${ensemble.role === 'admin' ? 'is-warning' : 'is-info'}`}>
+                  {ensemble.role === 'admin' ? 'Ensemble Admin' : 'Member'}
+                </span>
+              </div>
+            </div>
+            <footer class="card-footer">
+              <a href={`/ensembles/${ensemble.id}`} class="card-footer-item">
+                View Details
+              </a>
+            </footer>
+          </div>
+        </div>
+      ))}
+    </div>
+  ) : (
+    <div class="notification is-info is-light">
+      <p>You haven't joined any ensembles yet.</p>
+    </div>
+  )}
+
+  {availableEnsembles.length > 0 && (
+    <>
+      <hr />
+      <h2 class="title is-4 mt-5">Available Ensembles</h2>
+      <div class="columns is-multiline">
+        {availableEnsembles.map((ensemble) => (
+          <div class="column is-4">
+            <div class="card">
+              <div class="card-content">
+                <p class="title is-4">{ensemble.name}</p>
+                {ensemble.description && (
+                  <p class="subtitle is-6">{ensemble.description}</p>
+                )}
+              </div>
+              <footer class="card-footer">
+                <form method="POST" action={`/ensembles/${ensemble.id}/join`} class="card-footer-item">
+                  <button type="submit" class="button is-primary is-small">
+                    Join Ensemble
+                  </button>
+                </form>
+              </footer>
+            </div>
+          </div>
+        ))}
+      </div>
+    </>
+  )}
+</Layout>
