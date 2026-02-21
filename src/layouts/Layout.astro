@@ -4,7 +4,6 @@ interface Props {
 }
 
 const { title } = Astro.props;
-const session = Astro.locals.session;
 const user = Astro.locals.user;
 ---
 
@@ -16,7 +15,7 @@ const user = Astro.locals.user;
     <meta name="viewport" content="width=device-width" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.0/css/bulma.min.css">
-    <script defer src="https://use.fontawesome.com/releases/v6.5.1/js/all.js"></script>
+    <script is:inline defer src="https://use.fontawesome.com/releases/v6.5.1/js/all.js"></script>
     <title>{title} - Ensemble Management</title>
   </head>
   <body>

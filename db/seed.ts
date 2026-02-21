@@ -1,4 +1,4 @@
-import { db, User, Ensemble, EnsembleMember } from 'astro:db';
+import { db, User } from 'astro:db';
 import bcrypt from 'bcryptjs';
 
 export default async function seed() {
