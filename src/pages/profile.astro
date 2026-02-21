@@ -277,7 +277,7 @@ if (Astro.request.method === 'POST') {
                 const parts = partsByEnsemble.get(membership.ensembleId) || [];
                 
                 return (
-                  <div class="box has-background-light">
+                  <div class="box">
                     <h3 class="title is-5">{membership.ensembleName}</h3>
                     
                     {parts.length === 0 ? (
