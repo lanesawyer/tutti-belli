@@ -1,6 +1,6 @@
 ---
 import Layout from '../../layouts/Layout.astro';
-import { db, eq, and, desc, Ensemble, EnsembleMember, User, EnsembleInvite, Part, Announcement, Group, GroupMembership, Rehearsal } from 'astro:db';
+import { db, eq, and, desc, Ensemble, EnsembleMember, User, EnsembleInvite, Part, Announcement, Group, GroupMembership, Rehearsal, Season, SeasonMembership } from 'astro:db';
 import { canManageEnsemble } from '../../lib/permissions';
 
 const user = Astro.locals.user;
@@ -31,6 +31,15 @@ if (!membership) {
 
 const isAdmin = canManageEnsemble(user, membership);
 const isPending = membership.status === 'pending';
+
+// Get the current active season
+const [currentSeason] = await db
+  .select()
+  .from(Season)
+  .where(and(
+    eq(Season.ensembleId, id),
+    eq(Season.isActive, 1)
+  ));
 
 // Get all active members with their parts
 const membersData = await db
@@ -180,10 +189,48 @@ if (Astro.request.method === 'POST') {
   } else if (action === 'approve-member') {
     const membershipId = formData.get('membershipId')?.toString();
     if (membershipId) {
-      await db
-        .update(EnsembleMember)
-        .set({ status: 'active' })
+      // Get the membership to find the userId
+      const [membership] = await db
+        .select()
+        .from(EnsembleMember)
         .where(eq(EnsembleMember.id, membershipId));
+      
+      if (membership) {
+        // Update member status to active
+        await db
+          .update(EnsembleMember)
+          .set({ status: 'active' })
+          .where(eq(EnsembleMember.id, membershipId));
+        
+        // Check if there's an active season and add the member to it
+        const [activeSeason] = await db
+          .select()
+          .from(Season)
+          .where(and(
+            eq(Season.ensembleId, id),
+            eq(Season.isActive, 1)
+          ));
+        
+        if (activeSeason) {
+          // Check if they're not already in the season
+          const [existingMembership] = await db
+            .select()
+            .from(SeasonMembership)
+            .where(and(
+              eq(SeasonMembership.seasonId, activeSeason.id),
+              eq(SeasonMembership.userId, membership.userId)
+            ));
+          
+          if (!existingMembership) {
+            await db.insert(SeasonMembership).values({
+              id: crypto.randomUUID(),
+              seasonId: activeSeason.id,
+              userId: membership.userId,
+            });
+          }
+        }
+      }
+      
       return Astro.redirect(`/ensembles/${id}`);
     }
   } else if (action === 'reject-member') {
@@ -241,6 +288,16 @@ if (Astro.request.method === 'POST') {
             <h1 class="title">{ensemble.name}</h1>
             {ensemble.description && (
               <p class="subtitle">{ensemble.description}</p>
+            )}
+            {currentSeason && (
+              <p class="subtitle is-6 mt-2">
+                <span class="icon-text">
+                  <span class="icon has-text-info">
+                    <i class="fas fa-calendar-alt"></i>
+                  </span>
+                  <span><strong>Current Season:</strong> {currentSeason.name}</span>
+                </span>
+              </p>
             )}
           </div>
         </div>
