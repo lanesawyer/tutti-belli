@@ -1,4 +1,4 @@
-import { db, User, Ensemble, EnsembleMember, Part, EnsembleInvite, Season, SeasonMembership, Rehearsal } from 'astro:db';
+import { db, User, Ensemble, EnsembleMember, Part, EnsembleInvite, Season, SeasonMembership, Rehearsal, Group, GroupMembership } from 'astro:db';
 import bcrypt from 'bcryptjs';
 
 export default async function seed() {
@@ -175,6 +175,46 @@ export default async function seed() {
       id: crypto.randomUUID(),
       seasonId: seasonId,
       userId: testUserId,
+    },
+  ]);
+
+  // Create sample groups
+  const sectionLeadersGroupId = crypto.randomUUID();
+  const boardMembersGroupId = crypto.randomUUID();
+
+  await db.insert(Group).values([
+    {
+      id: sectionLeadersGroupId,
+      ensembleId: ensembleId,
+      name: 'Section Leaders',
+      description: 'Leaders of each vocal section',
+      color: 'primary',
+    },
+    {
+      id: boardMembersGroupId,
+      ensembleId: ensembleId,
+      name: 'Board Members',
+      description: 'Ensemble board and decision makers',
+      color: 'warning',
+    },
+  ]);
+
+  // Add some members to groups
+  await db.insert(GroupMembership).values([
+    {
+      id: crypto.randomUUID(),
+      groupId: sectionLeadersGroupId,
+      userId: adminId,
+    },
+    {
+      id: crypto.randomUUID(),
+      groupId: boardMembersGroupId,
+      userId: adminId,
+    },
+    {
+      id: crypto.randomUUID(),
+      groupId: boardMembersGroupId,
+      userId: ensembleAdminId,
     },
   ]);
 

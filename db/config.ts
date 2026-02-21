@@ -113,6 +113,26 @@ const Announcement = defineTable({
   }
 });
 
+const Group = defineTable({
+  columns: {
+    id: column.text({ primaryKey: true }),
+    ensembleId: column.text({ references: () => Ensemble.columns.id }),
+    name: column.text(),
+    description: column.text({ optional: true }),
+    color: column.text({ default: 'info' }), // Bulma color classes: primary, link, info, success, warning, danger
+    createdAt: column.date({ default: NOW }),
+  }
+});
+
+const GroupMembership = defineTable({
+  columns: {
+    id: column.text({ primaryKey: true }),
+    groupId: column.text({ references: () => Group.columns.id }),
+    userId: column.text({ references: () => User.columns.id }),
+    addedAt: column.date({ default: NOW }),
+  }
+});
+
 export default defineDb({
-  tables: { User, Ensemble, EnsembleMember, Part, EnsembleInvite, Season, SeasonMembership, Rehearsal, Attendance, Announcement }
+  tables: { User, Ensemble, EnsembleMember, Part, EnsembleInvite, Season, SeasonMembership, Rehearsal, Attendance, Announcement, Group, GroupMembership }
 });
