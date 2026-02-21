@@ -1,0 +1,821 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { db, eq, and, desc, Ensemble, EnsembleMember, User, EnsembleInvite, Part, Announcement, Group, GroupMembership, Rehearsal, Season, SeasonMembership } from 'astro:db';
+import { canManageEnsemble } from '../../lib/permissions';
+import { getInitials, getColorFromInitials } from '../../lib/avatar';
+
+const user = Astro.locals.user;
+if (!user) {
+  return Astro.redirect('/login');
+}
+
+const { id } = Astro.params;
+if (!id) {
+  return Astro.redirect('/ensembles');
+}
+
+// Get ensemble details
+const [ensemble] = await db.select().from(Ensemble).where(eq(Ensemble.id, id));
+if (!ensemble) {
+  return Astro.redirect('/ensembles');
+}
+
+// Check if user is a member
+const [membership] = await db
+  .select()
+  .from(EnsembleMember)
+  .where(and(eq(EnsembleMember.ensembleId, id), eq(EnsembleMember.userId, user.id)));
+
+if (!membership) {
+  return Astro.redirect('/ensembles');
+}
+
+const isAdmin = canManageEnsemble(user, membership);
+const isPending = membership.status === 'pending';
+
+// Get the current active season
+const [currentSeason] = await db
+  .select()
+  .from(Season)
+  .where(and(
+    eq(Season.ensembleId, id),
+    eq(Season.isActive, 1)
+  ));
+
+// Get all active members with their parts
+const membersData = await db
+  .select({
+    id: User.id,
+    name: User.name,
+    email: User.email,
+    avatarUrl: User.avatarUrl,
+    role: EnsembleMember.role,
+    status: EnsembleMember.status,
+    joinedAt: EnsembleMember.joinedAt,
+    membershipId: EnsembleMember.id,
+    partId: EnsembleMember.partId,
+  })
+  .from(EnsembleMember)
+  .innerJoin(User, eq(EnsembleMember.userId, User.id))
+  .where(and(eq(EnsembleMember.ensembleId, id), eq(EnsembleMember.status, 'active')));
+
+// Get pending members (for admins)
+const pendingMembers = isAdmin ? await db
+  .select({
+    id: User.id,
+    name: User.name,
+    email: User.email,
+    avatarUrl: User.avatarUrl,
+    joinedAt: EnsembleMember.joinedAt,
+    membershipId: EnsembleMember.id,
+  })
+  .from(EnsembleMember)
+  .innerJoin(User, eq(EnsembleMember.userId, User.id))
+  .where(and(eq(EnsembleMember.ensembleId, id), eq(EnsembleMember.status, 'pending')))
+  : [];
+
+// Get all parts for this ensemble
+const allParts = await db
+  .select()
+  .from(Part)
+  .where(eq(Part.ensembleId, id))
+  .all();
+
+// Sort parts by sortOrder
+allParts.sort((a, b) => a.sortOrder - b.sortOrder);
+
+// Group members by part
+const membersByPart = new Map();
+const membersWithoutPart = [];
+
+for (const member of membersData) {
+  if (member.partId) {
+    if (!membersByPart.has(member.partId)) {
+      membersByPart.set(member.partId, []);
+    }
+    membersByPart.get(member.partId).push(member);
+  } else {
+    membersWithoutPart.push(member);
+  }
+}
+
+// For backwards compatibility, keep members array
+const members = membersData;
+
+// Get all groups for this ensemble
+const groups = await db
+  .select()
+  .from(Group)
+  .where(eq(Group.ensembleId, id))
+  .all();
+
+// Get all group memberships
+const groupMemberships = await db
+  .select({
+    groupId: GroupMembership.groupId,
+    userId: GroupMembership.userId,
+  })
+  .from(GroupMembership);
+
+// Create a map of user groups for easy lookup
+const userGroups = new Map();
+for (const gm of groupMemberships) {
+  if (!userGroups.has(gm.userId)) {
+    userGroups.set(gm.userId, []);
+  }
+  const group = groups.find(g => g.id === gm.groupId);
+  if (group) {
+    userGroups.get(gm.userId).push(group);
+  }
+}
+
+// Get latest announcements (limit to 3 most recent)
+const latestAnnouncements = await db
+  .select({
+    id: Announcement.id,
+    title: Announcement.title,
+    content: Announcement.content,
+    createdAt: Announcement.createdAt,
+    creatorName: User.name,
+  })
+  .from(Announcement)
+  .innerJoin(User, eq(Announcement.createdBy, User.id))
+  .where(eq(Announcement.ensembleId, id))
+  .orderBy(desc(Announcement.createdAt))
+  .limit(3);
+
+// Get upcoming rehearsals (next 5)
+const allRehearsals = await db
+  .select()
+  .from(Rehearsal)
+  .where(eq(Rehearsal.ensembleId, id))
+  .orderBy(Rehearsal.scheduledAt);
+
+const now = new Date();
+const upcomingRehearsals = allRehearsals
+  .filter(r => {
+    const scheduledTime = new Date(r.scheduledAt);
+    const endTime = new Date(scheduledTime.getTime() + (r.durationMinutes * 60 * 1000));
+    return endTime > now;
+  })
+  .slice(0, 5);
+
+// Get invite codes (if admin)
+const invites = isAdmin
+  ? await db
+      .select()
+      .from(EnsembleInvite)
+      .where(eq(EnsembleInvite.ensembleId, id))
+  : [];
+
+// Handle member actions
+if (Astro.request.method === 'POST') {
+  if (!isAdmin) {
+    return new Response('Unauthorized', { status: 403 });
+  }
+
+  const formData = await Astro.request.formData();
+  const action = formData.get('action')?.toString();
+
+  if (action === 'create-invite') {
+    // Generate random 8-character code
+    const code = Math.random().toString(36).substring(2, 10).toUpperCase();
+    await db.insert(EnsembleInvite).values({
+      id: crypto.randomUUID(),
+      ensembleId: id,
+      code,
+      createdBy: user.id,
+    });
+    return Astro.redirect(`/ensembles/${id}`);
+  } else if (action === 'approve-member') {
+    const membershipId = formData.get('membershipId')?.toString();
+    if (membershipId) {
+      // Get the membership to find the userId
+      const [membership] = await db
+        .select()
+        .from(EnsembleMember)
+        .where(eq(EnsembleMember.id, membershipId));
+      
+      if (membership) {
+        // Update member status to active
+        await db
+          .update(EnsembleMember)
+          .set({ status: 'active' })
+          .where(eq(EnsembleMember.id, membershipId));
+        
+        // Check if there's an active season and add the member to it
+        const [activeSeason] = await db
+          .select()
+          .from(Season)
+          .where(and(
+            eq(Season.ensembleId, id),
+            eq(Season.isActive, 1)
+          ));
+        
+        if (activeSeason) {
+          // Check if they're not already in the season
+          const [existingMembership] = await db
+            .select()
+            .from(SeasonMembership)
+            .where(and(
+              eq(SeasonMembership.seasonId, activeSeason.id),
+              eq(SeasonMembership.userId, membership.userId)
+            ));
+          
+          if (!existingMembership) {
+            await db.insert(SeasonMembership).values({
+              id: crypto.randomUUID(),
+              seasonId: activeSeason.id,
+              userId: membership.userId,
+            });
+          }
+        }
+      }
+      
+      return Astro.redirect(`/ensembles/${id}`);
+    }
+  } else if (action === 'reject-member') {
+    const membershipId = formData.get('membershipId')?.toString();
+    if (membershipId) {
+      await db.delete(EnsembleMember).where(eq(EnsembleMember.id, membershipId));
+      return Astro.redirect(`/ensembles/${id}`);
+    }
+  } else if (action === 'delete-invite') {
+    const inviteId = formData.get('inviteId')?.toString();
+    if (inviteId) {
+      await db.delete(EnsembleInvite).where(eq(EnsembleInvite.id, inviteId));
+      return Astro.redirect(`/ensembles/${id}`);
+    }
+  }
+}
+---
+
+<Layout title={ensemble.name}>
+  {ensemble.imageUrl && (
+    <div class="columns">
+      <div class="column">
+        <figure class="image is-128x128 mb-4">
+          <img src={ensemble.imageUrl} alt={ensemble.name} style="object-fit: cover; border-radius: 8px;" />
+        </figure>
+      </div>
+    </div>
+  )}
+
+  <!-- Header Section - Full Width -->
+  <div class="mb-5">
+    <div class="level">
+      <div class="level-left">
+        <div class="level-item">
+          <div>
+            <h1 class="title">{ensemble.name}</h1>
+            {ensemble.description && (
+              <p class="subtitle">{ensemble.description}</p>
+            )}
+            {currentSeason && (
+              <p class="subtitle is-6 mt-2">
+                <span class="icon-text">
+                  <span class="icon has-text-info">
+                    <i class="fas fa-calendar-alt"></i>
+                  </span>
+                  <span><strong>Current Season:</strong> {currentSeason.name}</span>
+                </span>
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+      <div class="level-right">
+        <div class="level-item">
+          <div class="tags has-addons are-large">
+            <span class={`tag ${isAdmin ? 'is-warning' : 'is-info'}`}>
+              {isAdmin ? 'Ensemble Admin' : 'Member'}
+            </span>
+          </div>
+        </div>
+        {ensemble.discordLink && !isPending && (
+          <div class="level-item">
+            <a href={ensemble.discordLink} target="_blank" rel="noopener noreferrer" class="button is-link" title="Join Discord Server">
+              <span class="icon">
+                <i class="fab fa-discord"></i>
+              </span>
+              <span>Discord</span>
+            </a>
+          </div>
+        )}
+      </div>
+    </div>
+  </div>
+
+  {isPending && (
+    <div class="notification is-warning">
+      <h2 class="title is-5">
+        <span class="icon-text">
+          <span class="icon">
+            <i class="fas fa-hourglass-half"></i>
+          </span>
+          <span>Membership Pending Approval</span>
+        </span>
+      </h2>
+      <p>Your request to join <strong>{ensemble.name}</strong> is awaiting approval from an ensemble administrator. You'll receive full access once your membership is approved.</p>
+      <p class="mt-3"><strong>Joined:</strong> {new Date(membership.joinedAt).toLocaleDateString()}</p>
+    </div>
+  )}
+
+  {!isPending && (
+  <div class="columns">
+    <div class={`column ${isAdmin ? 'is-9-desktop' : ''}`}>
+      <!-- Announcements Section -->
+      <div class="box mb-5">
+    <div class="level">
+      <div class="level-left">
+        <div class="level-item">
+          <h2 class="title is-4">
+            <span class="icon-text">
+              <span class="icon">
+                <i class="fas fa-bullhorn"></i>
+              </span>
+              <span>Recent Announcements</span>
+            </span>
+          </h2>
+        </div>
+      </div>
+      <div class="level-right">
+        <div class="level-item">
+          <a href={`/ensembles/${id}/announcements`} class="button is-small is-link">
+            View All
+          </a>
+        </div>
+      </div>
+    </div>
+
+    {latestAnnouncements.length === 0 ? (
+      <div class="notification is-info is-light">
+        <p class="has-text-centered">No announcements yet.</p>
+        {isAdmin && (
+          <p class="has-text-centered mt-2">
+            <a href={`/ensembles/${id}/announcements`} class="button is-small is-link">
+              Create First Announcement
+            </a>
+          </p>
+        )}
+      </div>
+    ) : (
+      latestAnnouncements.map((announcement) => (
+        <article class="message is-link">
+          <div class="message-header">
+            <p>{announcement.title}</p>
+            <small class="has-text-weight-normal">
+              {new Date(announcement.createdAt).toLocaleDateString()}
+            </small>
+          </div>
+          <div class="message-body">
+            <p style="white-space: pre-wrap;">{announcement.content}</p>
+            <p class="mt-2">
+              <small><em>— {announcement.creatorName}</em></small>
+            </p>
+          </div>
+        </article>
+      ))
+    )}
+      </div>
+
+      <!-- Upcoming Rehearsals Section -->
+      <div class="box mb-5">
+        <div class="level">
+          <div class="level-left">
+            <div class="level-item">
+              <h2 class="title is-4">
+                <span class="icon-text">
+                  <span class="icon">
+                    <i class="fas fa-music"></i>
+                  </span>
+                  <span>Upcoming Rehearsals</span>
+                </span>
+              </h2>
+            </div>
+          </div>
+          <div class="level-right">
+            <div class="level-item">
+              <a href={`/ensembles/${id}/rehearsals`} class="button is-small is-primary">
+                View All
+              </a>
+            </div>
+          </div>
+        </div>
+
+        {upcomingRehearsals.length === 0 ? (
+          <div class="notification is-info is-light">
+            <p class="has-text-centered">No upcoming rehearsals.</p>
+            {isAdmin && (
+              <p class="has-text-centered mt-2">
+                <a href={`/ensembles/${id}/rehearsals`} class="button is-small is-primary">
+                  Schedule Rehearsal
+                </a>
+              </p>
+            )}
+          </div>
+        ) : (
+          <div class="content">
+            {upcomingRehearsals.map((rehearsal) => {
+              const scheduledDate = new Date(rehearsal.scheduledAt);
+              const isToday = scheduledDate.toDateString() === new Date().toDateString();
+              
+              return (
+                <article class={`message ${isToday ? 'is-success' : 'is-primary'}`}>
+                  <div class="message-header">
+                    <p>
+                      {rehearsal.title}
+                      {isToday && <span class="tag is-light ml-2">Today</span>}
+                    </p>
+                    <small class="has-text-weight-normal">
+                      {scheduledDate.toLocaleDateString()} at {scheduledDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </small>
+                  </div>
+                  <div class="message-body">
+                    {rehearsal.location && (
+                      <p class="mb-2">
+                        <span class="icon-text">
+                          <span class="icon">
+                            <i class="fas fa-map-marker-alt"></i>
+                          </span>
+                          <span>{rehearsal.location}</span>
+                        </span>
+                      </p>
+                    )}
+                    {rehearsal.description && (
+                      <p style="white-space: pre-wrap;">{rehearsal.description}</p>
+                    )}
+                    <p class="mt-2">
+                      <small>Duration: {rehearsal.durationMinutes} minutes</small>
+                    </p>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      <div class="box">
+        <div class="level mb-4">
+          <div class="level-left">
+            <div class="level-item">
+              <h2 class="title is-4">Members ({members.length})</h2>
+            </div>
+          </div>
+          {isAdmin && (
+            <div class="level-right">
+              <div class="level-item">
+                <a href={`/ensembles/${id}/members`} class="button is-small">
+                  <span class="icon">
+                    <i class="fas fa-cog"></i>
+                  </span>
+                  <span>Manage Members</span>
+                </a>
+              </div>
+            </div>
+          )}
+        </div>
+        
+        {allParts.length > 0 ? (
+          <>
+            {allParts.map((part) => {
+              const partMembers = membersByPart.get(part.id) || [];
+              if (partMembers.length === 0) return null;
+              
+              return (
+                <div class="mb-5">
+                  <h3 class="title is-5 has-text-primary mb-3">{part.name} ({partMembers.length})</h3>
+                  <div class="columns is-multiline">
+                    {partMembers.map((member: any) => (
+                      <div class="column is-6-tablet is-4-desktop is-3-widescreen">
+                        <div class="card">
+                          <div class="card-content has-text-centered">
+                            <figure class="image is-96x96 mx-auto mb-3">
+                              {member.avatarUrl ? (
+                                <img src={member.avatarUrl} alt={member.name} style="object-fit: cover; border-radius: 50%;" />
+                              ) : (
+                                <div style={`width: 96px; height: 96px; border-radius: 50%; background-color: ${getColorFromInitials(getInitials(member.name))}; display: flex; align-items: center; justify-content: center; color: white; font-size: 2rem; font-weight: bold;`}>
+                                  {getInitials(member.name)}
+                                </div>
+                              )}
+                            </figure>
+                            <p class="title is-6 mb-2">{member.name}</p>
+                            <p class="subtitle is-7 has-text-grey mb-2">{part.name}</p>
+                            {userGroups.has(member.id) && (
+                              <div class="tags are-small is-justify-content-center mt-2">
+                                {userGroups.get(member.id).map((group: any) => (
+                                  <span class={`tag is-${group.color}`} title={group.description || group.name}>
+                                    {group.name}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+
+            {membersWithoutPart.length > 0 && (
+              <div class="mb-5">
+                <h3 class="title is-5 has-text-grey mb-3">No Part Assigned ({membersWithoutPart.length})</h3>
+                <div class="columns is-multiline">
+                  {membersWithoutPart.map((member) => (
+                    <div class="column is-6-tablet is-4-desktop is-3-widescreen">
+                      <div class="card">
+                        <div class="card-content has-text-centered">
+                          <figure class="image is-96x96 mx-auto mb-3">
+                            {member.avatarUrl ? (
+                              <img src={member.avatarUrl} alt={member.name} style="object-fit: cover; border-radius: 50%;" />
+                            ) : (
+                              <div style={`width: 96px; height: 96px; border-radius: 50%; background-color: ${getColorFromInitials(getInitials(member.name))}; display: flex; align-items: center; justify-content: center; color: white; font-size: 2rem; font-weight: bold;`}>
+                                {getInitials(member.name)}
+                              </div>
+                            )}
+                          </figure>
+                          <p class="title is-6 mb-2">{member.name}</p>
+                          <p class="subtitle is-7 has-text-grey mb-2">No part assigned</p>
+                          {userGroups.has(member.id) && (
+                            <div class="tags are-small is-justify-content-center mt-2">
+                              {userGroups.get(member.id).map((group: any) => (
+                                <span class={`tag is-${group.color}`} title={group.description || group.name}>
+                                  {group.name}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
+        ) : (
+          <div class="columns is-multiline">
+            {members.map((member) => (
+              <div class="column is-6-tablet is-4-desktop is-3-widescreen">
+                <div class="card">
+                  <div class="card-content has-text-centered">
+                    <figure class="image is-96x96 mx-auto mb-3">
+                      {member.avatarUrl ? (
+                        <img src={member.avatarUrl} alt={member.name} style="object-fit: cover; border-radius: 50%;" />
+                      ) : (
+                        <div style={`width: 96px; height: 96px; border-radius: 50%; background-color: ${getColorFromInitials(getInitials(member.name))}; display: flex; align-items: center; justify-content: center; color: white; font-size: 2rem; font-weight: bold;`}>
+                          {getInitials(member.name)}
+                        </div>
+                      )}
+                    </figure>
+                    <p class="title is-6 mb-2">{member.name}</p>
+                    {userGroups.has(member.id) && (
+                      <div class="tags are-small is-justify-content-center mt-2">
+                        {userGroups.get(member.id).map((group: any) => (
+                          <span class={`tag is-${group.color}`} title={group.description || group.name}>
+                            {group.name}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <a href="/ensembles" class="button">
+        <span class="icon">
+          <i class="fas fa-arrow-left"></i>
+        </span>
+        <span>Back to Ensembles</span>
+      </a>
+    </div>
+
+    <!-- Admin Sidebar -->
+    {isAdmin && (
+      <div class="column is-3-desktop">
+        <div class="box mb-5">
+          <h2 class="title is-5 mb-4">
+            <span class="icon-text">
+              <span class="icon">
+                <i class="fas fa-cog"></i>
+              </span>
+              <span>Admin Tools</span>
+            </span>
+          </h2>
+          
+          <div class="buttons is-flex is-flex-direction-column">
+            <a href={`/ensembles/${id}/edit`} class="button is-fullwidth">
+              <span class="icon">
+                <i class="fas fa-edit"></i>
+              </span>
+              <span>Edit Ensemble</span>
+            </a>
+            <a href={`/ensembles/${id}/members`} class="button is-fullwidth">
+              <span class="icon">
+                <i class="fas fa-users"></i>
+              </span>
+              <span>Manage Members</span>
+            </a>
+            <a href={`/ensembles/${id}/songs`} class="button is-fullwidth">
+              <span class="icon">
+                <i class="fas fa-music"></i>
+              </span>
+              <span>Manage Songs</span>
+            </a>
+            <a href={`/ensembles/${id}/rehearsals`} class="button is-fullwidth">
+              <span class="icon">
+                <i class="fas fa-calendar-check"></i>
+              </span>
+              <span>Manage Rehearsals</span>
+            </a>
+            <a href={`/ensembles/${id}/announcements`} class="button is-fullwidth">
+              <span class="icon">
+                <i class="fas fa-bullhorn"></i>
+              </span>
+              <span>Manage Announcements</span>
+            </a>
+            <a href={`/ensembles/${id}/parts`} class="button is-fullwidth">
+              <span class="icon">
+                <i class="fas fa-list"></i>
+              </span>
+              <span>Manage Parts</span>
+            </a>
+            <a href={`/ensembles/${id}/seasons`} class="button is-fullwidth">
+              <span class="icon">
+                <i class="fas fa-calendar-alt"></i>
+              </span>
+              <span>Manage Seasons</span>
+            </a>
+            <a href={`/ensembles/${id}/groups`} class="button is-fullwidth">
+              <span class="icon">
+                <i class="fas fa-users-cog"></i>
+              </span>
+              <span>Manage Groups</span>
+            </a>
+          </div>
+        </div>
+
+        {pendingMembers.length > 0 && (
+          <div class="box mb-5">
+            <h2 class="title is-5 mb-4">
+              <span class="icon-text">
+                <span class="icon has-text-warning">
+                  <i class="fas fa-user-clock"></i>
+                </span>
+                <span>Pending Members ({pendingMembers.length})</span>
+              </span>
+            </h2>
+            <p class="mb-4 is-size-7">These members are awaiting approval to join the ensemble</p>
+            
+            <div class="content">
+              {pendingMembers.map((member) => (
+                <div class="box p-2 mb-2">
+                  <div class="media">
+                    <div class="media-left">
+                      <figure class="image is-32x32">
+                        {member.avatarUrl ? (
+                          <img src={member.avatarUrl} alt={member.name} style="object-fit: cover; border-radius: 50%;" />
+                        ) : (
+                          <div style={`width: 32px; height: 32px; border-radius: 50%; background-color: ${getColorFromInitials(getInitials(member.name))}; display: flex; align-items: center; justify-content: center; color: white; font-size: 0.75rem; font-weight: bold;`}>
+                            {getInitials(member.name)}
+                          </div>
+                        )}
+                      </figure>
+                    </div>
+                    <div class="media-content">
+                      <p class="is-size-7 has-text-weight-semibold">{member.name}</p>
+                      <p class="is-size-7 has-text-grey">{member.email}</p>
+                      <p class="is-size-7 has-text-grey-light">
+                        <small>Applied {new Date(member.joinedAt).toLocaleDateString()}</small>
+                      </p>
+                    </div>
+                  </div>
+                  <div class="buttons are-small mt-2">
+                    <form method="POST" style="display: inline; width: 48%;">
+                      <input type="hidden" name="action" value="approve-member" />
+                      <input type="hidden" name="membershipId" value={member.membershipId} />
+                      <button type="submit" class="button is-success is-small is-fullwidth">
+                        <span class="icon">
+                          <i class="fas fa-check"></i>
+                        </span>
+                        <span>Approve</span>
+                      </button>
+                    </form>
+                    <form method="POST" style="display: inline; width: 48%;">
+                      <input type="hidden" name="action" value="reject-member" />
+                      <input type="hidden" name="membershipId" value={member.membershipId} />
+                      <button type="submit" class="button is-danger is-small is-fullwidth">
+                        <span class="icon">
+                          <i class="fas fa-times"></i>
+                        </span>
+                        <span>Reject</span>
+                      </button>
+                    </form>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div class="box">
+          <h2 class="title is-5 mb-4">
+            <span class="icon-text">
+              <span class="icon">
+                <i class="fas fa-key"></i>
+              </span>
+              <span>Invite Codes</span>
+            </span>
+          </h2>
+          <p class="mb-4 is-size-7">Share these codes with new members to join the ensemble</p>
+          
+          <div class="mb-4">
+            <form method="POST">
+              <input type="hidden" name="action" value="create-invite" />
+              <button type="submit" class="button is-success is-small is-fullwidth">
+                <span class="icon">
+                  <i class="fas fa-plus"></i>
+                </span>
+                <span>Generate Code</span>
+              </button>
+            </form>
+          </div>
+
+          {invites.length > 0 ? (
+            <div class="content">
+              {invites.map((invite) => {
+                const inviteUrl = `${Astro.url.origin}/invite/join?code=${invite.code}`;
+                return (
+                  <div class="box p-3 mb-2">
+                    <div class="is-flex is-flex-direction-column">
+                      <div class="field has-addons mb-2">
+                        <div class="control is-expanded">
+                          <input 
+                            type="text" 
+                            class="input is-small is-family-monospace" 
+                            value={inviteUrl} 
+                            readonly 
+                            id={`invite-${invite.id}`}
+                          />
+                        </div>
+                        <div class="control">
+                          <button 
+                            type="button"
+                            class="button is-info is-small"
+                            onclick={`
+                              const input = document.getElementById('invite-${invite.id}');
+                              input.select();
+                              navigator.clipboard.writeText(input.value).then(() => {
+                                const btn = this;
+                                const originalHTML = btn.innerHTML;
+                                btn.innerHTML = '<span class="icon"><i class="fas fa-check"></i></span><span>Copied!</span>';
+                                btn.classList.add('is-success');
+                                btn.classList.remove('is-info');
+                                setTimeout(() => {
+                                  btn.innerHTML = originalHTML;
+                                  btn.classList.remove('is-success');
+                                  btn.classList.add('is-info');
+                                }, 2000);
+                              });
+                            `}
+                          >
+                            <span class="icon">
+                              <i class="fas fa-copy"></i>
+                            </span>
+                            <span>Copy</span>
+                          </button>
+                        </div>
+                      </div>
+                      <small class="has-text-grey mb-2">
+                        Created {new Date(invite.createdAt).toLocaleDateString()}
+                      </small>
+                      <form method="POST">
+                        <input type="hidden" name="action" value="delete-invite" />
+                        <input type="hidden" name="inviteId" value={invite.id} />
+                        <button type="submit" class="button is-danger is-small is-fullwidth">
+                          Delete
+                        </button>
+                      </form>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div class="notification is-info is-light is-size-7">
+              No invite codes yet.
+            </div>
+          )}
+        </div>
+      </div>
+    )}
+  </div>
+  )}
+</Layout>

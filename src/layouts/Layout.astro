@@ -1,0 +1,297 @@
+---
+interface Props {
+  title: string;
+}
+
+const { title } = Astro.props;
+const user = Astro.locals.user;
+---
+
+<!doctype html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="description" content="Ensemble Management System" />
+    <meta name="viewport" content="width=device-width" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.0/css/bulma.min.css">
+    <script is:inline defer src="https://use.fontawesome.com/releases/v6.5.1/js/all.js"></script>
+    <script is:inline>
+      // Set theme immediately to prevent flash
+      (function() {
+        const savedTheme = localStorage.getItem('theme');
+        let theme;
+        
+        if (savedTheme) {
+          theme = savedTheme;
+        } else {
+          // Auto-detect system preference
+          theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        }
+        
+        document.documentElement.setAttribute('data-theme', theme);
+      })();
+    </script>
+    <title>{title} - Ensemble Management</title>
+    <style>
+      :root {
+        --navbar-bg: #363636;
+        --navbar-text: #fff;
+        --body-bg: #fff;
+        --body-text: #4a4a4a;
+        --box-bg: #fff;
+        --box-shadow: 0 0.5em 1em -0.125em rgba(10, 10, 10, 0.1), 0 0px 0 1px rgba(10, 10, 10, 0.02);
+        --input-bg: #fff;
+        --input-border: #dbdbdb;
+        --footer-bg: #fafafa;
+      }
+
+      [data-theme="dark"] {
+        --navbar-bg: #1a1a1a;
+        --navbar-text: #f5f5f5;
+        --body-bg: #0a0a0a;
+        --body-text: #e0e0e0;
+        --box-bg: #1a1a1a;
+        --box-shadow: 0 0.5em 1em -0.125em rgba(0, 0, 0, 0.5), 0 0px 0 1px rgba(255, 255, 255, 0.1);
+        --input-bg: #2a2a2a;
+        --input-border: #4a4a4a;
+        --footer-bg: #0f0f0f;
+      }
+
+      [data-theme="dark"] body {
+        background-color: var(--body-bg);
+        color: var(--body-text);
+      }
+<div class="navbar-item">
+              <button id="theme-toggle" title="Toggle dark mode">
+                <i class="fas fa-moon" id="theme-icon"></i>
+              </button>
+            </div>
+            
+      [data-theme="dark"] .box {
+        background-color: var(--box-bg);
+        box-shadow: var(--box-shadow);
+        color: var(--body-text);
+      }
+
+      [data-theme="dark"] .input,
+      [data-theme="dark"] .textarea,
+      [data-theme="dark"] .select select {
+        background-color: var(--input-bg);
+        border-color: var(--input-border);
+        color: var(--body-text);
+      }
+
+      [data-theme="dark"] .input:disabled,
+      [data-theme="dark"] .textarea:disabled {
+        background-color: #1a1a1a;
+        color: #888;
+      }
+
+      [data-theme="dark"] .table {
+        background-color: var(--box-bg);
+        color: var(--body-text);
+      }
+
+      [data-theme="dark"] .table thead th {
+        color: var(--body-text);
+      }
+
+      [data-theme="dark"] .table tbody tr {
+        background-color: var(--box-bg);
+      }
+
+      [data-theme="dark"] .table.is-striped tbody tr:nth-child(even) {
+        background-color: #151515;
+      }
+
+      [data-theme="dark"] .navbar.is-dark {
+        background-color: var(--navbar-bg);
+      }
+
+      [data-theme="dark"] .footer {
+        background-color: var(--footer-bg);
+        color: var(--body-text);
+      }
+
+      [data-theme="dark"] .title,
+      [data-theme="dark"] .subtitle {
+        color: var(--body-text);
+      }
+
+      [data-theme="dark"] .notification.is-info.is-light {
+        background-color: #1a3a52;
+        color: #b8d4e8;
+      }
+
+      [data-theme="dark"] .notification.is-warning.is-light {
+        background-color: #4a3a1a;
+        color: #e8d4b8;
+      }
+
+      [data-theme="dark"] .help {
+        color: #aaa;
+      }
+
+      [data-theme="dark"] .label {
+        color: var(--body-text);
+      }
+
+      [data-theme="dark"] .file-name {
+        background-color: var(--input-bg);
+        border-color: var(--input-border);
+        color: var(--body-text);
+      }
+
+      [data-theme="dark"] .select:not(.is-multiple):not(.is-loading)::after {
+        border-color: var(--body-text);
+      }
+
+      #theme-toggle {
+        cursor: pointer;
+        background: transparent;
+        border: none;
+        color: var(--navbar-text);
+        font-size: 1.25rem;
+        padding: 0.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      #theme-toggle:hover {
+        opacity: 0.8;
+      }
+    </style>
+  </head>
+  <body>
+    <nav class="navbar is-dark" role="navigation" aria-label="main navigation">
+      <div class="container">
+        <div class="navbar-brand">
+          <a class="navbar-item" href="/">
+            <strong>🎵 Ensemble Management</strong>
+          </a>
+          <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false" data-target="navbarMenu">
+            <span aria-hidden="true"></span>
+            <span aria-hidden="true"></span>
+            <span aria-hidden="true"></span>
+          </a>
+        </div>
+
+        <div id="navbarMenu" class="navbar-menu">
+          <div class="navbar-start">
+            {user && (
+              <>
+                <a class="navbar-item" href="/ensembles">My Ensembles</a>
+                {user.role === 'admin' && (
+                  <a class="navbar-item" href="/admin">Admin Panel</a>
+                )}
+              </>
+            )}
+          </div>
+
+          <div class="navbar-end">
+            <div class="navbar-item">
+              <button id="theme-toggle" title="Toggle dark mode">
+                <i class="fas fa-moon" id="theme-icon"></i>
+              </button>
+            </div>
+            {user ? (
+              <div class="navbar-item has-dropdown is-hoverable">
+                <a class="navbar-link">
+                  {user.name}
+                </a>
+                <div class="navbar-dropdown">
+                  <a class="navbar-item" href="/profile">Profile</a>
+                  <hr class="navbar-divider">
+                  <a class="navbar-item" href="/logout">Logout</a>
+                </div>
+              </div>
+            ) : (
+              <div class="navbar-item">
+                <div class="buttons">
+                  <a class="button is-primary" href="/register">
+                    <strong>Sign up</strong>
+                  </a>
+                  <a class="button is-light" href="/login">
+                    Log in
+                  </a>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <main class="section">
+      <div class="container">
+        <slot />
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="content has-text-centered">
+        <p>
+          <strong>Ensemble Management System</strong> - Managing musical ensembles with ease.
+        </p>
+      </div>
+    </footer>
+
+    <script>
+      // Mobile menu toggle
+      document.addEventListener('DOMContentLoaded', () => {
+        const $navbarBurgers = Array.prototype.slice.call(document.querySelectorAll('.navbar-burger'), 0);
+        $navbarBurgers.forEach(el => {
+          el.addEventListener('click', () => {
+            const target = el.dataset.target;
+            const $target = document.getElementById(target);
+            el.classList.toggle('is-active');
+            $target?.classList.toggle('is-active');
+          });
+        });
+
+        // Theme toggle - wait for Font Awesome to load
+        const html = document.documentElement;
+        const themeToggle = document.getElementById('theme-toggle');
+
+        const updateIcon = (theme: string) => {
+          if (themeToggle) {
+            // Replace the icon element so Font Awesome re-processes it
+            if (theme === 'dark') {
+              themeToggle.innerHTML = '<i class="fas fa-sun" id="theme-icon"></i>';
+            } else {
+              themeToggle.innerHTML = '<i class="fas fa-moon" id="theme-icon"></i>';
+            }
+          }
+        };
+
+        // Set initial icon after a brief delay for Font Awesome to load
+        setTimeout(() => {
+          const currentTheme = html.getAttribute('data-theme') || 'light';
+          updateIcon(currentTheme);
+        }, 200);
+          
+        // Toggle theme on button click
+        themeToggle?.addEventListener('click', () => {
+          const currentTheme = html.getAttribute('data-theme') || 'light';
+          const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+          
+          html.setAttribute('data-theme', newTheme);
+          localStorage.setItem('theme', newTheme);
+          updateIcon(newTheme);
+        });
+
+        // Listen for system theme changes
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+          // Only auto-update if user hasn't manually set a preference
+          if (!localStorage.getItem('theme')) {
+            const newTheme = e.matches ? 'dark' : 'light';
+            html.setAttribute('data-theme', newTheme);
+            updateIcon(newTheme);
+          }
+        });
+      });
+    </script>
+  </body>
+</html>

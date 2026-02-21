@@ -1,0 +1,30 @@
+{
+  "name": "ensemble-management-software",
+  "type": "module",
+  "version": "0.0.1",
+  "packageManager": "pnpm@10.6.0",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro",
+    "check": "astro check",
+    "lint": "oxlint src/lib db --deny-warnings && astro check",
+    "fmt": "oxlint src/lib db --fix"
+  },
+  "dependencies": {
+    "@astrojs/check": "^0.9.6",
+    "@astrojs/db": "0.19.0",
+    "@astrojs/node": "9.5.4",
+    "astro": "5.17.3",
+    "bcryptjs": "3.0.3",
+    "bulma": "1.0.4",
+    "qrcode": "1.5.4",
+    "typescript": "5.9.3"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "2.4.6",
+    "@types/qrcode": "1.5.5",
+    "oxlint": "0.16.12"
+  }
+}

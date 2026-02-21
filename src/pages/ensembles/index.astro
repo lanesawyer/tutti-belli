@@ -1,0 +1,77 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { db, eq, Ensemble, EnsembleMember } from 'astro:db';
+
+const user = Astro.locals.user;
+
+if (!user) {
+  return Astro.redirect('/login');
+}
+
+// Get all ensembles the user is a member of
+const userEnsembles = await db
+  .select({
+    id: Ensemble.id,
+    name: Ensemble.name,
+    description: Ensemble.description,
+    role: EnsembleMember.role,
+    joinedAt: EnsembleMember.joinedAt,
+  })
+  .from(EnsembleMember)
+  .innerJoin(Ensemble, eq(EnsembleMember.ensembleId, Ensemble.id))
+  .where(eq(EnsembleMember.userId, user.id));
+---
+
+<Layout title="My Ensembles">
+  <div class="level">
+    <div class="level-left">
+      <div class="level-item">
+        <h1 class="title">My Ensembles</h1>
+      </div>
+    </div>
+    <div class="level-right">
+      <div class="level-item">
+        <a href="/invite/join" class="button is-primary">
+          <span class="icon">
+            <i class="fas fa-ticket"></i>
+          </span>
+          <span>Join with Invite Code</span>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  {userEnsembles.length > 0 ? (
+    <div class="columns is-multiline">
+      {userEnsembles.map((ensemble) => (
+        <div class="column is-4">
+          <div class="card">
+            <div class="card-content">
+              <p class="title is-4">{ensemble.name}</p>
+              {ensemble.description && (
+                <p class="subtitle is-6">{ensemble.description}</p>
+              )}
+              <div class="tags mt-2">
+                <span class={`tag ${ensemble.role === 'admin' ? 'is-warning' : 'is-info'}`}>
+                  {ensemble.role === 'admin' ? 'Ensemble Admin' : 'Member'}
+                </span>
+              </div>
+            </div>
+            <footer class="card-footer">
+              <a href={`/ensembles/${ensemble.id}`} class="card-footer-item">
+                View Details
+              </a>
+              <a href={`/ensembles/${ensemble.id}/rehearsals`} class="card-footer-item">
+                Rehearsals
+              </a>
+            </footer>
+          </div>
+        </div>
+      ))}
+    </div>
+  ) : (
+    <div class="notification is-info is-light">
+      <p>You haven't joined any ensembles yet. Ask your ensemble admin for an invite code!</p>
+    </div>
+  )}
+</Layout>

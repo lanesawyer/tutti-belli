@@ -1,0 +1,87 @@
+---
+import Layout from '../layouts/Layout.astro';
+
+const user = Astro.locals.user;
+---
+
+<Layout title="Home">
+  <section class="hero is-medium is-primary">
+    <div class="hero-body">
+      <p class="title">
+        Welcome to Ensemble Management
+      </p>
+      <p class="subtitle">
+        Organize and manage your musical ensembles with ease
+      </p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="columns">
+      <div class="column">
+        <div class="box">
+          <h3 class="title is-4">🎭 Create Ensembles</h3>
+          <p>Site administrators can create and manage multiple ensembles for different musical groups.</p>
+        </div>
+      </div>
+      <div class="column">
+        <div class="box">
+          <h3 class="title is-4">👥 Manage Members</h3>
+          <p>Ensemble admins can add members, assign roles, and coordinate rehearsals and performances.</p>
+        </div>
+      </div>
+      <div class="column">
+        <div class="box">
+          <h3 class="title is-4">🎵 Join Groups</h3>
+          <p>Members can join multiple ensembles and stay connected with their musical communities.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {!user && (
+    <section class="section">
+      <div class="content has-text-centered">
+        <h2 class="title is-3">Get Started Today</h2>
+        <div class="buttons is-centered">
+          <a href="/register" class="button is-primary is-large">
+            <span class="icon">
+              <i class="fas fa-user-plus"></i>
+            </span>
+            <span>Sign Up</span>
+          </a>
+          <a href="/login" class="button is-light is-large">
+            <span class="icon">
+              <i class="fas fa-sign-in-alt"></i>
+            </span>
+            <span>Log In</span>
+          </a>
+        </div>
+      </div>
+    </section>
+  )}
+
+  {user && (
+    <section class="section">
+      <div class="content has-text-centered">
+        <h2 class="title is-3">Welcome back, {user.name}!</h2>
+        <div class="buttons is-centered">
+          <a href="/ensembles" class="button is-primary is-large">
+            <span class="icon">
+              <i class="fas fa-users"></i>
+            </span>
+            <span>View My Ensembles</span>
+          </a>
+          {user.role === 'admin' && (
+            <a href="/admin" class="button is-info is-large">
+              <span class="icon">
+                <i class="fas fa-cog"></i>
+              </span>
+              <span>Admin Panel</span>
+            </a>
+          )}
+        </div>
+      </div>
+    </section>
+  )}
+</Layout>

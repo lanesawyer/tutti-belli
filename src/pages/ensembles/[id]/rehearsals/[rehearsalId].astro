@@ -1,0 +1,565 @@
+---
+import Layout from '../../../../layouts/Layout.astro';
+import { db, eq, and, Ensemble, EnsembleMember, Rehearsal, Attendance, User } from 'astro:db';
+import QRCode from 'qrcode';
+import { canManageEnsemble } from '../../../../lib/permissions';
+
+const user = Astro.locals.user;
+if (!user) {
+  return Astro.redirect('/login');
+}
+
+const { id, rehearsalId } = Astro.params;
+if (!id || !rehearsalId) {
+  return Astro.redirect('/ensembles');
+}
+
+// Get ensemble details
+const [ensemble] = await db.select().from(Ensemble).where(eq(Ensemble.id, id));
+if (!ensemble) {
+  return Astro.redirect('/ensembles');
+}
+
+// Check if user is a member
+const [membership] = await db
+  .select()
+  .from(EnsembleMember)
+  .where(and(eq(EnsembleMember.ensembleId, id), eq(EnsembleMember.userId, user.id)));
+
+if (!membership) {
+  return Astro.redirect('/ensembles');
+}
+
+const isAdmin = canManageEnsemble(user, membership);
+
+// Get rehearsal details
+const [rehearsal] = await db.select().from(Rehearsal).where(eq(Rehearsal.id, rehearsalId));
+if (!rehearsal) {
+  return Astro.redirect(`/ensembles/${id}/rehearsals`);
+}
+
+let message = '';
+
+// Calculate check-in window
+const now = new Date();
+const scheduledTime = new Date(rehearsal.scheduledAt);
+const checkInStartTime = new Date(scheduledTime.getTime() - (ensemble.checkInStartMinutes * 60 * 1000));
+const checkInEndTime = new Date(scheduledTime.getTime() + (ensemble.checkInEndMinutes * 60 * 1000));
+
+const canCheckIn = now >= checkInStartTime && now <= checkInEndTime;
+const isTooEarly = now < checkInStartTime;
+const isTooLate = now > checkInEndTime;
+
+// Handle attendance actions
+if (Astro.request.method === 'POST') {
+  const formData = await Astro.request.formData();
+  const action = formData.get('action')?.toString();
+
+  if (action === 'checkin') {
+    // Check time window (admins bypass this)
+    if (!canCheckIn && !isAdmin) {
+      if (isTooEarly) {
+        const minutesUntilOpen = Math.ceil((checkInStartTime.getTime() - now.getTime()) / (60 * 1000));
+        message = `Check-in opens ${ensemble.checkInStartMinutes} minutes before rehearsal (in ${minutesUntilOpen} minutes).`;
+      } else if (isTooLate) {
+        message = `Check-in closed ${ensemble.checkInEndMinutes} minutes after rehearsal start.`;
+      }
+    } else {
+      // Check if already checked in
+      const [existing] = await db
+        .select()
+        .from(Attendance)
+        .where(and(eq(Attendance.rehearsalId, rehearsalId), eq(Attendance.userId, user.id)));
+
+      if (!existing) {
+        await db.insert(Attendance).values({
+          id: crypto.randomUUID(),
+          rehearsalId,
+          userId: user.id,
+          checkedInMethod: 'manual',
+        });
+        message = 'Successfully checked in!';
+      } else {
+        message = 'You have already checked in for this rehearsal.';
+      }
+    }
+  } else if (action === 'remove' && isAdmin) {
+    const attendanceId = formData.get('attendanceId')?.toString();
+    if (attendanceId) {
+      await db.delete(Attendance).where(eq(Attendance.id, attendanceId));
+      message = 'Attendance removed.';
+    }
+  } else if (action === 'add' && isAdmin) {
+    const userId = formData.get('userId')?.toString();
+    if (userId) {
+      // Check if already checked in
+      const [existing] = await db
+        .select()
+        .from(Attendance)
+        .where(and(eq(Attendance.rehearsalId, rehearsalId), eq(Attendance.userId, userId)));
+
+      if (!existing) {
+        await db.insert(Attendance).values({
+          id: crypto.randomUUID(),
+          rehearsalId,
+          userId,
+          checkedInMethod: 'admin',
+        });
+        message = 'Member marked as present.';
+      }
+    }
+  } else if (action === 'edit' && isAdmin) {
+    const title = formData.get('title')?.toString();
+    const description = formData.get('description')?.toString();
+    const date = formData.get('date')?.toString();
+    const time = formData.get('time')?.toString();
+    const location = formData.get('location')?.toString();
+    const durationMinutes = parseInt(formData.get('durationMinutes')?.toString() || '90');
+
+    if (title && date && time) {
+      const scheduledAt = new Date(`${date}T${time}`);
+      
+      await db.update(Rehearsal)
+        .set({
+          title: title.trim(),
+          description: description?.trim() || '',
+          scheduledAt,
+          durationMinutes,
+          location: location?.trim() || '',
+        })
+        .where(eq(Rehearsal.id, rehearsalId));
+      
+      message = 'Rehearsal updated successfully!';
+      
+      // Re-fetch updated rehearsal
+      const [updatedRehearsal] = await db.select().from(Rehearsal).where(eq(Rehearsal.id, rehearsalId));
+      if (updatedRehearsal) {
+        Object.assign(rehearsal, updatedRehearsal);
+      }
+    } else {
+      message = 'Title, date, and time are required.';
+    }
+  }
+}
+
+// Get attendance records
+const attendanceRecords = await db
+  .select({
+    id: Attendance.id,
+    userId: User.id,
+    userName: User.name,
+    checkedInAt: Attendance.checkedInAt,
+    checkedInMethod: Attendance.checkedInMethod,
+  })
+  .from(Attendance)
+  .innerJoin(User, eq(Attendance.userId, User.id))
+  .where(eq(Attendance.rehearsalId, rehearsalId));
+
+// Get all members for admin to mark attendance
+const allMembers = await db
+  .select({
+    id: User.id,
+    name: User.name,
+    email: User.email,
+  })
+  .from(EnsembleMember)
+  .innerJoin(User, eq(EnsembleMember.userId, User.id))
+  .where(eq(EnsembleMember.ensembleId, id));
+
+const attendedUserIds = new Set(attendanceRecords.map(a => a.userId));
+const absentMembers = allMembers.filter(m => !attendedUserIds.has(m.id));
+
+// Generate QR code for check-in
+const checkInUrl = `${Astro.url.origin}/checkin/${rehearsal.checkInCode}`;
+const qrCodeDataUrl = await QRCode.toDataURL(checkInUrl, {
+  width: 300,
+  margin: 2,
+});
+
+const scheduledDate = new Date(rehearsal.scheduledAt);
+const endTime = new Date(scheduledDate.getTime() + (rehearsal.durationMinutes * 60 * 1000));
+const isPast = endTime < new Date();
+const isUserCheckedIn = attendedUserIds.has(user.id);
+
+// Prepare date/time for form inputs
+const dateValue = scheduledDate.toISOString().split('T')[0];
+const timeValue = scheduledDate.toTimeString().slice(0, 5);
+---
+
+<Layout title={`${rehearsal.title} - ${ensemble.name}`}>
+  <div class="level mb-5">
+    <div class="level-left">
+      <div class="level-item">
+        <div>
+          <h1 class="title">{rehearsal.title}</h1>
+          <p class="subtitle">
+            <span class="icon-text">
+              <span class="icon">
+                <i class="fas fa-calendar"></i>
+              </span>
+              <span>{scheduledDate.toLocaleDateString()}</span>
+            </span>
+            <span class="ml-3 icon-text">
+              <span class="icon">
+                <i class="fas fa-clock"></i>
+              </span>
+              <span>{scheduledDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+            </span>
+            <span class="ml-3 icon-text">
+              <span class="icon">
+                <i class="fas fa-hourglass-half"></i>
+              </span>
+              <span>{rehearsal.durationMinutes} min</span>
+            </span>
+            {rehearsal.location && (
+              <span class="ml-3 icon-text">
+                <span class="icon">
+                  <i class="fas fa-map-marker-alt"></i>
+                </span>
+                <span>{rehearsal.location}</span>
+              </span>
+            )}
+          </p>
+        </div>
+      </div>
+    </div>
+    <div class="level-right">
+      <div class="level-item">
+        <div class="buttons">
+          {isAdmin && (
+            <button class="button is-warning" id="edit-rehearsal-btn">
+              <span class="icon">
+                <i class="fas fa-edit"></i>
+              </span>
+              <span>Edit Rehearsal</span>
+            </button>
+          )}
+          <a href={`/ensembles/${id}/rehearsals`} class="button">
+            <span class="icon">
+              <i class="fas fa-arrow-left"></i>
+            </span>
+            <span>Back to Rehearsals</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {message && (
+    <div class="notification is-success is-light">
+      {message}
+    </div>
+  )}
+
+  {rehearsal.description && (
+    <div class="box">
+      <p class="content">{rehearsal.description}</p>
+    </div>
+  )}
+
+  <div class="columns">
+    <div class="column">
+      <div class="box">
+        <h2 class="title is-4">Check-In</h2>
+        
+        {!isPast && (
+          <div class="notification is-info is-light mb-4">
+            <p class="has-text-weight-semibold">Check-in Window:</p>
+            <p>Opens {ensemble.checkInStartMinutes} minutes before rehearsal</p>
+            <p>Closes {ensemble.checkInEndMinutes} minutes after rehearsal start</p>
+          </div>
+        )}
+        
+        {!isPast && !isUserCheckedIn && canCheckIn && (
+          <form method="POST">
+            <input type="hidden" name="action" value="checkin" />
+            <button type="submit" class="button is-primary is-large is-fullwidth">
+              <span class="icon">
+                <i class="fas fa-check"></i>
+              </span>
+              <span>Check In Now</span>
+            </button>
+          </form>
+        )}
+
+        {!isPast && !isUserCheckedIn && !canCheckIn && !isAdmin && (
+          <div>
+            <button type="button" class="button is-large is-fullwidth" disabled>
+              <span class="icon">
+                <i class="fas fa-lock"></i>
+              </span>
+              <span>Check-in {isTooEarly ? 'Not Yet Available' : 'Closed'}</span>
+            </button>
+            <p class="help mt-2 has-text-centered">
+              {isTooEarly && `Check-in opens ${ensemble.checkInStartMinutes} minutes before rehearsal`}
+              {isTooLate && `Check-in closed ${ensemble.checkInEndMinutes} minutes after rehearsal start`}
+            </p>
+          </div>
+        )}
+
+        {!isPast && !isUserCheckedIn && !canCheckIn && isAdmin && (
+          <form method="POST">
+            <input type="hidden" name="action" value="checkin" />
+            <button type="submit" class="button is-warning is-large is-fullwidth">
+              <span class="icon">
+                <i class="fas fa-user-shield"></i>
+              </span>
+              <span>Admin Check-In (Bypasses Time Window)</span>
+            </button>
+          </form>
+        )}
+
+        {!isPast && isUserCheckedIn && (
+          <div class="notification is-success">
+            <p class="has-text-centered">
+              <span class="icon is-large">
+                <i class="fas fa-check-circle fa-2x"></i>
+              </span>
+            </p>
+            <p class="has-text-centered has-text-weight-bold">You're checked in!</p>
+          </div>
+        )}
+
+        {isPast && !isUserCheckedIn && (
+          <div class="notification is-warning">
+            This rehearsal has passed and you did not check in.
+          </div>
+        )}
+      </div>
+
+      {isAdmin && (
+        <div class="box">
+          <h2 class="title is-4">QR Code Check-In</h2>
+          <p class="mb-4">Display this QR code for members to scan and check in</p>
+          
+          <div class="has-text-centered">
+            <img src={qrCodeDataUrl} alt="QR Code for check-in" class="image is-inline-block" />
+          </div>
+          
+          <div class="field mt-4">
+            <label class="label">Check-in URL</label>
+            <div class="control">
+              <input
+                class="input is-family-monospace"
+                type="text"
+                value={checkInUrl}
+                readonly
+                onclick="this.select()"
+              />
+            </div>
+            <p class="help">Members can scan the QR code or visit this URL to check in</p>
+          </div>
+        </div>
+      )}
+    </div>
+
+    {isAdmin && (
+      <div class="column">
+        <div class="box">
+          <h2 class="title is-4">Attendance ({attendanceRecords.length} / {allMembers.length})</h2>
+          
+          {attendanceRecords.length > 0 ? (
+            <table class="table is-fullwidth is-striped">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Checked In</th>
+                  <th>Method</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {attendanceRecords.map((record) => (
+                  <tr>
+                    <td>{record.userName}</td>
+                    <td>{new Date(record.checkedInAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
+                    <td>
+                      <span class={`tag is-small ${
+                        record.checkedInMethod === 'qr' ? 'is-success' :
+                        record.checkedInMethod === 'manual' ? 'is-info' :
+                        'is-warning'
+                      }`}>
+                        {record.checkedInMethod === 'qr' ? 'QR Scan' :
+                         record.checkedInMethod === 'manual' ? 'Manual' :
+                         'Admin'}
+                      </span>
+                    </td>
+                    <td>
+                      <form method="POST" style="display: inline;">
+                        <input type="hidden" name="action" value="remove" />
+                        <input type="hidden" name="attendanceId" value={record.id} />
+                        <button type="submit" class="button is-danger is-small">
+                          Remove
+                        </button>
+                      </form>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <div class="notification is-info is-light">
+              No one has checked in yet.
+            </div>
+          )}
+
+          {absentMembers.length > 0 && (
+            <>
+              <hr />
+              <h3 class="title is-5 mt-4">Mark Attendance</h3>
+              <p class="mb-3">Members who haven't checked in:</p>
+              {absentMembers.map((member) => (
+                <div class="field is-grouped mb-2">
+                  <div class="control is-expanded">
+                    <input class="input is-static" type="text" value={member.name} readonly />
+                  </div>
+                  <div class="control">
+                    <form method="POST" style="display: inline;">
+                      <input type="hidden" name="action" value="add" />
+                      <input type="hidden" name="userId" value={member.id} />
+                      <button type="submit" class="button is-success">
+                        Mark Present
+                      </button>
+                    </form>
+                  </div>
+                </div>
+              ))}
+            </>
+          )}
+        </div>
+      </div>
+    )}
+  </div>
+
+  <!-- Edit Rehearsal Modal -->
+  {isAdmin && (
+    <div class="modal" id="edit-modal">
+      <div class="modal-background"></div>
+      <div class="modal-card">
+        <header class="modal-card-head">
+          <p class="modal-card-title">Edit Rehearsal</p>
+          <button class="delete" aria-label="close" id="close-edit-modal"></button>
+        </header>
+        <form method="POST">
+          <section class="modal-card-body">
+            <input type="hidden" name="action" value="edit" />
+            
+            <div class="field">
+              <label class="label" for="edit-title">Title</label>
+              <div class="control">
+                <input
+                  class="input"
+                  type="text"
+                  id="edit-title"
+                  name="title"
+                  value={rehearsal.title}
+                  required
+                />
+              </div>
+            </div>
+
+            <div class="field">
+              <label class="label" for="edit-description">Description</label>
+              <div class="control">
+                <textarea
+                  class="textarea"
+                  id="edit-description"
+                  name="description"
+                  rows="3"
+                >{rehearsal.description || ''}</textarea>
+              </div>
+            </div>
+
+            <div class="columns">
+              <div class="column is-4">
+                <div class="field">
+                  <label class="label" for="edit-date">Date</label>
+                  <div class="control">
+                    <input
+                      class="input"
+                      type="date"
+                      id="edit-date"
+                      name="date"
+                      value={dateValue}
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+              <div class="column is-4">
+                <div class="field">
+                  <label class="label" for="edit-time">Time</label>
+                  <div class="control">
+                    <input
+                      class="input"
+                      type="time"
+                      id="edit-time"
+                      name="time"
+                      value={timeValue}
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+              <div class="column is-4">
+                <div class="field">
+                  <label class="label" for="edit-duration">Duration (min)</label>
+                  <div class="control">
+                    <input
+                      class="input"
+                      type="number"
+                      id="edit-duration"
+                      name="durationMinutes"
+                      value={rehearsal.durationMinutes}
+                      min="15"
+                      max="480"
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="field">
+              <label class="label" for="edit-location">Location</label>
+              <div class="control">
+                <input
+                  class="input"
+                  type="text"
+                  id="edit-location"
+                  name="location"
+                  value={rehearsal.location || ''}
+                />
+              </div>
+            </div>
+          </section>
+          <footer class="modal-card-foot">
+            <button class="button is-primary" type="submit">Save Changes</button>
+            <button class="button" type="button" id="cancel-edit">Cancel</button>
+          </footer>
+        </form>
+      </div>
+    </div>
+  )}
+
+  <script>
+    // Edit modal functionality
+    const editModal = document.getElementById('edit-modal');
+    const editBtn = document.getElementById('edit-rehearsal-btn');
+    const closeEditModal = document.getElementById('close-edit-modal');
+    const cancelEdit = document.getElementById('cancel-edit');
+
+    const openEditModal = () => {
+      editModal?.classList.add('is-active');
+    };
+
+    const closeModal = () => {
+      editModal?.classList.remove('is-active');
+    };
+
+    editBtn?.addEventListener('click', openEditModal);
+    closeEditModal?.addEventListener('click', closeModal);
+    cancelEdit?.addEventListener('click', closeModal);
+    editModal?.querySelector('.modal-background')?.addEventListener('click', closeModal);
+  </script>
+</Layout>
