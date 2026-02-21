@@ -2,6 +2,7 @@
 import Layout from '../../../../layouts/Layout.astro';
 import { db, eq, and, Ensemble, EnsembleMember, Rehearsal, Attendance, User } from 'astro:db';
 import QRCode from 'qrcode';
+import { canManageEnsemble } from '../../../../lib/permissions';
 
 const user = Astro.locals.user;
 if (!user) {
@@ -29,7 +30,7 @@ if (!membership) {
   return Astro.redirect('/ensembles');
 }
 
-const isAdmin = membership.role === 'admin';
+const isAdmin = canManageEnsemble(user, membership);
 
 // Get rehearsal details
 const [rehearsal] = await db.select().from(Rehearsal).where(eq(Rehearsal.id, rehearsalId));

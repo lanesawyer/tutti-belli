@@ -1,7 +1,6 @@
 ---
 import Layout from '../../../layouts/Layout.astro';
-import { db, eq, and, Ensemble, EnsembleMember, Part } from 'astro:db';
-
+import { db, eq, and, Ensemble, EnsembleMember, Part } from 'astro:db';import { canManageEnsemble } from '../../../lib/permissions';
 const user = Astro.locals.user;
 if (!user) {
   return Astro.redirect('/login');
@@ -27,7 +26,7 @@ const membership = await db
   .where(and(eq(EnsembleMember.ensembleId, id!), eq(EnsembleMember.userId, user.id)))
   .get();
 
-const isAdmin = membership?.role === 'admin' || user.role === 'admin';
+const isAdmin = canManageEnsemble(user, membership);
 
 if (!isAdmin) {
   return new Response('Unauthorized', { status: 403 });

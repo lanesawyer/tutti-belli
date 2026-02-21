@@ -1,6 +1,7 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import { db, eq, and, desc, Ensemble, EnsembleMember, User, EnsembleInvite, Part, Announcement } from 'astro:db';
+import { canManageEnsemble } from '../../lib/permissions';
 
 const user = Astro.locals.user;
 if (!user) {
@@ -28,7 +29,7 @@ if (!membership) {
   return Astro.redirect('/ensembles');
 }
 
-const isAdmin = membership.role === 'admin';
+const isAdmin = canManageEnsemble(user, membership);
 
 // Get all members with their parts
 const membersData = await db

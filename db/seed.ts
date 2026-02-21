@@ -43,7 +43,7 @@ export default async function seed() {
       email: 'ensadmin@example.com',
       passwordHash: ensembleAdminPasswordHash,
       name: 'Ensemble Admin User',
-      role: 'user',
+      role: 'ensemble_admin',
     },
   ]);
 
