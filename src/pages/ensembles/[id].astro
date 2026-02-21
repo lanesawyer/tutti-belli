@@ -253,7 +253,7 @@ if (Astro.request.method === 'POST') {
             </span>
           </div>
         </div>
-        {ensemble.discordLink && (
+        {ensemble.discordLink && !isPending && (
           <div class="level-item">
             <a href={ensemble.discordLink} target="_blank" rel="noopener noreferrer" class="button is-link" title="Join Discord Server">
               <span class="icon">
