@@ -107,6 +107,37 @@ if (Astro.request.method === 'POST') {
         message = 'Member marked as present.';
       }
     }
+  } else if (action === 'edit' && isAdmin) {
+    const title = formData.get('title')?.toString();
+    const description = formData.get('description')?.toString();
+    const date = formData.get('date')?.toString();
+    const time = formData.get('time')?.toString();
+    const location = formData.get('location')?.toString();
+    const durationMinutes = parseInt(formData.get('durationMinutes')?.toString() || '90');
+
+    if (title && date && time) {
+      const scheduledAt = new Date(`${date}T${time}`);
+      
+      await db.update(Rehearsal)
+        .set({
+          title: title.trim(),
+          description: description?.trim() || '',
+          scheduledAt,
+          durationMinutes,
+          location: location?.trim() || '',
+        })
+        .where(eq(Rehearsal.id, rehearsalId));
+      
+      message = 'Rehearsal updated successfully!';
+      
+      // Re-fetch updated rehearsal
+      const [updatedRehearsal] = await db.select().from(Rehearsal).where(eq(Rehearsal.id, rehearsalId));
+      if (updatedRehearsal) {
+        Object.assign(rehearsal, updatedRehearsal);
+      }
+    } else {
+      message = 'Title, date, and time are required.';
+    }
   }
 }
 
@@ -148,6 +179,10 @@ const scheduledDate = new Date(rehearsal.scheduledAt);
 const endTime = new Date(scheduledDate.getTime() + (rehearsal.durationMinutes * 60 * 1000));
 const isPast = endTime < new Date();
 const isUserCheckedIn = attendedUserIds.has(user.id);
+
+// Prepare date/time for form inputs
+const dateValue = scheduledDate.toISOString().split('T')[0];
+const timeValue = scheduledDate.toTimeString().slice(0, 5);
 ---
 
 <Layout title={`${rehearsal.title} - ${ensemble.name}`}>
@@ -189,12 +224,22 @@ const isUserCheckedIn = attendedUserIds.has(user.id);
     </div>
     <div class="level-right">
       <div class="level-item">
-        <a href={`/ensembles/${id}/rehearsals`} class="button">
-          <span class="icon">
-            <i class="fas fa-arrow-left"></i>
-          </span>
-          <span>Back to Rehearsals</span>
-        </a>
+        <div class="buttons">
+          {isAdmin && (
+            <button class="button is-warning" id="edit-rehearsal-btn">
+              <span class="icon">
+                <i class="fas fa-edit"></i>
+              </span>
+              <span>Edit Rehearsal</span>
+            </button>
+          )}
+          <a href={`/ensembles/${id}/rehearsals`} class="button">
+            <span class="icon">
+              <i class="fas fa-arrow-left"></i>
+            </span>
+            <span>Back to Rehearsals</span>
+          </a>
+        </div>
       </div>
     </div>
   </div>
@@ -384,4 +429,136 @@ const isUserCheckedIn = attendedUserIds.has(user.id);
       </div>
     )}
   </div>
+
+  <!-- Edit Rehearsal Modal -->
+  {isAdmin && (
+    <div class="modal" id="edit-modal">
+      <div class="modal-background"></div>
+      <div class="modal-card">
+        <header class="modal-card-head">
+          <p class="modal-card-title">Edit Rehearsal</p>
+          <button class="delete" aria-label="close" id="close-edit-modal"></button>
+        </header>
+        <form method="POST">
+          <section class="modal-card-body">
+            <input type="hidden" name="action" value="edit" />
+            
+            <div class="field">
+              <label class="label" for="edit-title">Title</label>
+              <div class="control">
+                <input
+                  class="input"
+                  type="text"
+                  id="edit-title"
+                  name="title"
+                  value={rehearsal.title}
+                  required
+                />
+              </div>
+            </div>
+
+            <div class="field">
+              <label class="label" for="edit-description">Description</label>
+              <div class="control">
+                <textarea
+                  class="textarea"
+                  id="edit-description"
+                  name="description"
+                  rows="3"
+                >{rehearsal.description || ''}</textarea>
+              </div>
+            </div>
+
+            <div class="columns">
+              <div class="column is-4">
+                <div class="field">
+                  <label class="label" for="edit-date">Date</label>
+                  <div class="control">
+                    <input
+                      class="input"
+                      type="date"
+                      id="edit-date"
+                      name="date"
+                      value={dateValue}
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+              <div class="column is-4">
+                <div class="field">
+                  <label class="label" for="edit-time">Time</label>
+                  <div class="control">
+                    <input
+                      class="input"
+                      type="time"
+                      id="edit-time"
+                      name="time"
+                      value={timeValue}
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+              <div class="column is-4">
+                <div class="field">
+                  <label class="label" for="edit-duration">Duration (min)</label>
+                  <div class="control">
+                    <input
+                      class="input"
+                      type="number"
+                      id="edit-duration"
+                      name="durationMinutes"
+                      value={rehearsal.durationMinutes}
+                      min="15"
+                      max="480"
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="field">
+              <label class="label" for="edit-location">Location</label>
+              <div class="control">
+                <input
+                  class="input"
+                  type="text"
+                  id="edit-location"
+                  name="location"
+                  value={rehearsal.location || ''}
+                />
+              </div>
+            </div>
+          </section>
+          <footer class="modal-card-foot">
+            <button class="button is-primary" type="submit">Save Changes</button>
+            <button class="button" type="button" id="cancel-edit">Cancel</button>
+          </footer>
+        </form>
+      </div>
+    </div>
+  )}
+
+  <script>
+    // Edit modal functionality
+    const editModal = document.getElementById('edit-modal');
+    const editBtn = document.getElementById('edit-rehearsal-btn');
+    const closeEditModal = document.getElementById('close-edit-modal');
+    const cancelEdit = document.getElementById('cancel-edit');
+
+    const openEditModal = () => {
+      editModal?.classList.add('is-active');
+    };
+
+    const closeModal = () => {
+      editModal?.classList.remove('is-active');
+    };
+
+    editBtn?.addEventListener('click', openEditModal);
+    closeEditModal?.addEventListener('click', closeModal);
+    cancelEdit?.addEventListener('click', closeModal);
+    editModal?.querySelector('.modal-background')?.addEventListener('click', closeModal);
+  </script>
 </Layout>
