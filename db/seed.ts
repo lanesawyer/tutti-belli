@@ -1,4 +1,4 @@
-import { db, User, Ensemble, EnsembleMember, Part, EnsembleInvite, Season, SeasonMembership, Rehearsal, Announcement, Group, GroupMembership } from 'astro:db';
+import { db, User, Ensemble, EnsembleMember, Part, EnsembleInvite, Season, SeasonMembership, Rehearsal, Announcement, Group, GroupMembership, Song, SongPart, SeasonSong } from 'astro:db';
 import bcrypt from 'bcryptjs';
 
 export default async function seed() {
@@ -345,6 +345,107 @@ Thank you for being part of our musical community!`,
     },
   ]);
 
+  // Create sample songs
+  const song1Id = crypto.randomUUID();
+  const song2Id = crypto.randomUUID();
+  const song3Id = crypto.randomUUID();
+  const song4Id = crypto.randomUUID();
+  const song5Id = crypto.randomUUID();
+
+  await db.insert(Song).values([
+    {
+      id: song1Id,
+      ensembleId: ensembleId,
+      name: 'Ave Maria',
+      composer: 'Franz Biebl',
+      arranger: null,
+      runTime: 240, // 4:00
+    },
+    {
+      id: song2Id,
+      ensembleId: ensembleId,
+      name: 'Shenandoah',
+      composer: 'Traditional',
+      arranger: 'James Erb',
+      runTime: 195, // 3:15
+    },
+    {
+      id: song3Id,
+      ensembleId: ensembleId,
+      name: 'Lux Aurumque',
+      composer: 'Eric Whitacre',
+      arranger: null,
+      runTime: 225, // 3:45
+    },
+    {
+      id: song4Id,
+      ensembleId: ensembleId,
+      name: 'The Seal Lullaby',
+      composer: 'Eric Whitacre',
+      arranger: null,
+      runTime: 270, // 4:30
+    },
+    {
+      id: song5Id,
+      ensembleId: ensembleId,
+      name: 'Sure On This Shining Night',
+      composer: 'Samuel Barber',
+      arranger: 'Morten Lauridsen',
+      runTime: 180, // 3:00
+    },
+  ]);
+
+  // Associate songs with parts
+  // Song 1 (Ave Maria) - SATBB arrangement (Soprano, Alto, Tenor, Bass 1, Bass 2)
+  await db.insert(SongPart).values([
+    { id: crypto.randomUUID(), songId: song1Id, partId: sopranoId },
+    { id: crypto.randomUUID(), songId: song1Id, partId: altoId },
+    { id: crypto.randomUUID(), songId: song1Id, partId: tenorId },
+    { id: crypto.randomUUID(), songId: song1Id, partId: baritoneId },
+    { id: crypto.randomUUID(), songId: song1Id, partId: bassId },
+  ]);
+
+  // Song 2 (Shenandoah) - SATB
+  await db.insert(SongPart).values([
+    { id: crypto.randomUUID(), songId: song2Id, partId: sopranoId },
+    { id: crypto.randomUUID(), songId: song2Id, partId: altoId },
+    { id: crypto.randomUUID(), songId: song2Id, partId: tenorId },
+    { id: crypto.randomUUID(), songId: song2Id, partId: bassId },
+  ]);
+
+  // Song 3 (Lux Aurumque) - SATB
+  await db.insert(SongPart).values([
+    { id: crypto.randomUUID(), songId: song3Id, partId: sopranoId },
+    { id: crypto.randomUUID(), songId: song3Id, partId: altoId },
+    { id: crypto.randomUUID(), songId: song3Id, partId: tenorId },
+    { id: crypto.randomUUID(), songId: song3Id, partId: bassId },
+  ]);
+
+  // Song 4 (The Seal Lullaby) - SATB
+  await db.insert(SongPart).values([
+    { id: crypto.randomUUID(), songId: song4Id, partId: sopranoId },
+    { id: crypto.randomUUID(), songId: song4Id, partId: altoId },
+    { id: crypto.randomUUID(), songId: song4Id, partId: tenorId },
+    { id: crypto.randomUUID(), songId: song4Id, partId: bassId },
+  ]);
+
+  // Song 5 (Sure On This Shining Night) - Full choir with divisi
+  await db.insert(SongPart).values([
+    { id: crypto.randomUUID(), songId: song5Id, partId: sopranoId },
+    { id: crypto.randomUUID(), songId: song5Id, partId: altoId },
+    { id: crypto.randomUUID(), songId: song5Id, partId: tenorId },
+    { id: crypto.randomUUID(), songId: song5Id, partId: baritoneId },
+    { id: crypto.randomUUID(), songId: song5Id, partId: bassId },
+  ]);
+
+  // Associate songs with the current season
+  // Let's add songs 1, 2, and 3 to the current season
+  await db.insert(SeasonSong).values([
+    { id: crypto.randomUUID(), seasonId: seasonId, songId: song1Id },
+    { id: crypto.randomUUID(), seasonId: seasonId, songId: song2Id },
+    { id: crypto.randomUUID(), seasonId: seasonId, songId: song3Id },
+  ]);
+
   console.log('✓ Seeded database successfully!');
   console.log('');
   console.log('Site Admin Account:');
@@ -368,6 +469,11 @@ Thank you for being part of our musical community!`,
   console.log('  - Past rehearsal (1 month ago)');
   console.log('  - Current rehearsal (happening now - check-in code: CHECKIN1)');
   console.log('  - Weekly rehearsal (1 week from now)');
+  console.log('');
+  console.log('Sample Songs:');
+  console.log('  - 5 songs with various composers and arrangers');
+  console.log('  - 3 songs assigned to Spring 2026 season');
+  console.log('  - All songs have parts assigned');
   console.log('');
   console.log('⚠️  Remember to change passwords in production!');
 }

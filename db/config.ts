@@ -137,6 +137,35 @@ const GroupMembership = defineTable({
   }
 });
 
+const Song = defineTable({
+  columns: {
+    id: column.text({ primaryKey: true }),
+    ensembleId: column.text({ references: () => Ensemble.columns.id }),
+    name: column.text(),
+    composer: column.text({ optional: true }),
+    arranger: column.text({ optional: true }),
+    runTime: column.number({ optional: true }), // Runtime in seconds
+    createdAt: column.date({ default: NOW }),
+  }
+});
+
+const SongPart = defineTable({
+  columns: {
+    id: column.text({ primaryKey: true }),
+    songId: column.text({ references: () => Song.columns.id }),
+    partId: column.text({ references: () => Part.columns.id }),
+  }
+});
+
+const SeasonSong = defineTable({
+  columns: {
+    id: column.text({ primaryKey: true }),
+    seasonId: column.text({ references: () => Season.columns.id }),
+    songId: column.text({ references: () => Song.columns.id }),
+    addedAt: column.date({ default: NOW }),
+  }
+});
+
 export default defineDb({
-  tables: { User, Ensemble, EnsembleMember, Part, EnsembleInvite, Season, SeasonMembership, Rehearsal, Attendance, Announcement, Group, GroupMembership }
+  tables: { User, Ensemble, EnsembleMember, Part, EnsembleInvite, Season, SeasonMembership, Rehearsal, Attendance, Announcement, Group, GroupMembership, Song, SongPart, SeasonSong }
 });
