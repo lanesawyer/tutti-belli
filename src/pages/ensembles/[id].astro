@@ -199,6 +199,14 @@ if (Astro.request.method === 'POST') {
               <span>Manage Parts</span>
             </a>
           )}
+          {isAdmin && (
+            <a href={`/ensembles/${id}/seasons`} class="button is-success">
+              <span class="icon">
+                <i class="fas fa-calendar-alt"></i>
+              </span>
+              <span>Manage Seasons</span>
+            </a>
+          )}
           <span class={`tag is-medium ${isAdmin ? 'is-warning' : 'is-info'}`}>
             {isAdmin ? 'Ensemble Admin' : 'Member'}
           </span>

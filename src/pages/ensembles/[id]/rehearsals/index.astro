@@ -1,6 +1,7 @@
 ---
 import Layout from '../../../../layouts/Layout.astro';
-import { db, eq, and, desc, Ensemble, EnsembleMember, Rehearsal } from 'astro:db';import { canManageEnsemble } from '../../../../lib/permissions';
+import { db, eq, and, desc, Ensemble, EnsembleMember, Rehearsal, Season } from 'astro:db';
+import { canManageEnsemble } from '../../../../lib/permissions';
 const user = Astro.locals.user;
 if (!user) {
   return Astro.redirect('/login');
@@ -29,6 +30,17 @@ if (!membership) {
 
 const isAdmin = canManageEnsemble(user, membership);
 
+// Get the active season for this ensemble
+const [activeSeason] = await db
+  .select()
+  .from(Season)
+  .where(and(eq(Season.ensembleId, id), eq(Season.isActive, 1)))
+  .limit(1);
+
+if (!activeSeason) {
+  return new Response('No active season found. Please create a season first.', { status: 400 });
+}
+
 let message = '';
 
 // Handle creating new rehearsal
@@ -51,6 +63,7 @@ if (Astro.request.method === 'POST' && isAdmin) {
       await db.insert(Rehearsal).values({
         id: crypto.randomUUID(),
         ensembleId: id,
+        seasonId: activeSeason.id,
         title,
         description: description || '',
         scheduledAt,

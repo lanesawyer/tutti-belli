@@ -55,10 +55,32 @@ const EnsembleInvite = defineTable({
   }
 });
 
+const Season = defineTable({
+  columns: {
+    id: column.text({ primaryKey: true }),
+    ensembleId: column.text({ references: () => Ensemble.columns.id }),
+    name: column.text(),
+    startDate: column.date({ optional: true }),
+    endDate: column.date({ optional: true }),
+    isActive: column.number({ default: 1 }), // 1 = true, 0 = false
+    createdAt: column.date({ default: NOW }),
+  }
+});
+
+const SeasonMembership = defineTable({
+  columns: {
+    id: column.text({ primaryKey: true }),
+    seasonId: column.text({ references: () => Season.columns.id }),
+    userId: column.text({ references: () => User.columns.id }),
+    joinedAt: column.date({ default: NOW }),
+  }
+});
+
 const Rehearsal = defineTable({
   columns: {
     id: column.text({ primaryKey: true }),
     ensembleId: column.text({ references: () => Ensemble.columns.id }),
+    seasonId: column.text({ references: () => Season.columns.id }),
     title: column.text(),
     description: column.text({ optional: true }),
     scheduledAt: column.date(),
@@ -92,5 +114,5 @@ const Announcement = defineTable({
 });
 
 export default defineDb({
-  tables: { User, Ensemble, EnsembleMember, Part, EnsembleInvite, Rehearsal, Attendance, Announcement }
+  tables: { User, Ensemble, EnsembleMember, Part, EnsembleInvite, Season, SeasonMembership, Rehearsal, Attendance, Announcement }
 });

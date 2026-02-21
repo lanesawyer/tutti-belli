@@ -1,4 +1,4 @@
-import { db, User, Ensemble, EnsembleMember, Part, EnsembleInvite, Rehearsal } from 'astro:db';
+import { db, User, Ensemble, EnsembleMember, Part, EnsembleInvite, Season, SeasonMembership, Rehearsal } from 'astro:db';
 import bcrypt from 'bcryptjs';
 
 export default async function seed() {
@@ -141,6 +141,43 @@ export default async function seed() {
     },
   ]);
 
+  // Create a current season
+  const seasonId = crypto.randomUUID();
+  const seasonStartDate = new Date();
+  seasonStartDate.setMonth(seasonStartDate.getMonth() - 1); // Started 1 month ago
+  const seasonEndDate = new Date();
+  seasonEndDate.setMonth(seasonEndDate.getMonth() + 2); // Ends in 2 months
+
+  await db.insert(Season).values([
+    {
+      id: seasonId,
+      ensembleId: ensembleId,
+      name: 'Spring 2026',
+      startDate: seasonStartDate,
+      endDate: seasonEndDate,
+      isActive: 1,
+    },
+  ]);
+
+  // Add all members to the current season
+  await db.insert(SeasonMembership).values([
+    {
+      id: crypto.randomUUID(),
+      seasonId: seasonId,
+      userId: adminId,
+    },
+    {
+      id: crypto.randomUUID(),
+      seasonId: seasonId,
+      userId: ensembleAdminId,
+    },
+    {
+      id: crypto.randomUUID(),
+      seasonId: seasonId,
+      userId: testUserId,
+    },
+  ]);
+
   // Create rehearsals for testing
   
   // Past rehearsal (1 month ago)
@@ -152,6 +189,7 @@ export default async function seed() {
     {
       id: crypto.randomUUID(),
       ensembleId: ensembleId,
+      seasonId: seasonId,
       title: 'Past Rehearsal',
       description: 'A rehearsal that already happened for testing',
       scheduledAt: pastDate,
@@ -169,6 +207,7 @@ export default async function seed() {
     {
       id: crypto.randomUUID(),
       ensembleId: ensembleId,
+      seasonId: seasonId,
       title: 'Current Rehearsal (Check-in Available)',
       description: 'This rehearsal is happening right now - test check-in functionality',
       scheduledAt: currentDate,
@@ -187,6 +226,7 @@ export default async function seed() {
     {
       id: crypto.randomUUID(),
       ensembleId: ensembleId,
+      seasonId: seasonId,
       title: 'Weekly Rehearsal',
       description: 'Regular practice session',
       scheduledAt: futureDate,
@@ -212,6 +252,7 @@ export default async function seed() {
   console.log('');
   console.log('Test Ensemble: Chamber Orchestra');
   console.log('  Invite Code: TEST1234');
+  console.log('  Current Season: Spring 2026');
   console.log('  Check-in window: 30 minutes before to 15 minutes after rehearsal start');
   console.log('');
   console.log('Test Rehearsals:');
