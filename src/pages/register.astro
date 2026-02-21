@@ -3,8 +3,9 @@ import Layout from '../layouts/Layout.astro';
 import { db, eq, User } from 'astro:db';
 import { hashPassword } from '../lib/auth';
 import { createSession } from '../lib/session';
+import { getRedirectUrl } from '../lib/redirect';
 
-const redirectUrl = Astro.url.searchParams.get('redirect') || '/ensembles';
+const customRedirect = Astro.url.searchParams.get('redirect');
 let error = '';
 
 if (Astro.request.method === 'POST') {
@@ -47,6 +48,7 @@ if (Astro.request.method === 'POST') {
           maxAge: 60 * 60 * 24 * 30, // 30 days
         });
 
+        const redirectUrl = await getRedirectUrl(userId, customRedirect);
         return Astro.redirect(redirectUrl);
       }
     }
@@ -57,6 +59,7 @@ if (Astro.request.method === 'POST') {
 
 // Redirect if already logged in
 if (Astro.locals.user) {
+  const redirectUrl = await getRedirectUrl(Astro.locals.user.id, customRedirect);
   return Astro.redirect(redirectUrl);
 }
 ---
