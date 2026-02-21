@@ -1,45 +1,233 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import { db, eq, User, Ensemble, EnsembleMember, Part } from 'astro:db';
 
 const user = Astro.locals.user;
 
 if (!user) {
   return Astro.redirect('/login');
 }
+
+// Get user's ensembles with part information
+const memberships = await db
+  .select({
+    ensembleId: Ensemble.id,
+    ensembleName: Ensemble.name,
+    membershipId: EnsembleMember.id,
+    partId: EnsembleMember.partId,
+  })
+  .from(EnsembleMember)
+  .innerJoin(Ensemble, eq(EnsembleMember.ensembleId, Ensemble.id))
+  .where(eq(EnsembleMember.userId, user.id))
+  .all();
+
+// Get all parts for user's ensembles
+const ensembleIds = memberships.map(m => m.ensembleId);
+const allParts = ensembleIds.length > 0 
+  ? await db.select().from(Part).all()
+  : [];
+
+// Group parts by ensemble
+const partsByEnsemble = new Map();
+for (const part of allParts) {
+  if (ensembleIds.includes(part.ensembleId)) {
+    if (!partsByEnsemble.has(part.ensembleId)) {
+      partsByEnsemble.set(part.ensembleId, []);
+    }
+    partsByEnsemble.get(part.ensembleId).push(part);
+  }
+}
+
+// Sort parts by sortOrder within each ensemble
+for (const [, parts] of partsByEnsemble) {
+  parts.sort((a: any, b: any) => a.sortOrder - b.sortOrder);
+}
+
+let message = '';
+let messageType = '';
+
+// Handle form submissions
+if (Astro.request.method === 'POST') {
+  const formData = await Astro.request.formData();
+  const action = formData.get('action')?.toString();
+
+  if (action === 'update-name') {
+    const name = formData.get('name')?.toString();
+    
+    if (name && name.trim()) {
+      await db
+        .update(User)
+        .set({ name: name.trim() })
+        .where(eq(User.id, user.id));
+      
+      message = 'Name updated successfully!';
+      messageType = 'success';
+      
+      // Refresh the page to show updated name
+      return Astro.redirect('/profile');
+    } else {
+      message = 'Name cannot be empty';
+      messageType = 'danger';
+    }
+  } else if (action === 'update-part') {
+    const membershipId = formData.get('membershipId')?.toString();
+    const partId = formData.get('partId')?.toString();
+    
+    if (membershipId) {
+      // Allow null partId (clearing the part)
+      await db
+        .update(EnsembleMember)
+        .set({ partId: partId || null })
+        .where(eq(EnsembleMember.id, membershipId));
+      
+      message = 'Part updated successfully!';
+      messageType = 'success';
+      
+      return Astro.redirect('/profile');
+    }
+  }
+}
 ---
 
 <Layout title="Profile">
-  <div class="box">
+  <div class="container">
     <h1 class="title">My Profile</h1>
     
-    <div class="content">
-      <table class="table">
-        <tbody>
-          <tr>
-            <th>Name:</th>
-            <td>{user.name}</td>
-          </tr>
-          <tr>
-            <th>Email:</th>
-            <td>{user.email}</td>
-          </tr>
-          <tr>
-            <th>Role:</th>
-            <td>
-              <span class={`tag ${user.role === 'admin' ? 'is-danger' : 'is-info'}`}>
+    {message && (
+      <div class={`notification is-${messageType}`}>
+        {message}
+      </div>
+    )}
+
+    <div class="columns">
+      <div class="column is-half">
+        <div class="box">
+          <h2 class="title is-4">Personal Information</h2>
+          
+          <form method="POST">
+            <input type="hidden" name="action" value="update-name" />
+            
+            <div class="field">
+              <label class="label" for="name">Name</label>
+              <div class="field has-addons">
+                <div class="control is-expanded">
+                  <input
+                    class="input"
+                    type="text"
+                    id="name"
+                    name="name"
+                    value={user.name}
+                    required
+                  />
+                </div>
+                <div class="control">
+                  <button type="submit" class="button is-primary">
+                    <span class="icon">
+                      <i class="fas fa-save"></i>
+                    </span>
+                    <span>Save</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </form>
+
+          <div class="field">
+            <label class="label">Email</label>
+            <div class="control">
+              <input class="input" type="text" value={user.email} disabled />
+            </div>
+            <p class="help">Email cannot be changed</p>
+          </div>
+
+          <div class="field">
+            <label class="label">Account Type</label>
+            <div class="control">
+              <span class={`tag is-medium ${user.role === 'admin' ? 'is-danger' : 'is-info'}`}>
                 {user.role === 'admin' ? 'Site Administrator' : 'User'}
               </span>
-            </td>
-          </tr>
-          <tr>
-            <th>Member Since:</th>
-            <td>{new Date(user.createdAt).toLocaleDateString()}</td>
-          </tr>
-        </tbody>
-      </table>
+            </div>
+          </div>
+
+          <div class="field">
+            <label class="label">Member Since</label>
+            <div class="control">
+              <input class="input" type="text" value={new Date(user.createdAt).toLocaleDateString()} disabled />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="column is-half">
+        <div class="box">
+          <h2 class="title is-4">My Parts</h2>
+          <p class="subtitle is-6">Select your part for each ensemble</p>
+          
+          {memberships.length === 0 ? (
+            <div class="notification is-info is-light">
+              <p>You are not a member of any ensembles yet.</p>
+              <a href="/ensembles" class="button is-primary mt-3">
+                <span class="icon">
+                  <i class="fas fa-plus"></i>
+                </span>
+                <span>Join an Ensemble</span>
+              </a>
+            </div>
+          ) : (
+            <div class="content">
+              {memberships.map((membership) => {
+                const parts = partsByEnsemble.get(membership.ensembleId) || [];
+                
+                return (
+                  <div class="box has-background-light">
+                    <h3 class="title is-5">{membership.ensembleName}</h3>
+                    
+                    {parts.length === 0 ? (
+                      <div class="notification is-warning is-light">
+                        <p class="is-size-7">No parts defined for this ensemble yet. Contact an ensemble admin to add parts.</p>
+                      </div>
+                    ) : (
+                      <form method="POST">
+                        <input type="hidden" name="action" value="update-part" />
+                        <input type="hidden" name="membershipId" value={membership.membershipId} />
+                        
+                        <div class="field has-addons">
+                          <div class="control is-expanded">
+                            <div class="select is-fullwidth">
+                              <select name="partId">
+                                <option value="">-- No Part --</option>
+                                {parts.map((part: any) => (
+                                  <option 
+                                    value={part.id}
+                                    selected={part.id === membership.partId}
+                                  >
+                                    {part.name}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          </div>
+                          <div class="control">
+                            <button type="submit" class="button is-primary">
+                              <span class="icon">
+                                <i class="fas fa-save"></i>
+                              </span>
+                              <span>Update</span>
+                            </button>
+                          </div>
+                        </div>
+                      </form>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
 
-    <div class="buttons">
+    <div class="buttons mt-5">
       <a href="/ensembles" class="button is-primary">
         <span class="icon">
           <i class="fas fa-users"></i>

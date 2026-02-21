@@ -1,6 +1,6 @@
 ---
 import Layout from '../../layouts/Layout.astro';
-import { db, eq, and, Ensemble, EnsembleMember, User, EnsembleInvite } from 'astro:db';
+import { db, eq, and, Ensemble, EnsembleMember, User, EnsembleInvite, Part } from 'astro:db';
 
 const user = Astro.locals.user;
 if (!user) {
@@ -30,8 +30,8 @@ if (!membership) {
 
 const isAdmin = membership.role === 'admin';
 
-// Get all members
-const members = await db
+// Get all members with their parts
+const membersData = await db
   .select({
     id: User.id,
     name: User.name,
@@ -39,10 +39,39 @@ const members = await db
     role: EnsembleMember.role,
     joinedAt: EnsembleMember.joinedAt,
     membershipId: EnsembleMember.id,
+    partId: EnsembleMember.partId,
   })
   .from(EnsembleMember)
   .innerJoin(User, eq(EnsembleMember.userId, User.id))
   .where(eq(EnsembleMember.ensembleId, id));
+
+// Get all parts for this ensemble
+const allParts = await db
+  .select()
+  .from(Part)
+  .where(eq(Part.ensembleId, id))
+  .all();
+
+// Sort parts by sortOrder
+allParts.sort((a, b) => a.sortOrder - b.sortOrder);
+
+// Group members by part
+const membersByPart = new Map();
+const membersWithoutPart = [];
+
+for (const member of membersData) {
+  if (member.partId) {
+    if (!membersByPart.has(member.partId)) {
+      membersByPart.set(member.partId, []);
+    }
+    membersByPart.get(member.partId).push(member);
+  } else {
+    membersWithoutPart.push(member);
+  }
+}
+
+// For backwards compatibility, keep members array
+const members = membersData;
 
 // Get invite codes (if admin)
 const invites = isAdmin
@@ -121,6 +150,14 @@ if (Astro.request.method === 'POST') {
             </span>
             <span>Rehearsals</span>
           </a>
+          {isAdmin && (
+            <a href={`/ensembles/${id}/parts`} class="button is-info">
+              <span class="icon">
+                <i class="fas fa-list"></i>
+              </span>
+              <span>Manage Parts</span>
+            </a>
+          )}
           <span class={`tag is-medium ${isAdmin ? 'is-warning' : 'is-info'}`}>
             {isAdmin ? 'Ensemble Admin' : 'Member'}
           </span>
@@ -188,61 +225,192 @@ if (Astro.request.method === 'POST') {
   <div class="box">
     <h2 class="title is-4">Members ({members.length})</h2>
     
-    <table class="table is-fullwidth is-striped">
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Email</th>
-          <th>Role</th>
-          <th>Joined</th>
-          {isAdmin && <th>Actions</th>}
-        </tr>
-      </thead>
-      <tbody>
-        {members.map((member) => (
+    {allParts.length > 0 ? (
+      <>
+        {allParts.map((part) => {
+          const partMembers = membersByPart.get(part.id) || [];
+          if (partMembers.length === 0) return null;
+          
+          return (
+            <div class="mb-5">
+              <h3 class="title is-5 has-text-primary">{part.name} ({partMembers.length})</h3>
+              <table class="table is-fullwidth is-striped">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Joined</th>
+                    {isAdmin && <th>Actions</th>}
+                  </tr>
+                </thead>
+                <tbody>
+                  {partMembers.map((member: any) => (
+                    <tr>
+                      <td>{member.name}</td>
+                      <td>{member.email}</td>
+                      <td>
+                        <span class={`tag ${member.role === 'admin' ? 'is-warning' : 'is-info'}`}>
+                          {member.role === 'admin' ? 'Admin' : 'Member'}
+                        </span>
+                      </td>
+                      <td>{new Date(member.joinedAt).toLocaleDateString()}</td>
+                      {isAdmin && member.id !== user.id && (
+                        <td>
+                          <div class="buttons are-small">
+                            {member.role === 'member' ? (
+                              <form method="POST" style="display: inline;">
+                                <input type="hidden" name="action" value="promote" />
+                                <input type="hidden" name="membershipId" value={member.membershipId} />
+                                <button type="submit" class="button is-warning is-small">
+                                  Make Admin
+                                </button>
+                              </form>
+                            ) : (
+                              <form method="POST" style="display: inline;">
+                                <input type="hidden" name="action" value="demote" />
+                                <input type="hidden" name="membershipId" value={member.membershipId} />
+                                <button type="submit" class="button is-info is-small">
+                                  Remove Admin
+                                </button>
+                              </form>
+                            )}
+                            <form method="POST" style="display: inline;">
+                              <input type="hidden" name="action" value="remove" />
+                              <input type="hidden" name="membershipId" value={member.membershipId} />
+                              <button type="submit" class="button is-danger is-small">
+                                Remove
+                              </button>
+                            </form>
+                          </div>
+                        </td>
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          );
+        })}
+
+        {membersWithoutPart.length > 0 && (
+          <div class="mb-5">
+            <h3 class="title is-5 has-text-grey">No Part Assigned ({membersWithoutPart.length})</h3>
+            <table class="table is-fullwidth is-striped">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Role</th>
+                  <th>Joined</th>
+                  {isAdmin && <th>Actions</th>}
+                </tr>
+              </thead>
+              <tbody>
+                {membersWithoutPart.map((member) => (
+                  <tr>
+                    <td>{member.name}</td>
+                    <td>{member.email}</td>
+                    <td>
+                      <span class={`tag ${member.role === 'admin' ? 'is-warning' : 'is-info'}`}>
+                        {member.role === 'admin' ? 'Admin' : 'Member'}
+                      </span>
+                    </td>
+                    <td>{new Date(member.joinedAt).toLocaleDateString()}</td>
+                    {isAdmin && member.id !== user.id && (
+                      <td>
+                        <div class="buttons are-small">
+                          {member.role === 'member' ? (
+                            <form method="POST" style="display: inline;">
+                              <input type="hidden" name="action" value="promote" />
+                              <input type="hidden" name="membershipId" value={member.membershipId} />
+                              <button type="submit" class="button is-warning is-small">
+                                Make Admin
+                              </button>
+                            </form>
+                          ) : (
+                            <form method="POST" style="display: inline;">
+                              <input type="hidden" name="action" value="demote" />
+                              <input type="hidden" name="membershipId" value={member.membershipId} />
+                              <button type="submit" class="button is-info is-small">
+                                Remove Admin
+                              </button>
+                            </form>
+                          )}
+                          <form method="POST" style="display: inline;">
+                            <input type="hidden" name="action" value="remove" />
+                            <input type="hidden" name="membershipId" value={member.membershipId} />
+                            <button type="submit" class="button is-danger is-small">
+                              Remove
+                            </button>
+                          </form>
+                        </div>
+                      </td>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </>
+    ) : (
+      <table class="table is-fullwidth is-striped">
+        <thead>
           <tr>
-            <td>{member.name}</td>
-            <td>{member.email}</td>
-            <td>
-              <span class={`tag ${member.role === 'admin' ? 'is-warning' : 'is-info'}`}>
-                {member.role === 'admin' ? 'Admin' : 'Member'}
-              </span>
-            </td>
-            <td>{new Date(member.joinedAt).toLocaleDateString()}</td>
-            {isAdmin && member.id !== user.id && (
-              <td>
-                <div class="buttons are-small">
-                  {member.role === 'member' ? (
-                    <form method="POST" style="display: inline;">
-                      <input type="hidden" name="action" value="promote" />
-                      <input type="hidden" name="membershipId" value={member.membershipId} />
-                      <button type="submit" class="button is-warning is-small">
-                        Make Admin
-                      </button>
-                    </form>
-                  ) : (
-                    <form method="POST" style="display: inline;">
-                      <input type="hidden" name="action" value="demote" />
-                      <input type="hidden" name="membershipId" value={member.membershipId} />
-                      <button type="submit" class="button is-info is-small">
-                        Remove Admin
-                      </button>
-                    </form>
-                  )}
-                  <form method="POST" style="display: inline;">
-                    <input type="hidden" name="action" value="remove" />
-                    <input type="hidden" name="membershipId" value={member.membershipId} />
-                    <button type="submit" class="button is-danger is-small">
-                      Remove
-                    </button>
-                  </form>
-                </div>
-              </td>
-            )}
+            <th>Name</th>
+            <th>Email</th>
+            <th>Role</th>
+            <th>Joined</th>
+            {isAdmin && <th>Actions</th>}
           </tr>
-        ))}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          {members.map((member) => (
+            <tr>
+              <td>{member.name}</td>
+              <td>{member.email}</td>
+              <td>
+                <span class={`tag ${member.role === 'admin' ? 'is-warning' : 'is-info'}`}>
+                  {member.role === 'admin' ? 'Admin' : 'Member'}
+                </span>
+              </td>
+              <td>{new Date(member.joinedAt).toLocaleDateString()}</td>
+              {isAdmin && member.id !== user.id && (
+                <td>
+                  <div class="buttons are-small">
+                    {member.role === 'member' ? (
+                      <form method="POST" style="display: inline;">
+                        <input type="hidden" name="action" value="promote" />
+                        <input type="hidden" name="membershipId" value={member.membershipId} />
+                        <button type="submit" class="button is-warning is-small">
+                          Make Admin
+                        </button>
+                      </form>
+                    ) : (
+                      <form method="POST" style="display: inline;">
+                        <input type="hidden" name="action" value="demote" />
+                        <input type="hidden" name="membershipId" value={member.membershipId} />
+                        <button type="submit" class="button is-info is-small">
+                          Remove Admin
+                        </button>
+                      </form>
+                    )}
+                    <form method="POST" style="display: inline;">
+                      <input type="hidden" name="action" value="remove" />
+                      <input type="hidden" name="membershipId" value={member.membershipId} />
+                      <button type="submit" class="button is-danger is-small">
+                        Remove
+                      </button>
+                    </form>
+                  </div>
+                </td>
+              )}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    )}
   </div>
 
   <a href="/ensembles" class="button">

@@ -27,7 +27,18 @@ const EnsembleMember = defineTable({
     ensembleId: column.text({ references: () => Ensemble.columns.id }),
     userId: column.text({ references: () => User.columns.id }),
     role: column.text({ default: 'member' }), // 'admin', 'member'
+    partId: column.text({ optional: true, references: () => Part.columns.id }),
     joinedAt: column.date({ default: NOW }),
+  }
+});
+
+const Part = defineTable({
+  columns: {
+    id: column.text({ primaryKey: true }),
+    ensembleId: column.text({ references: () => Ensemble.columns.id }),
+    name: column.text(),
+    sortOrder: column.number({ default: 0 }),
+    createdAt: column.date({ default: NOW }),
   }
 });
 
@@ -66,5 +77,5 @@ const Attendance = defineTable({
 });
 
 export default defineDb({
-  tables: { User, Ensemble, EnsembleMember, EnsembleInvite, Rehearsal, Attendance }
+  tables: { User, Ensemble, EnsembleMember, Part, EnsembleInvite, Rehearsal, Attendance }
 });

@@ -15,6 +15,8 @@ A web application for managing musical ensembles built with Astro, Astro DB, and
 - **Authentication**: User registration, login, and session management
 - **Invite System**: Ensembles are private and require invite codes to join
 - **Ensemble Management**: Create and manage musical groups
+- **Voice Parts**: Define and manage voice parts (e.g., soprano, alto, tenor, baritone, bass) for each ensemble
+- **Member Organization**: Group members by their assigned voice parts
 - **Rehearsal Scheduling**: Schedule rehearsals with date, time, and location
 - **Attendance Tracking**: Multiple check-in methods for rehearsals:
   - Manual check-in button
@@ -22,6 +24,7 @@ A web application for managing musical ensembles built with Astro, Astro DB, and
   - Admin can manually mark attendance
 - **Member Management**: Add/remove members, assign ensemble admin roles
 - **Role-based Access Control**: Different permissions for site admins, ensemble admins, and members
+- **Profile Management**: Users can edit their name and select their voice part for each ensemble
 - **Responsive UI**: Mobile-friendly interface using Bulma CSS
 
 ## Getting Started
@@ -53,12 +56,20 @@ The application will be available at `http://localhost:4321/`
 
 ### Default Admin Account
 
-On first run, the database is seeded with a default admin account:
+On first run, the database is seeded with:
 
-- **Email**: admin@example.com
-- **Password**: admin123
+- **Admin Account**:
+  - Email: admin@example.com
+  - Password: admin123
+- **Test User**:
+  - Email: test@example.com
+  - Password: test123
+- **Sample Ensemble**: "Chamber Orchestra" with both users as members
+- **Voice Parts**: Soprano, Alto, Tenor, Baritone, and Bass (pre-configured for the sample ensemble)
+- **Sample Invite Code**: TEST1234 (for joining Chamber Orchestra)
+- **Upcoming Rehearsal**: A test rehearsal for the next week
 
-**⚠️ Important**: Change this password immediately in production!
+**⚠️ Important**: Change the default passwords immediately in production!
 
 ## Project Structure
 
@@ -88,6 +99,7 @@ On first run, the database is seeded with a default admin account:
 │   │       ├── index.astro                      # List of user's ensembles
 │   │       └── [id]/
 │   │           ├── astro                        # Ensemble detail page
+│   │           ├── parts.astro                  # Manage voice parts (admin)
 │   │           └── rehearsals/
 │   │               ├── index.astro              # Rehearsal list & scheduling
 │   │               └── [rehearsalId].astro      # Rehearsal detail & attendance
@@ -117,7 +129,15 @@ On first run, the database is seeded with a default admin account:
 - `id`: Primary key
 - `ensembleId`: Reference to Ensemble
 - `userId`: Reference to User
-- `role`: 'admin' or 'member' (ensemble-specific role)
+- `partId`: Optional reference to Part (voice part assignment)
+- `joinedAt`: Timestamp when user joined
+
+### Part Table
+- `id`: Primary key
+- `ensembleId`: Reference to Ensemble
+- `name`: Part name (e.g., "Soprano", "Alto", "Tenor")
+- `sortOrder`: Numeric order for display (lower numbers first)
+- `createdAt`: Creation timestampspecific role)
 - `joinedAt`: Timestamp when user joined
 
 ### EnsembleInvite Table
@@ -149,14 +169,19 @@ On first run, the database is seeded with a default admin account:
 
 ### For Site Administrators
 
-1. Log in with the admin account
-2. Go to the Admin Panel
-3. Create new ensembles (you'll automatically become an ensemble admin)
-4. Promote users to site admin or demote them
-5. Delete ensembles if needed
-
-### For Ensemble Admins
-
+1. Log in wiVoice Parts**:
+   - Click "Manage Parts" to define voice parts for your ensemble
+   - Add new parts (e.g., Soprano, Alto, Tenor, Baritone, Bass)
+   - Edit part names and sort order
+   - Delete parts (only if no members are assigned)
+3. **Manage Invite Codes**:
+   - Generate new invite codes to share with prospective members
+   - Delete old invite codes
+4. **Manage Members**:
+   - View all members grouped by their voice parts
+   - Promote members to ensemble admin
+   - Remove members from the ensemble
+5
 1. Navigate to your ensemble from "My Ensembles"
 2. **Manage Invite Codes**:
    - Generate new invite codes to share with prospective members
@@ -179,8 +204,11 @@ On first run, the database is seeded with a default admin account:
 1. Register for an account
 2. Receive an invite code from your ensemble admin
 3. Click "Join with Invite Code" and enter the code
-4. View your ensemble's upcoming rehearsals
-5. Check in to rehearsals by:
+4. **Set Your Profile**:
+   - Go to "Profile" to edit your name
+   - Select your voice part for each ensemble you've joined
+5. View your ensemble's upcoming rehearsals
+6. Check in to rehearsals by:
    - Clicking the "Check In Now" button
    - Scanning the QR code displayed at the venue
    - Or visiting the check-in URL

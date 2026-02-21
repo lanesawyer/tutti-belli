@@ -1,4 +1,4 @@
-import { db, User, Ensemble, EnsembleMember, EnsembleInvite, Rehearsal } from 'astro:db';
+import { db, User, Ensemble, EnsembleMember, Part, EnsembleInvite, Rehearsal } from 'astro:db';
 import bcrypt from 'bcryptjs';
 
 export default async function seed() {
@@ -43,6 +43,46 @@ export default async function seed() {
     },
   ]);
 
+  // Create parts for the ensemble
+  const sopranoId = crypto.randomUUID();
+  const altoId = crypto.randomUUID();
+  const tenorId = crypto.randomUUID();
+  const baritoneId = crypto.randomUUID();
+  const bassId = crypto.randomUUID();
+
+  await db.insert(Part).values([
+    {
+      id: sopranoId,
+      ensembleId: ensembleId,
+      name: 'Soprano',
+      sortOrder: 1,
+    },
+    {
+      id: altoId,
+      ensembleId: ensembleId,
+      name: 'Alto',
+      sortOrder: 2,
+    },
+    {
+      id: tenorId,
+      ensembleId: ensembleId,
+      name: 'Tenor',
+      sortOrder: 3,
+    },
+    {
+      id: baritoneId,
+      ensembleId: ensembleId,
+      name: 'Baritone',
+      sortOrder: 4,
+    },
+    {
+      id: bassId,
+      ensembleId: ensembleId,
+      name: 'Bass',
+      sortOrder: 5,
+    },
+  ]);
+
   // Add admin as ensemble admin
   await db.insert(EnsembleMember).values([
     {
@@ -50,6 +90,7 @@ export default async function seed() {
       ensembleId: ensembleId,
       userId: adminId,
       role: 'admin',
+      partId: tenorId,
     },
   ]);
 
@@ -60,6 +101,7 @@ export default async function seed() {
       ensembleId: ensembleId,
       userId: testUserId,
       role: 'member',
+      partId: bassId,
     },
   ]);
 
