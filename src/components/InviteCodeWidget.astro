@@ -36,7 +36,7 @@ const { invites } = Astro.props;
   {invites.length > 0 ? (
     <div class="content">
       {invites.map((invite) => {
-        const inviteUrl = new URL(`/invite/join?code=${invite.code}`, Astro.site);
+        const inviteUrl = new URL(`/invite/join?code=${invite.code}`, Astro.site).toString();
         return (
           <div class="box p-3 mb-2">
             <div class="is-flex is-flex-direction-column">

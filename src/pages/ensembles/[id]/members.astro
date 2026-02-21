@@ -1,5 +1,6 @@
 ---
 import Layout from '../../../layouts/Layout.astro';
+import Table from '../../../components/Table.astro';
 import { db, eq, and, Ensemble, EnsembleMember, User, Part } from 'astro:db';
 import { canManageEnsemble } from '../../../lib/permissions';
 import { getInitials, getColorFromInitials } from '../../../lib/avatar';
@@ -146,8 +147,7 @@ if (Astro.request.method === 'POST') {
               
               return (
                 <div class="mb-5">
-                  <h3 class="title is-5 has-text-primary">{part.name} ({partMembers.length})</h3>
-                  <table class="table is-fullwidth is-striped">
+                  <Table title={`${part.name} (${partMembers.length})`} className="has-text-primary">
                     <thead>
                       <tr>
                         <th style="width: 60px;"></th>
@@ -213,15 +213,14 @@ if (Astro.request.method === 'POST') {
                         </tr>
                       ))}
                     </tbody>
-                  </table>
+                  </Table>
                 </div>
               );
             })}
 
             {membersWithoutPart.length > 0 && (
               <div class="mb-5">
-                <h3 class="title is-5 has-text-grey">No Part Assigned ({membersWithoutPart.length})</h3>
-                <table class="table is-fullwidth is-striped">
+                <Table title={`No Part Assigned (${membersWithoutPart.length})`}>
                   <thead>
                     <tr>
                       <th style="width: 60px;"></th>
@@ -287,12 +286,12 @@ if (Astro.request.method === 'POST') {
                       </tr>
                     ))}
                   </tbody>
-                </table>
+                </Table>
               </div>
             )}
           </>
         ) : (
-          <table class="table is-fullwidth is-striped">
+          <Table>
             <thead>
               <tr>
                 <th style="width: 60px;"></th>
@@ -358,7 +357,7 @@ if (Astro.request.method === 'POST') {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </Table>
         )}
       </div>
     </div>
