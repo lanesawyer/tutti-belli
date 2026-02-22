@@ -7,20 +7,6 @@ interface SendParams {
   html: string;
 }
 
-interface EmailAdapter {
-  send(params: SendParams): Promise<{ error?: { message: string } }>;
-}
-
-function createResendAdapter(apiKey: string): EmailAdapter {
-  const client = new Resend(apiKey);
-  return {
-    async send(params) {
-      const { error } = await client.emails.send(params);
-      return { error: error ?? undefined };
-    },
-  };
-}
-
 function getEnv(key: string, fallback = ''): string {
   return import.meta.env[key] || process.env[key] || fallback;
 }
@@ -30,26 +16,61 @@ export interface EmailResult {
   error?: string;
 }
 
+function getClient(): { client: Resend; fromEmail: string } | { error: EmailResult } {
+  const apiKey = getEnv('EMAIL_API_KEY');
+  if (!apiKey) {
+    console.error('EMAIL_API_KEY is not set');
+    return { error: { success: false, error: 'Email service is not configured' } };
+  }
+  return { client: new Resend(apiKey), fromEmail: getEnv('EMAIL_FROM', 'noreply@example.com') };
+}
+
+async function sendEmail(params: SendParams, logContext: string): Promise<EmailResult> {
+  const result = getClient();
+  if ('error' in result) return result.error;
+
+  console.log(`[email] ${logContext} to="${params.to}"`);
+  try {
+    const { error: sendError } = await result.client.emails.send(params);
+    if (sendError) {
+      console.error(`Failed to send ${logContext}:`, sendError);
+      return { success: false, error: sendError.message };
+    }
+    return { success: true };
+  } catch (error) {
+    console.error(`Failed to send ${logContext}:`, error);
+    return { success: false, error: String(error) };
+  }
+}
+
+async function sendEmailBatch(paramsList: SendParams[], logContext: string): Promise<EmailResult> {
+  const result = getClient();
+  if ('error' in result) return result.error;
+
+  console.log(`[email] ${logContext} to ${paramsList.length} recipients`);
+  try {
+    const { error: sendError } = await result.client.batch.send(paramsList);
+    if (sendError) {
+      console.error(`Failed to send ${logContext}:`, sendError);
+      return { success: false, error: sendError.message };
+    }
+    return { success: true };
+  } catch (error) {
+    console.error(`Failed to send ${logContext}:`, error);
+    return { success: false, error: String(error) };
+  }
+}
+
 export async function sendWelcomeEmail(
   toEmail: string,
   toName: string,
 ): Promise<EmailResult> {
-  const apiKey = getEnv('EMAIL_API_KEY');
   const fromEmail = getEnv('EMAIL_FROM', 'noreply@example.com');
   const siteUrl = getEnv('SITE', 'http://localhost:4321');
-
-  if (!apiKey) {
-    console.error('EMAIL_API_KEY is not set');
-    return { success: false, error: 'Email service is not configured' };
-  }
-
-  console.log(`[email] welcome from="${fromEmail}", to="${toEmail}"`);
-
-  const adapter = createResendAdapter(apiKey);
   const loginUrl = new URL('/login', siteUrl).toString();
 
-  try {
-    const { error: sendError } = await adapter.send({
+  return sendEmail(
+    {
       from: fromEmail,
       to: toEmail,
       subject: 'Welcome to Ensemble!',
@@ -73,18 +94,53 @@ export async function sendWelcomeEmail(
           </p>
         </div>
       `,
-    });
+    },
+    'welcome email',
+  );
+}
 
-    if (sendError) {
-      console.error('Failed to send welcome email:', sendError);
-      return { success: false, error: sendError.message };
-    }
+export async function sendAnnouncementEmail(
+  recipients: { email: string; name: string }[],
+  ensembleName: string,
+  ensembleId: string,
+  announcementTitle: string,
+  announcementContent: string,
+  authorName: string,
+): Promise<EmailResult> {
+  if (recipients.length === 0) return { success: true };
 
-    return { success: true };
-  } catch (error) {
-    console.error('Failed to send welcome email:', error);
-    return { success: false, error: String(error) };
-  }
+  const fromEmail = getEnv('EMAIL_FROM', 'noreply@example.com');
+  const siteUrl = getEnv('SITE', 'http://localhost:4321');
+  const announcementsUrl = new URL(`/ensembles/${ensembleId}/announcements`, siteUrl).toString();
+
+  return sendEmailBatch(
+    recipients.map(({ email, name }) => ({
+      from: fromEmail,
+      to: email,
+      subject: `[${ensembleName}] ${announcementTitle}`,
+      html: `
+        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2>${announcementTitle}</h2>
+          <p>Hi ${name},</p>
+          <p><strong>${authorName}</strong> posted a new announcement in <strong>${ensembleName}</strong>:</p>
+          <div style="background-color: #f5f5f5; border-left: 4px solid #485fc7; padding: 16px; margin: 24px 0; white-space: pre-wrap;">${announcementContent}</div>
+          <p style="margin: 32px 0;">
+            <a
+              href="${announcementsUrl}"
+              style="background-color: #485fc7; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;"
+            >
+              View Announcements
+            </a>
+          </p>
+          <hr style="border: none; border-top: 1px solid #eee; margin: 32px 0;" />
+          <p style="color: #888; font-size: 0.875rem;">
+            You're receiving this because you're a member of ${ensembleName}.
+          </p>
+        </div>
+      `,
+    })),
+    'announcement emails',
+  );
 }
 
 export async function sendPasswordResetEmail(
@@ -92,22 +148,12 @@ export async function sendPasswordResetEmail(
   toName: string,
   resetToken: string,
 ): Promise<EmailResult> {
-  const apiKey = getEnv('EMAIL_API_KEY');
   const fromEmail = getEnv('EMAIL_FROM', 'noreply@example.com');
   const siteUrl = getEnv('SITE', 'http://localhost:4321');
-
-  if (!apiKey) {
-    console.error('EMAIL_API_KEY is not set');
-    return { success: false, error: 'Email service is not configured' };
-  }
-
-  console.log(`[email] from="${fromEmail}", to="${toEmail}", site="${siteUrl}"`);
-
-  const adapter = createResendAdapter(apiKey);
   const resetUrl = new URL(`/reset-password?token=${resetToken}`, siteUrl).toString();
 
-  try {
-    const { error: sendError } = await adapter.send({
+  return sendEmail(
+    {
       from: fromEmail,
       to: toEmail,
       subject: 'Reset your password',
@@ -133,16 +179,7 @@ export async function sendPasswordResetEmail(
           </p>
         </div>
       `,
-    });
-
-    if (sendError) {
-      console.error('Failed to send password reset email:', sendError);
-      return { success: false, error: sendError.message };
-    }
-
-    return { success: true };
-  } catch (error) {
-    console.error('Failed to send password reset email:', error);
-    return { success: false, error: String(error) };
-  }
+    },
+    'password reset email',
+  );
 }

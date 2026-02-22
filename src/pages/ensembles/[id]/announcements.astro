@@ -2,6 +2,7 @@
 import Layout from '../../../layouts/Layout.astro';
 import { db, eq, and, desc, Ensemble, EnsembleMember, Announcement, User } from 'astro:db';
 import { canManageEnsemble } from '../../../lib/permissions';
+import { sendAnnouncementEmail } from '../../../lib/email';
 const user = Astro.locals.user!;
 
 const { id } = Astro.params;
@@ -60,6 +61,22 @@ if (Astro.request.method === 'POST') {
         createdAt: new Date(),
         updatedAt: new Date(),
       });
+      // Send email to all active members (fire-and-forget)
+      const members = await db
+        .select({ email: User.email, name: User.name })
+        .from(EnsembleMember)
+        .innerJoin(User, eq(EnsembleMember.userId, User.id))
+        .where(and(eq(EnsembleMember.ensembleId, id!), eq(EnsembleMember.status, 'active')));
+
+      sendAnnouncementEmail(
+        members,
+        ensemble.name,
+        id!,
+        title.trim(),
+        content.trim(),
+        user.name,
+      ).catch(() => {});
+
       message = 'Announcement created successfully!';
       messageType = 'success';
     }
