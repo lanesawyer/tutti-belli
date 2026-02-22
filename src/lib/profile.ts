@@ -66,6 +66,18 @@ export async function updateName(
   return { type: 'redirect', url: '/profile' };
 }
 
+export async function updatePhone(
+  userId: string,
+  phone: string | undefined
+): Promise<ActionResult> {
+  const trimmed = phone?.trim() || null;
+  if (trimmed && !/^\d{3}-\d{3}-\d{4}$/.test(trimmed)) {
+    return { type: 'error', message: 'Phone number must be in the format 333-333-3333' };
+  }
+  await db.update(User).set({ phone: trimmed }).where(eq(User.id, userId));
+  return { type: 'redirect', url: '/profile' };
+}
+
 export async function updateAvatar(
   userId: string,
   currentAvatarUrl: string | null | undefined,

@@ -1,6 +1,6 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import { getMembershipsWithParts, updateName, updateAvatar, updatePart, deleteAccount, initiateEmailChange } from '../lib/profile';
+import { getMembershipsWithParts, updateName, updatePhone, updateAvatar, updatePart, deleteAccount, initiateEmailChange } from '../lib/profile';
 
 const user = Astro.locals.user!;
 
@@ -15,6 +15,8 @@ if (Astro.request.method === 'POST') {
 
   if (action === 'update-name') {
     result = await updateName(user.id, formData.get('name')?.toString());
+  } else if (action === 'update-phone') {
+    result = await updatePhone(user.id, formData.get('phone')?.toString());
   } else if (action === 'update-avatar') {
     try {
       result = await updateAvatar(
@@ -144,6 +146,35 @@ const { memberships, partsByEnsemble } = await getMembershipsWithParts(user.id);
                     name="name"
                     value={user.name}
                     required
+                  />
+                </div>
+                <div class="control">
+                  <button type="submit" class="button is-primary">
+                    <span class="icon">
+                      <i class="fas fa-save"></i>
+                    </span>
+                    <span>Save</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </form>
+
+          <form method="POST" class="mt-4">
+            <input type="hidden" name="action" value="update-phone" />
+
+            <div class="field">
+              <label class="label" for="phone">Phone Number</label>
+              <div class="field has-addons">
+                <div class="control is-expanded">
+                  <input
+                    class="input"
+                    type="tel"
+                    id="phone"
+                    name="phone"
+                    value={user.phone ?? ''}
+                    placeholder="333-333-3333"
+                    pattern="[0-9]{3}-[0-9]{3}-[0-9]{4}"
                   />
                 </div>
                 <div class="control">

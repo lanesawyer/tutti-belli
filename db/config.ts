@@ -5,7 +5,7 @@ const User = defineTable({
     id: column.text({ primaryKey: true }),
     email: column.text({ unique: true }),
     passwordHash: column.text(),
-    name: column.text(),    avatarUrl: column.text({ optional: true }),    role: column.text({ enum: ['admin', 'ensemble_admin', 'user'], default: 'user' }),
+    name: column.text(),    avatarUrl: column.text({ optional: true }),    phone: column.text({ optional: true }),    role: column.text({ enum: ['admin', 'ensemble_admin', 'user'], default: 'user' }),
     createdAt: column.date({ default: NOW }),
   }
 });
