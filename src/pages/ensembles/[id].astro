@@ -2,7 +2,7 @@
 import Layout from '../../layouts/Layout.astro';
 import InviteCodeWidget from '../../components/InviteCodeWidget.astro';
 import DashboardSection from '../../components/DashboardSection.astro';
-import { db, eq, and, desc, Ensemble, EnsembleMember, User, EnsembleInvite, Part, Announcement, Group, GroupMembership, Rehearsal, Season, SeasonMembership, SeasonSong, Song, EnsembleLink } from 'astro:db';
+import { db, eq, and, desc, Ensemble, EnsembleMember, User, EnsembleInvite, Part, Announcement, Group, GroupMembership, Event, Season, SeasonMembership, SeasonSong, Song, EnsembleLink } from 'astro:db';
 import { canManageEnsemble } from '../../lib/permissions';
 import { getInitials, getColorFromInitials } from '../../lib/avatar';
 import { ensembleAdminTools } from '../../lib/config';
@@ -144,19 +144,25 @@ const latestAnnouncements = await db
   .orderBy(desc(Announcement.createdAt))
   .limit(3);
 
-// Get upcoming rehearsals (next 5)
-const allRehearsals = await db
+// Get upcoming events
+const allEvents = await db
   .select()
-  .from(Rehearsal)
-  .where(eq(Rehearsal.ensembleId, id))
-  .orderBy(Rehearsal.scheduledAt);
+  .from(Event)
+  .where(eq(Event.ensembleId, id))
+  .orderBy(Event.scheduledAt);
 
 const now = new Date();
-const upcomingRehearsals = allRehearsals
-  .filter(r => {
-    const scheduledTime = new Date(r.scheduledAt);
-    const endTime = new Date(scheduledTime.getTime() + (r.durationMinutes * 60 * 1000));
-    return endTime > now;
+const upcomingRehearsals = allEvents
+  .filter(e => {
+    const endTime = new Date(new Date(e.scheduledAt).getTime() + (e.durationMinutes * 60 * 1000));
+    return endTime > now && e.category === 'rehearsal';
+  })
+  .slice(0, 5);
+
+const upcomingPerformances = allEvents
+  .filter(e => {
+    const endTime = new Date(new Date(e.scheduledAt).getTime() + (e.durationMinutes * 60 * 1000));
+    return endTime > now && e.category === 'performance';
   })
   .slice(0, 5);
 
@@ -432,7 +438,7 @@ if (Astro.request.method === 'POST') {
       <!-- Upcoming Rehearsals Section -->
       <DashboardSection
         title="Upcoming Rehearsals"
-        viewAllHref={`/ensembles/${id}/rehearsals`}
+        viewAllHref={`/ensembles/${id}/events`}
         viewAllColor="is-primary"
       >
         {upcomingRehearsals.length === 0 ? (
@@ -440,45 +446,104 @@ if (Astro.request.method === 'POST') {
             <p class="has-text-centered">No upcoming rehearsals.</p>
             {isAdmin && (
               <p class="has-text-centered mt-2">
-                <a href={`/ensembles/${id}/rehearsals`} class="button is-small is-primary">
-                  Schedule Rehearsal
+                <a href={`/ensembles/${id}/events`} class="button is-small is-primary">
+                  Schedule Event
                 </a>
               </p>
             )}
           </div>
         ) : (
           <div class="content">
-            {upcomingRehearsals.map((rehearsal) => {
-              const scheduledDate = new Date(rehearsal.scheduledAt);
+            {upcomingRehearsals.map((event) => {
+              const scheduledDate = new Date(event.scheduledAt);
               const isToday = scheduledDate.toDateString() === new Date().toDateString();
 
               return (
                 <article class={`message ${isToday ? 'is-success' : 'is-primary'}`}>
                   <div class="message-header">
-                    <p>
-                      {rehearsal.title}
+                    <a href={`/ensembles/${id}/events/${event.id}`} class="has-text-white">
+                      {event.title}
                       {isToday && <span class="tag is-light ml-2">Today</span>}
-                    </p>
+                    </a>
                     <small class="has-text-weight-normal">
                       {scheduledDate.toLocaleDateString()} at {scheduledDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </small>
                   </div>
                   <div class="message-body">
-                    {rehearsal.location && (
+                    {event.location && (
                       <p class="mb-2">
                         <span class="icon-text">
                           <span class="icon">
                             <i class="fas fa-map-marker-alt"></i>
                           </span>
-                          <span>{rehearsal.location}</span>
+                          <span>{event.location}</span>
                         </span>
                       </p>
                     )}
-                    {rehearsal.description && (
-                      <p style="white-space: pre-wrap;">{rehearsal.description}</p>
+                    {event.description && (
+                      <p style="white-space: pre-wrap;">{event.description}</p>
                     )}
                     <p class="mt-2">
-                      <small>Duration: {rehearsal.durationMinutes} minutes</small>
+                      <small>Duration: {event.durationMinutes} minutes</small>
+                    </p>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        )}
+      </DashboardSection>
+
+      <!-- Upcoming Performances Section -->
+      <DashboardSection
+        title="Upcoming Performances"
+        viewAllHref={`/ensembles/${id}/events`}
+        viewAllColor="is-warning"
+      >
+        {upcomingPerformances.length === 0 ? (
+          <div class="notification is-info is-light">
+            <p class="has-text-centered">No upcoming performances.</p>
+            {isAdmin && (
+              <p class="has-text-centered mt-2">
+                <a href={`/ensembles/${id}/events`} class="button is-small is-warning">
+                  Schedule Performance
+                </a>
+              </p>
+            )}
+          </div>
+        ) : (
+          <div class="content">
+            {upcomingPerformances.map((event) => {
+              const scheduledDate = new Date(event.scheduledAt);
+              const isToday = scheduledDate.toDateString() === new Date().toDateString();
+
+              return (
+                <article class={`message ${isToday ? 'is-success' : 'is-warning'}`}>
+                  <div class="message-header">
+                    <a href={`/ensembles/${id}/events/${event.id}`} class="has-text-white">
+                      {event.title}
+                      {isToday && <span class="tag is-light ml-2">Today</span>}
+                    </a>
+                    <small class="has-text-weight-normal">
+                      {scheduledDate.toLocaleDateString()} at {scheduledDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </small>
+                  </div>
+                  <div class="message-body">
+                    {event.location && (
+                      <p class="mb-2">
+                        <span class="icon-text">
+                          <span class="icon">
+                            <i class="fas fa-map-marker-alt"></i>
+                          </span>
+                          <span>{event.location}</span>
+                        </span>
+                      </p>
+                    )}
+                    {event.description && (
+                      <p style="white-space: pre-wrap;">{event.description}</p>
+                    )}
+                    <p class="mt-2">
+                      <small>Duration: {event.durationMinutes} minutes</small>
                     </p>
                   </div>
                 </article>

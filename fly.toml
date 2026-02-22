@@ -7,9 +7,6 @@ app = 'ensemble-management-software'
 primary_region = 'sjc'
 
 [build]
-  [build.args]
-    ASTRO_DB_REMOTE_URL = "libsql://ensemble-management-software-test-lanesawyer.aws-us-west-2.turso.io"
-    ASTRO_DB_APP_TOKEN = "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE3NzE3MDIwMTcsImlkIjoiMGZhYjFjYWQtMDFkYi00OTk4LWExN2YtM2FkNTYyODFmZDZhIiwicmlkIjoiY2YyOGQyNjEtOTYxOC00OWZkLTk2YTgtZTZhMjhhYzIwZmJmIn0.pnMdD7N8ageils6NNojjAzNCGZtAbuG2uoTcbx0W684S5wei6eZHqggT-bpNK1Pj7gZqBaXPCqU5uHd3VcLyAA"
 
 [env]
   PORT = "8080"

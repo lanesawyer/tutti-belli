@@ -1,14 +1,14 @@
 ---
 import Layout from '../../../../layouts/Layout.astro';
-import { db, eq, and, Ensemble, EnsembleMember, Rehearsal, Attendance, User } from 'astro:db';
+import { db, eq, and, Ensemble, EnsembleMember, Event, EventProgram, Attendance, User, SeasonSong, Song } from 'astro:db';
 import QRCode from 'qrcode';
 import { canManageEnsemble } from '../../../../lib/permissions';
 import { ensembleAdminTools } from '../../../../lib/config';
 
 const user = Astro.locals.user!;
 
-const { id, rehearsalId } = Astro.params;
-if (!id || !rehearsalId) {
+const { id, eventId } = Astro.params;
+if (!id || !eventId) {
   return Astro.redirect('/ensembles');
 }
 
@@ -30,17 +30,17 @@ if (!membership) {
 
 const isAdmin = canManageEnsemble(user, membership);
 
-// Get rehearsal details
-const [rehearsal] = await db.select().from(Rehearsal).where(eq(Rehearsal.id, rehearsalId));
-if (!rehearsal) {
-  return Astro.redirect(`/ensembles/${id}/rehearsals`);
+// Get event details
+const [event] = await db.select().from(Event).where(eq(Event.id, eventId));
+if (!event) {
+  return Astro.redirect(`/ensembles/${id}/events`);
 }
 
 let message = '';
 
 // Calculate check-in window
 const now = new Date();
-const scheduledTime = new Date(rehearsal.scheduledAt);
+const scheduledTime = new Date(event.scheduledAt);
 const checkInStartTime = new Date(scheduledTime.getTime() - (ensemble.checkInStartMinutes * 60 * 1000));
 const checkInEndTime = new Date(scheduledTime.getTime() + (ensemble.checkInEndMinutes * 60 * 1000));
 
@@ -48,7 +48,7 @@ const canCheckIn = now >= checkInStartTime && now <= checkInEndTime;
 const isTooEarly = now < checkInStartTime;
 const isTooLate = now > checkInEndTime;
 
-// Handle attendance actions
+// Handle actions
 if (Astro.request.method === 'POST') {
   const formData = await Astro.request.formData();
   const action = formData.get('action')?.toString();
@@ -58,27 +58,26 @@ if (Astro.request.method === 'POST') {
     if (!canCheckIn && !isAdmin) {
       if (isTooEarly) {
         const minutesUntilOpen = Math.ceil((checkInStartTime.getTime() - now.getTime()) / (60 * 1000));
-        message = `Check-in opens ${ensemble.checkInStartMinutes} minutes before rehearsal (in ${minutesUntilOpen} minutes).`;
+        message = `Check-in opens ${ensemble.checkInStartMinutes} minutes before the event (in ${minutesUntilOpen} minutes).`;
       } else if (isTooLate) {
-        message = `Check-in closed ${ensemble.checkInEndMinutes} minutes after rehearsal start.`;
+        message = `Check-in closed ${ensemble.checkInEndMinutes} minutes after event start.`;
       }
     } else {
-      // Check if already checked in
       const [existing] = await db
         .select()
         .from(Attendance)
-        .where(and(eq(Attendance.rehearsalId, rehearsalId), eq(Attendance.userId, user.id)));
+        .where(and(eq(Attendance.eventId, eventId), eq(Attendance.userId, user.id)));
 
       if (!existing) {
         await db.insert(Attendance).values({
           id: crypto.randomUUID(),
-          rehearsalId,
+          eventId,
           userId: user.id,
           checkedInMethod: 'manual',
         });
         message = 'Successfully checked in!';
       } else {
-        message = 'You have already checked in for this rehearsal.';
+        message = 'You have already checked in for this event.';
       }
     }
   } else if (action === 'remove' && isAdmin) {
@@ -90,16 +89,15 @@ if (Astro.request.method === 'POST') {
   } else if (action === 'add' && isAdmin) {
     const userId = formData.get('userId')?.toString();
     if (userId) {
-      // Check if already checked in
       const [existing] = await db
         .select()
         .from(Attendance)
-        .where(and(eq(Attendance.rehearsalId, rehearsalId), eq(Attendance.userId, userId)));
+        .where(and(eq(Attendance.eventId, eventId), eq(Attendance.userId, userId)));
 
       if (!existing) {
         await db.insert(Attendance).values({
           id: crypto.randomUUID(),
-          rehearsalId,
+          eventId,
           userId,
           checkedInMethod: 'admin',
         });
@@ -116,8 +114,8 @@ if (Astro.request.method === 'POST') {
 
     if (title && date && time) {
       const scheduledAt = new Date(`${date}T${time}`);
-      
-      await db.update(Rehearsal)
+
+      await db.update(Event)
         .set({
           title: title.trim(),
           description: description?.trim() || '',
@@ -125,17 +123,38 @@ if (Astro.request.method === 'POST') {
           durationMinutes,
           location: location?.trim() || '',
         })
-        .where(eq(Rehearsal.id, rehearsalId));
-      
-      message = 'Rehearsal updated successfully!';
-      
-      // Re-fetch updated rehearsal
-      const [updatedRehearsal] = await db.select().from(Rehearsal).where(eq(Rehearsal.id, rehearsalId));
-      if (updatedRehearsal) {
-        Object.assign(rehearsal, updatedRehearsal);
+        .where(eq(Event.id, eventId));
+
+      message = 'Event updated successfully!';
+
+      const [updatedEvent] = await db.select().from(Event).where(eq(Event.id, eventId));
+      if (updatedEvent) {
+        Object.assign(event, updatedEvent);
       }
     } else {
       message = 'Title, date, and time are required.';
+    }
+  } else if (action === 'add-program-song' && isAdmin && event.category === 'performance') {
+    const songId = formData.get('songId')?.toString();
+    if (songId) {
+      const currentProgram = await db.select({ sortOrder: EventProgram.sortOrder })
+        .from(EventProgram).where(eq(EventProgram.eventId, eventId));
+      const maxOrder = currentProgram.length > 0
+        ? Math.max(...currentProgram.map(p => p.sortOrder))
+        : 0;
+      await db.insert(EventProgram).values({
+        id: crypto.randomUUID(),
+        eventId,
+        songId,
+        sortOrder: maxOrder + 1,
+      });
+      return Astro.redirect(`/ensembles/${id}/events/${eventId}`);
+    }
+  } else if (action === 'remove-program-song' && isAdmin && event.category === 'performance') {
+    const programEntryId = formData.get('programEntryId')?.toString();
+    if (programEntryId) {
+      await db.delete(EventProgram).where(eq(EventProgram.id, programEntryId));
+      return Astro.redirect(`/ensembles/${id}/events/${eventId}`);
     }
   }
 }
@@ -151,7 +170,7 @@ const attendanceRecords = await db
   })
   .from(Attendance)
   .innerJoin(User, eq(Attendance.userId, User.id))
-  .where(eq(Attendance.rehearsalId, rehearsalId));
+  .where(eq(Attendance.eventId, eventId));
 
 // Get all members for admin to mark attendance
 const allMembers = await db
@@ -168,23 +187,57 @@ const attendedUserIds = new Set(attendanceRecords.map(a => a.userId));
 const absentMembers = allMembers.filter(m => !attendedUserIds.has(m.id));
 
 // Generate QR code for check-in
-const checkInUrl = `${Astro.url.origin}/checkin/${rehearsal.checkInCode}`;
+const checkInUrl = `${Astro.url.origin}/checkin/${event.checkInCode}`;
 const qrCodeDataUrl = await QRCode.toDataURL(checkInUrl, {
   width: 300,
   margin: 2,
 });
 
-const scheduledDate = new Date(rehearsal.scheduledAt);
-const endTime = new Date(scheduledDate.getTime() + (rehearsal.durationMinutes * 60 * 1000));
+const scheduledDate = new Date(event.scheduledAt);
+const endTime = new Date(scheduledDate.getTime() + (event.durationMinutes * 60 * 1000));
 const isPast = endTime < new Date();
 const isUserCheckedIn = attendedUserIds.has(user.id);
 
 // Prepare date/time for form inputs
 const dateValue = scheduledDate.toISOString().split('T')[0];
 const timeValue = scheduledDate.toTimeString().slice(0, 5);
+
+// For performances: fetch program and available season songs
+type ProgramSong = { entryId: string; id: string; name: string; composer: string | null; sortOrder: number };
+type AvailableSong = { id: string; name: string; composer: string | null };
+
+let programSongs: ProgramSong[] = [];
+let availableSeasonSongs: AvailableSong[] = [];
+
+if (event.category === 'performance') {
+  programSongs = await db
+    .select({
+      entryId: EventProgram.id,
+      id: Song.id,
+      name: Song.name,
+      composer: Song.composer,
+      sortOrder: EventProgram.sortOrder,
+    })
+    .from(EventProgram)
+    .innerJoin(Song, eq(EventProgram.songId, Song.id))
+    .where(eq(EventProgram.eventId, eventId))
+    .orderBy(EventProgram.sortOrder);
+
+  const allSeasonSongs = await db
+    .select({ id: Song.id, name: Song.name, composer: Song.composer })
+    .from(SeasonSong)
+    .innerJoin(Song, eq(SeasonSong.songId, Song.id))
+    .where(eq(SeasonSong.seasonId, event.seasonId))
+    .orderBy(Song.name);
+
+  const programSongIds = new Set(programSongs.map(s => s.id));
+  availableSeasonSongs = allSeasonSongs.filter(s => !programSongIds.has(s.id));
+}
+
+const isPerformance = event.category === 'performance';
 ---
 
-<Layout title={`${rehearsal.title} - ${ensemble.name}`}>
+<Layout title={`${event.title} - ${ensemble.name}`}>
   {isAdmin && (
     <div class="navbar-item has-dropdown is-hoverable" slot="navbar-start">
       <a class="navbar-link">{ensemble.name}</a>
@@ -206,11 +259,17 @@ const timeValue = scheduledDate.toTimeString().slice(0, 5);
       </div>
     </div>
   )}
+
   <div class="level mb-5">
     <div class="level-left">
       <div class="level-item">
         <div>
-          <h1 class="title">{rehearsal.title}</h1>
+          <h1 class="title">
+            {event.title}
+            <span class={`tag ml-2 ${isPerformance ? 'is-warning' : 'is-primary'}`}>
+              {isPerformance ? 'Performance' : 'Rehearsal'}
+            </span>
+          </h1>
           <p class="subtitle">
             <span class="icon-text">
               <span class="icon">
@@ -228,14 +287,14 @@ const timeValue = scheduledDate.toTimeString().slice(0, 5);
               <span class="icon">
                 <i class="fas fa-hourglass-half"></i>
               </span>
-              <span>{rehearsal.durationMinutes} min</span>
+              <span>{event.durationMinutes} min</span>
             </span>
-            {rehearsal.location && (
+            {event.location && (
               <span class="ml-3 icon-text">
                 <span class="icon">
                   <i class="fas fa-map-marker-alt"></i>
                 </span>
-                <span>{rehearsal.location}</span>
+                <span>{event.location}</span>
               </span>
             )}
           </p>
@@ -246,18 +305,18 @@ const timeValue = scheduledDate.toTimeString().slice(0, 5);
       <div class="level-item">
         <div class="buttons">
           {isAdmin && (
-            <button class="button is-warning" id="edit-rehearsal-btn">
+            <button class="button is-warning" id="edit-event-btn">
               <span class="icon">
                 <i class="fas fa-edit"></i>
               </span>
-              <span>Edit Rehearsal</span>
+              <span>Edit Event</span>
             </button>
           )}
-          <a href={`/ensembles/${id}/rehearsals`} class="button">
+          <a href={`/ensembles/${id}/events`} class="button">
             <span class="icon">
               <i class="fas fa-arrow-left"></i>
             </span>
-            <span>Back to Rehearsals</span>
+            <span>Back to Events</span>
           </a>
         </div>
       </div>
@@ -270,9 +329,9 @@ const timeValue = scheduledDate.toTimeString().slice(0, 5);
     </div>
   )}
 
-  {rehearsal.description && (
+  {event.description && (
     <div class="box">
-      <p class="content">{rehearsal.description}</p>
+      <p class="content">{event.description}</p>
     </div>
   )}
 
@@ -280,15 +339,15 @@ const timeValue = scheduledDate.toTimeString().slice(0, 5);
     <div class="column">
       <div class="box">
         <h2 class="title is-4">Check-In</h2>
-        
+
         {!isPast && (
           <div class="notification is-info is-light mb-4">
             <p class="has-text-weight-semibold">Check-in Window:</p>
-            <p>Opens {ensemble.checkInStartMinutes} minutes before rehearsal</p>
-            <p>Closes {ensemble.checkInEndMinutes} minutes after rehearsal start</p>
+            <p>Opens {ensemble.checkInStartMinutes} minutes before event</p>
+            <p>Closes {ensemble.checkInEndMinutes} minutes after event start</p>
           </div>
         )}
-        
+
         {!isPast && !isUserCheckedIn && canCheckIn && (
           <form method="POST">
             <input type="hidden" name="action" value="checkin" />
@@ -310,8 +369,8 @@ const timeValue = scheduledDate.toTimeString().slice(0, 5);
               <span>Check-in {isTooEarly ? 'Not Yet Available' : 'Closed'}</span>
             </button>
             <p class="help mt-2 has-text-centered">
-              {isTooEarly && `Check-in opens ${ensemble.checkInStartMinutes} minutes before rehearsal`}
-              {isTooLate && `Check-in closed ${ensemble.checkInEndMinutes} minutes after rehearsal start`}
+              {isTooEarly && `Check-in opens ${ensemble.checkInStartMinutes} minutes before event`}
+              {isTooLate && `Check-in closed ${ensemble.checkInEndMinutes} minutes after event start`}
             </p>
           </div>
         )}
@@ -341,7 +400,7 @@ const timeValue = scheduledDate.toTimeString().slice(0, 5);
 
         {isPast && !isUserCheckedIn && (
           <div class="notification is-warning">
-            This rehearsal has passed and you did not check in.
+            This event has passed and you did not check in.
           </div>
         )}
       </div>
@@ -350,11 +409,11 @@ const timeValue = scheduledDate.toTimeString().slice(0, 5);
         <div class="box">
           <h2 class="title is-4">QR Code Check-In</h2>
           <p class="mb-4">Display this QR code for members to scan and check in</p>
-          
+
           <div class="has-text-centered">
             <img src={qrCodeDataUrl} alt="QR Code for check-in" class="image is-inline-block" />
           </div>
-          
+
           <div class="field mt-4">
             <label class="label">Check-in URL</label>
             <div class="control">
@@ -376,7 +435,7 @@ const timeValue = scheduledDate.toTimeString().slice(0, 5);
       <div class="column">
         <div class="box">
           <h2 class="title is-4">Attendance ({attendanceRecords.length} / {allMembers.length})</h2>
-          
+
           {attendanceRecords.length > 0 ? (
             <table class="table is-fullwidth is-striped">
               <thead>
@@ -450,19 +509,104 @@ const timeValue = scheduledDate.toTimeString().slice(0, 5);
     )}
   </div>
 
-  <!-- Edit Rehearsal Modal -->
+  {isPerformance && (
+    <div class="box mt-2">
+      <h2 class="title is-4">
+        <span class="icon-text">
+          <span class={`icon ${isPerformance ? 'has-text-warning' : 'has-text-primary'}`}>
+            <i class="fas fa-music"></i>
+          </span>
+          <span>Program</span>
+        </span>
+      </h2>
+
+      {programSongs.length === 0 ? (
+        <div class="notification is-info is-light">No songs on the program yet.</div>
+      ) : (
+        <table class="table is-fullwidth is-striped">
+          <thead>
+            <tr>
+              <th style="width: 40px;">#</th>
+              <th>Song</th>
+              <th>Composer</th>
+              {isAdmin && <th style="width: 80px;"></th>}
+            </tr>
+          </thead>
+          <tbody>
+            {programSongs.map((song, i) => (
+              <tr>
+                <td class="has-text-grey">{i + 1}</td>
+                <td><strong>{song.name}</strong></td>
+                <td class="has-text-grey">{song.composer ?? '—'}</td>
+                {isAdmin && (
+                  <td>
+                    <form method="POST" style="display: inline;">
+                      <input type="hidden" name="action" value="remove-program-song" />
+                      <input type="hidden" name="programEntryId" value={song.entryId} />
+                      <button type="submit" class="button is-danger is-small">
+                        <span class="icon is-small"><i class="fas fa-times"></i></span>
+                      </button>
+                    </form>
+                  </td>
+                )}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+
+      {isAdmin && availableSeasonSongs.length > 0 && (
+        <form method="POST" class="mt-4">
+          <input type="hidden" name="action" value="add-program-song" />
+          <div class="field has-addons">
+            <div class="control is-expanded">
+              <div class="select is-fullwidth">
+                <select name="songId">
+                  {availableSeasonSongs.map(s => (
+                    <option value={s.id}>
+                      {s.name}{s.composer ? ` — ${s.composer}` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div class="control">
+              <button type="submit" class="button is-primary">
+                <span class="icon"><i class="fas fa-plus"></i></span>
+                <span>Add to Program</span>
+              </button>
+            </div>
+          </div>
+          <p class="help">Only songs from the current season's repertoire can be added.</p>
+        </form>
+      )}
+
+      {isAdmin && availableSeasonSongs.length === 0 && programSongs.length > 0 && (
+        <p class="is-size-7 has-text-grey mt-3">All season songs are on the program.</p>
+      )}
+
+      {isAdmin && availableSeasonSongs.length === 0 && programSongs.length === 0 && (
+        <p class="is-size-7 has-text-grey mt-3">
+          No songs in the current season's repertoire.
+          <a href={`/ensembles/${id}/songs`}> Add songs to the season</a> first.
+        </p>
+      )}
+    </div>
+  )}
+
+  <!-- Edit Event Modal -->
   {isAdmin && (
     <div class="modal" id="edit-modal">
       <div class="modal-background"></div>
       <div class="modal-card">
         <header class="modal-card-head">
-          <p class="modal-card-title">Edit Rehearsal</p>
+          <p class="modal-card-title">Edit Event</p>
           <button class="delete" aria-label="close" id="close-edit-modal"></button>
         </header>
         <form method="POST">
           <section class="modal-card-body">
             <input type="hidden" name="action" value="edit" />
-            
+
             <div class="field">
               <label class="label" for="edit-title">Title</label>
               <div class="control">
@@ -471,7 +615,7 @@ const timeValue = scheduledDate.toTimeString().slice(0, 5);
                   type="text"
                   id="edit-title"
                   name="title"
-                  value={rehearsal.title}
+                  value={event.title}
                   required
                 />
               </div>
@@ -485,7 +629,7 @@ const timeValue = scheduledDate.toTimeString().slice(0, 5);
                   id="edit-description"
                   name="description"
                   rows="3"
-                >{rehearsal.description || ''}</textarea>
+                >{event.description || ''}</textarea>
               </div>
             </div>
 
@@ -529,7 +673,7 @@ const timeValue = scheduledDate.toTimeString().slice(0, 5);
                       type="number"
                       id="edit-duration"
                       name="durationMinutes"
-                      value={rehearsal.durationMinutes}
+                      value={event.durationMinutes}
                       min="15"
                       max="480"
                       required
@@ -547,7 +691,7 @@ const timeValue = scheduledDate.toTimeString().slice(0, 5);
                   type="text"
                   id="edit-location"
                   name="location"
-                  value={rehearsal.location || ''}
+                  value={event.location || ''}
                 />
               </div>
             </div>
@@ -562,19 +706,13 @@ const timeValue = scheduledDate.toTimeString().slice(0, 5);
   )}
 
   <script>
-    // Edit modal functionality
     const editModal = document.getElementById('edit-modal');
-    const editBtn = document.getElementById('edit-rehearsal-btn');
+    const editBtn = document.getElementById('edit-event-btn');
     const closeEditModal = document.getElementById('close-edit-modal');
     const cancelEdit = document.getElementById('cancel-edit');
 
-    const openEditModal = () => {
-      editModal?.classList.add('is-active');
-    };
-
-    const closeModal = () => {
-      editModal?.classList.remove('is-active');
-    };
+    const openEditModal = () => editModal?.classList.add('is-active');
+    const closeModal = () => editModal?.classList.remove('is-active');
 
     editBtn?.addEventListener('click', openEditModal);
     closeEditModal?.addEventListener('click', closeModal);

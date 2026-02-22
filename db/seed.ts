@@ -1,4 +1,4 @@
-import { db, User, Ensemble, EnsembleMember, Part, EnsembleInvite, Season, SeasonMembership, Rehearsal, Announcement, Group, GroupMembership, Song, SongPart, SeasonSong } from 'astro:db';
+import { db, User, Ensemble, EnsembleMember, Part, EnsembleInvite, Season, SeasonMembership, Event, EventProgram, Announcement, Group, GroupMembership, Song, SongPart, SeasonSong } from 'astro:db';
 import bcrypt from 'bcryptjs';
 
 export default async function seed() {
@@ -355,18 +355,19 @@ The Chamber Orchestra Leadership Team`,
     },
   ]);
 
-  // Create rehearsals for testing
-  
+  // Create events for testing
+
   // Past rehearsal (1 month ago)
   const pastDate = new Date();
   pastDate.setMonth(pastDate.getMonth() - 1);
   pastDate.setHours(19, 0, 0, 0); // 7 PM
 
-  await db.insert(Rehearsal).values([
+  await db.insert(Event).values([
     {
       id: crypto.randomUUID(),
       ensembleId: ensembleId,
       seasonId: seasonId,
+      category: 'rehearsal',
       title: 'Past Rehearsal',
       description: 'A rehearsal that already happened for testing',
       scheduledAt: pastDate,
@@ -378,13 +379,13 @@ The Chamber Orchestra Leadership Team`,
 
   // Current time rehearsal (happening right now - for testing check-in)
   const currentDate = new Date();
-  // Set to current time, members should be able to check in now
 
-  await db.insert(Rehearsal).values([
+  await db.insert(Event).values([
     {
       id: crypto.randomUUID(),
       ensembleId: ensembleId,
       seasonId: seasonId,
+      category: 'rehearsal',
       title: 'Current Rehearsal (Check-in Available)',
       description: 'This rehearsal is happening right now - test check-in functionality',
       scheduledAt: currentDate,
@@ -399,17 +400,39 @@ The Chamber Orchestra Leadership Team`,
   futureDate.setDate(futureDate.getDate() + 7); // 1 week from now
   futureDate.setHours(19, 0, 0, 0); // 7 PM
 
-  await db.insert(Rehearsal).values([
+  await db.insert(Event).values([
     {
       id: crypto.randomUUID(),
       ensembleId: ensembleId,
       seasonId: seasonId,
+      category: 'rehearsal',
       title: 'Weekly Rehearsal',
       description: 'Regular practice session',
       scheduledAt: futureDate,
       durationMinutes: 90,
       location: 'Music Hall, Room 101',
       checkInCode: crypto.randomUUID().substring(0, 8).toUpperCase(),
+    },
+  ]);
+
+  // Upcoming performance (3 weeks from now)
+  const performanceDate = new Date();
+  performanceDate.setDate(performanceDate.getDate() + 21);
+  performanceDate.setHours(19, 30, 0, 0); // 7:30 PM
+
+  const performanceId = crypto.randomUUID();
+  await db.insert(Event).values([
+    {
+      id: performanceId,
+      ensembleId: ensembleId,
+      seasonId: seasonId,
+      category: 'performance',
+      title: 'Spring Concert 2026',
+      description: 'Our annual spring concert featuring the full season repertoire.',
+      scheduledAt: performanceDate,
+      durationMinutes: 120,
+      location: 'Westfield Arts Center, Grand Hall',
+      checkInCode: 'CONCERT1',
     },
   ]);
 
@@ -514,6 +537,13 @@ The Chamber Orchestra Leadership Team`,
     { id: crypto.randomUUID(), seasonId: seasonId, songId: song3Id },
   ]);
 
+  // Add season songs to the spring concert program
+  await db.insert(EventProgram).values([
+    { id: crypto.randomUUID(), eventId: performanceId, songId: song3Id, sortOrder: 1 }, // Lux Aurumque
+    { id: crypto.randomUUID(), eventId: performanceId, songId: song2Id, sortOrder: 2 }, // Shenandoah
+    { id: crypto.randomUUID(), eventId: performanceId, songId: song1Id, sortOrder: 3 }, // Ave Maria
+  ]);
+
   console.log('✓ Seeded database successfully!');
   console.log('');
   console.log('Site Admin Account:');
@@ -531,12 +561,13 @@ The Chamber Orchestra Leadership Team`,
   console.log('Test Ensemble: Chamber Orchestra');
   console.log('  Invite Code: TEST1234');
   console.log('  Current Season: Spring 2026');
-  console.log('  Check-in window: 30 minutes before to 15 minutes after rehearsal start');
+  console.log('  Check-in window: 30 minutes before to 15 minutes after event start');
   console.log('');
-  console.log('Test Rehearsals:');
+  console.log('Test Events:');
   console.log('  - Past rehearsal (1 month ago)');
   console.log('  - Current rehearsal (happening now - check-in code: CHECKIN1)');
   console.log('  - Weekly rehearsal (1 week from now)');
+  console.log('  - Spring Concert 2026 performance (3 weeks from now - check-in code: CONCERT1)');
   console.log('');
   console.log('Sample Songs:');
   console.log('  - 5 songs with various composers and arrangers');

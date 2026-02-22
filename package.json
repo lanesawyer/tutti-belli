@@ -12,7 +12,8 @@
     "check": "astro check",
     "lint": "oxlint src/lib db --deny-warnings && astro check",
     "fmt": "oxlint src/lib db --fix",
-    "astro:db:push": "astro db push --remote"
+    "astro:db:push": "astro db push --remote",
+    "deploy": "./deploy.sh"
   },
   "dependencies": {
     "@astrojs/check": "^0.9.6",
