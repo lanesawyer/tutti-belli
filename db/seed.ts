@@ -285,6 +285,74 @@ Thank you for being part of our musical community!`,
       content: 'We\'ve implemented a new digital check-in system for rehearsals! When you arrive at rehearsal, look for the check-in code displayed on the screen. Use the code to mark your attendance through the app. The check-in window opens 30 minutes before rehearsal starts.',
       createdBy: adminId,
     },
+    {
+      id: crypto.randomUUID(),
+      ensembleId: ensembleId,
+      title: 'Spring Concert — Everything You Need to Know',
+      content: `Dear Chamber Orchestra family,
+
+We are just six weeks away from our Spring 2026 Concert, and we want to make sure everyone has all the details they need to prepare. Please read this announcement carefully from top to bottom — there is important information for every single member.
+
+📅 CONCERT DATE & VENUE
+Saturday, April 12, 2026 at 7:30 PM
+Westfield Arts Center, Grand Hall
+123 Harmony Boulevard, Westfield
+
+Doors open at 6:45 PM. Members should arrive no later than 6:00 PM for warm-up and final seating arrangements. Please do not arrive earlier than 5:30 PM as the hall may not yet be unlocked.
+
+🎼 PROGRAM
+The program for the evening will be as follows:
+
+Act I
+  1. Lux Aurumque — Eric Whitacre
+  2. Shenandoah — arr. James Erb
+  3. Ave Maria — Franz Biebl
+  4. Sure On This Shining Night — arr. Morten Lauridsen
+
+Intermission (15 minutes)
+
+Act II
+  5. The Seal Lullaby — Eric Whitacre
+  6. Commissioned premiere (title TBA — details coming next week)
+  7. Encore TBD
+
+The total runtime is expected to be approximately 90 minutes including intermission.
+
+👗 CONCERT ATTIRE
+All members are required to wear the standard black concert attire:
+  - Black dress shirt or blouse (no logos or patterns)
+  - Black dress pants or skirt (below the knee)
+  - Black closed-toe shoes (no sneakers)
+  - Minimal jewelry — simple stud earrings acceptable
+
+If you do not have appropriate attire or need assistance sourcing items, please contact Ensemble Admin directly no later than March 28th so we have time to help you. We will not be making exceptions on concert day.
+
+🎟️ TICKETS
+Each member will receive two complimentary tickets. Additional tickets may be purchased through the Westfield Arts Center box office or at the door (subject to availability). Tickets are $15 general admission, $10 for students and seniors.
+
+If you need more than two comp tickets for family members, please let us know by April 1st and we will do our best to accommodate.
+
+🚗 PARKING & TRANSPORTATION
+Free parking is available in Lot B on the north side of the Westfield Arts Center. The lot fills quickly on weekend evenings, so we encourage carpooling. Several members have already offered to coordinate rides — check the Discord #logistics channel for details.
+
+📋 REMAINING REHEARSAL SCHEDULE
+  - March 15 — Full rehearsal, 7–9:30 PM (Act I focus)
+  - March 22 — Full rehearsal, 7–9:30 PM (Act II focus)
+  - March 29 — Combined run-through, 7–10 PM
+  - April 5 — Dress rehearsal at Westfield Arts Center, 6–10 PM (MANDATORY)
+  - April 12 — Concert day
+
+The April 5th dress rehearsal is mandatory for all members. If you have a conflict, you must notify leadership immediately. Unexcused absence from the dress rehearsal may affect your eligibility to perform.
+
+🙏 A NOTE FROM LEADERSHIP
+We know this has been a demanding season with a challenging repertoire, and we are incredibly proud of the growth every one of you has shown. The Spring Concert is our opportunity to share months of hard work with our community. Let's finish strong.
+
+Please don't hesitate to reach out if you have any questions or concerns.
+
+With gratitude,
+The Chamber Orchestra Leadership Team`,
+      createdBy: adminId,
+    },
   ]);
 
   // Create rehearsals for testing

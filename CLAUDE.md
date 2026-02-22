@@ -25,6 +25,11 @@ pnpm astro:db:push    # Push schema changes to remote Turso DB
 - **Bulma 1.0** for CSS (dark mode supported via CSS custom properties + localStorage toggle)
 - **Zero client-side JS framework** — all interactions are HTML form POSTs handled in the same `.astro` page frontmatter
 
+
+### Philosophy
+- Don't duplicate logic, if there are commonalities, extract it into a shared utility in `src/lib/`
+- Keep the frontmatter Astro files light, most server logic should be in `src/lib/` files
+
 ### Request Handling Pattern
 Every page that handles user actions follows this pattern in the `.astro` frontmatter:
 1. Check `Astro.request.method === 'POST'`

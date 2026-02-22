@@ -1,7 +1,8 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import InviteCodeWidget from '../../components/InviteCodeWidget.astro';
-import { db, eq, and, desc, Ensemble, EnsembleMember, User, EnsembleInvite, Part, Announcement, Group, GroupMembership, Rehearsal, Season, SeasonMembership } from 'astro:db';
+import DashboardSection from '../../components/DashboardSection.astro';
+import { db, eq, and, desc, Ensemble, EnsembleMember, User, EnsembleInvite, Part, Announcement, Group, GroupMembership, Rehearsal, Season, SeasonMembership, SeasonSong, Song } from 'astro:db';
 import { canManageEnsemble } from '../../lib/permissions';
 import { getInitials, getColorFromInitials } from '../../lib/avatar';
 
@@ -157,6 +158,21 @@ const upcomingRehearsals = allRehearsals
     return endTime > now;
   })
   .slice(0, 5);
+
+// Get songs for the active season
+const seasonSongs = currentSeason ? await db
+  .select({
+    id: Song.id,
+    name: Song.name,
+    composer: Song.composer,
+    arranger: Song.arranger,
+    runTime: Song.runTime,
+  })
+  .from(SeasonSong)
+  .innerJoin(Song, eq(SeasonSong.songId, Song.id))
+  .where(eq(SeasonSong.seasonId, currentSeason.id))
+  .orderBy(Song.name)
+  : [];
 
 // Get invite codes (if admin)
 const invites = isAdmin
@@ -323,84 +339,78 @@ if (Astro.request.method === 'POST') {
   <div class="columns">
     <div class={`column ${isAdmin ? 'is-9-desktop' : ''}`}>
       <!-- Announcements Section -->
-      <div class="box mb-5">
-    <div class="level">
-      <div class="level-left">
-        <div class="level-item">
-          <h2 class="title is-4">
-            <span class="icon-text">
-              <span class="icon">
-                <i class="fas fa-bullhorn"></i>
-              </span>
-              <span>Recent Announcements</span>
-            </span>
-          </h2>
-        </div>
-      </div>
-      <div class="level-right">
-        <div class="level-item">
-          <a href={`/ensembles/${id}/announcements`} class="button is-small is-link">
-            View All
-          </a>
-        </div>
-      </div>
-    </div>
+      <DashboardSection
+        title="Recent Announcements"
+        viewAllHref={`/ensembles/${id}/announcements`}
+        viewAllColor="is-link"
+      >
+        {latestAnnouncements.length === 0 ? (
+          <div class="notification is-info is-light">
+            <p class="has-text-centered">No announcements yet.</p>
+            {isAdmin && (
+              <p class="has-text-centered mt-2">
+                <a href={`/ensembles/${id}/announcements`} class="button is-small is-link">
+                  Create First Announcement
+                </a>
+              </p>
+            )}
+          </div>
+        ) : (
+          <div class="ann-carousel">
+            <div class="ann-slides" style="height: 16rem; overflow-y: auto;">
+              {latestAnnouncements.map((announcement, i) => (
+                <div class="ann-slide" data-index={i} style={i === 0 ? '' : 'display:none'}>
+                  <article class="message is-link" style="margin-bottom: 0;">
+                    <div class="message-header">
+                      <p>{announcement.title}</p>
+                      <small class="has-text-weight-normal">
+                        {new Date(announcement.createdAt).toLocaleDateString()}
+                      </small>
+                    </div>
+                    <div class="message-body">
+                      <p style="white-space: pre-wrap;">{announcement.content}</p>
+                      <p class="mt-2">
+                        <small><em>— {announcement.creatorName}</em></small>
+                      </p>
+                    </div>
+                  </article>
+                </div>
+              ))}
+              <div class="ann-slide" data-index={latestAnnouncements.length} style="display:none">
+                <div class="has-text-centered" style="padding: 2rem 1rem;">
+                  <p class="mb-4 has-text-grey">See all announcements from this ensemble.</p>
+                  <a href={`/ensembles/${id}/announcements`} class="button is-link is-medium">
+                    <span class="icon"><i class="fas fa-bullhorn"></i></span>
+                    <span>View All Announcements</span>
+                  </a>
+                </div>
+              </div>
+            </div>
 
-    {latestAnnouncements.length === 0 ? (
-      <div class="notification is-info is-light">
-        <p class="has-text-centered">No announcements yet.</p>
-        {isAdmin && (
-          <p class="has-text-centered mt-2">
-            <a href={`/ensembles/${id}/announcements`} class="button is-small is-link">
-              Create First Announcement
-            </a>
-          </p>
+            <div class="ann-nav">
+              <button class="ann-arrow" id="ann-prev" aria-label="Previous announcement">
+                <i class="fas fa-chevron-left"></i>
+              </button>
+              <div class="ann-dots">
+                {latestAnnouncements.map((_, i) => (
+                  <button class="ann-dot" class:list={[{ 'ann-dot-active': i === 0 }]} data-target={i} aria-label={`Announcement ${i + 1}`}></button>
+                ))}
+                <button class="ann-dot ann-dot-viewall" data-target={latestAnnouncements.length} aria-label="View all"></button>
+              </div>
+              <button class="ann-arrow" id="ann-next" aria-label="Next announcement">
+                <i class="fas fa-chevron-right"></i>
+              </button>
+            </div>
+          </div>
         )}
-      </div>
-    ) : (
-      latestAnnouncements.map((announcement) => (
-        <article class="message is-link">
-          <div class="message-header">
-            <p>{announcement.title}</p>
-            <small class="has-text-weight-normal">
-              {new Date(announcement.createdAt).toLocaleDateString()}
-            </small>
-          </div>
-          <div class="message-body">
-            <p style="white-space: pre-wrap;">{announcement.content}</p>
-            <p class="mt-2">
-              <small><em>— {announcement.creatorName}</em></small>
-            </p>
-          </div>
-        </article>
-      ))
-    )}
-      </div>
+      </DashboardSection>
 
       <!-- Upcoming Rehearsals Section -->
-      <div class="box mb-5">
-        <div class="level">
-          <div class="level-left">
-            <div class="level-item">
-              <h2 class="title is-4">
-                <span class="icon-text">
-                  <span class="icon">
-                    <i class="fas fa-music"></i>
-                  </span>
-                  <span>Upcoming Rehearsals</span>
-                </span>
-              </h2>
-            </div>
-          </div>
-          <div class="level-right">
-            <div class="level-item">
-              <a href={`/ensembles/${id}/rehearsals`} class="button is-small is-primary">
-                View All
-              </a>
-            </div>
-          </div>
-        </div>
-
+      <DashboardSection
+        title="Upcoming Rehearsals"
+        viewAllHref={`/ensembles/${id}/rehearsals`}
+        viewAllColor="is-primary"
+      >
         {upcomingRehearsals.length === 0 ? (
           <div class="notification is-info is-light">
             <p class="has-text-centered">No upcoming rehearsals.</p>
@@ -417,7 +427,7 @@ if (Astro.request.method === 'POST') {
             {upcomingRehearsals.map((rehearsal) => {
               const scheduledDate = new Date(rehearsal.scheduledAt);
               const isToday = scheduledDate.toDateString() === new Date().toDateString();
-              
+
               return (
                 <article class={`message ${isToday ? 'is-success' : 'is-primary'}`}>
                   <div class="message-header">
@@ -452,28 +462,60 @@ if (Astro.request.method === 'POST') {
             })}
           </div>
         )}
-      </div>
+      </DashboardSection>
 
-      <div class="box">
-        <div class="level mb-4">
-          <div class="level-left">
-            <div class="level-item">
-              <h2 class="title is-4">Members ({members.length})</h2>
+      <!-- Season Songs Section -->
+      {currentSeason && (
+        <DashboardSection
+          title={`${currentSeason.name} Repertoire`}
+          viewAllHref={`/ensembles/${id}/songs`}
+          viewAllColor="is-info"
+        >
+          {seasonSongs.length === 0 ? (
+            <div class="notification is-info is-light">
+              <p class="has-text-centered">No songs added to this season yet.</p>
+              {isAdmin && (
+                <p class="has-text-centered mt-2">
+                  <a href={`/ensembles/${id}/songs`} class="button is-small is-info">
+                    Add Songs
+                  </a>
+                </p>
+              )}
             </div>
-          </div>
-          {isAdmin && (
-            <div class="level-right">
-              <div class="level-item">
-                <a href={`/ensembles/${id}/members`} class="button is-small">
-                  <span class="icon">
-                    <i class="fas fa-cog"></i>
-                  </span>
-                  <span>Manage Members</span>
-                </a>
-              </div>
-            </div>
+          ) : (
+            <table class="table is-fullwidth is-hoverable">
+              <tbody>
+                {seasonSongs.map((song) => {
+                  const minutes = song.runTime ? Math.floor(song.runTime / 60) : null;
+                  const seconds = song.runTime ? String(song.runTime % 60).padStart(2, '0') : null;
+                  return (
+                    <tr>
+                      <td>
+                        <p class="has-text-weight-semibold">{song.name}</p>
+                        <p class="is-size-7 has-text-grey">
+                          {song.composer ?? 'Unknown'}
+                          {song.arranger && ` — arr. ${song.arranger}`}
+                        </p>
+                      </td>
+                      <td class="has-text-right has-text-grey is-size-7" style="vertical-align: middle; white-space: nowrap;">
+                        {minutes !== null ? `${minutes}:${seconds}` : ''}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           )}
-        </div>
+        </DashboardSection>
+      )}
+
+      <DashboardSection
+        title={`Members (${members.length})`}
+        viewAllHref={isAdmin ? `/ensembles/${id}/members` : undefined}
+        viewAllLabel="View All"
+        viewAllColor="is-warning"
+        class="mb-0"
+      >
         
         {allParts.length > 0 ? (
           <>
@@ -585,7 +627,7 @@ if (Astro.request.method === 'POST') {
             ))}
           </div>
         )}
-      </div>
+      </DashboardSection>
 
       <a href="/ensembles" class="button">
         <span class="icon">
@@ -608,54 +650,38 @@ if (Astro.request.method === 'POST') {
             </span>
           </h2>
           
-          <div class="buttons is-flex is-flex-direction-column is-align-items-flex-start">
-            <a href={`/ensembles/${id}/edit`} class="button">
-              <span class="icon">
-                <i class="fas fa-edit"></i>
-              </span>
-              <span>Settings</span>
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem;">
+            <a href={`/ensembles/${id}/edit`} class="button" style="height: auto; padding: 0.75rem 0.25rem; flex-direction: column; align-items: center; justify-content: center;">
+              <i class="fas fa-edit fa-lg mb-1"></i>
+              <span class="is-size-7">Settings</span>
             </a>
-            <a href={`/ensembles/${id}/members`} class="button">
-              <span class="icon">
-                <i class="fas fa-users"></i>
-              </span>
-              <span>Members</span>
+            <a href={`/ensembles/${id}/members`} class="button" style="height: auto; padding: 0.75rem 0.25rem; flex-direction: column; align-items: center; justify-content: center;">
+              <i class="fas fa-users fa-lg mb-1"></i>
+              <span class="is-size-7">Members</span>
             </a>
-            <a href={`/ensembles/${id}/songs`} class="button">
-              <span class="icon">
-                <i class="fas fa-music"></i>
-              </span>
-              <span>Songs</span>
+            <a href={`/ensembles/${id}/songs`} class="button" style="height: auto; padding: 0.75rem 0.25rem; flex-direction: column; align-items: center; justify-content: center;">
+              <i class="fas fa-music fa-lg mb-1"></i>
+              <span class="is-size-7">Songs</span>
             </a>
-            <a href={`/ensembles/${id}/rehearsals`} class="button">
-              <span class="icon">
-                <i class="fas fa-calendar-check"></i>
-              </span>
-              <span>Rehearsals</span>
+            <a href={`/ensembles/${id}/rehearsals`} class="button" style="height: auto; padding: 0.75rem 0.25rem; flex-direction: column; align-items: center; justify-content: center;">
+              <i class="fas fa-calendar-check fa-lg mb-1"></i>
+              <span class="is-size-7">Rehearsals</span>
             </a>
-            <a href={`/ensembles/${id}/announcements`} class="button">
-              <span class="icon">
-                <i class="fas fa-bullhorn"></i>
-              </span>
-              <span>Announcements</span>
+            <a href={`/ensembles/${id}/announcements`} class="button" style="height: auto; padding: 0.75rem 0.25rem; flex-direction: column; align-items: center; justify-content: center;">
+              <i class="fas fa-bullhorn fa-lg mb-1"></i>
+              <span class="is-size-7">Announce&shy;ments</span>
             </a>
-            <a href={`/ensembles/${id}/parts`} class="button">
-              <span class="icon">
-                <i class="fas fa-list"></i>
-              </span>
-              <span>Parts</span>
+            <a href={`/ensembles/${id}/parts`} class="button" style="height: auto; padding: 0.75rem 0.25rem; flex-direction: column; align-items: center; justify-content: center;">
+              <i class="fas fa-list fa-lg mb-1"></i>
+              <span class="is-size-7">Parts</span>
             </a>
-            <a href={`/ensembles/${id}/seasons`} class="button">
-              <span class="icon">
-                <i class="fas fa-calendar-alt"></i>
-              </span>
-              <span>Seasons</span>
+            <a href={`/ensembles/${id}/seasons`} class="button" style="height: auto; padding: 0.75rem 0.25rem; flex-direction: column; align-items: center; justify-content: center;">
+              <i class="fas fa-calendar-alt fa-lg mb-1"></i>
+              <span class="is-size-7">Seasons</span>
             </a>
-            <a href={`/ensembles/${id}/groups`} class="button">
-              <span class="icon">
-                <i class="fas fa-users-cog"></i>
-              </span>
-              <span>Groups</span>
+            <a href={`/ensembles/${id}/groups`} class="button" style="height: auto; padding: 0.75rem 0.25rem; flex-direction: column; align-items: center; justify-content: center;">
+              <i class="fas fa-users-cog fa-lg mb-1"></i>
+              <span class="is-size-7">Groups</span>
             </a>
           </div>
         </div>
@@ -729,3 +755,80 @@ if (Astro.request.method === 'POST') {
   </div>
   )}
 </Layout>
+
+<style>
+  .ann-carousel { position: relative; }
+  .ann-nav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    margin-top: 0.875rem;
+  }
+  .ann-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    border: 1px solid #dbdbdb;
+    background: transparent;
+    cursor: pointer;
+    color: inherit;
+    transition: background 0.2s, border-color 0.2s;
+    flex-shrink: 0;
+  }
+  .ann-arrow:hover { background: #f5f5f5; border-color: #b5b5b5; }
+  .ann-arrow:disabled { opacity: 0.35; cursor: default; }
+  .ann-dots {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+  .ann-dot {
+    display: block;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #dbdbdb;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    /* larger hit area without changing visual size */
+    box-shadow: 0 0 0 6px transparent;
+    transition: background 0.2s, box-shadow 0.2s;
+  }
+  .ann-dot:hover { box-shadow: 0 0 0 6px #f0f0f0; }
+  .ann-dot-viewall {
+    border-radius: 50%;
+    width: 14px;
+  }
+  .ann-dot-active { background: #3273dc; }
+</style>
+
+<script>
+  document.querySelectorAll('.ann-carousel').forEach((carousel) => {
+    const slides = Array.from(carousel.querySelectorAll<HTMLElement>('.ann-slide'));
+    const dots = Array.from(carousel.querySelectorAll<HTMLElement>('.ann-dot'));
+    const prevBtn = carousel.querySelector<HTMLButtonElement>('#ann-prev');
+    const nextBtn = carousel.querySelector<HTMLButtonElement>('#ann-next');
+    let current = 0;
+
+    function goTo(index: number) {
+      current = index;
+      slides.forEach((slide, i) => { slide.style.display = i === current ? '' : 'none'; });
+      dots.forEach((d) => d.classList.remove('ann-dot-active'));
+      dots[current]?.classList.add('ann-dot-active');
+      if (prevBtn) prevBtn.disabled = current === 0;
+      if (nextBtn) nextBtn.disabled = current === slides.length - 1;
+    }
+
+    dots.forEach((dot, i) => dot.addEventListener('click', () => goTo(i)));
+    prevBtn?.addEventListener('click', () => goTo(Math.max(0, current - 1)));
+    nextBtn?.addEventListener('click', () => goTo(Math.min(slides.length - 1, current + 1)));
+
+    goTo(0);
+  });
+</script>

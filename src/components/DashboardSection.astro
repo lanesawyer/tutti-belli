@@ -1,0 +1,49 @@
+---
+interface Props {
+  title: string;
+  icon?: string;       // FA class e.g. "fas fa-bullhorn"
+  viewAllHref?: string;
+  viewAllLabel?: string;
+  viewAllColor?: string; // Bulma color modifier e.g. "is-link", "is-primary"
+  class?: string;
+}
+
+const {
+  title,
+  icon,
+  viewAllHref,
+  viewAllLabel = 'View All',
+  viewAllColor = 'is-link',
+  class: extraClass,
+} = Astro.props;
+---
+
+<div class={`box mb-5 ${extraClass ?? ''}`}>
+  <div class="level mb-4">
+    <div class="level-left">
+      <div class="level-item">
+        <h2 class="title is-4">
+          {icon ? (
+            <span class="icon-text">
+              <span class="icon">
+                <i class={icon}></i>
+              </span>
+              <span>{title}</span>
+            </span>
+          ) : title}
+        </h2>
+      </div>
+    </div>
+    {viewAllHref && (
+      <div class="level-right">
+        <div class="level-item">
+          <a href={viewAllHref} class={`button is-small ${viewAllColor}`}>
+            {viewAllLabel}
+          </a>
+        </div>
+      </div>
+    )}
+  </div>
+
+  <slot />
+</div>
