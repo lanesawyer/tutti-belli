@@ -1,6 +1,6 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import { getMembershipsWithParts, updateName, updateAvatar, updatePart, deleteAccount } from '../lib/profile';
+import { getMembershipsWithParts, updateName, updateAvatar, updatePart, deleteAccount, initiateEmailChange } from '../lib/profile';
 
 const user = Astro.locals.user!;
 
@@ -35,6 +35,8 @@ if (Astro.request.method === 'POST') {
     );
   } else if (action === 'delete-account') {
     result = await deleteAccount(user.id, user.role, formData.get('password')?.toString());
+  } else if (action === 'change-email') {
+    result = await initiateEmailChange(user.id, user.name, user.email, formData.get('newEmail')?.toString());
   }
 
   if (result?.type === 'redirect') {
@@ -47,6 +49,8 @@ if (Astro.request.method === 'POST') {
     messageType = 'danger';
   }
 }
+
+const emailChangePending = Astro.url.searchParams.get('emailChangePending') === '1';
 
 const { memberships, partsByEnsemble } = await getMembershipsWithParts(user.id);
 ---
@@ -159,7 +163,48 @@ const { memberships, partsByEnsemble } = await getMembershipsWithParts(user.id);
             <div class="control">
               <input class="input" type="text" value={user.email} disabled />
             </div>
-            <p class="help">Email cannot be changed</p>
+
+            {emailChangePending && (
+              <div class="notification is-info is-light mt-2">
+                <strong>Verification email sent.</strong> Check your new inbox and click the link to confirm the change. The link expires in 1 hour.
+              </div>
+            )}
+
+            <details class="mt-3">
+              <summary style="cursor: pointer; display: inline-block;">
+                <span class="button is-warning is-outlined is-small">
+                  <span class="icon">
+                    <i class="fas fa-envelope"></i>
+                  </span>
+                  <span>Change Email Address</span>
+                </span>
+              </summary>
+              <div class="box mt-3">
+                <p class="mb-3">Enter your new email address. A verification link will be sent there. Your current email continues to work for login until verified.</p>
+                <form method="POST">
+                  <input type="hidden" name="action" value="change-email" />
+                  <div class="field has-addons">
+                    <div class="control is-expanded">
+                      <input
+                        class="input"
+                        type="email"
+                        name="newEmail"
+                        placeholder="new@example.com"
+                        required
+                      />
+                    </div>
+                    <div class="control">
+                      <button type="submit" class="button is-warning">
+                        <span class="icon">
+                          <i class="fas fa-paper-plane"></i>
+                        </span>
+                        <span>Send Verification</span>
+                      </button>
+                    </div>
+                  </div>
+                </form>
+              </div>
+            </details>
           </div>
 
           <div class="field">

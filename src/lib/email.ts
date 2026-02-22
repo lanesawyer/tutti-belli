@@ -143,6 +143,48 @@ export async function sendAnnouncementEmail(
   );
 }
 
+export async function sendEmailChangeVerificationEmail(
+  toEmail: string,
+  toName: string,
+  verifyToken: string,
+): Promise<EmailResult> {
+  const fromEmail = getEnv('EMAIL_FROM', 'noreply@example.com');
+  const siteUrl = getEnv('SITE', 'http://localhost:4321');
+  const verifyUrl = new URL(`/verify-email-change?token=${verifyToken}`, siteUrl).toString();
+
+  return sendEmail(
+    {
+      from: fromEmail,
+      to: toEmail,
+      subject: 'Verify your new email address',
+      html: `
+        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2>Verify your new email address</h2>
+          <p>Hi ${toName},</p>
+          <p>We received a request to change your account email to <strong>${toEmail}</strong>.</p>
+          <p>Click the button below to confirm this change. Your current email will continue to work for login until you verify the new one.</p>
+          <p style="margin: 32px 0;">
+            <a
+              href="${verifyUrl}"
+              style="background-color: #485fc7; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;"
+            >
+              Verify New Email
+            </a>
+          </p>
+          <p>This link will expire in 1 hour.</p>
+          <p>If you didn't request this change, you can safely ignore this email.</p>
+          <hr style="border: none; border-top: 1px solid #eee; margin: 32px 0;" />
+          <p style="color: #888; font-size: 0.875rem;">
+            If the button above doesn't work, copy and paste this URL into your browser:<br />
+            <a href="${verifyUrl}" style="color: #485fc7;">${verifyUrl}</a>
+          </p>
+        </div>
+      `,
+    },
+    'email change verification email',
+  );
+}
+
 export async function sendPasswordResetEmail(
   toEmail: string,
   toName: string,

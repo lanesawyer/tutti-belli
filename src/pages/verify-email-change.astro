@@ -1,0 +1,89 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { db, eq, and, gt, isNull, User, EmailChangeToken } from 'astro:db';
+
+const token = Astro.url.searchParams.get('token');
+let error = '';
+let success = false;
+let newEmailDisplay = '';
+
+if (!token) {
+  error = 'Invalid verification link.';
+} else {
+  const now = new Date();
+
+  const [changeToken] = await db
+    .select()
+    .from(EmailChangeToken)
+    .where(
+      and(
+        eq(EmailChangeToken.token, token),
+        gt(EmailChangeToken.expiresAt, now),
+        isNull(EmailChangeToken.usedAt),
+      )
+    );
+
+  if (!changeToken) {
+    error = 'This email verification link is invalid or has expired. Please request a new one from your profile.';
+  } else {
+    const [conflict] = await db
+      .select({ id: User.id })
+      .from(User)
+      .where(eq(User.email, changeToken.newEmail));
+
+    if (conflict) {
+      await db
+        .update(EmailChangeToken)
+        .set({ usedAt: new Date() })
+        .where(eq(EmailChangeToken.id, changeToken.id));
+
+      error = 'That email address has since been taken by another account. Please go back to your profile and request a new email change.';
+    } else {
+      await db
+        .update(User)
+        .set({ email: changeToken.newEmail })
+        .where(eq(User.id, changeToken.userId));
+
+      await db
+        .update(EmailChangeToken)
+        .set({ usedAt: new Date() })
+        .where(eq(EmailChangeToken.id, changeToken.id));
+
+      newEmailDisplay = changeToken.newEmail;
+      success = true;
+    }
+  }
+}
+---
+
+<Layout title="Verify Email Change">
+  <section class="section">
+    <div class="columns is-centered">
+      <div class="column is-5-tablet is-4-desktop">
+        <h1 class="title">Email Change Verification</h1>
+
+        {error && (
+          <div class="notification is-danger is-light">
+            <p>{error}</p>
+            <p class="mt-3">
+              <a href="/profile" class="button is-light">Back to Profile</a>
+            </p>
+          </div>
+        )}
+
+        {success && (
+          <div class="notification is-success is-light">
+            <p><strong>Email address updated!</strong></p>
+            <p class="mt-2">
+              Your email has been changed to <strong>{newEmailDisplay}</strong>.
+              Please use this address to log in going forward.
+            </p>
+            <p class="mt-3">
+              <a href="/profile" class="button is-primary">Go to Profile</a>
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  </section>
+</Layout>

@@ -1,6 +1,9 @@
 import {
   db,
   eq,
+  and,
+  gt,
+  isNull,
   User,
   Ensemble,
   EnsembleMember,
@@ -9,9 +12,11 @@ import {
   SeasonMembership,
   GroupMembership,
   PasswordResetToken,
+  EmailChangeToken,
 } from 'astro:db';
 import { fileToDataUri, validateImageFile } from './upload';
 import { verifyPassword } from './auth';
+import { sendEmailChangeVerificationEmail } from './email';
 
 export type ActionResult =
   | { type: 'redirect'; url: string }
@@ -97,7 +102,71 @@ export async function updatePart(
   return { type: 'redirect', url: '/profile' };
 }
 
+export async function initiateEmailChange(
+  userId: string,
+  userName: string,
+  currentEmail: string,
+  newEmail: string | undefined,
+): Promise<ActionResult> {
+  if (!newEmail?.trim()) {
+    return { type: 'error', message: 'Please enter a new email address.' };
+  }
+
+  const trimmedEmail = newEmail.trim().toLowerCase();
+
+  if (!trimmedEmail.includes('@')) {
+    return { type: 'error', message: 'Please enter a valid email address.' };
+  }
+
+  if (trimmedEmail === currentEmail.toLowerCase()) {
+    return { type: 'error', message: 'That is already your current email address.' };
+  }
+
+  const [existingUser] = await db
+    .select({ id: User.id })
+    .from(User)
+    .where(eq(User.email, trimmedEmail));
+  if (existingUser) {
+    return { type: 'error', message: 'That email address is already in use.' };
+  }
+
+  // Invalidate any existing pending email change for this user
+  const now = new Date();
+  await db
+    .update(EmailChangeToken)
+    .set({ usedAt: now })
+    .where(
+      and(
+        eq(EmailChangeToken.userId, userId),
+        isNull(EmailChangeToken.usedAt),
+        gt(EmailChangeToken.expiresAt, now),
+      )
+    );
+
+  const token = crypto.randomUUID();
+  const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
+
+  await db.insert(EmailChangeToken).values({
+    id: crypto.randomUUID(),
+    userId,
+    token,
+    newEmail: trimmedEmail,
+    expiresAt,
+  });
+
+  const emailResult = await sendEmailChangeVerificationEmail(trimmedEmail, userName, token);
+  if (!emailResult.success) {
+    console.error('Email change verification email failed:', emailResult.error);
+    if (import.meta.env.DEV) {
+      return { type: 'error', message: `Email failed: ${emailResult.error}` };
+    }
+  }
+
+  return { type: 'redirect', url: '/profile?emailChangePending=1' };
+}
+
 async function deleteUserData(userId: string): Promise<void> {
+  await db.delete(EmailChangeToken).where(eq(EmailChangeToken.userId, userId));
   await db.delete(PasswordResetToken).where(eq(PasswordResetToken.userId, userId));
   await db.delete(Attendance).where(eq(Attendance.userId, userId));
   await db.delete(SeasonMembership).where(eq(SeasonMembership.userId, userId));

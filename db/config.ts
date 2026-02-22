@@ -189,6 +189,18 @@ const PasswordResetToken = defineTable({
   }
 });
 
+const EmailChangeToken = defineTable({
+  columns: {
+    id: column.text({ primaryKey: true }),
+    userId: column.text({ references: () => User.columns.id }),
+    token: column.text({ unique: true }),
+    newEmail: column.text(),
+    expiresAt: column.date(),
+    usedAt: column.date({ optional: true }),
+    createdAt: column.date({ default: NOW }),
+  }
+});
+
 export default defineDb({
-  tables: { User, Ensemble, EnsembleMember, Part, EnsembleInvite, Season, SeasonMembership, Rehearsal, Attendance, Announcement, Group, GroupMembership, Song, SongPart, SeasonSong, SongFile, PasswordResetToken }
+  tables: { User, Ensemble, EnsembleMember, Part, EnsembleInvite, Season, SeasonMembership, Rehearsal, Attendance, Announcement, Group, GroupMembership, Song, SongPart, SeasonSong, SongFile, PasswordResetToken, EmailChangeToken }
 });
