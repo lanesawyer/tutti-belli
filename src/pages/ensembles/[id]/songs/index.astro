@@ -39,7 +39,7 @@ if (Astro.request.method === 'POST') {
   if (action === 'add') await addSong(id!, formData);
   else if (action === 'edit') await editSong(formData);
   else if (action === 'delete') await deleteSong(formData);
-  else if (action === 'add_file') await addSongFile(formData, user.id);
+  else if (action === 'add_file') await addSongFile(formData, user.id, id);
   else if (action === 'delete_file') await deleteSongFile(formData);
 
   return Astro.redirect(`/ensembles/${id}/songs`);
@@ -428,7 +428,7 @@ const songFilesMap = buildSongFilesMap(ensembleSongIds, songFilesData);
     container.innerHTML = files.map(f => `
       <div class="is-flex is-align-items-center mb-2" style="gap: 0.5rem;">
         <span class="tag ${categoryTagClass(f.category)} is-small" style="flex-shrink:0;">${categoryLabel(f.category)}</span>
-        <a href="${f.url}" target="_blank" rel="noopener" class="has-text-weight-medium"
+        <a href="/files/${f.id}" class="has-text-weight-medium"
            style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${f.name}</a>
         ${isAdmin ? `
         <form method="POST" style="flex-shrink:0;" onsubmit="return confirm('Delete this file?');">

@@ -12,6 +12,7 @@ import {
   SeasonSong,
   User,
 } from 'astro:db';
+import { uploadSongFile, validateSongFile, deleteStorageFile } from './storage';
 
 // ─── Queries ────────────────────────────────────────────────────────────────
 
@@ -160,27 +161,51 @@ export async function deleteSong(formData: FormData): Promise<void> {
 
   await db.delete(SongPart).where(eq(SongPart.songId, songId));
   await db.delete(SeasonSong).where(eq(SeasonSong.songId, songId));
+
+  const files = await db.select().from(SongFile).where(eq(SongFile.songId, songId)).all();
+  await Promise.all(files.map((f) => deleteStorageFile(f.url)));
   await db.delete(SongFile).where(eq(SongFile.songId, songId));
+
   await db.delete(Song).where(eq(Song.id, songId));
 }
 
-export async function addSongFile(formData: FormData, uploadedBy: string): Promise<void> {
+export async function addSongFile(
+  formData: FormData,
+  uploadedBy: string,
+  ensembleId?: string
+): Promise<{ error?: string }> {
   const songId = formData.get('songId') as string;
   const name = (formData.get('fileName') as string)?.trim();
-  const url = (formData.get('fileUrl') as string)?.trim();
   const rawCategory = formData.get('category') as string;
   const category = (VALID_CATEGORIES as readonly string[]).includes(rawCategory)
     ? (rawCategory as (typeof VALID_CATEGORIES)[number])
     : 'other';
 
-  if (!songId || !name || !url) return;
+  if (!songId || !name) return {};
+
+  const uploadedFile = formData.get('file') as File | null;
+  let url: string;
+
+  if (uploadedFile && uploadedFile.size > 0) {
+    if (!ensembleId) return { error: 'Missing ensemble context for upload.' };
+    const validation = validateSongFile(uploadedFile);
+    if (!validation.valid) return { error: validation.error };
+    url = await uploadSongFile(uploadedFile, ensembleId);
+  } else {
+    url = (formData.get('fileUrl') as string)?.trim();
+    if (!url) return {};
+  }
 
   await db.insert(SongFile).values({ id: crypto.randomUUID(), songId, name, url, category, uploadedBy });
+  return {};
 }
 
 export async function deleteSongFile(formData: FormData): Promise<void> {
   const fileId = formData.get('fileId') as string;
   if (!fileId) return;
+
+  const file = await db.select().from(SongFile).where(eq(SongFile.id, fileId)).get();
+  if (file) await deleteStorageFile(file.url);
   await db.delete(SongFile).where(eq(SongFile.id, fileId));
 }
 

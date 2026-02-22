@@ -21,16 +21,25 @@ if (!song || song.ensembleId !== id) return new Response('Song not found', { sta
 const membership = await getMembership(id!, user.id);
 const isAdmin = canManageEnsemble(user, membership);
 
+let fileError: string | undefined;
+
 if (Astro.request.method === 'POST') {
   if (!isAdmin) return new Response('Unauthorized', { status: 403 });
 
   const formData = await Astro.request.formData();
   const action = formData.get('action');
 
-  if (action === 'add_file') await addSongFile(formData, user.id);
-  else if (action === 'delete_file') await deleteSongFile(formData);
-
-  return Astro.redirect(`/ensembles/${id}/songs/${songId}`);
+  if (action === 'add_file') {
+    const result = await addSongFile(formData, user.id, id);
+    if (result.error) {
+      fileError = result.error;
+    } else {
+      return Astro.redirect(`/ensembles/${id}/songs/${songId}`);
+    }
+  } else if (action === 'delete_file') {
+    await deleteSongFile(formData);
+    return Astro.redirect(`/ensembles/${id}/songs/${songId}`);
+  }
 }
 
 const songParts = songPartsData.map((sp) => parts.find((p) => p.id === sp.partId)).filter(Boolean);
@@ -124,9 +133,7 @@ function categoryTagClass(cat: string) {
             {categoryLabel(file.category)}
           </span>
           <a
-            href={file.url}
-            target="_blank"
-            rel="noopener"
+            href={`/files/${file.id}`}
             class="has-text-weight-medium"
             style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"
           >
@@ -151,27 +158,37 @@ function categoryTagClass(cat: string) {
 
   {isAdmin && (
     <div class="box">
-      <h3 class="title is-5">Add File</h3>
-      <form method="POST">
+      <h3 class="title is-5">Upload File</h3>
+      {fileError && (
+        <div class="notification is-danger is-light mb-4">{fileError}</div>
+      )}
+      <form method="POST" enctype="multipart/form-data">
         <input type="hidden" name="action" value="add_file" />
         <input type="hidden" name="songId" value={songId} />
 
-        <div class="columns">
+        <div class="columns is-multiline">
+          <div class="column is-full">
+            <div class="field">
+              <label class="label" for="file">File *</label>
+              <div class="control">
+                <input
+                  class="input"
+                  type="file"
+                  id="file"
+                  name="file"
+                  accept=".pdf,.mp3,application/pdf,audio/mpeg"
+                  required
+                />
+              </div>
+              <p class="help">PDF or MP3, max 50 MB</p>
+            </div>
+          </div>
           <div class="column">
             <div class="field">
               <label class="label" for="fileName">Display Name *</label>
               <div class="control">
                 <input class="input" type="text" id="fileName" name="fileName" placeholder="e.g. Soprano Sheet Music" required />
               </div>
-            </div>
-          </div>
-          <div class="column">
-            <div class="field">
-              <label class="label" for="fileUrl">File URL *</label>
-              <div class="control">
-                <input class="input" type="url" id="fileUrl" name="fileUrl" placeholder="https://..." required />
-              </div>
-              <p class="help">Paste the download URL for this file</p>
             </div>
           </div>
           <div class="column is-narrow">
@@ -193,8 +210,8 @@ function categoryTagClass(cat: string) {
               <label class="label">&nbsp;</label>
               <div class="control">
                 <button type="submit" class="button is-primary">
-                  <span class="icon"><i class="fas fa-plus"></i></span>
-                  <span>Add</span>
+                  <span class="icon"><i class="fas fa-upload"></i></span>
+                  <span>Upload</span>
                 </button>
               </div>
             </div>
@@ -203,6 +220,19 @@ function categoryTagClass(cat: string) {
       </form>
     </div>
   )}
+
+  <script>
+    const fileInput = document.getElementById('file') as HTMLInputElement | null;
+    const nameInput = document.getElementById('fileName') as HTMLInputElement | null;
+    if (fileInput && nameInput) {
+      fileInput.addEventListener('change', () => {
+        const file = fileInput.files?.[0];
+        if (file && !nameInput.value) {
+          nameInput.value = file.name.replace(/\.[^.]+$/, '').replace(/[_-]/g, ' ');
+        }
+      });
+    }
+  </script>
 
   {!isAdmin && (
     <a href={`/ensembles/${id}/songs`} class="button">
