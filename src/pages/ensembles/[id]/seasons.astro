@@ -173,6 +173,7 @@ const membershipsBySeasonId = seasonMemberships.reduce((acc, m) => {
   pageTitle="Seasons"
   message={message}
   messageType={messageType}
+  isAdmin={isAdmin}
 >
   {isAdmin && (
     <button slot="action" class="button is-primary" id="create-season-btn">

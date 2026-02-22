@@ -114,6 +114,7 @@ const pastRehearsals = rehearsals.filter(r => {
   pageTitle="Rehearsals"
   message={message}
   messageType={messageType}
+  isAdmin={isAdmin}
 >
   {isAdmin && (
     <button slot="action" class="button is-primary" id="create-rehearsal-btn">

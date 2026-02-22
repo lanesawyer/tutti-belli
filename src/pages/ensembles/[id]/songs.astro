@@ -28,12 +28,11 @@ if (!ensemble) {
 }
 
 const membership = await getMembership(id!, user.id);
-
-if (!canManageEnsemble(user, membership)) {
-  return new Response('Unauthorized', { status: 403 });
-}
+const isAdmin = canManageEnsemble(user, membership);
 
 if (Astro.request.method === 'POST') {
+  if (!isAdmin) return new Response('Unauthorized', { status: 403 });
+
   const formData = await Astro.request.formData();
   const action = formData.get('action');
 
@@ -58,11 +57,14 @@ const songFilesMap = buildSongFilesMap(ensembleSongIds, songFilesData);
   ensembleId={id!}
   pageTitle="Songs"
   pageSubtitle={`Repertoire for ${ensemble.name}`}
+  isAdmin={isAdmin}
 >
-  <button slot="action" class="button is-primary" id="add-song-btn">
-    <span class="icon"><i class="fas fa-plus"></i></span>
-    <span>Add Song</span>
-  </button>
+  {isAdmin && (
+    <button slot="action" class="button is-primary" id="add-song-btn">
+      <span class="icon"><i class="fas fa-plus"></i></span>
+      <span>Add Song</span>
+    </button>
+  )}
 
   {songs.length === 0 ? (
     <div class="notification is-info is-light">
@@ -78,7 +80,7 @@ const songFilesMap = buildSongFilesMap(ensembleSongIds, songFilesData);
           <th>Runtime</th>
           <th>Parts</th>
           <th>Seasons</th>
-          <th style="width: 130px;">Actions</th>
+          <th style={isAdmin ? "width: 130px;" : "width: 50px;"}>Files</th>
         </tr>
       </thead>
       <tbody>
@@ -115,19 +117,23 @@ const songFilesMap = buildSongFilesMap(ensembleSongIds, songFilesData);
               <td>
                 <div class="buttons are-small">
                   <button
-                    class="button is-link files-btn"
+                    class="button is-linkspan files-btn"
                     data-song-id={song.id}
                     data-song-name={song.name}
                   >
                     <span class="icon is-small"><i class="fas fa-folder-open"></i></span>
                     {songFiles.length > 0 && <span>{songFiles.length}</span>}
                   </button>
-                  <button class="button is-info edit-btn" data-song-id={song.id}>
-                    <span class="icon is-small"><i class="fas fa-pencil"></i></span>
-                  </button>
-                  <button class="button is-danger delete-btn" data-song-id={song.id}>
-                    <span class="icon is-small"><i class="fas fa-trash"></i></span>
-                  </button>
+                  {isAdmin && (
+                    <>
+                      <button class="button is-info edit-btn" data-song-id={song.id}>
+                        <span class="icon is-small"><i class="fas fa-pencil"></i></span>
+                      </button>
+                      <button class="button is-danger delete-btn" data-song-id={song.id}>
+                        <span class="icon is-small"><i class="fas fa-trash"></i></span>
+                      </button>
+                    </>
+                  )}
                 </div>
               </td>
             </tr>
@@ -225,50 +231,54 @@ const songFilesMap = buildSongFilesMap(ensembleSongIds, songFilesData);
 
   <div id="filesModalList"></div>
 
-  <hr />
+  {isAdmin && (
+    <>
+      <hr />
 
-  <h3 class="title is-6">Add File</h3>
-  <form id="addFileForm" method="POST">
-    <input type="hidden" name="action" value="add_file" />
-    <input type="hidden" name="songId" id="addFileSongId" />
+      <h3 class="title is-6">Add File</h3>
+      <form id="addFileForm" method="POST">
+        <input type="hidden" name="action" value="add_file" />
+        <input type="hidden" name="songId" id="addFileSongId" />
 
-    <div class="field">
-      <label class="label is-small" for="fileName">Display Name *</label>
-      <div class="control">
-        <input class="input is-small" type="text" id="fileName" name="fileName" placeholder="e.g. Soprano Sheet Music" required />
-      </div>
-    </div>
-
-    <div class="field">
-      <label class="label is-small" for="fileUrl">File URL *</label>
-      <div class="control">
-        <input class="input is-small" type="url" id="fileUrl" name="fileUrl" placeholder="https://..." required />
-      </div>
-      <p class="help">Paste the Backblaze download URL for this file</p>
-    </div>
-
-    <div class="field">
-      <label class="label is-small" for="category">Category</label>
-      <div class="control">
-        <div class="select is-small is-fullwidth">
-          <select id="category" name="category">
-            <option value="sheet_music">Sheet Music</option>
-            <option value="rehearsal_track">Rehearsal Track</option>
-            <option value="other">Other</option>
-          </select>
+        <div class="field">
+          <label class="label is-small" for="fileName">Display Name *</label>
+          <div class="control">
+            <input class="input is-small" type="text" id="fileName" name="fileName" placeholder="e.g. Soprano Sheet Music" required />
+          </div>
         </div>
-      </div>
-    </div>
 
-    <div class="field">
-      <div class="control">
-        <button type="submit" class="button is-primary is-small">
-          <span class="icon is-small"><i class="fas fa-plus"></i></span>
-          <span>Add File</span>
-        </button>
-      </div>
-    </div>
-  </form>
+        <div class="field">
+          <label class="label is-small" for="fileUrl">File URL *</label>
+          <div class="control">
+            <input class="input is-small" type="url" id="fileUrl" name="fileUrl" placeholder="https://..." required />
+          </div>
+          <p class="help">Paste the Backblaze download URL for this file</p>
+        </div>
+
+        <div class="field">
+          <label class="label is-small" for="category">Category</label>
+          <div class="control">
+            <div class="select is-small is-fullwidth">
+              <select id="category" name="category">
+                <option value="sheet_music">Sheet Music</option>
+                <option value="rehearsal_track">Rehearsal Track</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="field">
+          <div class="control">
+            <button type="submit" class="button is-primary is-small">
+              <span class="icon is-small"><i class="fas fa-plus"></i></span>
+              <span>Add File</span>
+            </button>
+          </div>
+        </div>
+      </form>
+    </>
+  )}
 
   <div slot="footer">
     <button class="button" type="button" data-modal-close>Close</button>
@@ -372,6 +382,7 @@ const songFilesMap = buildSongFilesMap(ensembleSongIds, songFilesData);
   data-song-parts={JSON.stringify(Array.from(songPartsMap.entries()))}
   data-song-seasons={JSON.stringify(Array.from(songSeasonsMap.entries()))}
   data-song-files={JSON.stringify(Array.from(songFilesMap.entries()))}
+  data-is-admin={isAdmin ? 'true' : 'false'}
 ></script>
 
 <script is:inline>
@@ -380,6 +391,7 @@ const songFilesMap = buildSongFilesMap(ensembleSongIds, songFilesData);
   const songPartsMapJS = new Map(JSON.parse(dataScript.dataset.songParts || '[]'));
   const songSeasonsMapJS = new Map(JSON.parse(dataScript.dataset.songSeasons || '[]'));
   const songFilesMapJS = new Map(JSON.parse(dataScript.dataset.songFiles || '[]'));
+  const isAdmin = dataScript.dataset.isAdmin === 'true';
 
   function categoryLabel(cat) {
     if (cat === 'sheet_music') return 'Sheet Music';
@@ -414,6 +426,7 @@ const songFilesMap = buildSongFilesMap(ensembleSongIds, songFilesData);
         <span class="tag ${categoryTagClass(f.category)} is-small" style="flex-shrink:0;">${categoryLabel(f.category)}</span>
         <a href="${f.url}" target="_blank" rel="noopener" class="has-text-weight-medium"
            style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${f.name}</a>
+        ${isAdmin ? `
         <form method="POST" style="flex-shrink:0;" onsubmit="return confirm('Delete this file?');">
           <input type="hidden" name="action" value="delete_file" />
           <input type="hidden" name="fileId" value="${f.id}" />
@@ -421,6 +434,7 @@ const songFilesMap = buildSongFilesMap(ensembleSongIds, songFilesData);
             <span class="icon is-small"><i class="fas fa-trash"></i></span>
           </button>
         </form>
+        ` : ''}
       </div>
     `).join('');
   }

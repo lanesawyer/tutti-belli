@@ -3,6 +3,7 @@ import Layout from '../../../../layouts/Layout.astro';
 import { db, eq, and, Ensemble, EnsembleMember, Rehearsal, Attendance, User } from 'astro:db';
 import QRCode from 'qrcode';
 import { canManageEnsemble } from '../../../../lib/permissions';
+import { ensembleAdminTools } from '../../../../lib/config';
 
 const user = Astro.locals.user!;
 
@@ -184,6 +185,27 @@ const timeValue = scheduledDate.toTimeString().slice(0, 5);
 ---
 
 <Layout title={`${rehearsal.title} - ${ensemble.name}`}>
+  {isAdmin && (
+    <div class="navbar-item has-dropdown is-hoverable" slot="navbar-start">
+      <a class="navbar-link">{ensemble.name}</a>
+      <div class="navbar-dropdown">
+        <a class={`navbar-item${Astro.url.pathname === `/ensembles/${id}` ? ' is-active' : ''}`} href={`/ensembles/${id}`}>
+          <span class="icon is-small mr-1"><i class="fas fa-home"></i></span>
+          Dashboard
+        </a>
+        <hr class="navbar-divider" />
+        {ensembleAdminTools.map((tool) => {
+          const href = tool.href(id!);
+          return (
+            <a class={`navbar-item${Astro.url.pathname.startsWith(href) ? ' is-active' : ''}`} href={href}>
+              <span class="icon is-small mr-1"><i class={`fas ${tool.icon}`}></i></span>
+              {tool.label}
+            </a>
+          );
+        })}
+      </div>
+    </div>
+  )}
   <div class="level mb-5">
     <div class="level-left">
       <div class="level-item">

@@ -112,6 +112,7 @@ const nextSortOrder = parts.length > 0 ? Math.max(...parts.map(p => p.sortOrder)
   pageSubtitle={`Voice parts for ${ensemble.name}`}
   message={message}
   messageType={messageType}
+  isAdmin={isAdmin}
 >
   <button slot="action" class="button is-primary" id="add-part-btn">
     <span class="icon"><i class="fas fa-plus"></i></span>

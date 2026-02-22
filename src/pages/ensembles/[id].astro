@@ -5,6 +5,7 @@ import DashboardSection from '../../components/DashboardSection.astro';
 import { db, eq, and, desc, Ensemble, EnsembleMember, User, EnsembleInvite, Part, Announcement, Group, GroupMembership, Rehearsal, Season, SeasonMembership, SeasonSong, Song } from 'astro:db';
 import { canManageEnsemble } from '../../lib/permissions';
 import { getInitials, getColorFromInitials } from '../../lib/avatar';
+import { ensembleAdminTools } from '../../lib/config';
 
 const user = Astro.locals.user!;
 
@@ -265,6 +266,22 @@ if (Astro.request.method === 'POST') {
 ---
 
 <Layout title={ensemble.name}>
+  {isAdmin && (
+    <div class="navbar-item has-dropdown is-hoverable" slot="navbar-start">
+      <a class="navbar-link">{ensemble.name}</a>
+      <div class="navbar-dropdown">
+        {ensembleAdminTools.map((tool) => {
+          const href = tool.href(id!);
+          return (
+            <a class={`navbar-item${Astro.url.pathname.startsWith(href) ? ' is-active' : ''}`} href={href}>
+              <span class="icon is-small mr-1"><i class={`fas ${tool.icon}`}></i></span>
+              {tool.label}
+            </a>
+          );
+        })}
+      </div>
+    </div>
+  )}
   {ensemble.imageUrl && (
     <div class="columns">
       <div class="column">
@@ -651,38 +668,12 @@ if (Astro.request.method === 'POST') {
           </h2>
           
           <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem;">
-            <a href={`/ensembles/${id}/edit`} class="button" style="height: auto; padding: 0.75rem 0.25rem; flex-direction: column; align-items: center; justify-content: center;">
-              <i class="fas fa-edit fa-lg mb-1"></i>
-              <span class="is-size-7">Settings</span>
-            </a>
-            <a href={`/ensembles/${id}/members`} class="button" style="height: auto; padding: 0.75rem 0.25rem; flex-direction: column; align-items: center; justify-content: center;">
-              <i class="fas fa-users fa-lg mb-1"></i>
-              <span class="is-size-7">Members</span>
-            </a>
-            <a href={`/ensembles/${id}/songs`} class="button" style="height: auto; padding: 0.75rem 0.25rem; flex-direction: column; align-items: center; justify-content: center;">
-              <i class="fas fa-music fa-lg mb-1"></i>
-              <span class="is-size-7">Songs</span>
-            </a>
-            <a href={`/ensembles/${id}/rehearsals`} class="button" style="height: auto; padding: 0.75rem 0.25rem; flex-direction: column; align-items: center; justify-content: center;">
-              <i class="fas fa-calendar-check fa-lg mb-1"></i>
-              <span class="is-size-7">Rehearsals</span>
-            </a>
-            <a href={`/ensembles/${id}/announcements`} class="button" style="height: auto; padding: 0.75rem 0.25rem; flex-direction: column; align-items: center; justify-content: center;">
-              <i class="fas fa-bullhorn fa-lg mb-1"></i>
-              <span class="is-size-7">Announce&shy;ments</span>
-            </a>
-            <a href={`/ensembles/${id}/parts`} class="button" style="height: auto; padding: 0.75rem 0.25rem; flex-direction: column; align-items: center; justify-content: center;">
-              <i class="fas fa-list fa-lg mb-1"></i>
-              <span class="is-size-7">Parts</span>
-            </a>
-            <a href={`/ensembles/${id}/seasons`} class="button" style="height: auto; padding: 0.75rem 0.25rem; flex-direction: column; align-items: center; justify-content: center;">
-              <i class="fas fa-calendar-alt fa-lg mb-1"></i>
-              <span class="is-size-7">Seasons</span>
-            </a>
-            <a href={`/ensembles/${id}/groups`} class="button" style="height: auto; padding: 0.75rem 0.25rem; flex-direction: column; align-items: center; justify-content: center;">
-              <i class="fas fa-users-cog fa-lg mb-1"></i>
-              <span class="is-size-7">Groups</span>
-            </a>
+            {ensembleAdminTools.map((tool) => (
+              <a href={tool.href(id!)} class="button" style="height: auto; padding: 0.75rem 0.25rem; flex-direction: column; align-items: center; justify-content: center;">
+                <i class={`fas ${tool.icon} fa-lg mb-1`}></i>
+                <span class="is-size-7">{tool.label}</span>
+              </a>
+            ))}
           </div>
         </div>
 
