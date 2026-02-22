@@ -1,0 +1,134 @@
+---
+const user = Astro.locals.user;
+---
+
+<nav class="navbar is-dark is-fixed-top" role="navigation" aria-label="main navigation">
+  <div class="container">
+    <div class="navbar-brand">
+      <a class="navbar-item" href="/">
+        <strong>🎵 Ensemble Management</strong>
+      </a>
+      <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false" data-target="navbarMenu">
+        <span aria-hidden="true"></span>
+        <span aria-hidden="true"></span>
+        <span aria-hidden="true"></span>
+      </a>
+    </div>
+
+    <div id="navbarMenu" class="navbar-menu">
+      <div class="navbar-start">
+        {user && (
+          <>
+            <a class="navbar-item" href="/ensembles">My Ensembles</a>
+            {user.role === 'admin' && (
+              <a class="navbar-item" href="/admin">Admin Panel</a>
+            )}
+          </>
+        )}
+        <slot name="navbar-start" />
+      </div>
+
+      <div class="navbar-end">
+        <div class="navbar-item">
+          <button id="theme-toggle" title="Toggle dark mode">
+            <i class="fas fa-moon" id="theme-icon"></i>
+          </button>
+        </div>
+        {user ? (
+          <div class="navbar-item has-dropdown is-hoverable">
+            <a class="navbar-link">
+              {user.name}
+            </a>
+            <div class="navbar-dropdown">
+              <a class="navbar-item" href="/profile">Profile</a>
+              <hr class="navbar-divider">
+              <a class="navbar-item" href="/logout">Logout</a>
+            </div>
+          </div>
+        ) : (
+          <div class="navbar-item">
+            <div class="buttons">
+              <a class="button is-primary" href="/register">
+                <strong>Sign up</strong>
+              </a>
+              <a class="button is-light" href="/login">
+                Log in
+              </a>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  </div>
+</nav>
+
+<style>
+  #theme-toggle {
+    cursor: pointer;
+    background: transparent;
+    border: none;
+    color: var(--navbar-text);
+    font-size: 1.25rem;
+    padding: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  #theme-toggle:hover {
+    opacity: 0.8;
+  }
+</style>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    // Mobile menu toggle
+    const $navbarBurgers = Array.prototype.slice.call(document.querySelectorAll('.navbar-burger'), 0);
+    $navbarBurgers.forEach(el => {
+      el.addEventListener('click', () => {
+        const target = el.dataset.target;
+        const $target = document.getElementById(target);
+        el.classList.toggle('is-active');
+        $target?.classList.toggle('is-active');
+      });
+    });
+
+    // Theme toggle
+    const html = document.documentElement;
+    const themeToggle = document.getElementById('theme-toggle');
+
+    const updateIcon = (theme: string) => {
+      if (themeToggle) {
+        if (theme === 'dark') {
+          themeToggle.innerHTML = '<i class="fas fa-sun" id="theme-icon"></i>';
+        } else {
+          themeToggle.innerHTML = '<i class="fas fa-moon" id="theme-icon"></i>';
+        }
+      }
+    };
+
+    // Set initial icon after a brief delay for Font Awesome to load
+    setTimeout(() => {
+      const currentTheme = html.getAttribute('data-theme') || 'light';
+      updateIcon(currentTheme);
+    }, 200);
+
+    themeToggle?.addEventListener('click', () => {
+      const currentTheme = html.getAttribute('data-theme') || 'light';
+      const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+
+      html.setAttribute('data-theme', newTheme);
+      localStorage.setItem('theme', newTheme);
+      updateIcon(newTheme);
+    });
+
+    // Listen for system theme changes
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+      if (!localStorage.getItem('theme')) {
+        const newTheme = e.matches ? 'dark' : 'light';
+        html.setAttribute('data-theme', newTheme);
+        updateIcon(newTheme);
+      }
+    });
+  });
+</script>
