@@ -30,6 +30,63 @@ export interface EmailResult {
   error?: string;
 }
 
+export async function sendWelcomeEmail(
+  toEmail: string,
+  toName: string,
+): Promise<EmailResult> {
+  const apiKey = getEnv('EMAIL_API_KEY');
+  const fromEmail = getEnv('EMAIL_FROM', 'noreply@example.com');
+  const siteUrl = getEnv('SITE', 'http://localhost:4321');
+
+  if (!apiKey) {
+    console.error('EMAIL_API_KEY is not set');
+    return { success: false, error: 'Email service is not configured' };
+  }
+
+  console.log(`[email] welcome from="${fromEmail}", to="${toEmail}"`);
+
+  const adapter = createResendAdapter(apiKey);
+  const loginUrl = new URL('/login', siteUrl).toString();
+
+  try {
+    const { error: sendError } = await adapter.send({
+      from: fromEmail,
+      to: toEmail,
+      subject: 'Welcome to Ensemble!',
+      html: `
+        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2>Welcome to Ensemble!</h2>
+          <p>Hi ${toName},</p>
+          <p>Thanks for creating an account. You're all set to start managing your ensembles, track rehearsals, and stay connected with your fellow musicians.</p>
+          <p style="margin: 32px 0;">
+            <a
+              href="${loginUrl}"
+              style="background-color: #485fc7; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;"
+            >
+              Go to Ensemble
+            </a>
+          </p>
+          <p>If you have any questions, just reply to this email. We're happy to help!</p>
+          <hr style="border: none; border-top: 1px solid #eee; margin: 32px 0;" />
+          <p style="color: #888; font-size: 0.875rem;">
+            You're receiving this because you signed up at <a href="${siteUrl}" style="color: #485fc7;">${siteUrl}</a>.
+          </p>
+        </div>
+      `,
+    });
+
+    if (sendError) {
+      console.error('Failed to send welcome email:', sendError);
+      return { success: false, error: sendError.message };
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to send welcome email:', error);
+    return { success: false, error: String(error) };
+  }
+}
+
 export async function sendPasswordResetEmail(
   toEmail: string,
   toName: string,
