@@ -1,0 +1,91 @@
+---
+import Layout from './Layout.astro';
+import { ensembleAdminTools } from '../lib/config';
+
+interface Props {
+  title: string;
+  ensembleName: string;
+  ensembleId: string;
+  pageTitle: string;
+  pageSubtitle?: string;
+  /** Extra breadcrumb entries before the active page. Each is [label, href]. */
+  extraBreadcrumbs?: [string, string][];
+  message?: string;
+  messageType?: string;
+  isAdmin?: boolean;
+}
+
+const {
+  title,
+  ensembleName,
+  ensembleId,
+  pageTitle,
+  pageSubtitle,
+  extraBreadcrumbs = [],
+  message,
+  messageType,
+  isAdmin = false,
+} = Astro.props;
+
+const currentPath = Astro.url.pathname;
+---
+
+<Layout title={title}>
+  {isAdmin && (
+    <div class="navbar-item has-dropdown is-hoverable" slot="navbar-start">
+      <a class="navbar-link">{ensembleName}</a>
+      <div class="navbar-dropdown">
+        <a class={`navbar-item${currentPath === `/ensembles/${ensembleId}` ? ' is-active' : ''}`} href={`/ensembles/${ensembleId}`}>
+          <span class="icon is-small mr-1"><i class="fas fa-home"></i></span>
+          Dashboard
+        </a>
+        <hr class="navbar-divider" />
+        {ensembleAdminTools.map((tool) => {
+          const href = tool.href(ensembleId);
+          return (
+            <a class={`navbar-item${currentPath.startsWith(href) ? ' is-active' : ''}`} href={href}>
+              <span class="icon is-small mr-1"><i class={`fas ${tool.icon}`}></i></span>
+              {tool.label}
+            </a>
+          );
+        })}
+      </div>
+    </div>
+  )}
+
+  <nav class="breadcrumb" aria-label="breadcrumbs">
+    <ul>
+      <li><a href="/ensembles">Ensembles</a></li>
+      <li><a href={`/ensembles/${ensembleId}`}>{ensembleName}</a></li>
+      {extraBreadcrumbs.map(([label, href]) => (
+        <li><a href={href}>{label}</a></li>
+      ))}
+      <li class="is-active"><a href="#" aria-current="page">{pageTitle}</a></li>
+    </ul>
+  </nav>
+
+  <div class="level mb-4">
+    <div class="level-left">
+      <div class="level-item">
+        <div>
+          <h1 class="title">{pageTitle}</h1>
+          {pageSubtitle && <p class="subtitle">{pageSubtitle}</p>}
+        </div>
+      </div>
+    </div>
+    <div class="level-right">
+      <div class="level-item">
+        <slot name="action" />
+      </div>
+    </div>
+  </div>
+
+  {message && (
+    <div class={`notification is-${messageType} mb-4`}>
+      {message}
+    </div>
+  )}
+
+  <slot />
+  <slot name="modals" />
+</Layout>

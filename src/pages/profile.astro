@@ -1,130 +1,60 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import { db, eq, User, Ensemble, EnsembleMember, Part } from 'astro:db';
-import { fileToDataUri, validateImageFile } from '../lib/upload';
+import { getMembershipsWithParts, updateName, updatePhone, updateAvatar, updatePart, deleteAccount, initiateEmailChange } from '../lib/profile';
 
-const user = Astro.locals.user;
-
-if (!user) {
-  return Astro.redirect('/login');
-}
-
-// Get user's ensembles with part information
-const memberships = await db
-  .select({
-    ensembleId: Ensemble.id,
-    ensembleName: Ensemble.name,
-    membershipId: EnsembleMember.id,
-    partId: EnsembleMember.partId,
-  })
-  .from(EnsembleMember)
-  .innerJoin(Ensemble, eq(EnsembleMember.ensembleId, Ensemble.id))
-  .where(eq(EnsembleMember.userId, user.id))
-  .all();
-
-// Get all parts for user's ensembles
-const ensembleIds = memberships.map(m => m.ensembleId);
-const allParts = ensembleIds.length > 0 
-  ? await db.select().from(Part).all()
-  : [];
-
-// Group parts by ensemble
-const partsByEnsemble = new Map();
-for (const part of allParts) {
-  if (ensembleIds.includes(part.ensembleId)) {
-    if (!partsByEnsemble.has(part.ensembleId)) {
-      partsByEnsemble.set(part.ensembleId, []);
-    }
-    partsByEnsemble.get(part.ensembleId).push(part);
-  }
-}
-
-// Sort parts by sortOrder within each ensemble
-for (const [, parts] of partsByEnsemble) {
-  parts.sort((a: any, b: any) => a.sortOrder - b.sortOrder);
-}
+const user = Astro.locals.user!;
 
 let message = '';
 let messageType = '';
 
-// Handle form submissions
 if (Astro.request.method === 'POST') {
   const formData = await Astro.request.formData();
   const action = formData.get('action')?.toString();
 
+  let result = null;
+
   if (action === 'update-name') {
-    const name = formData.get('name')?.toString();
-    
-    if (name && name.trim()) {
-      await db
-        .update(User)
-        .set({ name: name.trim() })
-        .where(eq(User.id, user.id));
-      
-      message = 'Name updated successfully!';
-      messageType = 'success';
-      
-      // Refresh the page to show updated name
-      return Astro.redirect('/profile');
-    } else {
-      message = 'Name cannot be empty';
-      messageType = 'danger';
-    }
+    result = await updateName(user.id, formData.get('name')?.toString());
+  } else if (action === 'update-phone') {
+    result = await updatePhone(user.id, formData.get('phone')?.toString());
   } else if (action === 'update-avatar') {
     try {
-      const avatarFile = formData.get('avatar') as File;
-      const removeAvatar = formData.get('removeAvatar')?.toString() === 'true';
-
-      let avatarUrl = user.avatarUrl;
-
-      // Handle avatar removal
-      if (removeAvatar && avatarUrl) {
-        avatarUrl = null;
-      }
-
-      // Handle new avatar upload
-      if (avatarFile && avatarFile.size > 0) {
-        const validation = validateImageFile(avatarFile, 2);
-        if (!validation.valid) {
-          message = validation.error!;
-          messageType = 'danger';
-        } else {
-          // Convert image to data URI and store in database
-          avatarUrl = await fileToDataUri(avatarFile);
-        }
-      }
-
-      if (!message) {
-        await db
-          .update(User)
-          .set({ avatarUrl })
-          .where(eq(User.id, user.id));
-
-        return Astro.redirect('/profile');
-      }
+      result = await updateAvatar(
+        user.id,
+        user.avatarUrl,
+        formData.get('avatar') as File,
+        formData.get('removeAvatar')?.toString() === 'true'
+      );
     } catch (error) {
       console.error('Error updating avatar:', error);
       message = 'Failed to update avatar';
       messageType = 'danger';
     }
   } else if (action === 'update-part') {
-    const membershipId = formData.get('membershipId')?.toString();
-    const partId = formData.get('partId')?.toString();
-    
-    if (membershipId) {
-      // Allow null partId (clearing the part)
-      await db
-        .update(EnsembleMember)
-        .set({ partId: partId || null })
-        .where(eq(EnsembleMember.id, membershipId));
-      
-      message = 'Part updated successfully!';
-      messageType = 'success';
-      
-      return Astro.redirect('/profile');
+    result = await updatePart(
+      formData.get('membershipId')?.toString(),
+      formData.get('partId')?.toString()
+    );
+  } else if (action === 'delete-account') {
+    result = await deleteAccount(user.id, user.role, formData.get('password')?.toString());
+  } else if (action === 'change-email') {
+    result = await initiateEmailChange(user.id, user.name, user.email, formData.get('newEmail')?.toString());
+  }
+
+  if (result?.type === 'redirect') {
+    if (action === 'delete-account') {
+      Astro.cookies.delete('session', { path: '/' });
     }
+    return Astro.redirect(result.url);
+  } else if (result?.type === 'error') {
+    message = result.message;
+    messageType = 'danger';
   }
 }
+
+const emailChangePending = Astro.url.searchParams.get('emailChangePending') === '1';
+
+const { memberships, partsByEnsemble } = await getMembershipsWithParts(user.id);
 ---
 
 <Layout title="Profile">
@@ -230,12 +160,82 @@ if (Astro.request.method === 'POST') {
             </div>
           </form>
 
+          <form method="POST" class="mt-4">
+            <input type="hidden" name="action" value="update-phone" />
+
+            <div class="field">
+              <label class="label" for="phone">Phone Number</label>
+              <div class="field has-addons">
+                <div class="control is-expanded">
+                  <input
+                    class="input"
+                    type="tel"
+                    id="phone"
+                    name="phone"
+                    value={user.phone ?? ''}
+                    placeholder="333-333-3333"
+                    pattern="[0-9]{3}-[0-9]{3}-[0-9]{4}"
+                  />
+                </div>
+                <div class="control">
+                  <button type="submit" class="button is-primary">
+                    <span class="icon">
+                      <i class="fas fa-save"></i>
+                    </span>
+                    <span>Save</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </form>
+
           <div class="field">
             <label class="label">Email</label>
             <div class="control">
               <input class="input" type="text" value={user.email} disabled />
             </div>
-            <p class="help">Email cannot be changed</p>
+
+            {emailChangePending && (
+              <div class="notification is-info is-light mt-2">
+                <strong>Verification email sent.</strong> Check your new inbox and click the link to confirm the change. The link expires in 1 hour.
+              </div>
+            )}
+
+            <details class="mt-3">
+              <summary style="cursor: pointer; display: inline-block;">
+                <span class="button is-warning is-outlined is-small">
+                  <span class="icon">
+                    <i class="fas fa-envelope"></i>
+                  </span>
+                  <span>Change Email Address</span>
+                </span>
+              </summary>
+              <div class="box mt-3">
+                <p class="mb-3">Enter your new email address. A verification link will be sent there. Your current email continues to work for login until verified.</p>
+                <form method="POST">
+                  <input type="hidden" name="action" value="change-email" />
+                  <div class="field has-addons">
+                    <div class="control is-expanded">
+                      <input
+                        class="input"
+                        type="email"
+                        name="newEmail"
+                        placeholder="new@example.com"
+                        required
+                      />
+                    </div>
+                    <div class="control">
+                      <button type="submit" class="button is-warning">
+                        <span class="icon">
+                          <i class="fas fa-paper-plane"></i>
+                        </span>
+                        <span>Send Verification</span>
+                      </button>
+                    </div>
+                  </div>
+                </form>
+              </div>
+            </details>
           </div>
 
           <div class="field">
@@ -332,6 +332,55 @@ if (Astro.request.method === 'POST') {
         </span>
         <span>My Ensembles</span>
       </a>
+    </div>
+
+    <div class="box mt-5" style="border: 2px solid hsl(var(--bulma-danger-h), var(--bulma-danger-s), var(--bulma-danger-l));">
+      <h2 class="title is-4 has-text-danger">Danger Zone</h2>
+      <p class="mb-4">Permanently delete your account and all associated data. This action cannot be undone.</p>
+
+      {user.role === 'admin' && (
+        <div class="notification is-warning is-light">
+          Site administrators cannot delete their own account. Transfer admin rights first.
+        </div>
+      )}
+
+      {user.role !== 'admin' && (
+        <details>
+          <summary class="button is-danger is-outlined" style="cursor: pointer;">
+            <span class="icon">
+              <i class="fas fa-trash-alt"></i>
+            </span>
+            <span>Delete My Account</span>
+          </summary>
+
+          <div class="box mt-4">
+            <p class="mb-3 has-text-weight-semibold">Enter your password to confirm account deletion:</p>
+            <form method="POST">
+              <input type="hidden" name="action" value="delete-account" />
+              <div class="field has-addons">
+                <div class="control is-expanded">
+                  <input
+                    class="input is-danger"
+                    type="password"
+                    name="password"
+                    placeholder="Your current password"
+                    required
+                    autocomplete="current-password"
+                  />
+                </div>
+                <div class="control">
+                  <button type="submit" class="button is-danger">
+                    <span class="icon">
+                      <i class="fas fa-trash-alt"></i>
+                    </span>
+                    <span>Delete Account</span>
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </details>
+      )}
     </div>
   </div>
 

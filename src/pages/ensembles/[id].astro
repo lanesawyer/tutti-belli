@@ -1,13 +1,13 @@
 ---
 import Layout from '../../layouts/Layout.astro';
-import { db, eq, and, desc, Ensemble, EnsembleMember, User, EnsembleInvite, Part, Announcement, Group, GroupMembership, Rehearsal, Season, SeasonMembership } from 'astro:db';
+import InviteCodeWidget from '../../components/InviteCodeWidget.astro';
+import DashboardSection from '../../components/DashboardSection.astro';
+import { db, eq, and, desc, Ensemble, EnsembleMember, User, EnsembleInvite, Part, Announcement, Group, GroupMembership, Event, Season, SeasonMembership, SeasonSong, Song, EnsembleLink } from 'astro:db';
 import { canManageEnsemble } from '../../lib/permissions';
 import { getInitials, getColorFromInitials } from '../../lib/avatar';
+import { ensembleAdminTools } from '../../lib/config';
 
-const user = Astro.locals.user;
-if (!user) {
-  return Astro.redirect('/login');
-}
+const user = Astro.locals.user!;
 
 const { id } = Astro.params;
 if (!id) {
@@ -144,21 +144,42 @@ const latestAnnouncements = await db
   .orderBy(desc(Announcement.createdAt))
   .limit(3);
 
-// Get upcoming rehearsals (next 5)
-const allRehearsals = await db
+// Get upcoming events
+const allEvents = await db
   .select()
-  .from(Rehearsal)
-  .where(eq(Rehearsal.ensembleId, id))
-  .orderBy(Rehearsal.scheduledAt);
+  .from(Event)
+  .where(eq(Event.ensembleId, id))
+  .orderBy(Event.scheduledAt);
 
 const now = new Date();
-const upcomingRehearsals = allRehearsals
-  .filter(r => {
-    const scheduledTime = new Date(r.scheduledAt);
-    const endTime = new Date(scheduledTime.getTime() + (r.durationMinutes * 60 * 1000));
-    return endTime > now;
+const upcomingRehearsals = allEvents
+  .filter(e => {
+    const endTime = new Date(new Date(e.scheduledAt).getTime() + (e.durationMinutes * 60 * 1000));
+    return endTime > now && e.category === 'rehearsal';
   })
   .slice(0, 5);
+
+const upcomingPerformances = allEvents
+  .filter(e => {
+    const endTime = new Date(new Date(e.scheduledAt).getTime() + (e.durationMinutes * 60 * 1000));
+    return endTime > now && e.category === 'performance';
+  })
+  .slice(0, 5);
+
+// Get songs for the active season
+const seasonSongs = currentSeason ? await db
+  .select({
+    id: Song.id,
+    name: Song.name,
+    composer: Song.composer,
+    arranger: Song.arranger,
+    runTime: Song.runTime,
+  })
+  .from(SeasonSong)
+  .innerJoin(Song, eq(SeasonSong.songId, Song.id))
+  .where(eq(SeasonSong.seasonId, currentSeason.id))
+  .orderBy(Song.name)
+  : [];
 
 // Get invite codes (if admin)
 const invites = isAdmin
@@ -167,6 +188,13 @@ const invites = isAdmin
       .from(EnsembleInvite)
       .where(eq(EnsembleInvite.ensembleId, id))
   : [];
+
+// Get ensemble links
+const ensembleLinks = await db
+  .select()
+  .from(EnsembleLink)
+  .where(eq(EnsembleLink.ensembleId, id))
+  .orderBy(EnsembleLink.sortOrder, EnsembleLink.createdAt);
 
 // Handle member actions
 if (Astro.request.method === 'POST') {
@@ -251,21 +279,32 @@ if (Astro.request.method === 'POST') {
 ---
 
 <Layout title={ensemble.name}>
-  {ensemble.imageUrl && (
-    <div class="columns">
-      <div class="column">
-        <figure class="image is-128x128 mb-4">
-          <img src={ensemble.imageUrl} alt={ensemble.name} style="object-fit: cover; border-radius: 8px;" />
-        </figure>
+  {isAdmin && (
+    <div class="navbar-item has-dropdown is-hoverable" slot="navbar-start">
+      <a class="navbar-link">{ensemble.name}</a>
+      <div class="navbar-dropdown">
+        {ensembleAdminTools.map((tool) => {
+          const href = tool.href(id!);
+          return (
+            <a class={`navbar-item${Astro.url.pathname.startsWith(href) ? ' is-active' : ''}`} href={href}>
+              <span class="icon is-small mr-1"><i class={`fas ${tool.icon}`}></i></span>
+              {tool.label}
+            </a>
+          );
+        })}
       </div>
     </div>
   )}
-
   <!-- Header Section - Full Width -->
   <div class="mb-5">
     <div class="level">
       <div class="level-left">
-        <div class="level-item">
+        <div class="level-item" style="align-items: flex-start;">
+          {ensemble.imageUrl && (
+            <figure class="image is-96x96 mr-4" style="flex-shrink: 0;">
+              <img src={ensemble.imageUrl} alt={ensemble.name} style="object-fit: cover; border-radius: 8px; width: 96px; height: 96px;" />
+            </figure>
+          )}
           <div>
             <h1 class="title">{ensemble.name}</h1>
             {ensemble.description && (
@@ -284,25 +323,30 @@ if (Astro.request.method === 'POST') {
           </div>
         </div>
       </div>
-      <div class="level-right">
-        <div class="level-item">
-          <div class="tags has-addons are-large">
-            <span class={`tag ${isAdmin ? 'is-warning' : 'is-info'}`}>
-              {isAdmin ? 'Ensemble Admin' : 'Member'}
-            </span>
-          </div>
+      {!isPending && (ensemble.discordLink || ensembleLinks.length > 0) && (
+        <div class="level-right">
+          {ensemble.discordLink && (
+            <div class="level-item">
+              <a href={ensemble.discordLink} target="_blank" rel="noopener noreferrer" class="button is-link" title="Join Discord Server">
+                <span class="icon">
+                  <i class="fab fa-discord"></i>
+                </span>
+                <span>Discord</span>
+              </a>
+            </div>
+          )}
+          {ensembleLinks.map((link) => (
+            <div class="level-item">
+              <a href={link.url} target="_blank" rel="noopener noreferrer" class="button is-light">
+                <span class="icon">
+                  <i class="fas fa-link"></i>
+                </span>
+                <span>{link.label}</span>
+              </a>
+            </div>
+          ))}
         </div>
-        {ensemble.discordLink && !isPending && (
-          <div class="level-item">
-            <a href={ensemble.discordLink} target="_blank" rel="noopener noreferrer" class="button is-link" title="Join Discord Server">
-              <span class="icon">
-                <i class="fab fa-discord"></i>
-              </span>
-              <span>Discord</span>
-            </a>
-          </div>
-        )}
-      </div>
+      )}
     </div>
   </div>
 
@@ -325,128 +369,122 @@ if (Astro.request.method === 'POST') {
   <div class="columns">
     <div class={`column ${isAdmin ? 'is-9-desktop' : ''}`}>
       <!-- Announcements Section -->
-      <div class="box mb-5">
-    <div class="level">
-      <div class="level-left">
-        <div class="level-item">
-          <h2 class="title is-4">
-            <span class="icon-text">
-              <span class="icon">
-                <i class="fas fa-bullhorn"></i>
-              </span>
-              <span>Recent Announcements</span>
-            </span>
-          </h2>
-        </div>
-      </div>
-      <div class="level-right">
-        <div class="level-item">
-          <a href={`/ensembles/${id}/announcements`} class="button is-small is-link">
-            View All
-          </a>
-        </div>
-      </div>
-    </div>
+      <DashboardSection
+        title="Recent Announcements"
+        viewAllHref={`/ensembles/${id}/announcements`}
+        viewAllColor="is-link"
+      >
+        {latestAnnouncements.length === 0 ? (
+          <div class="notification is-info is-light">
+            <p class="has-text-centered">No announcements yet.</p>
+            {isAdmin && (
+              <p class="has-text-centered mt-2">
+                <a href={`/ensembles/${id}/announcements`} class="button is-small is-link">
+                  Create First Announcement
+                </a>
+              </p>
+            )}
+          </div>
+        ) : (
+          <div class="ann-carousel">
+            <div class="ann-slides" style="height: 16rem; overflow-y: auto;">
+              {latestAnnouncements.map((announcement, i) => (
+                <div class="ann-slide" data-index={i} style={i === 0 ? '' : 'display:none'}>
+                  <article class="message is-link" style="margin-bottom: 0;">
+                    <div class="message-header">
+                      <p>{announcement.title}</p>
+                      <small class="has-text-weight-normal">
+                        {new Date(announcement.createdAt).toLocaleDateString()}
+                      </small>
+                    </div>
+                    <div class="message-body">
+                      <p style="white-space: pre-wrap;">{announcement.content}</p>
+                      <p class="mt-2">
+                        <small><em>— {announcement.creatorName}</em></small>
+                      </p>
+                    </div>
+                  </article>
+                </div>
+              ))}
+              <div class="ann-slide" data-index={latestAnnouncements.length} style="display:none">
+                <div class="has-text-centered" style="padding: 2rem 1rem;">
+                  <p class="mb-4 has-text-grey">See all announcements from this ensemble.</p>
+                  <a href={`/ensembles/${id}/announcements`} class="button is-link is-medium">
+                    <span class="icon"><i class="fas fa-bullhorn"></i></span>
+                    <span>View All Announcements</span>
+                  </a>
+                </div>
+              </div>
+            </div>
 
-    {latestAnnouncements.length === 0 ? (
-      <div class="notification is-info is-light">
-        <p class="has-text-centered">No announcements yet.</p>
-        {isAdmin && (
-          <p class="has-text-centered mt-2">
-            <a href={`/ensembles/${id}/announcements`} class="button is-small is-link">
-              Create First Announcement
-            </a>
-          </p>
+            <div class="ann-nav">
+              <button class="ann-arrow" id="ann-prev" aria-label="Previous announcement">
+                <i class="fas fa-chevron-left"></i>
+              </button>
+              <div class="ann-dots">
+                {latestAnnouncements.map((_, i) => (
+                  <button class="ann-dot" class:list={[{ 'ann-dot-active': i === 0 }]} data-target={i} aria-label={`Announcement ${i + 1}`}></button>
+                ))}
+                <button class="ann-dot ann-dot-viewall" data-target={latestAnnouncements.length} aria-label="View all"></button>
+              </div>
+              <button class="ann-arrow" id="ann-next" aria-label="Next announcement">
+                <i class="fas fa-chevron-right"></i>
+              </button>
+            </div>
+          </div>
         )}
-      </div>
-    ) : (
-      latestAnnouncements.map((announcement) => (
-        <article class="message is-link">
-          <div class="message-header">
-            <p>{announcement.title}</p>
-            <small class="has-text-weight-normal">
-              {new Date(announcement.createdAt).toLocaleDateString()}
-            </small>
-          </div>
-          <div class="message-body">
-            <p style="white-space: pre-wrap;">{announcement.content}</p>
-            <p class="mt-2">
-              <small><em>— {announcement.creatorName}</em></small>
-            </p>
-          </div>
-        </article>
-      ))
-    )}
-      </div>
+      </DashboardSection>
 
       <!-- Upcoming Rehearsals Section -->
-      <div class="box mb-5">
-        <div class="level">
-          <div class="level-left">
-            <div class="level-item">
-              <h2 class="title is-4">
-                <span class="icon-text">
-                  <span class="icon">
-                    <i class="fas fa-music"></i>
-                  </span>
-                  <span>Upcoming Rehearsals</span>
-                </span>
-              </h2>
-            </div>
-          </div>
-          <div class="level-right">
-            <div class="level-item">
-              <a href={`/ensembles/${id}/rehearsals`} class="button is-small is-primary">
-                View All
-              </a>
-            </div>
-          </div>
-        </div>
-
+      <DashboardSection
+        title="Upcoming Rehearsals"
+        viewAllHref={`/ensembles/${id}/events`}
+        viewAllColor="is-primary"
+      >
         {upcomingRehearsals.length === 0 ? (
           <div class="notification is-info is-light">
             <p class="has-text-centered">No upcoming rehearsals.</p>
             {isAdmin && (
               <p class="has-text-centered mt-2">
-                <a href={`/ensembles/${id}/rehearsals`} class="button is-small is-primary">
-                  Schedule Rehearsal
+                <a href={`/ensembles/${id}/events`} class="button is-small is-primary">
+                  Schedule Event
                 </a>
               </p>
             )}
           </div>
         ) : (
           <div class="content">
-            {upcomingRehearsals.map((rehearsal) => {
-              const scheduledDate = new Date(rehearsal.scheduledAt);
+            {upcomingRehearsals.map((event) => {
+              const scheduledDate = new Date(event.scheduledAt);
               const isToday = scheduledDate.toDateString() === new Date().toDateString();
-              
+
               return (
                 <article class={`message ${isToday ? 'is-success' : 'is-primary'}`}>
                   <div class="message-header">
-                    <p>
-                      {rehearsal.title}
+                    <a href={`/ensembles/${id}/events/${event.id}`} class="has-text-white">
+                      {event.title}
                       {isToday && <span class="tag is-light ml-2">Today</span>}
-                    </p>
+                    </a>
                     <small class="has-text-weight-normal">
                       {scheduledDate.toLocaleDateString()} at {scheduledDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </small>
                   </div>
                   <div class="message-body">
-                    {rehearsal.location && (
+                    {event.location && (
                       <p class="mb-2">
                         <span class="icon-text">
                           <span class="icon">
                             <i class="fas fa-map-marker-alt"></i>
                           </span>
-                          <span>{rehearsal.location}</span>
+                          <span>{event.location}</span>
                         </span>
                       </p>
                     )}
-                    {rehearsal.description && (
-                      <p style="white-space: pre-wrap;">{rehearsal.description}</p>
+                    {event.description && (
+                      <p style="white-space: pre-wrap;">{event.description}</p>
                     )}
                     <p class="mt-2">
-                      <small>Duration: {rehearsal.durationMinutes} minutes</small>
+                      <small>Duration: {event.durationMinutes} minutes</small>
                     </p>
                   </div>
                 </article>
@@ -454,28 +492,119 @@ if (Astro.request.method === 'POST') {
             })}
           </div>
         )}
-      </div>
+      </DashboardSection>
 
-      <div class="box">
-        <div class="level mb-4">
-          <div class="level-left">
-            <div class="level-item">
-              <h2 class="title is-4">Members ({members.length})</h2>
-            </div>
-          </div>
-          {isAdmin && (
-            <div class="level-right">
-              <div class="level-item">
-                <a href={`/ensembles/${id}/members`} class="button is-small">
-                  <span class="icon">
-                    <i class="fas fa-cog"></i>
-                  </span>
-                  <span>Manage Members</span>
+      <!-- Upcoming Performances Section -->
+      <DashboardSection
+        title="Upcoming Performances"
+        viewAllHref={`/ensembles/${id}/events`}
+        viewAllColor="is-warning"
+      >
+        {upcomingPerformances.length === 0 ? (
+          <div class="notification is-info is-light">
+            <p class="has-text-centered">No upcoming performances.</p>
+            {isAdmin && (
+              <p class="has-text-centered mt-2">
+                <a href={`/ensembles/${id}/events`} class="button is-small is-warning">
+                  Schedule Performance
                 </a>
-              </div>
+              </p>
+            )}
+          </div>
+        ) : (
+          <div class="content">
+            {upcomingPerformances.map((event) => {
+              const scheduledDate = new Date(event.scheduledAt);
+              const isToday = scheduledDate.toDateString() === new Date().toDateString();
+
+              return (
+                <article class={`message ${isToday ? 'is-success' : 'is-warning'}`}>
+                  <div class="message-header">
+                    <a href={`/ensembles/${id}/events/${event.id}`} class="has-text-white">
+                      {event.title}
+                      {isToday && <span class="tag is-light ml-2">Today</span>}
+                    </a>
+                    <small class="has-text-weight-normal">
+                      {scheduledDate.toLocaleDateString()} at {scheduledDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </small>
+                  </div>
+                  <div class="message-body">
+                    {event.location && (
+                      <p class="mb-2">
+                        <span class="icon-text">
+                          <span class="icon">
+                            <i class="fas fa-map-marker-alt"></i>
+                          </span>
+                          <span>{event.location}</span>
+                        </span>
+                      </p>
+                    )}
+                    {event.description && (
+                      <p style="white-space: pre-wrap;">{event.description}</p>
+                    )}
+                    <p class="mt-2">
+                      <small>Duration: {event.durationMinutes} minutes</small>
+                    </p>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        )}
+      </DashboardSection>
+
+      <!-- Season Songs Section -->
+      {currentSeason && (
+        <DashboardSection
+          title={`${currentSeason.name} Repertoire`}
+          viewAllHref={`/ensembles/${id}/songs`}
+          viewAllColor="is-info"
+        >
+          {seasonSongs.length === 0 ? (
+            <div class="notification is-info is-light">
+              <p class="has-text-centered">No songs added to this season yet.</p>
+              {isAdmin && (
+                <p class="has-text-centered mt-2">
+                  <a href={`/ensembles/${id}/songs`} class="button is-small is-info">
+                    Add Songs
+                  </a>
+                </p>
+              )}
             </div>
+          ) : (
+            <table class="table is-fullwidth is-hoverable">
+              <tbody>
+                {seasonSongs.map((song) => {
+                  const minutes = song.runTime ? Math.floor(song.runTime / 60) : null;
+                  const seconds = song.runTime ? String(song.runTime % 60).padStart(2, '0') : null;
+                  return (
+                    <tr>
+                      <td>
+                        <a href={`/ensembles/${id}/songs/${song.id}`} class="has-text-weight-semibold">{song.name}</a>
+                        <p class="is-size-7 has-text-grey">
+                          {song.composer ?? 'Unknown'}
+                          {song.arranger && ` — arr. ${song.arranger}`}
+                        </p>
+                      </td>
+                      <td class="has-text-right has-text-grey is-size-7" style="vertical-align: middle; white-space: nowrap;">
+                        {minutes !== null ? `${minutes}:${seconds}` : ''}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           )}
-        </div>
+        </DashboardSection>
+      )}
+
+      <DashboardSection
+        title={`Members (${members.length})`}
+        viewAllHref={isAdmin ? `/ensembles/${id}/members` : undefined}
+        viewAllLabel="View All"
+        viewAllColor="is-warning"
+        class="mb-0"
+      >
         
         {allParts.length > 0 ? (
           <>
@@ -587,7 +716,7 @@ if (Astro.request.method === 'POST') {
             ))}
           </div>
         )}
-      </div>
+      </DashboardSection>
 
       <a href="/ensembles" class="button">
         <span class="icon">
@@ -610,55 +739,13 @@ if (Astro.request.method === 'POST') {
             </span>
           </h2>
           
-          <div class="buttons is-flex is-flex-direction-column">
-            <a href={`/ensembles/${id}/edit`} class="button is-fullwidth">
-              <span class="icon">
-                <i class="fas fa-edit"></i>
-              </span>
-              <span>Edit Ensemble</span>
-            </a>
-            <a href={`/ensembles/${id}/members`} class="button is-fullwidth">
-              <span class="icon">
-                <i class="fas fa-users"></i>
-              </span>
-              <span>Manage Members</span>
-            </a>
-            <a href={`/ensembles/${id}/songs`} class="button is-fullwidth">
-              <span class="icon">
-                <i class="fas fa-music"></i>
-              </span>
-              <span>Manage Songs</span>
-            </a>
-            <a href={`/ensembles/${id}/rehearsals`} class="button is-fullwidth">
-              <span class="icon">
-                <i class="fas fa-calendar-check"></i>
-              </span>
-              <span>Manage Rehearsals</span>
-            </a>
-            <a href={`/ensembles/${id}/announcements`} class="button is-fullwidth">
-              <span class="icon">
-                <i class="fas fa-bullhorn"></i>
-              </span>
-              <span>Manage Announcements</span>
-            </a>
-            <a href={`/ensembles/${id}/parts`} class="button is-fullwidth">
-              <span class="icon">
-                <i class="fas fa-list"></i>
-              </span>
-              <span>Manage Parts</span>
-            </a>
-            <a href={`/ensembles/${id}/seasons`} class="button is-fullwidth">
-              <span class="icon">
-                <i class="fas fa-calendar-alt"></i>
-              </span>
-              <span>Manage Seasons</span>
-            </a>
-            <a href={`/ensembles/${id}/groups`} class="button is-fullwidth">
-              <span class="icon">
-                <i class="fas fa-users-cog"></i>
-              </span>
-              <span>Manage Groups</span>
-            </a>
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem;">
+            {ensembleAdminTools.map((tool) => (
+              <a href={tool.href(id!)} class="button" style="height: auto; padding: 0.75rem 0.25rem; flex-direction: column; align-items: center; justify-content: center;">
+                <i class={`fas ${tool.icon} fa-lg mb-1`}></i>
+                <span class="is-size-7">{tool.label}</span>
+              </a>
+            ))}
           </div>
         </div>
 
@@ -725,97 +812,86 @@ if (Astro.request.method === 'POST') {
           </div>
         )}
 
-        <div class="box">
-          <h2 class="title is-5 mb-4">
-            <span class="icon-text">
-              <span class="icon">
-                <i class="fas fa-key"></i>
-              </span>
-              <span>Invite Codes</span>
-            </span>
-          </h2>
-          <p class="mb-4 is-size-7">Share these codes with new members to join the ensemble</p>
-          
-          <div class="mb-4">
-            <form method="POST">
-              <input type="hidden" name="action" value="create-invite" />
-              <button type="submit" class="button is-success is-small is-fullwidth">
-                <span class="icon">
-                  <i class="fas fa-plus"></i>
-                </span>
-                <span>Generate Code</span>
-              </button>
-            </form>
-          </div>
-
-          {invites.length > 0 ? (
-            <div class="content">
-              {invites.map((invite) => {
-                const inviteUrl = `${Astro.url.origin}/invite/join?code=${invite.code}`;
-                return (
-                  <div class="box p-3 mb-2">
-                    <div class="is-flex is-flex-direction-column">
-                      <div class="field has-addons mb-2">
-                        <div class="control is-expanded">
-                          <input 
-                            type="text" 
-                            class="input is-small is-family-monospace" 
-                            value={inviteUrl} 
-                            readonly 
-                            id={`invite-${invite.id}`}
-                          />
-                        </div>
-                        <div class="control">
-                          <button 
-                            type="button"
-                            class="button is-info is-small"
-                            onclick={`
-                              const input = document.getElementById('invite-${invite.id}');
-                              input.select();
-                              navigator.clipboard.writeText(input.value).then(() => {
-                                const btn = this;
-                                const originalHTML = btn.innerHTML;
-                                btn.innerHTML = '<span class="icon"><i class="fas fa-check"></i></span><span>Copied!</span>';
-                                btn.classList.add('is-success');
-                                btn.classList.remove('is-info');
-                                setTimeout(() => {
-                                  btn.innerHTML = originalHTML;
-                                  btn.classList.remove('is-success');
-                                  btn.classList.add('is-info');
-                                }, 2000);
-                              });
-                            `}
-                          >
-                            <span class="icon">
-                              <i class="fas fa-copy"></i>
-                            </span>
-                            <span>Copy</span>
-                          </button>
-                        </div>
-                      </div>
-                      <small class="has-text-grey mb-2">
-                        Created {new Date(invite.createdAt).toLocaleDateString()}
-                      </small>
-                      <form method="POST">
-                        <input type="hidden" name="action" value="delete-invite" />
-                        <input type="hidden" name="inviteId" value={invite.id} />
-                        <button type="submit" class="button is-danger is-small is-fullwidth">
-                          Delete
-                        </button>
-                      </form>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <div class="notification is-info is-light is-size-7">
-              No invite codes yet.
-            </div>
-          )}
-        </div>
+        <InviteCodeWidget invites={invites} />
       </div>
     )}
   </div>
   )}
 </Layout>
+
+<style>
+  .ann-carousel { position: relative; }
+  .ann-nav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    margin-top: 0.875rem;
+  }
+  .ann-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    border: 1px solid #dbdbdb;
+    background: transparent;
+    cursor: pointer;
+    color: inherit;
+    transition: background 0.2s, border-color 0.2s;
+    flex-shrink: 0;
+  }
+  .ann-arrow:hover { background: #f5f5f5; border-color: #b5b5b5; }
+  .ann-arrow:disabled { opacity: 0.35; cursor: default; }
+  .ann-dots {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+  .ann-dot {
+    display: block;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #dbdbdb;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    /* larger hit area without changing visual size */
+    box-shadow: 0 0 0 6px transparent;
+    transition: background 0.2s, box-shadow 0.2s;
+  }
+  .ann-dot:hover { box-shadow: 0 0 0 6px #f0f0f0; }
+  .ann-dot-viewall {
+    border-radius: 50%;
+    width: 14px;
+  }
+  .ann-dot-active { background: #3273dc; }
+</style>
+
+<script>
+  document.querySelectorAll('.ann-carousel').forEach((carousel) => {
+    const slides = Array.from(carousel.querySelectorAll<HTMLElement>('.ann-slide'));
+    const dots = Array.from(carousel.querySelectorAll<HTMLElement>('.ann-dot'));
+    const prevBtn = carousel.querySelector<HTMLButtonElement>('#ann-prev');
+    const nextBtn = carousel.querySelector<HTMLButtonElement>('#ann-next');
+    let current = 0;
+
+    function goTo(index: number) {
+      current = index;
+      slides.forEach((slide, i) => { slide.style.display = i === current ? '' : 'none'; });
+      dots.forEach((d) => d.classList.remove('ann-dot-active'));
+      dots[current]?.classList.add('ann-dot-active');
+      if (prevBtn) prevBtn.disabled = current === 0;
+      if (nextBtn) nextBtn.disabled = current === slides.length - 1;
+    }
+
+    dots.forEach((dot, i) => dot.addEventListener('click', () => goTo(i)));
+    prevBtn?.addEventListener('click', () => goTo(Math.max(0, current - 1)));
+    nextBtn?.addEventListener('click', () => goTo(Math.min(slides.length - 1, current + 1)));
+
+    goTo(0);
+  });
+</script>

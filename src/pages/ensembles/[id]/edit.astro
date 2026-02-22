@@ -1,13 +1,11 @@
 ---
 import Layout from '../../../layouts/Layout.astro';
-import { db, eq, and, Ensemble, EnsembleMember } from 'astro:db';
+import { db, eq, and, Ensemble, EnsembleMember, EnsembleLink } from 'astro:db';
 import { fileToDataUri, validateImageFile } from '../../../lib/upload';
 import { canManageEnsemble } from '../../../lib/permissions';
+import { ensembleAdminTools } from '../../../lib/config';
 
-const user = Astro.locals.user;
-if (!user) {
-  return Astro.redirect('/login');
-}
+const user = Astro.locals.user!;
 
 const { id } = Astro.params;
 
@@ -35,12 +33,44 @@ if (!isAdmin) {
   return new Response('Unauthorized', { status: 403 });
 }
 
+// Get ensemble links
+const ensembleLinks = await db
+  .select()
+  .from(EnsembleLink)
+  .where(eq(EnsembleLink.ensembleId, id!))
+  .orderBy(EnsembleLink.sortOrder, EnsembleLink.createdAt);
+
 let message = '';
 let messageType = '';
 
 // Handle form submission
 if (Astro.request.method === 'POST') {
   const formData = await Astro.request.formData();
+  const action = formData.get('action')?.toString();
+
+  if (action === 'add-link') {
+    const label = formData.get('label')?.toString()?.trim();
+    const url = formData.get('url')?.toString()?.trim();
+    if (label && url) {
+      await db.insert(EnsembleLink).values({
+        id: crypto.randomUUID(),
+        ensembleId: id!,
+        label,
+        url,
+        sortOrder: ensembleLinks.length,
+      });
+    }
+    return Astro.redirect(`/ensembles/${id}/edit`);
+  }
+
+  if (action === 'delete-link') {
+    const linkId = formData.get('linkId')?.toString();
+    if (linkId) {
+      await db.delete(EnsembleLink).where(and(eq(EnsembleLink.id, linkId), eq(EnsembleLink.ensembleId, id!)));
+    }
+    return Astro.redirect(`/ensembles/${id}/edit`);
+  }
+
   const name = formData.get('name')?.toString();
   const description = formData.get('description')?.toString();
   const discordLink = formData.get('discordLink')?.toString();
@@ -100,6 +130,25 @@ if (Astro.request.method === 'POST') {
 ---
 
 <Layout title={`Edit ${ensemble.name}`}>
+  <div class="navbar-item has-dropdown is-hoverable" slot="navbar-start">
+    <a class="navbar-link">{ensemble.name}</a>
+    <div class="navbar-dropdown">
+      <a class={`navbar-item${Astro.url.pathname === `/ensembles/${id}` ? ' is-active' : ''}`} href={`/ensembles/${id}`}>
+        <span class="icon is-small mr-1"><i class="fas fa-home"></i></span>
+        Dashboard
+      </a>
+      <hr class="navbar-divider" />
+      {ensembleAdminTools.map((tool) => {
+        const href = tool.href(id!);
+        return (
+          <a class={`navbar-item${Astro.url.pathname.startsWith(href) ? ' is-active' : ''}`} href={href}>
+            <span class="icon is-small mr-1"><i class={`fas ${tool.icon}`}></i></span>
+            {tool.label}
+          </a>
+        );
+      })}
+    </div>
+  </div>
   <section class="section">
     <div class="container">
       <nav class="breadcrumb" aria-label="breadcrumbs">
@@ -165,6 +214,43 @@ if (Astro.request.method === 'POST') {
                   </span>
                 </div>
                 <p class="help">Optional Discord server invite link for this ensemble</p>
+              </div>
+
+              <div class="field">
+                <label class="label">Links</label>
+                <p class="help mb-3">Add arbitrary links (e.g. sheet music, website, calendar) shown on the ensemble page</p>
+
+                {ensembleLinks.length > 0 && (
+                  <div class="mb-3">
+                    {ensembleLinks.map((link) => (
+                      <div class="field has-addons mb-2">
+                        <div class="control is-expanded">
+                          <input class="input is-static" type="text" readonly value={`${link.label} — ${link.url}`} />
+                        </div>
+                        <div class="control">
+                          <button type="submit" form={`delete-link-${link.id}`} class="button is-danger is-light" title="Remove link">
+                            <span class="icon"><i class="fas fa-times"></i></span>
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div class="field is-grouped">
+                  <div class="control" style="flex: 0 0 10rem;">
+                    <input class="input" type="text" form="add-link-form" name="label" placeholder="Label" maxlength="50" />
+                  </div>
+                  <div class="control is-expanded">
+                    <input class="input" type="url" form="add-link-form" name="url" placeholder="https://..." />
+                  </div>
+                  <div class="control">
+                    <button type="submit" form="add-link-form" class="button is-link is-light">
+                      <span class="icon"><i class="fas fa-plus"></i></span>
+                      <span>Add</span>
+                    </button>
+                  </div>
+                </div>
               </div>
 
               <div class="field">
@@ -282,6 +368,17 @@ if (Astro.request.method === 'POST') {
                 </div>
               </div>
             </form>
+
+            <!-- Out-of-band forms for links (nested forms are invalid HTML) -->
+            <form id="add-link-form" method="POST">
+              <input type="hidden" name="action" value="add-link" />
+            </form>
+            {ensembleLinks.map((link) => (
+              <form id={`delete-link-${link.id}`} method="POST">
+                <input type="hidden" name="action" value="delete-link" />
+                <input type="hidden" name="linkId" value={link.id} />
+              </form>
+            ))}
           </div>
         </div>
 

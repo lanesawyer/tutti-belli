@@ -1,0 +1,111 @@
+---
+interface Props {
+  invites: Array<{
+    id: string;
+    code: string;
+    createdAt: Date;
+  }>;
+}
+
+const { invites } = Astro.props;
+---
+
+<div class="box">
+  <h2 class="title is-5">
+    <span class="icon-text">
+      <span class="icon">
+        <i class="fas fa-key"></i>
+      </span>
+      <span>Invite Codes</span>
+    </span>
+  </h2>
+  <p class="mb-4 is-size-7">Share these codes with new members to join the ensemble</p>
+  
+  <div class="mb-4">
+    <form method="POST">
+      <input type="hidden" name="action" value="create-invite" />
+      <button type="submit" class="button is-success is-small is-fullwidth">
+        <span class="icon">
+          <i class="fas fa-plus"></i>
+        </span>
+        <span>Generate Code</span>
+      </button>
+    </form>
+  </div>
+
+  {invites.length > 0 ? (
+    <div class="content">
+      {invites.map((invite) => {
+        const inviteUrl = new URL(`/invite/join?code=${invite.code}`, Astro.site).toString();
+        return (
+          <div class="box p-3 mb-2">
+            <div class="is-flex is-flex-direction-column">
+              <div class="field has-addons mb-2">
+                <div class="control is-expanded">
+                  <input 
+                    type="text" 
+                    class="input is-small is-family-monospace" 
+                    value={inviteUrl} 
+                    readonly 
+                    id={`invite-${invite.id}`}
+                  />
+                </div>
+                <div class="control">
+                  <button 
+                    type="button"
+                    class="button is-info is-small copy-invite-btn"
+                    data-invite-id={invite.id}
+                  >
+                    <span class="icon">
+                      <i class="fas fa-copy"></i>
+                    </span>
+                    <span>Copy</span>
+                  </button>
+                </div>
+              </div>
+              <small class="has-text-grey mb-2">
+                Created {new Date(invite.createdAt).toLocaleDateString()}
+              </small>
+              <form method="POST">
+                <input type="hidden" name="action" value="delete-invite" />
+                <input type="hidden" name="inviteId" value={invite.id} />
+                <button type="submit" class="button is-danger is-small is-fullwidth">
+                  Delete
+                </button>
+              </form>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  ) : (
+    <div class="notification is-info is-light is-size-7">
+      No invite codes yet.
+    </div>
+  )}
+</div>
+
+<script>
+  document.querySelectorAll('.copy-invite-btn').forEach(btn => {
+    btn.addEventListener('click', function(this: HTMLButtonElement) {
+      const inviteId = this.getAttribute('data-invite-id');
+      const input = document.getElementById(`invite-${inviteId}`);
+      
+      if (input instanceof HTMLInputElement) {
+        input.select();
+        navigator.clipboard.writeText(input.value).then(() => {
+          const originalHTML = this.innerHTML;
+          this.innerHTML = '<span class="icon"><i class="fas fa-check"></i></span><span>Copied!</span>';
+          this.classList.add('is-success');
+          this.classList.remove('is-info');
+          
+          setTimeout(() => {
+            this.innerHTML = originalHTML;
+            this.classList.remove('is-success');
+            this.classList.add('is-info');
+          }, 2000);
+        });
+      }
+    });
+  });
+</script>

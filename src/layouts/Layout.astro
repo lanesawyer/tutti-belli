@@ -1,14 +1,16 @@
 ---
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+
 interface Props {
   title: string;
 }
 
 const { title } = Astro.props;
-const user = Astro.locals.user;
 ---
 
 <!doctype html>
-<html lang="en" data-theme="light">
+<html lang="en" data-theme="light" class="has-navbar-fixed-top">
   <head>
     <meta charset="UTF-8" />
     <meta name="description" content="Ensemble Management System" />
@@ -21,14 +23,14 @@ const user = Astro.locals.user;
       (function() {
         const savedTheme = localStorage.getItem('theme');
         let theme;
-        
+
         if (savedTheme) {
           theme = savedTheme;
         } else {
           // Auto-detect system preference
           theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
         }
-        
+
         document.documentElement.setAttribute('data-theme', theme);
       })();
     </script>
@@ -62,12 +64,7 @@ const user = Astro.locals.user;
         background-color: var(--body-bg);
         color: var(--body-text);
       }
-<div class="navbar-item">
-              <button id="theme-toggle" title="Toggle dark mode">
-                <i class="fas fa-moon" id="theme-icon"></i>
-              </button>
-            </div>
-            
+
       [data-theme="dark"] .box {
         background-color: var(--box-bg);
         box-shadow: var(--box-shadow);
@@ -146,83 +143,12 @@ const user = Astro.locals.user;
       [data-theme="dark"] .select:not(.is-multiple):not(.is-loading)::after {
         border-color: var(--body-text);
       }
-
-      #theme-toggle {
-        cursor: pointer;
-        background: transparent;
-        border: none;
-        color: var(--navbar-text);
-        font-size: 1.25rem;
-        padding: 0.5rem;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-
-      #theme-toggle:hover {
-        opacity: 0.8;
-      }
     </style>
   </head>
   <body>
-    <nav class="navbar is-dark" role="navigation" aria-label="main navigation">
-      <div class="container">
-        <div class="navbar-brand">
-          <a class="navbar-item" href="/">
-            <strong>🎵 Ensemble Management</strong>
-          </a>
-          <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false" data-target="navbarMenu">
-            <span aria-hidden="true"></span>
-            <span aria-hidden="true"></span>
-            <span aria-hidden="true"></span>
-          </a>
-        </div>
-
-        <div id="navbarMenu" class="navbar-menu">
-          <div class="navbar-start">
-            {user && (
-              <>
-                <a class="navbar-item" href="/ensembles">My Ensembles</a>
-                {user.role === 'admin' && (
-                  <a class="navbar-item" href="/admin">Admin Panel</a>
-                )}
-              </>
-            )}
-          </div>
-
-          <div class="navbar-end">
-            <div class="navbar-item">
-              <button id="theme-toggle" title="Toggle dark mode">
-                <i class="fas fa-moon" id="theme-icon"></i>
-              </button>
-            </div>
-            {user ? (
-              <div class="navbar-item has-dropdown is-hoverable">
-                <a class="navbar-link">
-                  {user.name}
-                </a>
-                <div class="navbar-dropdown">
-                  <a class="navbar-item" href="/profile">Profile</a>
-                  <hr class="navbar-divider">
-                  <a class="navbar-item" href="/logout">Logout</a>
-                </div>
-              </div>
-            ) : (
-              <div class="navbar-item">
-                <div class="buttons">
-                  <a class="button is-primary" href="/register">
-                    <strong>Sign up</strong>
-                  </a>
-                  <a class="button is-light" href="/login">
-                    Log in
-                  </a>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    </nav>
+    <Header>
+      <slot name="navbar-start" slot="navbar-start" />
+    </Header>
 
     <main class="section">
       <div class="container">
@@ -230,68 +156,6 @@ const user = Astro.locals.user;
       </div>
     </main>
 
-    <footer class="footer">
-      <div class="content has-text-centered">
-        <p>
-          <strong>Ensemble Management System</strong> - Managing musical ensembles with ease.
-        </p>
-      </div>
-    </footer>
-
-    <script>
-      // Mobile menu toggle
-      document.addEventListener('DOMContentLoaded', () => {
-        const $navbarBurgers = Array.prototype.slice.call(document.querySelectorAll('.navbar-burger'), 0);
-        $navbarBurgers.forEach(el => {
-          el.addEventListener('click', () => {
-            const target = el.dataset.target;
-            const $target = document.getElementById(target);
-            el.classList.toggle('is-active');
-            $target?.classList.toggle('is-active');
-          });
-        });
-
-        // Theme toggle - wait for Font Awesome to load
-        const html = document.documentElement;
-        const themeToggle = document.getElementById('theme-toggle');
-
-        const updateIcon = (theme: string) => {
-          if (themeToggle) {
-            // Replace the icon element so Font Awesome re-processes it
-            if (theme === 'dark') {
-              themeToggle.innerHTML = '<i class="fas fa-sun" id="theme-icon"></i>';
-            } else {
-              themeToggle.innerHTML = '<i class="fas fa-moon" id="theme-icon"></i>';
-            }
-          }
-        };
-
-        // Set initial icon after a brief delay for Font Awesome to load
-        setTimeout(() => {
-          const currentTheme = html.getAttribute('data-theme') || 'light';
-          updateIcon(currentTheme);
-        }, 200);
-          
-        // Toggle theme on button click
-        themeToggle?.addEventListener('click', () => {
-          const currentTheme = html.getAttribute('data-theme') || 'light';
-          const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-          
-          html.setAttribute('data-theme', newTheme);
-          localStorage.setItem('theme', newTheme);
-          updateIcon(newTheme);
-        });
-
-        // Listen for system theme changes
-        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
-          // Only auto-update if user hasn't manually set a preference
-          if (!localStorage.getItem('theme')) {
-            const newTheme = e.matches ? 'dark' : 'light';
-            html.setAttribute('data-theme', newTheme);
-            updateIcon(newTheme);
-          }
-        });
-      });
-    </script>
+    <Footer />
   </body>
 </html>

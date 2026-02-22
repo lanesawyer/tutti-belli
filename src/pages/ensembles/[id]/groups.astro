@@ -1,12 +1,11 @@
 ---
-import Layout from '../../../layouts/Layout.astro';
+import EnsemblePageLayout from '../../../layouts/EnsemblePageLayout.astro';
+import Table from '../../../components/Table.astro';
+import Modal from '../../../components/Modal.astro';
 import { db, eq, and, desc, Ensemble, EnsembleMember, Group, GroupMembership, User } from 'astro:db';
 import { canManageEnsemble } from '../../../lib/permissions';
 
-const user = Astro.locals.user;
-if (!user) {
-  return Astro.redirect('/login');
-}
+const user = Astro.locals.user!;
 
 const { id } = Astro.params;
 
@@ -62,7 +61,6 @@ if (Astro.request.method === 'POST') {
         description: description?.trim() || null,
         color,
       });
-
       message = 'Group created successfully!';
       messageType = 'success';
     }
@@ -75,22 +73,15 @@ if (Astro.request.method === 'POST') {
     if (groupId && name && name.trim()) {
       await db
         .update(Group)
-        .set({
-          name: name.trim(),
-          description: description?.trim() || null,
-          color,
-        })
+        .set({ name: name.trim(), description: description?.trim() || null, color })
         .where(eq(Group.id, groupId));
-
       message = 'Group updated successfully!';
       messageType = 'success';
     }
   } else if (action === 'delete') {
     const groupId = formData.get('groupId')?.toString();
     if (groupId) {
-      // Delete group memberships first
       await db.delete(GroupMembership).where(eq(GroupMembership.groupId, groupId));
-      // Delete group
       await db.delete(Group).where(eq(Group.id, groupId));
       message = 'Group deleted successfully!';
       messageType = 'success';
@@ -100,26 +91,20 @@ if (Astro.request.method === 'POST') {
     const userId = formData.get('userId')?.toString();
 
     if (groupId && userId) {
-      // Check if member is already in group
       const [existing] = await db
         .select()
         .from(GroupMembership)
         .where(and(eq(GroupMembership.groupId, groupId), eq(GroupMembership.userId, userId)));
 
       if (existing) {
-        // Remove from group
         await db.delete(GroupMembership).where(eq(GroupMembership.id, existing.id));
-        message = 'Member removed from group';
       } else {
-        // Add to group
         await db.insert(GroupMembership).values({
           id: crypto.randomUUID(),
           groupId,
           userId,
         });
-        message = 'Member added to group';
       }
-      messageType = 'success';
     }
   }
 }
@@ -133,31 +118,20 @@ const groups = await db
 
 // Get all ensemble members
 const allMembers = await db
-  .select({
-    id: User.id,
-    name: User.name,
-    email: User.email,
-  })
+  .select({ id: User.id, name: User.name, email: User.email })
   .from(EnsembleMember)
   .innerJoin(User, eq(EnsembleMember.userId, User.id))
   .where(eq(EnsembleMember.ensembleId, id!));
 
-// Get group memberships for all groups
+// Get group memberships
 const groupMemberships = await db
-  .select({
-    groupId: GroupMembership.groupId,
-    userId: GroupMembership.userId,
-    userName: User.name,
-  })
+  .select({ groupId: GroupMembership.groupId, userId: GroupMembership.userId, userName: User.name })
   .from(GroupMembership)
   .innerJoin(User, eq(GroupMembership.userId, User.id));
 
-// Group memberships by groupId
-const membershipsByGroupId = groupMemberships.reduce((acc, membership) => {
-  if (!acc[membership.groupId]) {
-    acc[membership.groupId] = [];
-  }
-  acc[membership.groupId].push(membership);
+const membershipsByGroupId = groupMemberships.reduce((acc, m) => {
+  if (!acc[m.groupId]) acc[m.groupId] = [];
+  acc[m.groupId].push(m);
   return acc;
 }, {} as Record<string, typeof groupMemberships>);
 
@@ -171,422 +145,267 @@ const colorOptions = [
 ];
 ---
 
-<Layout title={`Groups - ${ensemble.name}`}>
-  <div class="container">
-    <nav class="breadcrumb mt-4" aria-label="breadcrumbs">
-      <ul>
-        <li><a href="/ensembles">Ensembles</a></li>
-        <li><a href={`/ensembles/${id}`}>{ensemble.name}</a></li>
-        <li class="is-active"><a href="#" aria-current="page">Groups</a></li>
-      </ul>
-    </nav>
+<EnsemblePageLayout
+  title={`Groups - ${ensemble.name}`}
+  ensembleName={ensemble.name}
+  ensembleId={id!}
+  pageTitle="Groups"
+  pageSubtitle="Organize members into groups for better management"
+  message={message}
+  messageType={messageType}
+  isAdmin={isAdmin}
+>
+  {isAdmin && (
+    <button slot="action" class="button is-primary" id="create-group-btn">
+      <span class="icon"><i class="fas fa-plus"></i></span>
+      <span>Create Group</span>
+    </button>
+  )}
 
-    <div class="level mb-5">
-      <div class="level-left">
-        <div class="level-item">
-          <div>
-            <h1 class="title">Groups</h1>
-            <p class="subtitle">Organize members into groups for better management</p>
-          </div>
-        </div>
-      </div>
-      <div class="level-right">
-        <div class="level-item">
-          {isAdmin && (
-            <button class="button is-primary" id="create-group-btn">
-              <span class="icon">
-                <i class="fas fa-plus"></i>
-              </span>
-              <span>Create Group</span>
-            </button>
-          )}
-        </div>
-      </div>
+  {groups.length === 0 ? (
+    <div class="notification is-info is-light">
+      No groups yet. {isAdmin && 'Create one to organize your members!'}
     </div>
-
-    {message && (
-      <div class={`notification is-${messageType}`}>
-        {message}
-      </div>
-    )}
-
-    {groups.length === 0 ? (
-      <div class="notification is-info">
-        No groups yet. {isAdmin && 'Create one to organize your members!'}
-      </div>
-    ) : (
-      <div class="columns is-multiline">
+  ) : (
+    <Table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Description</th>
+          <th>Members</th>
+          {isAdmin && <th style="width: 160px;">Actions</th>}
+        </tr>
+      </thead>
+      <tbody>
         {groups.map((group) => {
           const members = membershipsByGroupId[group.id] || [];
-
           return (
-            <div class="column is-half">
-              <div class="card">
-                <header class="card-header">
-                  <p class="card-header-title">
-                    <span class={`tag is-${group.color} mr-2`}>{group.name}</span>
-                    <span class="has-text-grey-light">({members.length} members)</span>
-                  </p>
-                  {isAdmin && (
-                    <button class="card-header-icon edit-group-btn" data-group-id={group.id} aria-label="edit">
-                      <span class="icon">
-                        <i class="fas fa-edit"></i>
-                      </span>
-                    </button>
-                  )}
-                </header>
-                <div class="card-content">
-                  {group.description && (
-                    <div class="content mb-3">
-                      <p>{group.description}</p>
-                    </div>
-                  )}
-                  
-                  <div class="content">
-                    <p class="has-text-weight-semibold mb-2">Members</p>
-                    {members.length > 0 ? (
-                      <div class="tags">
-                        {members.map((m) => (
-                          <span class="tag">{m.userName}</span>
-                        ))}
-                      </div>
-                    ) : (
-                      <p class="has-text-grey-light is-italic">No members yet</p>
-                    )}
+            <tr>
+              <td>
+                <span class={`tag is-${group.color} mr-2`}>{group.name}</span>
+              </td>
+              <td>{group.description || '-'}</td>
+              <td>
+                {members.length > 0 ? (
+                  <div class="tags are-small">
+                    {members.map(m => <span class="tag">{m.userName}</span>)}
                   </div>
-
-                  {isAdmin && (
-                    <div class="buttons mt-4">
-                      <button class="button is-small is-info manage-members-btn" data-group-id={group.id}>
-                        <span class="icon">
-                          <i class="fas fa-users"></i>
-                        </span>
-                        <span>Manage Members</span>
-                      </button>
-                      <button class="button is-small is-danger delete-group-btn" data-group-id={group.id}>
-                        <span class="icon">
-                          <i class="fas fa-trash"></i>
-                        </span>
-                        <span>Delete</span>
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
+                ) : (
+                  <span class="has-text-grey-light is-italic">None</span>
+                )}
+              </td>
+              {isAdmin && (
+                <td>
+                  <div class="buttons are-small">
+                    <button
+                      class="button is-info manage-members-btn"
+                      data-group-id={group.id}
+                    >
+                      <span class="icon"><i class="fas fa-users"></i></span>
+                    </button>
+                    <button
+                      class="button is-warning edit-group-btn"
+                      data-group-id={group.id}
+                      data-group-name={group.name}
+                      data-group-description={group.description || ''}
+                      data-group-color={group.color}
+                    >
+                      <span class="icon"><i class="fas fa-edit"></i></span>
+                    </button>
+                    <button
+                      class="button is-danger delete-group-btn"
+                      data-group-id={group.id}
+                    >
+                      <span class="icon"><i class="fas fa-trash"></i></span>
+                    </button>
+                  </div>
+                </td>
+              )}
+            </tr>
           );
         })}
-      </div>
-    )}
-  </div>
-
-  <!-- Create Group Modal -->
-  {isAdmin && (
-    <div class="modal" id="create-modal">
-      <div class="modal-background"></div>
-      <div class="modal-card">
-        <header class="modal-card-head">
-          <p class="modal-card-title">Create Group</p>
-          <button class="delete" aria-label="close" id="close-create-modal"></button>
-        </header>
-        <form method="POST">
-          <section class="modal-card-body">
-            <input type="hidden" name="action" value="create" />
-            
-            <div class="field">
-              <label class="label" for="create-name">Group Name</label>
-              <div class="control">
-                <input
-                  class="input"
-                  type="text"
-                  id="create-name"
-                  name="name"
-                  placeholder="e.g., Section Leaders, Board Members"
-                  required
-                />
-              </div>
-            </div>
-
-            <div class="field">
-              <label class="label" for="create-description">Description</label>
-              <div class="control">
-                <textarea
-                  class="textarea"
-                  id="create-description"
-                  name="description"
-                  placeholder="Optional description of the group's purpose"
-                  rows="3"
-                ></textarea>
-              </div>
-            </div>
-
-            <div class="field">
-              <label class="label" for="create-color">Badge Color</label>
-              <div class="control">
-                <div class="select is-fullwidth">
-                  <select id="create-color" name="color">
-                    {colorOptions.map(option => (
-                      <option value={option.value} selected={option.value === 'info'}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            </div>
-          </section>
-          <footer class="modal-card-foot">
-            <button class="button is-primary" type="submit">Create Group</button>
-            <button class="button" type="button" id="cancel-create">Cancel</button>
-          </footer>
-        </form>
-      </div>
-    </div>
+      </tbody>
+    </Table>
   )}
 
-  <!-- Edit Group Modal -->
-  {isAdmin && (
-    <div class="modal" id="edit-modal">
-      <div class="modal-background"></div>
-      <div class="modal-card">
-        <header class="modal-card-head">
-          <p class="modal-card-title">Edit Group</p>
-          <button class="delete" aria-label="close" id="close-edit-modal"></button>
-        </header>
-        <form method="POST">
-          <section class="modal-card-body">
-            <input type="hidden" name="action" value="edit" />
-            <input type="hidden" name="groupId" id="edit-groupId" />
-            
-            <div class="field">
-              <label class="label" for="edit-name">Group Name</label>
-              <div class="control">
-                <input
-                  class="input"
-                  type="text"
-                  id="edit-name"
-                  name="name"
-                  required
-                />
-              </div>
-            </div>
+  <Fragment slot="modals">
+<!-- Create Group Modal -->
+{isAdmin && (
+  <Modal id="create-modal" title="Create Group">
+    <form id="createForm" method="POST">
+      <input type="hidden" name="action" value="create" />
 
-            <div class="field">
-              <label class="label" for="edit-description">Description</label>
-              <div class="control">
-                <textarea
-                  class="textarea"
-                  id="edit-description"
-                  name="description"
-                  rows="3"
-                ></textarea>
-              </div>
-            </div>
-
-            <div class="field">
-              <label class="label" for="edit-color">Badge Color</label>
-              <div class="control">
-                <div class="select is-fullwidth">
-                  <select id="edit-color" name="color">
-                    {colorOptions.map(option => (
-                      <option value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            </div>
-          </section>
-          <footer class="modal-card-foot">
-            <button class="button is-primary" type="submit">Save Changes</button>
-            <button class="button" type="button" id="cancel-edit">Cancel</button>
-          </footer>
-        </form>
+      <div class="field">
+        <label class="label" for="create-name">Group Name *</label>
+        <div class="control">
+          <input class="input" type="text" id="create-name" name="name" placeholder="e.g., Section Leaders, Board Members" required />
+        </div>
       </div>
-    </div>
-  )}
 
-  <!-- Manage Members Modal -->
-  {isAdmin && (
-    <div class="modal" id="members-modal">
-      <div class="modal-background"></div>
-      <div class="modal-card">
-        <header class="modal-card-head">
-          <p class="modal-card-title">Manage Group Members</p>
-          <button class="delete" aria-label="close" id="close-members-modal"></button>
-        </header>
-        <section class="modal-card-body">
-          <input type="hidden" id="members-groupId" />
-          
-          <div class="content">
-            <p class="mb-3">Select which members belong to this group:</p>
-            {allMembers.map((member) => (
-              <div class="field">
-                <div class="control">
-                  <label class="checkbox">
-                    <input
-                      type="checkbox"
-                      class="member-checkbox"
-                      data-user-id={member.id}
-                    />
-                    {member.name}
-                  </label>
-                </div>
-              </div>
-            ))}
+      <div class="field">
+        <label class="label" for="create-description">Description</label>
+        <div class="control">
+          <textarea class="textarea" id="create-description" name="description" placeholder="Optional description of the group's purpose" rows="3"></textarea>
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="label" for="create-color">Badge Color</label>
+        <div class="control">
+          <div class="select is-fullwidth">
+            <select id="create-color" name="color">
+              {colorOptions.map(option => (
+                <option value={option.value} selected={option.value === 'info'}>{option.label}</option>
+              ))}
+            </select>
           </div>
-        </section>
-        <footer class="modal-card-foot">
-          <button class="button" type="button" id="close-members-btn">Close</button>
-        </footer>
+        </div>
       </div>
-    </div>
-  )}
+    </form>
 
-  <!-- Delete Confirmation Modal -->
-  {isAdmin && (
-    <div class="modal" id="delete-modal">
-      <div class="modal-background"></div>
-      <div class="modal-card">
-        <header class="modal-card-head">
-          <p class="modal-card-title">Delete Group</p>
-          <button class="delete" aria-label="close" id="close-delete-modal"></button>
-        </header>
-        <form method="POST">
-          <section class="modal-card-body">
-            <input type="hidden" name="action" value="delete" />
-            <input type="hidden" name="groupId" id="delete-groupId" />
-            
-            <p>Are you sure you want to delete this group? This action cannot be undone.</p>
-          </section>
-          <footer class="modal-card-foot">
-            <button class="button is-danger" type="submit">Delete Group</button>
-            <button class="button" type="button" id="cancel-delete">Cancel</button>
-          </footer>
-        </form>
+    <div slot="footer">
+      <button type="submit" form="createForm" class="button is-primary">Create Group</button>
+      <button class="button" type="button" data-modal-close>Cancel</button>
+    </div>
+  </Modal>
+)}
+
+<!-- Edit Group Modal -->
+{isAdmin && (
+  <Modal id="edit-modal" title="Edit Group">
+    <form id="editForm" method="POST">
+      <input type="hidden" name="action" value="edit" />
+      <input type="hidden" name="groupId" id="edit-groupId" />
+
+      <div class="field">
+        <label class="label" for="edit-name">Group Name *</label>
+        <div class="control">
+          <input class="input" type="text" id="edit-name" name="name" required />
+        </div>
       </div>
+
+      <div class="field">
+        <label class="label" for="edit-description">Description</label>
+        <div class="control">
+          <textarea class="textarea" id="edit-description" name="description" rows="3"></textarea>
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="label" for="edit-color">Badge Color</label>
+        <div class="control">
+          <div class="select is-fullwidth">
+            <select id="edit-color" name="color">
+              {colorOptions.map(option => (
+                <option value={option.value}>{option.label}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </div>
+    </form>
+
+    <div slot="footer">
+      <button type="submit" form="editForm" class="button is-primary">Save Changes</button>
+      <button class="button" type="button" data-modal-close>Cancel</button>
     </div>
-  )}
+  </Modal>
+)}
 
-  <script is:inline define:vars={{ groups, membershipsByGroupId, allMembers }}>
-    // Create modal
-    const createModal = document.getElementById('create-modal');
-    const createBtn = document.getElementById('create-group-btn');
-    const closeCreateModal = document.getElementById('close-create-modal');
-    const cancelCreate = document.getElementById('cancel-create');
+<!-- Manage Members Modal -->
+{isAdmin && (
+  <Modal id="members-modal" title="Manage Group Members">
+    <input type="hidden" id="members-groupId" />
+    <p class="mb-3">Select which members belong to this group:</p>
+    {allMembers.map((member) => (
+      <div class="field">
+        <div class="control">
+          <label class="checkbox">
+            <input type="checkbox" class="member-checkbox" data-user-id={member.id} />
+            {member.name}
+          </label>
+        </div>
+      </div>
+    ))}
 
-    createBtn?.addEventListener('click', () => {
-      createModal?.classList.add('is-active');
+    <div slot="footer">
+      <button class="button" type="button" id="close-members-btn">Done</button>
+    </div>
+  </Modal>
+)}
+
+<!-- Delete Confirmation Modal -->
+{isAdmin && (
+  <Modal id="delete-modal" title="Delete Group">
+    <p>Are you sure you want to delete this group? This action cannot be undone.</p>
+    <form id="deleteForm" method="POST">
+      <input type="hidden" name="action" value="delete" />
+      <input type="hidden" name="groupId" id="delete-groupId" />
+    </form>
+
+    <div slot="footer">
+      <button type="submit" form="deleteForm" class="button is-danger">Delete Group</button>
+      <button class="button" type="button" data-modal-close>Cancel</button>
+    </div>
+  </Modal>
+)}
+
+<script is:inline define:vars={{ membershipsByGroupId }}>
+  document.getElementById('create-group-btn')?.addEventListener('click', () => {
+    document.getElementById('create-modal')?.classList.add('is-active');
+  });
+
+  document.querySelectorAll('.edit-group-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.getElementById('edit-groupId').value = btn.getAttribute('data-group-id');
+      document.getElementById('edit-name').value = btn.getAttribute('data-group-name');
+      document.getElementById('edit-description').value = btn.getAttribute('data-group-description');
+      document.getElementById('edit-color').value = btn.getAttribute('data-group-color');
+      document.getElementById('edit-modal')?.classList.add('is-active');
     });
+  });
 
-    const closeCreate = () => {
-      createModal?.classList.remove('is-active');
-    };
+  document.querySelectorAll('.manage-members-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const groupId = btn.getAttribute('data-group-id');
+      document.getElementById('members-groupId').value = groupId;
 
-    closeCreateModal?.addEventListener('click', closeCreate);
-    cancelCreate?.addEventListener('click', closeCreate);
-    createModal?.querySelector('.modal-background')?.addEventListener('click', closeCreate);
+      const groupMembers = membershipsByGroupId[groupId] || [];
+      const memberUserIds = new Set(groupMembers.map(m => m.userId));
 
-    // Edit modal
-    const editModal = document.getElementById('edit-modal');
-    const closeEditModal = document.getElementById('close-edit-modal');
-    const cancelEdit = document.getElementById('cancel-edit');
-
-    document.querySelectorAll('.edit-group-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const groupId = btn.getAttribute('data-group-id');
-        const group = groups.find(g => g.id === groupId);
-        
-        if (group) {
-          document.getElementById('edit-groupId').value = group.id;
-          document.getElementById('edit-name').value = group.name;
-          document.getElementById('edit-description').value = group.description || '';
-          document.getElementById('edit-color').value = group.color;
-          
-          editModal?.classList.add('is-active');
-        }
+      document.querySelectorAll('.member-checkbox').forEach(checkbox => {
+        checkbox.checked = memberUserIds.has(checkbox.getAttribute('data-user-id'));
       });
+
+      document.getElementById('members-modal')?.classList.add('is-active');
     });
+  });
 
-    const closeEdit = () => {
-      editModal?.classList.remove('is-active');
-    };
+  document.querySelectorAll('.member-checkbox').forEach(checkbox => {
+    checkbox.addEventListener('change', async () => {
+      const groupId = document.getElementById('members-groupId').value;
+      const userId = checkbox.getAttribute('data-user-id');
 
-    closeEditModal?.addEventListener('click', closeEdit);
-    cancelEdit?.addEventListener('click', closeEdit);
-    editModal?.querySelector('.modal-background')?.addEventListener('click', closeEdit);
+      const formData = new FormData();
+      formData.append('action', 'toggle-member');
+      formData.append('groupId', groupId);
+      formData.append('userId', userId);
 
-    // Members modal
-    const membersModal = document.getElementById('members-modal');
-    const closeMembersModal = document.getElementById('close-members-modal');
-    const closeMembersBtn = document.getElementById('close-members-btn');
-
-    document.querySelectorAll('.manage-members-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const groupId = btn.getAttribute('data-group-id');
-        document.getElementById('members-groupId').value = groupId;
-        
-        // Get members in this group
-        const groupMembers = membershipsByGroupId[groupId] || [];
-        const memberUserIds = new Set(groupMembers.map(m => m.userId));
-        
-        // Update checkboxes
-        document.querySelectorAll('.member-checkbox').forEach(checkbox => {
-          const userId = checkbox.getAttribute('data-user-id');
-          checkbox.checked = memberUserIds.has(userId);
-        });
-        
-        membersModal?.classList.add('is-active');
-      });
+      await fetch('', { method: 'POST', body: formData });
     });
+  });
 
-    // Handle member checkbox changes
-    document.querySelectorAll('.member-checkbox').forEach(checkbox => {
-      checkbox.addEventListener('change', async () => {
-        const groupId = document.getElementById('members-groupId').value;
-        const userId = checkbox.getAttribute('data-user-id');
-        
-        const formData = new FormData();
-        formData.append('action', 'toggle-member');
-        formData.append('groupId', groupId);
-        formData.append('userId', userId);
-        
-        await fetch('', {
-          method: 'POST',
-          body: formData,
-        });
-      });
+  document.getElementById('close-members-btn')?.addEventListener('click', () => {
+    document.getElementById('members-modal')?.classList.remove('is-active');
+    window.location.reload();
+  });
+
+  document.querySelectorAll('.delete-group-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.getElementById('delete-groupId').value = btn.getAttribute('data-group-id');
+      document.getElementById('delete-modal')?.classList.add('is-active');
     });
-
-    const closeMembers = () => {
-      membersModal?.classList.remove('is-active');
-      window.location.reload();
-    };
-
-    closeMembersModal?.addEventListener('click', closeMembers);
-    closeMembersBtn?.addEventListener('click', closeMembers);
-    membersModal?.querySelector('.modal-background')?.addEventListener('click', closeMembers);
-
-    // Delete modal
-    const deleteModal = document.getElementById('delete-modal');
-    const closeDeleteModal = document.getElementById('close-delete-modal');
-    const cancelDelete = document.getElementById('cancel-delete');
-
-    document.querySelectorAll('.delete-group-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const groupId = btn.getAttribute('data-group-id');
-        document.getElementById('delete-groupId').value = groupId;
-        deleteModal?.classList.add('is-active');
-      });
-    });
-
-    const closeDelete = () => {
-      deleteModal?.classList.remove('is-active');
-    };
-
-    closeDeleteModal?.addEventListener('click', closeDelete);
-    cancelDelete?.addEventListener('click', closeDelete);
-    deleteModal?.querySelector('.modal-background')?.addEventListener('click', closeDelete);
-  </script>
-</Layout>
+  });
+</script>
+  </Fragment>
+</EnsemblePageLayout>

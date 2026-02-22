@@ -5,7 +5,7 @@ const User = defineTable({
     id: column.text({ primaryKey: true }),
     email: column.text({ unique: true }),
     passwordHash: column.text(),
-    name: column.text(),    avatarUrl: column.text({ optional: true }),    role: column.text({ enum: ['admin', 'ensemble_admin', 'user'], default: 'user' }),
+    name: column.text(),    avatarUrl: column.text({ optional: true }),    phone: column.text({ optional: true }),    role: column.text({ enum: ['admin', 'ensemble_admin', 'user'], default: 'user' }),
     createdAt: column.date({ default: NOW }),
   }
 });
@@ -18,8 +18,8 @@ const Ensemble = defineTable({
     imageUrl: column.text({ optional: true }),
     discordLink: column.text({ optional: true }),
     codeOfConduct: column.text({ optional: true }),
-    checkInStartMinutes: column.number({ default: 30 }), // Minutes before rehearsal check-in opens
-    checkInEndMinutes: column.number({ default: 15 }), // Minutes after rehearsal start check-in closes
+    checkInStartMinutes: column.number({ default: 30 }), // Minutes before event check-in opens
+    checkInEndMinutes: column.number({ default: 15 }), // Minutes after event start check-in closes
     createdBy: column.text({ references: () => User.columns.id }),
     createdAt: column.date({ default: NOW }),
   }
@@ -80,15 +80,16 @@ const SeasonMembership = defineTable({
   }
 });
 
-const Rehearsal = defineTable({
+const Event = defineTable({
   columns: {
     id: column.text({ primaryKey: true }),
     ensembleId: column.text({ references: () => Ensemble.columns.id }),
     seasonId: column.text({ references: () => Season.columns.id }),
+    category: column.text({ enum: ['rehearsal', 'performance'], default: 'rehearsal' }),
     title: column.text(),
     description: column.text({ optional: true }),
     scheduledAt: column.date(),
-    durationMinutes: column.number({ default: 90 }), // Default 90 minute rehearsal
+    durationMinutes: column.number({ default: 90 }),
     location: column.text({ optional: true }),
     checkInCode: column.text({ unique: true }),
     createdAt: column.date({ default: NOW }),
@@ -98,7 +99,7 @@ const Rehearsal = defineTable({
 const Attendance = defineTable({
   columns: {
     id: column.text({ primaryKey: true }),
-    rehearsalId: column.text({ references: () => Rehearsal.columns.id }),
+    eventId: column.text({ references: () => Event.columns.id }),
     userId: column.text({ references: () => User.columns.id }),
     checkedInAt: column.date({ default: NOW }),
     checkedInMethod: column.text(), // 'qr', 'manual', 'admin'
@@ -166,6 +167,62 @@ const SeasonSong = defineTable({
   }
 });
 
+const SongFile = defineTable({
+  columns: {
+    id: column.text({ primaryKey: true }),
+    songId: column.text({ references: () => Song.columns.id }),
+    name: column.text(),
+    url: column.text(),
+    category: column.text({ enum: ['sheet_music', 'rehearsal_track', 'other'], default: 'other' }),
+    uploadedBy: column.text({ references: () => User.columns.id }),
+    uploadedAt: column.date({ default: NOW }),
+  }
+});
+
+const EventProgram = defineTable({
+  columns: {
+    id: column.text({ primaryKey: true }),
+    eventId: column.text({ references: () => Event.columns.id }),
+    songId: column.text({ references: () => Song.columns.id }),
+    sortOrder: column.number({ default: 0 }),
+    addedAt: column.date({ default: NOW }),
+  }
+});
+
+const EnsembleLink = defineTable({
+  columns: {
+    id: column.text({ primaryKey: true }),
+    ensembleId: column.text({ references: () => Ensemble.columns.id }),
+    label: column.text(),
+    url: column.text(),
+    sortOrder: column.number({ default: 0 }),
+    createdAt: column.date({ default: NOW }),
+  }
+});
+
+const PasswordResetToken = defineTable({
+  columns: {
+    id: column.text({ primaryKey: true }),
+    userId: column.text({ references: () => User.columns.id }),
+    token: column.text({ unique: true }),
+    expiresAt: column.date(),
+    usedAt: column.date({ optional: true }),
+    createdAt: column.date({ default: NOW }),
+  }
+});
+
+const EmailChangeToken = defineTable({
+  columns: {
+    id: column.text({ primaryKey: true }),
+    userId: column.text({ references: () => User.columns.id }),
+    token: column.text({ unique: true }),
+    newEmail: column.text(),
+    expiresAt: column.date(),
+    usedAt: column.date({ optional: true }),
+    createdAt: column.date({ default: NOW }),
+  }
+});
+
 export default defineDb({
-  tables: { User, Ensemble, EnsembleMember, Part, EnsembleInvite, Season, SeasonMembership, Rehearsal, Attendance, Announcement, Group, GroupMembership, Song, SongPart, SeasonSong }
+  tables: { User, Ensemble, EnsembleMember, Part, EnsembleInvite, Season, SeasonMembership, Event, Attendance, Announcement, Group, GroupMembership, Song, SongPart, SeasonSong, SongFile, EventProgram, PasswordResetToken, EmailChangeToken, EnsembleLink }
 });

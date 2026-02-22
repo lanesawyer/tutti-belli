@@ -1,45 +1,36 @@
 import { db, eq, User } from 'astro:db';
+import jwt from 'jsonwebtoken';
 
-export interface Session {
+const JWT_SECRET = import.meta.env.JWT_SECRET || process.env.JWT_SECRET || 'fallback-secret-change-me';
+
+export interface SessionPayload {
   userId: string;
-  expiresAt: Date;
 }
-
-const sessions = new Map<string, Session>();
 
 export function createSession(userId: string): string {
-  const sessionId = crypto.randomUUID();
-  const expiresAt = new Date();
-  expiresAt.setDate(expiresAt.getDate() + 30); // 30 days
-
-  sessions.set(sessionId, {
-    userId,
-    expiresAt,
+  return jwt.sign({ userId } as SessionPayload, JWT_SECRET, {
+    expiresIn: '30d',
   });
-
-  return sessionId;
 }
 
-export function getSession(sessionId: string | undefined): Session | null {
-  if (!sessionId) return null;
+export function getSession(token: string | undefined): SessionPayload | null {
+  if (!token) return null;
   
-  const session = sessions.get(sessionId);
-  if (!session) return null;
-
-  if (session.expiresAt < new Date()) {
-    sessions.delete(sessionId);
+  try {
+    const payload = jwt.verify(token, JWT_SECRET) as SessionPayload;
+    return payload;
+  } catch (error) {
     return null;
   }
-
-  return session;
 }
 
-export function deleteSession(sessionId: string): void {
-  sessions.delete(sessionId);
+export function deleteSession(token: string): void {
+  // JWTs are stateless, so we just need to delete the cookie
+  // The token will expire naturally or the cookie will be cleared
 }
 
-export async function getUserFromSession(sessionId: string | undefined) {
-  const session = getSession(sessionId);
+export async function getUserFromSession(token: string | undefined) {
+  const session = getSession(token);
   if (!session) return null;
 
   const [user] = await db.select().from(User).where(eq(User.id, session.userId));

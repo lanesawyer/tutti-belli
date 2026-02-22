@@ -1,4 +1,4 @@
-import { db, User, Ensemble, EnsembleMember, Part, EnsembleInvite, Season, SeasonMembership, Rehearsal, Announcement, Group, GroupMembership, Song, SongPart, SeasonSong } from 'astro:db';
+import { db, User, Ensemble, EnsembleMember, Part, EnsembleInvite, Season, SeasonMembership, Event, EventProgram, Announcement, Group, GroupMembership, Song, SongPart, SeasonSong } from 'astro:db';
 import bcrypt from 'bcryptjs';
 
 export default async function seed() {
@@ -285,20 +285,89 @@ Thank you for being part of our musical community!`,
       content: 'We\'ve implemented a new digital check-in system for rehearsals! When you arrive at rehearsal, look for the check-in code displayed on the screen. Use the code to mark your attendance through the app. The check-in window opens 30 minutes before rehearsal starts.',
       createdBy: adminId,
     },
+    {
+      id: crypto.randomUUID(),
+      ensembleId: ensembleId,
+      title: 'Spring Concert — Everything You Need to Know',
+      content: `Dear Chamber Orchestra family,
+
+We are just six weeks away from our Spring 2026 Concert, and we want to make sure everyone has all the details they need to prepare. Please read this announcement carefully from top to bottom — there is important information for every single member.
+
+📅 CONCERT DATE & VENUE
+Saturday, April 12, 2026 at 7:30 PM
+Westfield Arts Center, Grand Hall
+123 Harmony Boulevard, Westfield
+
+Doors open at 6:45 PM. Members should arrive no later than 6:00 PM for warm-up and final seating arrangements. Please do not arrive earlier than 5:30 PM as the hall may not yet be unlocked.
+
+🎼 PROGRAM
+The program for the evening will be as follows:
+
+Act I
+  1. Lux Aurumque — Eric Whitacre
+  2. Shenandoah — arr. James Erb
+  3. Ave Maria — Franz Biebl
+  4. Sure On This Shining Night — arr. Morten Lauridsen
+
+Intermission (15 minutes)
+
+Act II
+  5. The Seal Lullaby — Eric Whitacre
+  6. Commissioned premiere (title TBA — details coming next week)
+  7. Encore TBD
+
+The total runtime is expected to be approximately 90 minutes including intermission.
+
+👗 CONCERT ATTIRE
+All members are required to wear the standard black concert attire:
+  - Black dress shirt or blouse (no logos or patterns)
+  - Black dress pants or skirt (below the knee)
+  - Black closed-toe shoes (no sneakers)
+  - Minimal jewelry — simple stud earrings acceptable
+
+If you do not have appropriate attire or need assistance sourcing items, please contact Ensemble Admin directly no later than March 28th so we have time to help you. We will not be making exceptions on concert day.
+
+🎟️ TICKETS
+Each member will receive two complimentary tickets. Additional tickets may be purchased through the Westfield Arts Center box office or at the door (subject to availability). Tickets are $15 general admission, $10 for students and seniors.
+
+If you need more than two comp tickets for family members, please let us know by April 1st and we will do our best to accommodate.
+
+🚗 PARKING & TRANSPORTATION
+Free parking is available in Lot B on the north side of the Westfield Arts Center. The lot fills quickly on weekend evenings, so we encourage carpooling. Several members have already offered to coordinate rides — check the Discord #logistics channel for details.
+
+📋 REMAINING REHEARSAL SCHEDULE
+  - March 15 — Full rehearsal, 7–9:30 PM (Act I focus)
+  - March 22 — Full rehearsal, 7–9:30 PM (Act II focus)
+  - March 29 — Combined run-through, 7–10 PM
+  - April 5 — Dress rehearsal at Westfield Arts Center, 6–10 PM (MANDATORY)
+  - April 12 — Concert day
+
+The April 5th dress rehearsal is mandatory for all members. If you have a conflict, you must notify leadership immediately. Unexcused absence from the dress rehearsal may affect your eligibility to perform.
+
+🙏 A NOTE FROM LEADERSHIP
+We know this has been a demanding season with a challenging repertoire, and we are incredibly proud of the growth every one of you has shown. The Spring Concert is our opportunity to share months of hard work with our community. Let's finish strong.
+
+Please don't hesitate to reach out if you have any questions or concerns.
+
+With gratitude,
+The Chamber Orchestra Leadership Team`,
+      createdBy: adminId,
+    },
   ]);
 
-  // Create rehearsals for testing
-  
+  // Create events for testing
+
   // Past rehearsal (1 month ago)
   const pastDate = new Date();
   pastDate.setMonth(pastDate.getMonth() - 1);
   pastDate.setHours(19, 0, 0, 0); // 7 PM
 
-  await db.insert(Rehearsal).values([
+  await db.insert(Event).values([
     {
       id: crypto.randomUUID(),
       ensembleId: ensembleId,
       seasonId: seasonId,
+      category: 'rehearsal',
       title: 'Past Rehearsal',
       description: 'A rehearsal that already happened for testing',
       scheduledAt: pastDate,
@@ -310,13 +379,13 @@ Thank you for being part of our musical community!`,
 
   // Current time rehearsal (happening right now - for testing check-in)
   const currentDate = new Date();
-  // Set to current time, members should be able to check in now
 
-  await db.insert(Rehearsal).values([
+  await db.insert(Event).values([
     {
       id: crypto.randomUUID(),
       ensembleId: ensembleId,
       seasonId: seasonId,
+      category: 'rehearsal',
       title: 'Current Rehearsal (Check-in Available)',
       description: 'This rehearsal is happening right now - test check-in functionality',
       scheduledAt: currentDate,
@@ -331,17 +400,39 @@ Thank you for being part of our musical community!`,
   futureDate.setDate(futureDate.getDate() + 7); // 1 week from now
   futureDate.setHours(19, 0, 0, 0); // 7 PM
 
-  await db.insert(Rehearsal).values([
+  await db.insert(Event).values([
     {
       id: crypto.randomUUID(),
       ensembleId: ensembleId,
       seasonId: seasonId,
+      category: 'rehearsal',
       title: 'Weekly Rehearsal',
       description: 'Regular practice session',
       scheduledAt: futureDate,
       durationMinutes: 90,
       location: 'Music Hall, Room 101',
       checkInCode: crypto.randomUUID().substring(0, 8).toUpperCase(),
+    },
+  ]);
+
+  // Upcoming performance (3 weeks from now)
+  const performanceDate = new Date();
+  performanceDate.setDate(performanceDate.getDate() + 21);
+  performanceDate.setHours(19, 30, 0, 0); // 7:30 PM
+
+  const performanceId = crypto.randomUUID();
+  await db.insert(Event).values([
+    {
+      id: performanceId,
+      ensembleId: ensembleId,
+      seasonId: seasonId,
+      category: 'performance',
+      title: 'Spring Concert 2026',
+      description: 'Our annual spring concert featuring the full season repertoire.',
+      scheduledAt: performanceDate,
+      durationMinutes: 120,
+      location: 'Westfield Arts Center, Grand Hall',
+      checkInCode: 'CONCERT1',
     },
   ]);
 
@@ -446,6 +537,13 @@ Thank you for being part of our musical community!`,
     { id: crypto.randomUUID(), seasonId: seasonId, songId: song3Id },
   ]);
 
+  // Add season songs to the spring concert program
+  await db.insert(EventProgram).values([
+    { id: crypto.randomUUID(), eventId: performanceId, songId: song3Id, sortOrder: 1 }, // Lux Aurumque
+    { id: crypto.randomUUID(), eventId: performanceId, songId: song2Id, sortOrder: 2 }, // Shenandoah
+    { id: crypto.randomUUID(), eventId: performanceId, songId: song1Id, sortOrder: 3 }, // Ave Maria
+  ]);
+
   console.log('✓ Seeded database successfully!');
   console.log('');
   console.log('Site Admin Account:');
@@ -463,12 +561,13 @@ Thank you for being part of our musical community!`,
   console.log('Test Ensemble: Chamber Orchestra');
   console.log('  Invite Code: TEST1234');
   console.log('  Current Season: Spring 2026');
-  console.log('  Check-in window: 30 minutes before to 15 minutes after rehearsal start');
+  console.log('  Check-in window: 30 minutes before to 15 minutes after event start');
   console.log('');
-  console.log('Test Rehearsals:');
+  console.log('Test Events:');
   console.log('  - Past rehearsal (1 month ago)');
   console.log('  - Current rehearsal (happening now - check-in code: CHECKIN1)');
   console.log('  - Weekly rehearsal (1 week from now)');
+  console.log('  - Spring Concert 2026 performance (3 weeks from now - check-in code: CONCERT1)');
   console.log('');
   console.log('Sample Songs:');
   console.log('  - 5 songs with various composers and arrangers');

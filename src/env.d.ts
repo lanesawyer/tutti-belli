@@ -8,6 +8,7 @@ declare namespace App {
       email: string;
       name: string;
       avatarUrl: string | null;
+      phone: string | null;
       role: string;
       createdAt: Date;
     } | null;
