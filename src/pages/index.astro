@@ -1,5 +1,6 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import { APP_NAME } from '../lib/config';
 
 const user = Astro.locals.user;
 ---
@@ -8,7 +9,7 @@ const user = Astro.locals.user;
   <section class="hero is-medium is-primary">
     <div class="hero-body">
       <p class="title">
-        Welcome to Ensemble Management
+        Welcome to {APP_NAME}
       </p>
       <p class="subtitle">
         Organize and manage your musical ensembles with ease

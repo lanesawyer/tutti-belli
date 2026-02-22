@@ -1,6 +1,7 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import { db, eq, and, EnsembleInvite, EnsembleMember, Ensemble } from 'astro:db';
+import { APP_NAME } from '../../lib/config';
 
 const user = Astro.locals.user;
 
@@ -127,7 +128,7 @@ if (Astro.request.method === 'POST') {
       {!user ? (
         <div class="box">
           <div class="content has-text-centered mb-5">
-            <p class="is-size-5">You need an Ensemble Management account to join</p>
+            <p class="is-size-5">You need a {APP_NAME} account to join</p>
           </div>
           <div class="buttons is-centered">
             <a href={`/register?redirect=${encodeURIComponent(Astro.url.pathname + Astro.url.search)}`} class="button is-primary is-large">
