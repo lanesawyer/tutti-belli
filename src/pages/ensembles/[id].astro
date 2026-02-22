@@ -2,7 +2,7 @@
 import Layout from '../../layouts/Layout.astro';
 import InviteCodeWidget from '../../components/InviteCodeWidget.astro';
 import DashboardSection from '../../components/DashboardSection.astro';
-import { db, eq, and, desc, Ensemble, EnsembleMember, User, EnsembleInvite, Part, Announcement, Group, GroupMembership, Rehearsal, Season, SeasonMembership, SeasonSong, Song } from 'astro:db';
+import { db, eq, and, desc, Ensemble, EnsembleMember, User, EnsembleInvite, Part, Announcement, Group, GroupMembership, Rehearsal, Season, SeasonMembership, SeasonSong, Song, EnsembleLink } from 'astro:db';
 import { canManageEnsemble } from '../../lib/permissions';
 import { getInitials, getColorFromInitials } from '../../lib/avatar';
 import { ensembleAdminTools } from '../../lib/config';
@@ -183,6 +183,13 @@ const invites = isAdmin
       .where(eq(EnsembleInvite.ensembleId, id))
   : [];
 
+// Get ensemble links
+const ensembleLinks = await db
+  .select()
+  .from(EnsembleLink)
+  .where(eq(EnsembleLink.ensembleId, id))
+  .orderBy(EnsembleLink.sortOrder, EnsembleLink.createdAt);
+
 // Handle member actions
 if (Astro.request.method === 'POST') {
   if (!isAdmin) {
@@ -282,21 +289,16 @@ if (Astro.request.method === 'POST') {
       </div>
     </div>
   )}
-  {ensemble.imageUrl && (
-    <div class="columns">
-      <div class="column">
-        <figure class="image is-128x128 mb-4">
-          <img src={ensemble.imageUrl} alt={ensemble.name} style="object-fit: cover; border-radius: 8px;" />
-        </figure>
-      </div>
-    </div>
-  )}
-
   <!-- Header Section - Full Width -->
   <div class="mb-5">
     <div class="level">
       <div class="level-left">
-        <div class="level-item">
+        <div class="level-item" style="align-items: flex-start;">
+          {ensemble.imageUrl && (
+            <figure class="image is-96x96 mr-4" style="flex-shrink: 0;">
+              <img src={ensemble.imageUrl} alt={ensemble.name} style="object-fit: cover; border-radius: 8px; width: 96px; height: 96px;" />
+            </figure>
+          )}
           <div>
             <h1 class="title">{ensemble.name}</h1>
             {ensemble.description && (
@@ -315,25 +317,30 @@ if (Astro.request.method === 'POST') {
           </div>
         </div>
       </div>
-      <div class="level-right">
-        <div class="level-item">
-          <div class="tags has-addons are-large">
-            <span class={`tag ${isAdmin ? 'is-warning' : 'is-info'}`}>
-              {isAdmin ? 'Ensemble Admin' : 'Member'}
-            </span>
-          </div>
+      {!isPending && (ensemble.discordLink || ensembleLinks.length > 0) && (
+        <div class="level-right">
+          {ensemble.discordLink && (
+            <div class="level-item">
+              <a href={ensemble.discordLink} target="_blank" rel="noopener noreferrer" class="button is-link" title="Join Discord Server">
+                <span class="icon">
+                  <i class="fab fa-discord"></i>
+                </span>
+                <span>Discord</span>
+              </a>
+            </div>
+          )}
+          {ensembleLinks.map((link) => (
+            <div class="level-item">
+              <a href={link.url} target="_blank" rel="noopener noreferrer" class="button is-light">
+                <span class="icon">
+                  <i class="fas fa-link"></i>
+                </span>
+                <span>{link.label}</span>
+              </a>
+            </div>
+          ))}
         </div>
-        {ensemble.discordLink && !isPending && (
-          <div class="level-item">
-            <a href={ensemble.discordLink} target="_blank" rel="noopener noreferrer" class="button is-link" title="Join Discord Server">
-              <span class="icon">
-                <i class="fab fa-discord"></i>
-              </span>
-              <span>Discord</span>
-            </a>
-          </div>
-        )}
-      </div>
+      )}
     </div>
   </div>
 

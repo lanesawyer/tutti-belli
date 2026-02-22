@@ -178,6 +178,17 @@ const SongFile = defineTable({
   }
 });
 
+const EnsembleLink = defineTable({
+  columns: {
+    id: column.text({ primaryKey: true }),
+    ensembleId: column.text({ references: () => Ensemble.columns.id }),
+    label: column.text(),
+    url: column.text(),
+    sortOrder: column.number({ default: 0 }),
+    createdAt: column.date({ default: NOW }),
+  }
+});
+
 const PasswordResetToken = defineTable({
   columns: {
     id: column.text({ primaryKey: true }),
@@ -202,5 +213,5 @@ const EmailChangeToken = defineTable({
 });
 
 export default defineDb({
-  tables: { User, Ensemble, EnsembleMember, Part, EnsembleInvite, Season, SeasonMembership, Rehearsal, Attendance, Announcement, Group, GroupMembership, Song, SongPart, SeasonSong, SongFile, PasswordResetToken, EmailChangeToken }
+  tables: { User, Ensemble, EnsembleMember, Part, EnsembleInvite, Season, SeasonMembership, Rehearsal, Attendance, Announcement, Group, GroupMembership, Song, SongPart, SeasonSong, SongFile, PasswordResetToken, EmailChangeToken, EnsembleLink }
 });
