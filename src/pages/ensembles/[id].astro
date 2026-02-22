@@ -515,7 +515,7 @@ if (Astro.request.method === 'POST') {
                   return (
                     <tr>
                       <td>
-                        <p class="has-text-weight-semibold">{song.name}</p>
+                        <a href={`/ensembles/${id}/songs/${song.id}`} class="has-text-weight-semibold">{song.name}</a>
                         <p class="is-size-7 has-text-grey">
                           {song.composer ?? 'Unknown'}
                           {song.arranger && ` — arr. ${song.arranger}`}

@@ -1,8 +1,8 @@
 ---
-import EnsemblePageLayout from '../../../layouts/EnsemblePageLayout.astro';
-import Table from '../../../components/Table.astro';
-import Modal from '../../../components/Modal.astro';
-import { canManageEnsemble } from '../../../lib/permissions';
+import EnsemblePageLayout from '../../../../layouts/EnsemblePageLayout.astro';
+import Table from '../../../../components/Table.astro';
+import Modal from '../../../../components/Modal.astro';
+import { canManageEnsemble } from '../../../../lib/permissions';
 import {
   getSongsPageData,
   getMembership,
@@ -15,7 +15,7 @@ import {
   addSongFile,
   deleteSongFile,
   formatRuntime,
-} from '../../../lib/songs';
+} from '../../../../lib/songs';
 
 const user = Astro.locals.user!;
 const { id } = Astro.params;
@@ -90,7 +90,11 @@ const songFilesMap = buildSongFilesMap(ensembleSongIds, songFilesData);
           const songFiles = songFilesMap.get(song.id) || [];
           return (
             <tr>
-              <td><strong>{song.name}</strong></td>
+              <td>
+                <a href={`/ensembles/${id}/songs/${song.id}`} class="has-text-weight-bold">
+                  {song.name}
+                </a>
+              </td>
               <td>{song.composer || '-'}</td>
               <td>{song.arranger || '-'}</td>
               <td>{formatRuntime(song.runTime)}</td>
@@ -252,7 +256,7 @@ const songFilesMap = buildSongFilesMap(ensembleSongIds, songFilesData);
           <div class="control">
             <input class="input is-small" type="url" id="fileUrl" name="fileUrl" placeholder="https://..." required />
           </div>
-          <p class="help">Paste the Backblaze download URL for this file</p>
+          <p class="help">Paste the download URL for this file</p>
         </div>
 
         <div class="field">

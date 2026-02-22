@@ -10,9 +10,37 @@ import {
   Part,
   Season,
   SeasonSong,
+  User,
 } from 'astro:db';
 
 // ─── Queries ────────────────────────────────────────────────────────────────
+
+export async function getSongDetailData(ensembleId: string, songId: string) {
+  const [ensemble, song, parts, seasons, songPartsData, seasonSongsData, songFiles] =
+    await Promise.all([
+      db.select().from(Ensemble).where(eq(Ensemble.id, ensembleId)).get(),
+      db.select().from(Song).where(eq(Song.id, songId)).get(),
+      db.select().from(Part).where(eq(Part.ensembleId, ensembleId)).all(),
+      db.select().from(Season).where(eq(Season.ensembleId, ensembleId)).all(),
+      db.select().from(SongPart).where(eq(SongPart.songId, songId)).all(),
+      db.select().from(SeasonSong).where(eq(SeasonSong.songId, songId)).all(),
+      db
+        .select({
+          id: SongFile.id,
+          name: SongFile.name,
+          url: SongFile.url,
+          category: SongFile.category,
+          uploadedAt: SongFile.uploadedAt,
+          uploaderName: User.name,
+        })
+        .from(SongFile)
+        .innerJoin(User, eq(SongFile.uploadedBy, User.id))
+        .where(eq(SongFile.songId, songId))
+        .all(),
+    ]);
+
+  return { ensemble, song, parts, seasons, songPartsData, seasonSongsData, songFiles };
+}
 
 export async function getSongsPageData(ensembleId: string) {
   const [ensemble, songs, parts, seasons, songPartsData, seasonSongsData, songFilesData] =

@@ -1,0 +1,213 @@
+---
+import EnsemblePageLayout from '../../../../layouts/EnsemblePageLayout.astro';
+import {
+  getSongDetailData,
+  getMembership,
+  formatRuntime,
+  addSongFile,
+  deleteSongFile,
+} from '../../../../lib/songs';
+import { canManageEnsemble } from '../../../../lib/permissions';
+
+const user = Astro.locals.user!;
+const { id, songId } = Astro.params;
+
+const { ensemble, song, parts, seasons, songPartsData, seasonSongsData, songFiles } =
+  await getSongDetailData(id!, songId!);
+
+if (!ensemble) return new Response('Ensemble not found', { status: 404 });
+if (!song || song.ensembleId !== id) return new Response('Song not found', { status: 404 });
+
+const membership = await getMembership(id!, user.id);
+const isAdmin = canManageEnsemble(user, membership);
+
+if (Astro.request.method === 'POST') {
+  if (!isAdmin) return new Response('Unauthorized', { status: 403 });
+
+  const formData = await Astro.request.formData();
+  const action = formData.get('action');
+
+  if (action === 'add_file') await addSongFile(formData, user.id);
+  else if (action === 'delete_file') await deleteSongFile(formData);
+
+  return Astro.redirect(`/ensembles/${id}/songs/${songId}`);
+}
+
+const songParts = songPartsData.map((sp) => parts.find((p) => p.id === sp.partId)).filter(Boolean);
+const songSeasons = seasonSongsData.map((ss) => seasons.find((s) => s.id === ss.seasonId)).filter(Boolean);
+
+function categoryLabel(cat: string) {
+  if (cat === 'sheet_music') return 'Sheet Music';
+  if (cat === 'rehearsal_track') return 'Rehearsal Track';
+  return 'Other';
+}
+
+function categoryTagClass(cat: string) {
+  if (cat === 'sheet_music') return 'is-success';
+  if (cat === 'rehearsal_track') return 'is-warning';
+  return 'is-light';
+}
+---
+
+<EnsemblePageLayout
+  title={`${song.name} - ${ensemble.name}`}
+  ensembleName={ensemble.name}
+  ensembleId={id!}
+  pageTitle={song.name}
+  extraBreadcrumbs={[['Songs', `/ensembles/${id}/songs`]]}
+  isAdmin={isAdmin}
+>
+  {isAdmin && (
+    <a slot="action" href={`/ensembles/${id}/songs`} class="button">
+      <span class="icon"><i class="fas fa-arrow-left"></i></span>
+      <span>Back to Songs</span>
+    </a>
+  )}
+
+  <!-- Song details -->
+  <div class="box mb-5">
+    <div class="columns is-multiline">
+      <div class="column is-half">
+        <p class="heading">Composer</p>
+        <p class="is-size-5">{song.composer || <span class="has-text-grey">—</span>}</p>
+      </div>
+      <div class="column is-half">
+        <p class="heading">Arranger</p>
+        <p class="is-size-5">{song.arranger || <span class="has-text-grey">—</span>}</p>
+      </div>
+      <div class="column is-half">
+        <p class="heading">Runtime</p>
+        <p class="is-size-5">{formatRuntime(song.runTime)}</p>
+      </div>
+      <div class="column is-half">
+        <p class="heading">Added</p>
+        <p class="is-size-5">{new Date(song.createdAt).toLocaleDateString()}</p>
+      </div>
+      {songParts.length > 0 && (
+        <div class="column is-half">
+          <p class="heading">Parts</p>
+          <div class="tags">
+            {songParts.map((part) => (
+              <span class="tag is-info">{part!.name}</span>
+            ))}
+          </div>
+        </div>
+      )}
+      {songSeasons.length > 0 && (
+        <div class="column is-half">
+          <p class="heading">Seasons</p>
+          <div class="tags">
+            {songSeasons.map((season) => (
+              <span class="tag is-primary">{season!.name}</span>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  </div>
+
+  <!-- Files section -->
+  <h2 class="title is-4">
+    <span class="icon-text">
+      <span class="icon"><i class="fas fa-folder-open"></i></span>
+      <span>Files</span>
+    </span>
+  </h2>
+
+  {songFiles.length === 0 ? (
+    <div class="notification is-info is-light">No files attached to this song yet.</div>
+  ) : (
+    <div class="box mb-5">
+      {songFiles.map((file) => (
+        <div class="is-flex is-align-items-center mb-3" style="gap: 0.75rem;">
+          <span class={`tag ${categoryTagClass(file.category)} is-normal`} style="flex-shrink:0; min-width: 7rem; justify-content: center;">
+            {categoryLabel(file.category)}
+          </span>
+          <a
+            href={file.url}
+            target="_blank"
+            rel="noopener"
+            class="has-text-weight-medium"
+            style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"
+          >
+            {file.name}
+          </a>
+          <span class="has-text-grey is-size-7" style="flex-shrink:0; white-space:nowrap;">
+            {file.uploaderName} &middot; {new Date(file.uploadedAt).toLocaleDateString()}
+          </span>
+          {isAdmin && (
+            <form method="POST" style="flex-shrink:0;" onsubmit="return confirm('Delete this file?');">
+              <input type="hidden" name="action" value="delete_file" />
+              <input type="hidden" name="fileId" value={file.id} />
+              <button type="submit" class="button is-danger is-small">
+                <span class="icon is-small"><i class="fas fa-trash"></i></span>
+              </button>
+            </form>
+          )}
+        </div>
+      ))}
+    </div>
+  )}
+
+  {isAdmin && (
+    <div class="box">
+      <h3 class="title is-5">Add File</h3>
+      <form method="POST">
+        <input type="hidden" name="action" value="add_file" />
+        <input type="hidden" name="songId" value={songId} />
+
+        <div class="columns">
+          <div class="column">
+            <div class="field">
+              <label class="label" for="fileName">Display Name *</label>
+              <div class="control">
+                <input class="input" type="text" id="fileName" name="fileName" placeholder="e.g. Soprano Sheet Music" required />
+              </div>
+            </div>
+          </div>
+          <div class="column">
+            <div class="field">
+              <label class="label" for="fileUrl">File URL *</label>
+              <div class="control">
+                <input class="input" type="url" id="fileUrl" name="fileUrl" placeholder="https://..." required />
+              </div>
+              <p class="help">Paste the download URL for this file</p>
+            </div>
+          </div>
+          <div class="column is-narrow">
+            <div class="field">
+              <label class="label" for="category">Category</label>
+              <div class="control">
+                <div class="select is-fullwidth">
+                  <select id="category" name="category">
+                    <option value="sheet_music">Sheet Music</option>
+                    <option value="rehearsal_track">Rehearsal Track</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="column is-narrow">
+            <div class="field">
+              <label class="label">&nbsp;</label>
+              <div class="control">
+                <button type="submit" class="button is-primary">
+                  <span class="icon"><i class="fas fa-plus"></i></span>
+                  <span>Add</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+  )}
+
+  {!isAdmin && (
+    <a href={`/ensembles/${id}/songs`} class="button">
+      <span class="icon"><i class="fas fa-arrow-left"></i></span>
+      <span>Back to Songs</span>
+    </a>
+  )}
+</EnsemblePageLayout>
