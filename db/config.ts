@@ -166,6 +166,17 @@ const SeasonSong = defineTable({
   }
 });
 
+const PasswordResetToken = defineTable({
+  columns: {
+    id: column.text({ primaryKey: true }),
+    userId: column.text({ references: () => User.columns.id }),
+    token: column.text({ unique: true }),
+    expiresAt: column.date(),
+    usedAt: column.date({ optional: true }),
+    createdAt: column.date({ default: NOW }),
+  }
+});
+
 export default defineDb({
-  tables: { User, Ensemble, EnsembleMember, Part, EnsembleInvite, Season, SeasonMembership, Rehearsal, Attendance, Announcement, Group, GroupMembership, Song, SongPart, SeasonSong }
+  tables: { User, Ensemble, EnsembleMember, Part, EnsembleInvite, Season, SeasonMembership, Rehearsal, Attendance, Announcement, Group, GroupMembership, Song, SongPart, SeasonSong, PasswordResetToken }
 });
