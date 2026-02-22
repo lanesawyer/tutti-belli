@@ -1,6 +1,7 @@
 ---
-import Layout from '../../../layouts/Layout.astro';
+import EnsemblePageLayout from '../../../layouts/EnsemblePageLayout.astro';
 import Table from '../../../components/Table.astro';
+import Modal from '../../../components/Modal.astro';
 import { canManageEnsemble } from '../../../lib/permissions';
 import {
   getSongsPageData,
@@ -51,484 +52,440 @@ const songSeasonsMap = buildSongSeasonsMap(seasonSongsData);
 const songFilesMap = buildSongFilesMap(ensembleSongIds, songFilesData);
 ---
 
-<Layout title={`Manage Songs - ${ensemble.name}`}>
-  <section class="section">
-    <div class="container">
-      <nav class="breadcrumb" aria-label="breadcrumbs">
-        <ul>
-          <li><a href="/ensembles">Ensembles</a></li>
-          <li><a href={`/ensembles/${id}`}>{ensemble.name}</a></li>
-          <li class="is-active"><a href="#" aria-current="page">Manage Songs</a></li>
-        </ul>
-      </nav>
+<EnsemblePageLayout
+  title={`Songs - ${ensemble.name}`}
+  ensembleName={ensemble.name}
+  ensembleId={id!}
+  pageTitle="Songs"
+  pageSubtitle={`Repertoire for ${ensemble.name}`}
+>
+  <button slot="action" class="button is-primary" id="add-song-btn">
+    <span class="icon"><i class="fas fa-plus"></i></span>
+    <span>Add Song</span>
+  </button>
 
-      <h1 class="title">Manage Songs</h1>
-      <p class="subtitle">Configure repertoire for {ensemble.name}</p>
-
-      <div class="columns">
-        <div class="column is-two-thirds">
-          <div class="box">
-            <h2 class="title is-4">Current Songs</h2>
-            {songs.length === 0 ? (
-              <div class="notification is-info is-light">
-                <p>No songs added yet. Add your first song below.</p>
-              </div>
-            ) : (
-              <Table>
-                <thead>
-                  <tr>
-                    <th>Name</th>
-                    <th>Composer</th>
-                    <th>Arranger</th>
-                    <th>Runtime</th>
-                    <th>Parts</th>
-                    <th>Seasons</th>
-                    <th style="width: 130px;">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {songs.map((song) => {
-                    const songParts = songPartsMap.get(song.id) || [];
-                    const songSeasons = songSeasonsMap.get(song.id) || [];
-                    const songFiles = songFilesMap.get(song.id) || [];
-                    return (
-                      <tr>
-                        <td><strong>{song.name}</strong></td>
-                        <td>{song.composer || '-'}</td>
-                        <td>{song.arranger || '-'}</td>
-                        <td>{formatRuntime(song.runTime)}</td>
-                        <td>
-                          {songParts.length > 0 ? (
-                            <div class="tags are-small">
-                              {songParts.map((partId: string) => {
-                                const part = parts.find((p) => p.id === partId);
-                                return part ? <span class="tag is-info">{part.name}</span> : null;
-                              })}
-                            </div>
-                          ) : '-'}
-                        </td>
-                        <td>
-                          {songSeasons.length > 0 ? (
-                            <div class="tags are-small">
-                              {songSeasons.map((seasonId: string) => {
-                                const season = seasons.find((s) => s.id === seasonId);
-                                return season ? <span class="tag is-primary">{season.name}</span> : null;
-                              })}
-                            </div>
-                          ) : '-'}
-                        </td>
-                        <td>
-                          <div class="buttons are-small">
-                            <button
-                              class="button is-link files-btn"
-                              data-song-id={song.id}
-                              data-song-name={song.name}
-                            >
-                              <span class="icon is-small"><i class="fas fa-folder-open"></i></span>
-                              {songFiles.length > 0 && <span>{songFiles.length}</span>}
-                            </button>
-                            <button class="button is-info edit-btn" data-song-id={song.id}>
-                              <span class="icon is-small"><i class="fas fa-pencil"></i></span>
-                            </button>
-                            <button class="button is-danger delete-btn" data-song-id={song.id}>
-                              <span class="icon is-small"><i class="fas fa-trash"></i></span>
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </Table>
-            )}
-          </div>
-
-          <a href={`/ensembles/${id}`} class="button">
-            <span class="icon"><i class="fas fa-arrow-left"></i></span>
-            <span>Back to Ensemble</span>
-          </a>
-        </div>
-
-        <div class="column">
-          <div class="box">
-            <h2 class="title is-5">Add New Song</h2>
-            <form method="POST">
-              <input type="hidden" name="action" value="add" />
-
-              <div class="field">
-                <label class="label" for="name">Song Name *</label>
-                <div class="control">
-                  <input class="input" type="text" id="name" name="name" placeholder="Song name" required />
-                </div>
-              </div>
-
-              <div class="field">
-                <label class="label" for="composer">Composer</label>
-                <div class="control">
-                  <input class="input" type="text" id="composer" name="composer" placeholder="Composer name" />
-                </div>
-              </div>
-
-              <div class="field">
-                <label class="label" for="arranger">Arranger</label>
-                <div class="control">
-                  <input class="input" type="text" id="arranger" name="arranger" placeholder="Arranger name" />
-                </div>
-              </div>
-
-              <div class="field">
-                <label class="label">Runtime</label>
-                <div class="field has-addons">
-                  <div class="control">
-                    <input class="input" type="number" name="runTimeMinutes" placeholder="Min" min="0" style="width: 80px;" />
+  {songs.length === 0 ? (
+    <div class="notification is-info is-light">
+      No songs added yet. Click "Add Song" to get started.
+    </div>
+  ) : (
+    <Table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Composer</th>
+          <th>Arranger</th>
+          <th>Runtime</th>
+          <th>Parts</th>
+          <th>Seasons</th>
+          <th style="width: 130px;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {songs.map((song) => {
+          const songParts = songPartsMap.get(song.id) || [];
+          const songSeasons = songSeasonsMap.get(song.id) || [];
+          const songFiles = songFilesMap.get(song.id) || [];
+          return (
+            <tr>
+              <td><strong>{song.name}</strong></td>
+              <td>{song.composer || '-'}</td>
+              <td>{song.arranger || '-'}</td>
+              <td>{formatRuntime(song.runTime)}</td>
+              <td>
+                {songParts.length > 0 ? (
+                  <div class="tags are-small">
+                    {songParts.map((partId: string) => {
+                      const part = parts.find((p) => p.id === partId);
+                      return part ? <span class="tag is-info">{part.name}</span> : null;
+                    })}
                   </div>
-                  <div class="control">
-                    <span class="button is-static">:</span>
+                ) : '-'}
+              </td>
+              <td>
+                {songSeasons.length > 0 ? (
+                  <div class="tags are-small">
+                    {songSeasons.map((seasonId: string) => {
+                      const season = seasons.find((s) => s.id === seasonId);
+                      return season ? <span class="tag is-primary">{season.name}</span> : null;
+                    })}
                   </div>
-                  <div class="control">
-                    <input class="input" type="number" name="runTimeSeconds" placeholder="Sec" min="0" max="59" style="width: 80px;" />
-                  </div>
-                </div>
-                <p class="help">Leave blank if unknown</p>
-              </div>
-
-              {parts.length > 0 && (
-                <div class="field">
-                  <label class="label">Parts</label>
-                  <div class="control">
-                    {parts.map((part) => (
-                      <label class="checkbox is-block mb-2">
-                        <input type="checkbox" name="parts" value={part.id} />
-                        {' '}{part.name}
-                      </label>
-                    ))}
-                  </div>
-                  <p class="help">Select which parts sing this song</p>
-                </div>
-              )}
-
-              {seasons.length > 0 && (
-                <div class="field">
-                  <label class="label">Seasons</label>
-                  <div class="control">
-                    {seasons.map((season) => (
-                      <label class="checkbox is-block mb-2">
-                        <input type="checkbox" name="seasons" value={season.id} />
-                        {' '}{season.name}
-                      </label>
-                    ))}
-                  </div>
-                  <p class="help">Assign to seasons (optional)</p>
-                </div>
-              )}
-
-              <div class="field">
-                <div class="control">
-                  <button type="submit" class="button is-primary is-fullwidth">
-                    <span class="icon"><i class="fas fa-plus"></i></span>
-                    <span>Add Song</span>
+                ) : '-'}
+              </td>
+              <td>
+                <div class="buttons are-small">
+                  <button
+                    class="button is-link files-btn"
+                    data-song-id={song.id}
+                    data-song-name={song.name}
+                  >
+                    <span class="icon is-small"><i class="fas fa-folder-open"></i></span>
+                    {songFiles.length > 0 && <span>{songFiles.length}</span>}
+                  </button>
+                  <button class="button is-info edit-btn" data-song-id={song.id}>
+                    <span class="icon is-small"><i class="fas fa-pencil"></i></span>
+                  </button>
+                  <button class="button is-danger delete-btn" data-song-id={song.id}>
+                    <span class="icon is-small"><i class="fas fa-trash"></i></span>
                   </button>
                 </div>
-              </div>
-            </form>
-          </div>
+              </td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </Table>
+  )}
+
+  <Fragment slot="modals">
+<!-- Add Song Modal -->
+<Modal id="addModal" title="Add Song">
+  <form id="addForm" method="POST">
+    <input type="hidden" name="action" value="add" />
+
+    <div class="field">
+      <label class="label" for="name">Song Name *</label>
+      <div class="control">
+        <input class="input" type="text" id="name" name="name" placeholder="Song name" required />
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="label" for="composer">Composer</label>
+      <div class="control">
+        <input class="input" type="text" id="composer" name="composer" placeholder="Composer name" />
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="label" for="arranger">Arranger</label>
+      <div class="control">
+        <input class="input" type="text" id="arranger" name="arranger" placeholder="Arranger name" />
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="label">Runtime</label>
+      <div class="field has-addons">
+        <div class="control">
+          <input class="input" type="number" name="runTimeMinutes" placeholder="Min" min="0" style="width: 80px;" />
+        </div>
+        <div class="control">
+          <span class="button is-static">:</span>
+        </div>
+        <div class="control">
+          <input class="input" type="number" name="runTimeSeconds" placeholder="Sec" min="0" max="59" style="width: 80px;" />
+        </div>
+      </div>
+      <p class="help">Leave blank if unknown</p>
+    </div>
+
+    {parts.length > 0 && (
+      <div class="field">
+        <label class="label">Parts</label>
+        <div class="control">
+          {parts.map((part) => (
+            <label class="checkbox is-block mb-2">
+              <input type="checkbox" name="parts" value={part.id} />
+              {' '}{part.name}
+            </label>
+          ))}
+        </div>
+        <p class="help">Select which parts sing this song</p>
+      </div>
+    )}
+
+    {seasons.length > 0 && (
+      <div class="field">
+        <label class="label">Seasons</label>
+        <div class="control">
+          {seasons.map((season) => (
+            <label class="checkbox is-block mb-2">
+              <input type="checkbox" name="seasons" value={season.id} />
+              {' '}{season.name}
+            </label>
+          ))}
+        </div>
+        <p class="help">Assign to seasons (optional)</p>
+      </div>
+    )}
+  </form>
+
+  <div slot="footer">
+    <button type="submit" form="addForm" class="button is-primary">Add Song</button>
+    <button class="button" type="button" data-modal-close>Cancel</button>
+  </div>
+</Modal>
+
+<!-- Files Modal -->
+<Modal id="filesModal" title="Files">
+  <p class="modal-card-title-song mb-3">
+    Song: <span id="filesModalSongName" class="has-text-weight-bold"></span>
+  </p>
+
+  <div id="filesModalList"></div>
+
+  <hr />
+
+  <h3 class="title is-6">Add File</h3>
+  <form id="addFileForm" method="POST">
+    <input type="hidden" name="action" value="add_file" />
+    <input type="hidden" name="songId" id="addFileSongId" />
+
+    <div class="field">
+      <label class="label is-small" for="fileName">Display Name *</label>
+      <div class="control">
+        <input class="input is-small" type="text" id="fileName" name="fileName" placeholder="e.g. Soprano Sheet Music" required />
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="label is-small" for="fileUrl">File URL *</label>
+      <div class="control">
+        <input class="input is-small" type="url" id="fileUrl" name="fileUrl" placeholder="https://..." required />
+      </div>
+      <p class="help">Paste the Backblaze download URL for this file</p>
+    </div>
+
+    <div class="field">
+      <label class="label is-small" for="category">Category</label>
+      <div class="control">
+        <div class="select is-small is-fullwidth">
+          <select id="category" name="category">
+            <option value="sheet_music">Sheet Music</option>
+            <option value="rehearsal_track">Rehearsal Track</option>
+            <option value="other">Other</option>
+          </select>
         </div>
       </div>
     </div>
-  </section>
 
-  <!-- Files Modal -->
-  <div id="filesModal" class="modal">
-    <div class="modal-background"></div>
-    <div class="modal-card" style="width: 680px; max-width: 95vw;">
-      <header class="modal-card-head">
-        <p class="modal-card-title">Files — <span id="filesModalSongName"></span></p>
-        <button class="delete" aria-label="close"></button>
-      </header>
-      <section class="modal-card-body">
-        <div id="filesModalList"></div>
-
-        <hr />
-
-        <h3 class="title is-6">Add File</h3>
-        <form id="addFileForm" method="POST">
-          <input type="hidden" name="action" value="add_file" />
-          <input type="hidden" name="songId" id="addFileSongId" />
-
-          <div class="field">
-            <label class="label is-small" for="fileName">Display Name *</label>
-            <div class="control">
-              <input class="input is-small" type="text" id="fileName" name="fileName" placeholder="e.g. Soprano Sheet Music" required />
-            </div>
-          </div>
-
-          <div class="field">
-            <label class="label is-small" for="fileUrl">File URL *</label>
-            <div class="control">
-              <input class="input is-small" type="url" id="fileUrl" name="fileUrl" placeholder="https://..." required />
-            </div>
-            <p class="help">Paste the Backblaze download URL for this file</p>
-          </div>
-
-          <div class="field">
-            <label class="label is-small" for="category">Category</label>
-            <div class="control">
-              <div class="select is-small is-fullwidth">
-                <select id="category" name="category">
-                  <option value="sheet_music">Sheet Music</option>
-                  <option value="rehearsal_track">Rehearsal Track</option>
-                  <option value="other">Other</option>
-                </select>
-              </div>
-            </div>
-          </div>
-
-          <div class="field">
-            <div class="control">
-              <button type="submit" class="button is-primary is-small">
-                <span class="icon is-small"><i class="fas fa-plus"></i></span>
-                <span>Add File</span>
-              </button>
-            </div>
-          </div>
-        </form>
-      </section>
-      <footer class="modal-card-foot">
-        <button class="button cancel-btn">Close</button>
-      </footer>
+    <div class="field">
+      <div class="control">
+        <button type="submit" class="button is-primary is-small">
+          <span class="icon is-small"><i class="fas fa-plus"></i></span>
+          <span>Add File</span>
+        </button>
+      </div>
     </div>
+  </form>
+
+  <div slot="footer">
+    <button class="button" type="button" data-modal-close>Close</button>
   </div>
+</Modal>
 
-  <!-- Edit Modal -->
-  <div id="editModal" class="modal">
-    <div class="modal-background"></div>
-    <div class="modal-card">
-      <header class="modal-card-head">
-        <p class="modal-card-title">Edit Song</p>
-        <button class="delete" aria-label="close"></button>
-      </header>
-      <section class="modal-card-body">
-        <form id="editForm" method="POST">
-          <input type="hidden" name="action" value="edit" />
-          <input type="hidden" name="songId" id="editSongId" />
+<!-- Edit Modal -->
+<Modal id="editModal" title="Edit Song">
+  <form id="editForm" method="POST">
+    <input type="hidden" name="action" value="edit" />
+    <input type="hidden" name="songId" id="editSongId" />
 
-          <div class="field">
-            <label class="label" for="editName">Song Name *</label>
-            <div class="control">
-              <input class="input" type="text" id="editName" name="name" required />
-            </div>
-          </div>
-
-          <div class="field">
-            <label class="label" for="editComposer">Composer</label>
-            <div class="control">
-              <input class="input" type="text" id="editComposer" name="composer" />
-            </div>
-          </div>
-
-          <div class="field">
-            <label class="label" for="editArranger">Arranger</label>
-            <div class="control">
-              <input class="input" type="text" id="editArranger" name="arranger" />
-            </div>
-          </div>
-
-          <div class="field">
-            <label class="label">Runtime</label>
-            <div class="field has-addons">
-              <div class="control">
-                <input class="input" type="number" name="runTimeMinutes" id="editRunTimeMinutes" placeholder="Min" min="0" style="width: 80px;" />
-              </div>
-              <div class="control">
-                <span class="button is-static">:</span>
-              </div>
-              <div class="control">
-                <input class="input" type="number" name="runTimeSeconds" id="editRunTimeSeconds" placeholder="Sec" min="0" max="59" style="width: 80px;" />
-              </div>
-            </div>
-          </div>
-
-          {parts.length > 0 && (
-            <div class="field">
-              <label class="label">Parts</label>
-              <div class="control" id="editParts">
-                {parts.map((part) => (
-                  <label class="checkbox is-block mb-2">
-                    <input type="checkbox" name="parts" value={part.id} />
-                    {' '}{part.name}
-                  </label>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {seasons.length > 0 && (
-            <div class="field">
-              <label class="label">Seasons</label>
-              <div class="control" id="editSeasons">
-                {seasons.map((season) => (
-                  <label class="checkbox is-block mb-2">
-                    <input type="checkbox" name="seasons" value={season.id} />
-                    {' '}{season.name}
-                  </label>
-                ))}
-              </div>
-            </div>
-          )}
-        </form>
-      </section>
-      <footer class="modal-card-foot">
-        <button type="submit" form="editForm" class="button is-primary">Save Changes</button>
-        <button class="button cancel-btn">Cancel</button>
-      </footer>
+    <div class="field">
+      <label class="label" for="editName">Song Name *</label>
+      <div class="control">
+        <input class="input" type="text" id="editName" name="name" required />
+      </div>
     </div>
-  </div>
 
-  <!-- Delete Confirmation Modal -->
-  <div id="deleteModal" class="modal">
-    <div class="modal-background"></div>
-    <div class="modal-card">
-      <header class="modal-card-head">
-        <p class="modal-card-title">Delete Song</p>
-        <button class="delete" aria-label="close"></button>
-      </header>
-      <section class="modal-card-body">
-        <p>Are you sure you want to delete this song? This action cannot be undone.</p>
-        <form id="deleteForm" method="POST">
-          <input type="hidden" name="action" value="delete" />
-          <input type="hidden" name="songId" id="deleteSongId" />
-        </form>
-      </section>
-      <footer class="modal-card-foot">
-        <button type="submit" form="deleteForm" class="button is-danger">Delete</button>
-        <button class="button cancel-btn">Cancel</button>
-      </footer>
+    <div class="field">
+      <label class="label" for="editComposer">Composer</label>
+      <div class="control">
+        <input class="input" type="text" id="editComposer" name="composer" />
+      </div>
     </div>
-  </div>
 
-  <script
-    is:inline
-    data-songs={JSON.stringify(songs)}
-    data-song-parts={JSON.stringify(Array.from(songPartsMap.entries()))}
-    data-song-seasons={JSON.stringify(Array.from(songSeasonsMap.entries()))}
-    data-song-files={JSON.stringify(Array.from(songFilesMap.entries()))}
-  ></script>
+    <div class="field">
+      <label class="label" for="editArranger">Arranger</label>
+      <div class="control">
+        <input class="input" type="text" id="editArranger" name="arranger" />
+      </div>
+    </div>
 
-  <script is:inline>
-    const dataScript = document.currentScript.previousElementSibling;
-    const songsData = JSON.parse(dataScript.dataset.songs || '[]');
-    const songPartsMapJS = new Map(JSON.parse(dataScript.dataset.songParts || '[]'));
-    const songSeasonsMapJS = new Map(JSON.parse(dataScript.dataset.songSeasons || '[]'));
-    const songFilesMapJS = new Map(JSON.parse(dataScript.dataset.songFiles || '[]'));
-
-    function categoryLabel(cat) {
-      if (cat === 'sheet_music') return 'Sheet Music';
-      if (cat === 'rehearsal_track') return 'Rehearsal Track';
-      return 'Other';
-    }
-
-    function categoryTagClass(cat) {
-      if (cat === 'sheet_music') return 'is-success';
-      if (cat === 'rehearsal_track') return 'is-warning';
-      return 'is-light';
-    }
-
-    // ── Files modal ──────────────────────────────────────────────────────────
-
-    const filesModal = document.getElementById('filesModal');
-
-    function renderFilesList(songId) {
-      const files = songFilesMapJS.get(songId) || [];
-      const container = document.getElementById('filesModalList');
-      if (files.length === 0) {
-        container.innerHTML = '<p class="has-text-grey">No files yet.</p>';
-        return;
-      }
-      container.innerHTML = files.map(f => `
-        <div class="is-flex is-align-items-center mb-2" style="gap: 0.5rem;">
-          <span class="tag ${categoryTagClass(f.category)} is-small" style="flex-shrink:0;">${categoryLabel(f.category)}</span>
-          <a href="${f.url}" target="_blank" rel="noopener" class="has-text-weight-medium"
-             style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${f.name}</a>
-          <form method="POST" style="flex-shrink:0;" onsubmit="return confirm('Delete this file?');">
-            <input type="hidden" name="action" value="delete_file" />
-            <input type="hidden" name="fileId" value="${f.id}" />
-            <button type="submit" class="button is-danger is-small">
-              <span class="icon is-small"><i class="fas fa-trash"></i></span>
-            </button>
-          </form>
+    <div class="field">
+      <label class="label">Runtime</label>
+      <div class="field has-addons">
+        <div class="control">
+          <input class="input" type="number" name="runTimeMinutes" id="editRunTimeMinutes" placeholder="Min" min="0" style="width: 80px;" />
         </div>
-      `).join('');
+        <div class="control">
+          <span class="button is-static">:</span>
+        </div>
+        <div class="control">
+          <input class="input" type="number" name="runTimeSeconds" id="editRunTimeSeconds" placeholder="Sec" min="0" max="59" style="width: 80px;" />
+        </div>
+      </div>
+    </div>
+
+    {parts.length > 0 && (
+      <div class="field">
+        <label class="label">Parts</label>
+        <div class="control" id="editParts">
+          {parts.map((part) => (
+            <label class="checkbox is-block mb-2">
+              <input type="checkbox" name="parts" value={part.id} />
+              {' '}{part.name}
+            </label>
+          ))}
+        </div>
+      </div>
+    )}
+
+    {seasons.length > 0 && (
+      <div class="field">
+        <label class="label">Seasons</label>
+        <div class="control" id="editSeasons">
+          {seasons.map((season) => (
+            <label class="checkbox is-block mb-2">
+              <input type="checkbox" name="seasons" value={season.id} />
+              {' '}{season.name}
+            </label>
+          ))}
+        </div>
+      </div>
+    )}
+  </form>
+
+  <div slot="footer">
+    <button type="submit" form="editForm" class="button is-primary">Save Changes</button>
+    <button class="button" type="button" data-modal-close>Cancel</button>
+  </div>
+</Modal>
+
+<!-- Delete Confirmation Modal -->
+<Modal id="deleteModal" title="Delete Song">
+  <p>Are you sure you want to delete this song? This action cannot be undone.</p>
+  <form id="deleteForm" method="POST">
+    <input type="hidden" name="action" value="delete" />
+    <input type="hidden" name="songId" id="deleteSongId" />
+  </form>
+
+  <div slot="footer">
+    <button type="submit" form="deleteForm" class="button is-danger">Delete</button>
+    <button class="button" type="button" data-modal-close>Cancel</button>
+  </div>
+</Modal>
+
+<script
+  is:inline
+  data-songs={JSON.stringify(songs)}
+  data-song-parts={JSON.stringify(Array.from(songPartsMap.entries()))}
+  data-song-seasons={JSON.stringify(Array.from(songSeasonsMap.entries()))}
+  data-song-files={JSON.stringify(Array.from(songFilesMap.entries()))}
+></script>
+
+<script is:inline>
+  const dataScript = document.currentScript.previousElementSibling;
+  const songsData = JSON.parse(dataScript.dataset.songs || '[]');
+  const songPartsMapJS = new Map(JSON.parse(dataScript.dataset.songParts || '[]'));
+  const songSeasonsMapJS = new Map(JSON.parse(dataScript.dataset.songSeasons || '[]'));
+  const songFilesMapJS = new Map(JSON.parse(dataScript.dataset.songFiles || '[]'));
+
+  function categoryLabel(cat) {
+    if (cat === 'sheet_music') return 'Sheet Music';
+    if (cat === 'rehearsal_track') return 'Rehearsal Track';
+    return 'Other';
+  }
+
+  function categoryTagClass(cat) {
+    if (cat === 'sheet_music') return 'is-success';
+    if (cat === 'rehearsal_track') return 'is-warning';
+    return 'is-light';
+  }
+
+  // ── Add modal ─────────────────────────────────────────────────────────────
+  document.getElementById('add-song-btn')?.addEventListener('click', () => {
+    document.getElementById('addModal')?.classList.add('is-active');
+  });
+
+  // ── Files modal ──────────────────────────────────────────────────────────
+
+  const filesModal = document.getElementById('filesModal');
+
+  function renderFilesList(songId) {
+    const files = songFilesMapJS.get(songId) || [];
+    const container = document.getElementById('filesModalList');
+    if (files.length === 0) {
+      container.innerHTML = '<p class="has-text-grey">No files yet.</p>';
+      return;
     }
+    container.innerHTML = files.map(f => `
+      <div class="is-flex is-align-items-center mb-2" style="gap: 0.5rem;">
+        <span class="tag ${categoryTagClass(f.category)} is-small" style="flex-shrink:0;">${categoryLabel(f.category)}</span>
+        <a href="${f.url}" target="_blank" rel="noopener" class="has-text-weight-medium"
+           style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${f.name}</a>
+        <form method="POST" style="flex-shrink:0;" onsubmit="return confirm('Delete this file?');">
+          <input type="hidden" name="action" value="delete_file" />
+          <input type="hidden" name="fileId" value="${f.id}" />
+          <button type="submit" class="button is-danger is-small">
+            <span class="icon is-small"><i class="fas fa-trash"></i></span>
+          </button>
+        </form>
+      </div>
+    `).join('');
+  }
 
-    document.querySelectorAll('.files-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const songId = btn.getAttribute('data-song-id');
-        const songName = btn.getAttribute('data-song-name');
-        document.getElementById('filesModalSongName').textContent = songName;
-        document.getElementById('addFileSongId').value = songId;
-        document.getElementById('fileName').value = '';
-        document.getElementById('fileUrl').value = '';
-        document.getElementById('category').value = 'sheet_music';
-        renderFilesList(songId);
-        filesModal.classList.add('is-active');
-      });
+  document.querySelectorAll('.files-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const songId = btn.getAttribute('data-song-id');
+      const songName = btn.getAttribute('data-song-name');
+      document.getElementById('filesModalSongName').textContent = songName;
+      document.getElementById('addFileSongId').value = songId;
+      document.getElementById('fileName').value = '';
+      document.getElementById('fileUrl').value = '';
+      document.getElementById('category').value = 'sheet_music';
+      renderFilesList(songId);
+      filesModal.classList.add('is-active');
     });
+  });
 
-    // ── Edit modal ───────────────────────────────────────────────────────────
+  // ── Edit modal ───────────────────────────────────────────────────────────
 
-    const editModal = document.getElementById('editModal');
+  const editModal = document.getElementById('editModal');
 
-    document.querySelectorAll('.edit-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const songId = btn.getAttribute('data-song-id');
-        const song = songsData.find(s => s.id === songId);
-        if (!song) return;
+  document.querySelectorAll('.edit-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const songId = btn.getAttribute('data-song-id');
+      const song = songsData.find(s => s.id === songId);
+      if (!song) return;
 
-        document.getElementById('editSongId').value = song.id;
-        document.getElementById('editName').value = song.name;
-        document.getElementById('editComposer').value = song.composer || '';
-        document.getElementById('editArranger').value = song.arranger || '';
+      document.getElementById('editSongId').value = song.id;
+      document.getElementById('editName').value = song.name;
+      document.getElementById('editComposer').value = song.composer || '';
+      document.getElementById('editArranger').value = song.arranger || '';
 
-        if (song.runTime) {
-          document.getElementById('editRunTimeMinutes').value = Math.floor(song.runTime / 60);
-          document.getElementById('editRunTimeSeconds').value = song.runTime % 60;
-        } else {
-          document.getElementById('editRunTimeMinutes').value = '';
-          document.getElementById('editRunTimeSeconds').value = '';
-        }
+      if (song.runTime) {
+        document.getElementById('editRunTimeMinutes').value = Math.floor(song.runTime / 60);
+        document.getElementById('editRunTimeSeconds').value = song.runTime % 60;
+      } else {
+        document.getElementById('editRunTimeMinutes').value = '';
+        document.getElementById('editRunTimeSeconds').value = '';
+      }
 
-        const songParts = songPartsMapJS.get(songId) || [];
-        document.querySelectorAll('#editParts input[type="checkbox"]').forEach(cb => {
-          cb.checked = songParts.includes(cb.value);
-        });
-
-        const songSeasons = songSeasonsMapJS.get(songId) || [];
-        document.querySelectorAll('#editSeasons input[type="checkbox"]').forEach(cb => {
-          cb.checked = songSeasons.includes(cb.value);
-        });
-
-        editModal.classList.add('is-active');
+      const songParts = songPartsMapJS.get(songId) || [];
+      document.querySelectorAll('#editParts input[type="checkbox"]').forEach(cb => {
+        cb.checked = songParts.includes(cb.value);
       });
-    });
 
-    // ── Delete modal ─────────────────────────────────────────────────────────
-
-    const deleteModal = document.getElementById('deleteModal');
-
-    document.querySelectorAll('.delete-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.getElementById('deleteSongId').value = btn.getAttribute('data-song-id');
-        deleteModal.classList.add('is-active');
+      const songSeasons = songSeasonsMapJS.get(songId) || [];
+      document.querySelectorAll('#editSeasons input[type="checkbox"]').forEach(cb => {
+        cb.checked = songSeasons.includes(cb.value);
       });
-    });
 
-    // ── Close all modals ─────────────────────────────────────────────────────
-
-    document.querySelectorAll('.modal .delete, .modal .cancel-btn, .modal-background').forEach(el => {
-      el.addEventListener('click', (e) => {
-        e.preventDefault();
-        el.closest('.modal').classList.remove('is-active');
-      });
+      editModal.classList.add('is-active');
     });
-  </script>
-</Layout>
+  });
+
+  // ── Delete modal ─────────────────────────────────────────────────────────
+
+  const deleteModal = document.getElementById('deleteModal');
+
+  document.querySelectorAll('.delete-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.getElementById('deleteSongId').value = btn.getAttribute('data-song-id');
+      deleteModal.classList.add('is-active');
+    });
+  });
+</script>
+  </Fragment>
+</EnsemblePageLayout>

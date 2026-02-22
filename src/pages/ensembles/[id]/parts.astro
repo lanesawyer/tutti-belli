@@ -1,5 +1,7 @@
 ---
-import Layout from '../../../layouts/Layout.astro';
+import EnsemblePageLayout from '../../../layouts/EnsemblePageLayout.astro';
+import Table from '../../../components/Table.astro';
+import Modal from '../../../components/Modal.astro';
 import { db, eq, and, Ensemble, EnsembleMember, Part } from 'astro:db';
 import { canManageEnsemble } from '../../../lib/permissions';
 const user = Astro.locals.user!;
@@ -30,15 +32,8 @@ if (!isAdmin) {
   return new Response('Unauthorized', { status: 403 });
 }
 
-// Get all parts for this ensemble
-const parts = await db
-  .select()
-  .from(Part)
-  .where(eq(Part.ensembleId, id!))
-  .all();
-
-// Sort parts by sortOrder
-parts.sort((a, b) => a.sortOrder - b.sortOrder);
+let message = '';
+let messageType = '';
 
 // Handle form submissions
 if (Astro.request.method === 'POST') {
@@ -56,6 +51,11 @@ if (Astro.request.method === 'POST') {
         name: name.trim(),
         sortOrder,
       });
+      message = 'Part added successfully!';
+      messageType = 'success';
+    } else {
+      message = 'Part name is required.';
+      messageType = 'danger';
     }
   } else if (action === 'edit') {
     const partId = formData.get('partId') as string;
@@ -67,264 +67,192 @@ if (Astro.request.method === 'POST') {
         .update(Part)
         .set({ name: name.trim(), sortOrder })
         .where(eq(Part.id, partId));
+      message = 'Part updated successfully!';
+      messageType = 'success';
     }
   } else if (action === 'delete') {
     const partId = formData.get('partId') as string;
 
     if (partId) {
-      // Check if any members are assigned to this part
-      const membersCount = await db
+      const membersWithPart = await db
         .select()
         .from(EnsembleMember)
         .where(and(eq(EnsembleMember.ensembleId, id!), eq(EnsembleMember.partId, partId)))
         .all();
 
-      if (membersCount.length === 0) {
+      if (membersWithPart.length > 0) {
+        message = 'Cannot delete a part that has members assigned to it.';
+        messageType = 'danger';
+      } else {
         await db.delete(Part).where(eq(Part.id, partId));
+        message = 'Part deleted.';
+        messageType = 'success';
       }
     }
   }
-
-  return Astro.redirect(`/ensembles/${id}/parts`);
 }
+
+// Get all parts for this ensemble, sorted
+const parts = await db
+  .select()
+  .from(Part)
+  .where(eq(Part.ensembleId, id!))
+  .all();
+
+parts.sort((a, b) => a.sortOrder - b.sortOrder);
+
+const nextSortOrder = parts.length > 0 ? Math.max(...parts.map(p => p.sortOrder)) + 1 : 1;
 ---
 
-<Layout title={`Manage Parts - ${ensemble.name}`}>
-  <section class="section">
-    <div class="container">
-      <nav class="breadcrumb" aria-label="breadcrumbs">
-        <ul>
-          <li><a href="/ensembles">Ensembles</a></li>
-          <li><a href={`/ensembles/${id}`}>{ensemble.name}</a></li>
-          <li class="is-active"><a href="#" aria-current="page">Manage Parts</a></li>
-        </ul>
-      </nav>
+<EnsemblePageLayout
+  title={`Parts - ${ensemble.name}`}
+  ensembleName={ensemble.name}
+  ensembleId={id!}
+  pageTitle="Parts"
+  pageSubtitle={`Voice parts for ${ensemble.name}`}
+  message={message}
+  messageType={messageType}
+>
+  <button slot="action" class="button is-primary" id="add-part-btn">
+    <span class="icon"><i class="fas fa-plus"></i></span>
+    <span>Add Part</span>
+  </button>
 
-      <h1 class="title">Manage Parts</h1>
-      <p class="subtitle">Configure voice parts for {ensemble.name}</p>
-
-      <div class="columns">
-        <div class="column is-two-thirds">
-          <div class="box">
-            <h2 class="title is-4">Current Parts</h2>
-            {parts.length === 0 ? (
-              <div class="notification is-info is-light">
-                <p>No parts defined yet. Add your first part below.</p>
+  {parts.length === 0 ? (
+    <div class="notification is-info is-light">
+      No parts defined yet. Click "Add Part" to create one.
+    </div>
+  ) : (
+    <Table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Sort Order</th>
+          <th style="width: 120px;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {parts.map((part) => (
+          <tr>
+            <td><strong>{part.name}</strong></td>
+            <td>{part.sortOrder}</td>
+            <td>
+              <div class="buttons are-small">
+                <button
+                  class="button is-info edit-part-btn"
+                  data-part-id={part.id}
+                  data-part-name={part.name}
+                  data-part-sort-order={part.sortOrder}
+                >
+                  <span class="icon"><i class="fas fa-edit"></i></span>
+                </button>
+                <button
+                  class="button is-danger delete-part-btn"
+                  data-part-id={part.id}
+                  data-part-name={part.name}
+                >
+                  <span class="icon"><i class="fas fa-trash"></i></span>
+                </button>
               </div>
-            ) : (
-              <table class="table is-fullwidth is-hoverable">
-                <thead>
-                  <tr>
-                    <th>Name</th>
-                    <th>Sort Order</th>
-                    <th style="width: 200px;">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {parts.map((part) => (
-                    <tr id={`part-${part.id}`}>
-                      <td>
-                        <span class="part-name">{part.name}</span>
-                        <input
-                          type="text"
-                          class="input is-small part-name-edit"
-                          style="display: none;"
-                          value={part.name}
-                          data-part-id={part.id}
-                        />
-                      </td>
-                      <td>
-                        <span class="part-order">{part.sortOrder}</span>
-                        <input
-                          type="number"
-                          class="input is-small part-order-edit"
-                          style="display: none; width: 100px;"
-                          value={part.sortOrder}
-                          data-part-id={part.id}
-                        />
-                      </td>
-                      <td>
-                        <div class="buttons are-small part-actions">
-                          <button class="button is-info edit-btn" data-part-id={part.id}>
-                            <span class="icon">
-                              <i class="fas fa-edit"></i>
-                            </span>
-                            <span>Edit</span>
-                          </button>
-                          <form method="POST" style="display: inline;" class="delete-form">
-                            <input type="hidden" name="action" value="delete" />
-                            <input type="hidden" name="partId" value={part.id} />
-                            <button type="submit" class="button is-danger delete-btn">
-                              <span class="icon">
-                                <i class="fas fa-trash"></i>
-                              </span>
-                              <span>Delete</span>
-                            </button>
-                          </form>
-                        </div>
-                        <div class="buttons are-small part-edit-actions" style="display: none;">
-                          <button class="button is-success save-btn" data-part-id={part.id}>
-                            <span class="icon">
-                              <i class="fas fa-check"></i>
-                            </span>
-                            <span>Save</span>
-                          </button>
-                          <button class="button cancel-btn" data-part-id={part.id}>
-                            <span class="icon">
-                              <i class="fas fa-times"></i>
-                            </span>
-                            <span>Cancel</span>
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
-        </div>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </Table>
+  )}
 
-        <div class="column">
-          <div class="box">
-            <h2 class="title is-4">Add New Part</h2>
-            <form method="POST">
-              <input type="hidden" name="action" value="add" />
-              
-              <div class="field">
-                <label class="label" for="name">Part Name</label>
-                <div class="control">
-                  <input
-                    class="input"
-                    type="text"
-                    id="name"
-                    name="name"
-                    placeholder="e.g., Soprano, Alto"
-                    required
-                  />
-                </div>
-              </div>
+  <Fragment slot="modals">
+<!-- Add Part Modal -->
+<Modal id="add-modal" title="Add Part">
+  <form id="addForm" method="POST">
+    <input type="hidden" name="action" value="add" />
 
-              <div class="field">
-                <label class="label" for="sortOrder">Sort Order</label>
-                <div class="control">
-                  <input
-                    class="input"
-                    type="number"
-                    id="sortOrder"
-                    name="sortOrder"
-                    value={parts.length > 0 ? Math.max(...parts.map(p => p.sortOrder)) + 1 : 1}
-                    min="0"
-                  />
-                </div>
-                <p class="help">Lower numbers appear first in lists</p>
-              </div>
-
-              <div class="field">
-                <div class="control">
-                  <button type="submit" class="button is-primary">
-                    <span class="icon">
-                      <i class="fas fa-plus"></i>
-                    </span>
-                    <span>Add Part</span>
-                  </button>
-                </div>
-              </div>
-            </form>
-          </div>
-
-          <div class="box">
-            <h2 class="title is-5">About Parts</h2>
-            <div class="content">
-              <p><strong>Sort Order</strong> determines how parts are displayed in member lists.</p>
-              <p><strong>Deleting</strong> a part is only allowed if no members are assigned to it.</p>
-              <p>Members can select their part from their profile page.</p>
-            </div>
-          </div>
-        </div>
+    <div class="field">
+      <label class="label" for="add-name">Part Name *</label>
+      <div class="control">
+        <input class="input" type="text" id="add-name" name="name" placeholder="e.g., Soprano, Alto, Tenor" required />
       </div>
     </div>
-  </section>
 
-  <script>
-    // Handle inline editing
-    document.querySelectorAll('.edit-btn').forEach((btn) => {
-      btn.addEventListener('click', (e) => {
-        const partId = (e.currentTarget as HTMLElement).dataset.partId;
-        const row = document.querySelector(`#part-${partId}`);
-        if (!row) return;
+    <div class="field">
+      <label class="label" for="add-sortOrder">Sort Order</label>
+      <div class="control">
+        <input class="input" type="number" id="add-sortOrder" name="sortOrder" value={nextSortOrder} min="0" />
+      </div>
+      <p class="help">Lower numbers appear first in lists.</p>
+    </div>
+  </form>
 
-        // Hide display elements and show edit elements
-        row.querySelector('.part-name')?.setAttribute('style', 'display: none;');
-        row.querySelector('.part-order')?.setAttribute('style', 'display: none;');
-        row.querySelector('.part-name-edit')?.removeAttribute('style');
-        row.querySelector('.part-order-edit')?.removeAttribute('style');
-        row.querySelector('.part-actions')?.setAttribute('style', 'display: none;');
-        row.querySelector('.part-edit-actions')?.removeAttribute('style');
-      });
+  <div slot="footer">
+    <button type="submit" form="addForm" class="button is-primary">Add Part</button>
+    <button class="button" type="button" data-modal-close>Cancel</button>
+  </div>
+</Modal>
+
+<!-- Edit Part Modal -->
+<Modal id="edit-modal" title="Edit Part">
+  <form id="editForm" method="POST">
+    <input type="hidden" name="action" value="edit" />
+    <input type="hidden" name="partId" id="edit-part-id" />
+
+    <div class="field">
+      <label class="label" for="edit-name">Part Name *</label>
+      <div class="control">
+        <input class="input" type="text" id="edit-name" name="name" required />
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="label" for="edit-sortOrder">Sort Order</label>
+      <div class="control">
+        <input class="input" type="number" id="edit-sortOrder" name="sortOrder" min="0" />
+      </div>
+      <p class="help">Lower numbers appear first in lists.</p>
+    </div>
+  </form>
+
+  <div slot="footer">
+    <button type="submit" form="editForm" class="button is-primary">Save Changes</button>
+    <button class="button" type="button" data-modal-close>Cancel</button>
+  </div>
+</Modal>
+
+<!-- Delete Confirmation Modal -->
+<Modal id="delete-modal" title="Delete Part">
+  <p>Are you sure you want to delete <strong id="delete-part-name"></strong>?</p>
+  <p class="mt-2 has-text-grey">Parts with assigned members cannot be deleted.</p>
+  <form id="deleteForm" method="POST">
+    <input type="hidden" name="action" value="delete" />
+    <input type="hidden" name="partId" id="delete-part-id" />
+  </form>
+
+  <div slot="footer">
+    <button type="submit" form="deleteForm" class="button is-danger">Delete</button>
+    <button class="button" type="button" data-modal-close>Cancel</button>
+  </div>
+</Modal>
+
+<script is:inline>
+  document.getElementById('add-part-btn')?.addEventListener('click', () => {
+    document.getElementById('add-modal')?.classList.add('is-active');
+  });
+
+  document.querySelectorAll('.edit-part-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.getElementById('edit-part-id').value = btn.getAttribute('data-part-id');
+      document.getElementById('edit-name').value = btn.getAttribute('data-part-name');
+      document.getElementById('edit-sortOrder').value = btn.getAttribute('data-part-sort-order');
+      document.getElementById('edit-modal')?.classList.add('is-active');
     });
+  });
 
-    document.querySelectorAll('.cancel-btn').forEach((btn) => {
-      btn.addEventListener('click', (e) => {
-        const partId = (e.currentTarget as HTMLElement).dataset.partId;
-        const row = document.querySelector(`#part-${partId}`);
-        if (!row) return;
-
-        // Show display elements and hide edit elements
-        row.querySelector('.part-name')?.removeAttribute('style');
-        row.querySelector('.part-order')?.removeAttribute('style');
-        row.querySelector('.part-name-edit')?.setAttribute('style', 'display: none;');
-        row.querySelector('.part-order-edit')?.setAttribute('style', 'display: none;');
-        row.querySelector('.part-actions')?.removeAttribute('style');
-        row.querySelector('.part-edit-actions')?.setAttribute('style', 'display: none;');
-
-        // Reset input values
-        const nameEdit = row.querySelector('.part-name-edit') as HTMLInputElement;
-        const nameDisplay = row.querySelector('.part-name');
-        if (nameEdit && nameDisplay) {
-          nameEdit.value = nameDisplay.textContent?.trim() || '';
-        }
-
-        const orderEdit = row.querySelector('.part-order-edit') as HTMLInputElement;
-        const orderDisplay = row.querySelector('.part-order');
-        if (orderEdit && orderDisplay) {
-          orderEdit.value = orderDisplay.textContent?.trim() || '';
-        }
-      });
+  document.querySelectorAll('.delete-part-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.getElementById('delete-part-id').value = btn.getAttribute('data-part-id');
+      document.getElementById('delete-part-name').textContent = btn.getAttribute('data-part-name');
+      document.getElementById('delete-modal')?.classList.add('is-active');
     });
-
-    document.querySelectorAll('.save-btn').forEach((btn) => {
-      btn.addEventListener('click', async (e) => {
-        const partId = (e.currentTarget as HTMLElement).dataset.partId;
-        const row = document.querySelector(`#part-${partId}`);
-        if (!row) return;
-
-        const nameInput = row.querySelector('.part-name-edit') as HTMLInputElement;
-        const orderInput = row.querySelector('.part-order-edit') as HTMLInputElement;
-
-        if (!nameInput || !orderInput) return;
-
-        // Submit the form
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.innerHTML = `
-          <input type="hidden" name="action" value="edit" />
-          <input type="hidden" name="partId" value="${partId}" />
-          <input type="hidden" name="name" value="${nameInput.value}" />
-          <input type="hidden" name="sortOrder" value="${orderInput.value}" />
-        `;
-        document.body.appendChild(form);
-        form.submit();
-      });
-    });
-
-    // Confirm before deleting
-    document.querySelectorAll('.delete-form').forEach((form) => {
-      form.addEventListener('submit', (e) => {
-        if (!confirm('Are you sure you want to delete this part? This can only be done if no members are assigned to it.')) {
-          e.preventDefault();
-        }
-      });
-    });
-  </script>
-</Layout>
+  });
+</script>
+  </Fragment>
+</EnsemblePageLayout>
