@@ -166,6 +166,18 @@ const SeasonSong = defineTable({
   }
 });
 
+const SongFile = defineTable({
+  columns: {
+    id: column.text({ primaryKey: true }),
+    songId: column.text({ references: () => Song.columns.id }),
+    name: column.text(),
+    url: column.text(),
+    category: column.text({ enum: ['sheet_music', 'rehearsal_track', 'other'], default: 'other' }),
+    uploadedBy: column.text({ references: () => User.columns.id }),
+    uploadedAt: column.date({ default: NOW }),
+  }
+});
+
 const PasswordResetToken = defineTable({
   columns: {
     id: column.text({ primaryKey: true }),
@@ -178,5 +190,5 @@ const PasswordResetToken = defineTable({
 });
 
 export default defineDb({
-  tables: { User, Ensemble, EnsembleMember, Part, EnsembleInvite, Season, SeasonMembership, Rehearsal, Attendance, Announcement, Group, GroupMembership, Song, SongPart, SeasonSong, PasswordResetToken }
+  tables: { User, Ensemble, EnsembleMember, Part, EnsembleInvite, Season, SeasonMembership, Rehearsal, Attendance, Announcement, Group, GroupMembership, Song, SongPart, SeasonSong, SongFile, PasswordResetToken }
 });

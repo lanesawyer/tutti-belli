@@ -1,196 +1,54 @@
 ---
 import Layout from '../../../layouts/Layout.astro';
-import { db, eq, and, Ensemble, EnsembleMember, Song, SongPart, Part, Season, SeasonSong } from 'astro:db';
+import Table from '../../../components/Table.astro';
 import { canManageEnsemble } from '../../../lib/permissions';
+import {
+  getSongsPageData,
+  getMembership,
+  buildSongPartsMap,
+  buildSongSeasonsMap,
+  buildSongFilesMap,
+  addSong,
+  editSong,
+  deleteSong,
+  addSongFile,
+  deleteSongFile,
+  formatRuntime,
+} from '../../../lib/songs';
 
 const user = Astro.locals.user!;
-
 const { id } = Astro.params;
 
-// Get the ensemble
-const ensemble = await db
-  .select()
-  .from(Ensemble)
-  .where(eq(Ensemble.id, id!))
-  .get();
+const { ensemble, songs, parts, seasons, songPartsData, seasonSongsData, songFilesData } =
+  await getSongsPageData(id!);
 
 if (!ensemble) {
   return new Response('Ensemble not found', { status: 404 });
 }
 
-// Check if user is an admin of this ensemble
-const membership = await db
-  .select()
-  .from(EnsembleMember)
-  .where(and(eq(EnsembleMember.ensembleId, id!), eq(EnsembleMember.userId, user.id)))
-  .get();
+const membership = await getMembership(id!, user.id);
 
-const isAdmin = canManageEnsemble(user, membership);
-
-if (!isAdmin) {
+if (!canManageEnsemble(user, membership)) {
   return new Response('Unauthorized', { status: 403 });
 }
 
-// Get all songs for this ensemble
-const songs = await db
-  .select()
-  .from(Song)
-  .where(eq(Song.ensembleId, id!))
-  .all();
-
-// Get all parts for this ensemble
-const parts = await db
-  .select()
-  .from(Part)
-  .where(eq(Part.ensembleId, id!))
-  .all();
-
-// Get all seasons for this ensemble
-const seasons = await db
-  .select()
-  .from(Season)
-  .where(eq(Season.ensembleId, id!))
-  .all();
-
-// Get song parts associations
-const songPartsData = await db
-  .select()
-  .from(SongPart)
-  .all();
-
-// Get season songs associations
-const seasonSongsData = await db
-  .select()
-  .from(SeasonSong)
-  .all();
-
-// Create maps for easy lookup
-const songPartsMap = new Map();
-for (const sp of songPartsData) {
-  if (!songPartsMap.has(sp.songId)) {
-    songPartsMap.set(sp.songId, []);
-  }
-  songPartsMap.get(sp.songId).push(sp.partId);
-}
-
-const songSeasonsMap = new Map();
-for (const ss of seasonSongsData) {
-  if (!songSeasonsMap.has(ss.songId)) {
-    songSeasonsMap.set(ss.songId, []);
-  }
-  songSeasonsMap.get(ss.songId).push(ss.seasonId);
-}
-
-// Handle form submissions
 if (Astro.request.method === 'POST') {
   const formData = await Astro.request.formData();
   const action = formData.get('action');
 
-  if (action === 'add') {
-    const name = formData.get('name') as string;
-    const composer = formData.get('composer') as string;
-    const arranger = formData.get('arranger') as string;
-    const runTimeMinutes = parseInt(formData.get('runTimeMinutes') as string) || 0;
-    const runTimeSeconds = parseInt(formData.get('runTimeSeconds') as string) || 0;
-    const runTime = (runTimeMinutes * 60) + runTimeSeconds;
-    const selectedParts = formData.getAll('parts');
-    const selectedSeasons = formData.getAll('seasons');
-
-    if (name) {
-      const songId = crypto.randomUUID();
-      
-      await db.insert(Song).values({
-        id: songId,
-        ensembleId: id!,
-        name: name.trim(),
-        composer: composer.trim() || null,
-        arranger: arranger.trim() || null,
-        runTime: runTime > 0 ? runTime : null,
-      });
-
-      // Add part associations
-      for (const partId of selectedParts) {
-        await db.insert(SongPart).values({
-          id: crypto.randomUUID(),
-          songId,
-          partId: partId as string,
-        });
-      }
-
-      // Add season associations
-      for (const seasonId of selectedSeasons) {
-        await db.insert(SeasonSong).values({
-          id: crypto.randomUUID(),
-          songId,
-          seasonId: seasonId as string,
-        });
-      }
-    }
-  } else if (action === 'edit') {
-    const songId = formData.get('songId') as string;
-    const name = formData.get('name') as string;
-    const composer = formData.get('composer') as string;
-    const arranger = formData.get('arranger') as string;
-    const runTimeMinutes = parseInt(formData.get('runTimeMinutes') as string) || 0;
-    const runTimeSeconds = parseInt(formData.get('runTimeSeconds') as string) || 0;
-    const runTime = (runTimeMinutes * 60) + runTimeSeconds;
-    const selectedParts = formData.getAll('parts');
-    const selectedSeasons = formData.getAll('seasons');
-
-    if (songId && name) {
-      await db
-        .update(Song)
-        .set({ 
-          name: name.trim(), 
-          composer: composer.trim() || null,
-          arranger: arranger.trim() || null,
-          runTime: runTime > 0 ? runTime : null,
-        })
-        .where(eq(Song.id, songId));
-
-      // Delete existing associations
-      await db.delete(SongPart).where(eq(SongPart.songId, songId));
-      await db.delete(SeasonSong).where(eq(SeasonSong.songId, songId));
-
-      // Add new part associations
-      for (const partId of selectedParts) {
-        await db.insert(SongPart).values({
-          id: crypto.randomUUID(),
-          songId,
-          partId: partId as string,
-        });
-      }
-
-      // Add new season associations
-      for (const seasonId of selectedSeasons) {
-        await db.insert(SeasonSong).values({
-          id: crypto.randomUUID(),
-          songId,
-          seasonId: seasonId as string,
-        });
-      }
-    }
-  } else if (action === 'delete') {
-    const songId = formData.get('songId') as string;
-
-    if (songId) {
-      // Delete associated records
-      await db.delete(SongPart).where(eq(SongPart.songId, songId));
-      await db.delete(SeasonSong).where(eq(SeasonSong.songId, songId));
-      await db.delete(Song).where(eq(Song.id, songId));
-    }
-  }
+  if (action === 'add') await addSong(id!, formData);
+  else if (action === 'edit') await editSong(formData);
+  else if (action === 'delete') await deleteSong(formData);
+  else if (action === 'add_file') await addSongFile(formData, user.id);
+  else if (action === 'delete_file') await deleteSongFile(formData);
 
   return Astro.redirect(`/ensembles/${id}/songs`);
 }
 
-// Helper function to format runtime
-function formatRuntime(seconds: number | null): string {
-  if (!seconds) return '-';
-  const mins = Math.floor(seconds / 60);
-  const secs = seconds % 60;
-  return `${mins}:${secs.toString().padStart(2, '0')}`;
-}
+const ensembleSongIds = new Set(songs.map((s) => s.id));
+const songPartsMap = buildSongPartsMap(songPartsData);
+const songSeasonsMap = buildSongSeasonsMap(seasonSongsData);
+const songFilesMap = buildSongFilesMap(ensembleSongIds, songFilesData);
 ---
 
 <Layout title={`Manage Songs - ${ensemble.name}`}>
@@ -216,7 +74,7 @@ function formatRuntime(seconds: number | null): string {
                 <p>No songs added yet. Add your first song below.</p>
               </div>
             ) : (
-              <table class="table is-fullwidth is-hoverable">
+              <Table>
                 <thead>
                   <tr>
                     <th>Name</th>
@@ -225,13 +83,14 @@ function formatRuntime(seconds: number | null): string {
                     <th>Runtime</th>
                     <th>Parts</th>
                     <th>Seasons</th>
-                    <th style="width: 180px;">Actions</th>
+                    <th style="width: 130px;">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {songs.map((song) => {
                     const songParts = songPartsMap.get(song.id) || [];
                     const songSeasons = songSeasonsMap.get(song.id) || [];
+                    const songFiles = songFilesMap.get(song.id) || [];
                     return (
                       <tr>
                         <td><strong>{song.name}</strong></td>
@@ -242,7 +101,7 @@ function formatRuntime(seconds: number | null): string {
                           {songParts.length > 0 ? (
                             <div class="tags are-small">
                               {songParts.map((partId: string) => {
-                                const part = parts.find(p => p.id === partId);
+                                const part = parts.find((p) => p.id === partId);
                                 return part ? <span class="tag is-info">{part.name}</span> : null;
                               })}
                             </div>
@@ -252,7 +111,7 @@ function formatRuntime(seconds: number | null): string {
                           {songSeasons.length > 0 ? (
                             <div class="tags are-small">
                               {songSeasons.map((seasonId: string) => {
-                                const season = seasons.find(s => s.id === seasonId);
+                                const season = seasons.find((s) => s.id === seasonId);
                                 return season ? <span class="tag is-primary">{season.name}</span> : null;
                               })}
                             </div>
@@ -260,15 +119,19 @@ function formatRuntime(seconds: number | null): string {
                         </td>
                         <td>
                           <div class="buttons are-small">
+                            <button
+                              class="button is-link files-btn"
+                              data-song-id={song.id}
+                              data-song-name={song.name}
+                            >
+                              <span class="icon is-small"><i class="fas fa-folder-open"></i></span>
+                              {songFiles.length > 0 && <span>{songFiles.length}</span>}
+                            </button>
                             <button class="button is-info edit-btn" data-song-id={song.id}>
-                              <span class="icon is-small">
-                                <i class="fas fa-pencil"></i>
-                              </span>
+                              <span class="icon is-small"><i class="fas fa-pencil"></i></span>
                             </button>
                             <button class="button is-danger delete-btn" data-song-id={song.id}>
-                              <span class="icon is-small">
-                                <i class="fas fa-trash"></i>
-                              </span>
+                              <span class="icon is-small"><i class="fas fa-trash"></i></span>
                             </button>
                           </div>
                         </td>
@@ -276,14 +139,12 @@ function formatRuntime(seconds: number | null): string {
                     );
                   })}
                 </tbody>
-              </table>
+              </Table>
             )}
           </div>
 
           <a href={`/ensembles/${id}`} class="button">
-            <span class="icon">
-              <i class="fas fa-arrow-left"></i>
-            </span>
+            <span class="icon"><i class="fas fa-arrow-left"></i></span>
             <span>Back to Ensemble</span>
           </a>
         </div>
@@ -293,44 +154,25 @@ function formatRuntime(seconds: number | null): string {
             <h2 class="title is-5">Add New Song</h2>
             <form method="POST">
               <input type="hidden" name="action" value="add" />
-              
+
               <div class="field">
                 <label class="label" for="name">Song Name *</label>
                 <div class="control">
-                  <input
-                    class="input"
-                    type="text"
-                    id="name"
-                    name="name"
-                    placeholder="Song name"
-                    required
-                  />
+                  <input class="input" type="text" id="name" name="name" placeholder="Song name" required />
                 </div>
               </div>
 
               <div class="field">
                 <label class="label" for="composer">Composer</label>
                 <div class="control">
-                  <input
-                    class="input"
-                    type="text"
-                    id="composer"
-                    name="composer"
-                    placeholder="Composer name"
-                  />
+                  <input class="input" type="text" id="composer" name="composer" placeholder="Composer name" />
                 </div>
               </div>
 
               <div class="field">
                 <label class="label" for="arranger">Arranger</label>
                 <div class="control">
-                  <input
-                    class="input"
-                    type="text"
-                    id="arranger"
-                    name="arranger"
-                    placeholder="Arranger name"
-                  />
+                  <input class="input" type="text" id="arranger" name="arranger" placeholder="Arranger name" />
                 </div>
               </div>
 
@@ -338,28 +180,13 @@ function formatRuntime(seconds: number | null): string {
                 <label class="label">Runtime</label>
                 <div class="field has-addons">
                   <div class="control">
-                    <input
-                      class="input"
-                      type="number"
-                      name="runTimeMinutes"
-                      placeholder="Minutes"
-                      min="0"
-                      style="width: 100px;"
-                    />
+                    <input class="input" type="number" name="runTimeMinutes" placeholder="Min" min="0" style="width: 80px;" />
                   </div>
                   <div class="control">
                     <span class="button is-static">:</span>
                   </div>
                   <div class="control">
-                    <input
-                      class="input"
-                      type="number"
-                      name="runTimeSeconds"
-                      placeholder="Seconds"
-                      min="0"
-                      max="59"
-                      style="width: 100px;"
-                    />
+                    <input class="input" type="number" name="runTimeSeconds" placeholder="Sec" min="0" max="59" style="width: 80px;" />
                   </div>
                 </div>
                 <p class="help">Leave blank if unknown</p>
@@ -398,9 +225,7 @@ function formatRuntime(seconds: number | null): string {
               <div class="field">
                 <div class="control">
                   <button type="submit" class="button is-primary is-fullwidth">
-                    <span class="icon">
-                      <i class="fas fa-plus"></i>
-                    </span>
+                    <span class="icon"><i class="fas fa-plus"></i></span>
                     <span>Add Song</span>
                   </button>
                 </div>
@@ -411,6 +236,68 @@ function formatRuntime(seconds: number | null): string {
       </div>
     </div>
   </section>
+
+  <!-- Files Modal -->
+  <div id="filesModal" class="modal">
+    <div class="modal-background"></div>
+    <div class="modal-card" style="width: 680px; max-width: 95vw;">
+      <header class="modal-card-head">
+        <p class="modal-card-title">Files — <span id="filesModalSongName"></span></p>
+        <button class="delete" aria-label="close"></button>
+      </header>
+      <section class="modal-card-body">
+        <div id="filesModalList"></div>
+
+        <hr />
+
+        <h3 class="title is-6">Add File</h3>
+        <form id="addFileForm" method="POST">
+          <input type="hidden" name="action" value="add_file" />
+          <input type="hidden" name="songId" id="addFileSongId" />
+
+          <div class="field">
+            <label class="label is-small" for="fileName">Display Name *</label>
+            <div class="control">
+              <input class="input is-small" type="text" id="fileName" name="fileName" placeholder="e.g. Soprano Sheet Music" required />
+            </div>
+          </div>
+
+          <div class="field">
+            <label class="label is-small" for="fileUrl">File URL *</label>
+            <div class="control">
+              <input class="input is-small" type="url" id="fileUrl" name="fileUrl" placeholder="https://..." required />
+            </div>
+            <p class="help">Paste the Backblaze download URL for this file</p>
+          </div>
+
+          <div class="field">
+            <label class="label is-small" for="category">Category</label>
+            <div class="control">
+              <div class="select is-small is-fullwidth">
+                <select id="category" name="category">
+                  <option value="sheet_music">Sheet Music</option>
+                  <option value="rehearsal_track">Rehearsal Track</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="field">
+            <div class="control">
+              <button type="submit" class="button is-primary is-small">
+                <span class="icon is-small"><i class="fas fa-plus"></i></span>
+                <span>Add File</span>
+              </button>
+            </div>
+          </div>
+        </form>
+      </section>
+      <footer class="modal-card-foot">
+        <button class="button cancel-btn">Close</button>
+      </footer>
+    </div>
+  </div>
 
   <!-- Edit Modal -->
   <div id="editModal" class="modal">
@@ -424,41 +311,25 @@ function formatRuntime(seconds: number | null): string {
         <form id="editForm" method="POST">
           <input type="hidden" name="action" value="edit" />
           <input type="hidden" name="songId" id="editSongId" />
-          
+
           <div class="field">
             <label class="label" for="editName">Song Name *</label>
             <div class="control">
-              <input
-                class="input"
-                type="text"
-                id="editName"
-                name="name"
-                required
-              />
+              <input class="input" type="text" id="editName" name="name" required />
             </div>
           </div>
 
           <div class="field">
             <label class="label" for="editComposer">Composer</label>
             <div class="control">
-              <input
-                class="input"
-                type="text"
-                id="editComposer"
-                name="composer"
-              />
+              <input class="input" type="text" id="editComposer" name="composer" />
             </div>
           </div>
 
           <div class="field">
             <label class="label" for="editArranger">Arranger</label>
             <div class="control">
-              <input
-                class="input"
-                type="text"
-                id="editArranger"
-                name="arranger"
-              />
+              <input class="input" type="text" id="editArranger" name="arranger" />
             </div>
           </div>
 
@@ -466,30 +337,13 @@ function formatRuntime(seconds: number | null): string {
             <label class="label">Runtime</label>
             <div class="field has-addons">
               <div class="control">
-                <input
-                  class="input"
-                  type="number"
-                  name="runTimeMinutes"
-                  id="editRunTimeMinutes"
-                  placeholder="Minutes"
-                  min="0"
-                  style="width: 100px;"
-                />
+                <input class="input" type="number" name="runTimeMinutes" id="editRunTimeMinutes" placeholder="Min" min="0" style="width: 80px;" />
               </div>
               <div class="control">
                 <span class="button is-static">:</span>
               </div>
               <div class="control">
-                <input
-                  class="input"
-                  type="number"
-                  name="runTimeSeconds"
-                  id="editRunTimeSeconds"
-                  placeholder="Seconds"
-                  min="0"
-                  max="59"
-                  style="width: 100px;"
-                />
+                <input class="input" type="number" name="runTimeSeconds" id="editRunTimeSeconds" placeholder="Sec" min="0" max="59" style="width: 80px;" />
               </div>
             </div>
           </div>
@@ -552,89 +406,128 @@ function formatRuntime(seconds: number | null): string {
     </div>
   </div>
 
-  <script 
+  <script
     is:inline
     data-songs={JSON.stringify(songs)}
     data-song-parts={JSON.stringify(Array.from(songPartsMap.entries()))}
     data-song-seasons={JSON.stringify(Array.from(songSeasonsMap.entries()))}
+    data-song-files={JSON.stringify(Array.from(songFilesMap.entries()))}
   ></script>
 
   <script is:inline>
-    // Get data from previous script tag
     const dataScript = document.currentScript.previousElementSibling;
-    const songsData = dataScript?.dataset.songs ? JSON.parse(dataScript.dataset.songs) : [];
-    const songPartsData = dataScript?.dataset.songParts ? JSON.parse(dataScript.dataset.songParts) : [];
-    const songSeasonsData = dataScript?.dataset.songSeasons ? JSON.parse(dataScript.dataset.songSeasons) : [];
-    
-    // Reconstruct maps from serialized data
-    const songPartsMapJS = new Map(songPartsData);
-    const songSeasonsMapJS = new Map(songSeasonsData);
+    const songsData = JSON.parse(dataScript.dataset.songs || '[]');
+    const songPartsMapJS = new Map(JSON.parse(dataScript.dataset.songParts || '[]'));
+    const songSeasonsMapJS = new Map(JSON.parse(dataScript.dataset.songSeasons || '[]'));
+    const songFilesMapJS = new Map(JSON.parse(dataScript.dataset.songFiles || '[]'));
 
-    // Edit functionality
-    const editModal = document.getElementById('editModal');
-    const editBtns = document.querySelectorAll('.edit-btn');
-    
-    editBtns.forEach(btn => {
+    function categoryLabel(cat) {
+      if (cat === 'sheet_music') return 'Sheet Music';
+      if (cat === 'rehearsal_track') return 'Rehearsal Track';
+      return 'Other';
+    }
+
+    function categoryTagClass(cat) {
+      if (cat === 'sheet_music') return 'is-success';
+      if (cat === 'rehearsal_track') return 'is-warning';
+      return 'is-light';
+    }
+
+    // ── Files modal ──────────────────────────────────────────────────────────
+
+    const filesModal = document.getElementById('filesModal');
+
+    function renderFilesList(songId) {
+      const files = songFilesMapJS.get(songId) || [];
+      const container = document.getElementById('filesModalList');
+      if (files.length === 0) {
+        container.innerHTML = '<p class="has-text-grey">No files yet.</p>';
+        return;
+      }
+      container.innerHTML = files.map(f => `
+        <div class="is-flex is-align-items-center mb-2" style="gap: 0.5rem;">
+          <span class="tag ${categoryTagClass(f.category)} is-small" style="flex-shrink:0;">${categoryLabel(f.category)}</span>
+          <a href="${f.url}" target="_blank" rel="noopener" class="has-text-weight-medium"
+             style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${f.name}</a>
+          <form method="POST" style="flex-shrink:0;" onsubmit="return confirm('Delete this file?');">
+            <input type="hidden" name="action" value="delete_file" />
+            <input type="hidden" name="fileId" value="${f.id}" />
+            <button type="submit" class="button is-danger is-small">
+              <span class="icon is-small"><i class="fas fa-trash"></i></span>
+            </button>
+          </form>
+        </div>
+      `).join('');
+    }
+
+    document.querySelectorAll('.files-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         const songId = btn.getAttribute('data-song-id');
-        const song = songsData.find(s => s.id === songId);
-        
-        if (song) {
-          document.getElementById('editSongId').value = song.id;
-          document.getElementById('editName').value = song.name;
-          document.getElementById('editComposer').value = song.composer || '';
-          document.getElementById('editArranger').value = song.arranger || '';
-          
-          // Set runtime
-          if (song.runTime) {
-            const mins = Math.floor(song.runTime / 60);
-            const secs = song.runTime % 60;
-            document.getElementById('editRunTimeMinutes').value = mins;
-            document.getElementById('editRunTimeSeconds').value = secs;
-          } else {
-            document.getElementById('editRunTimeMinutes').value = '';
-            document.getElementById('editRunTimeSeconds').value = '';
-          }
-          
-          // Set parts
-          const songParts = songPartsMapJS.get(songId) || [];
-          document.querySelectorAll('#editParts input[type="checkbox"]').forEach(cb => {
-            cb.checked = songParts.includes(cb.value);
-          });
-          
-          // Set seasons
-          const songSeasons = songSeasonsMapJS.get(songId) || [];
-          document.querySelectorAll('#editSeasons input[type="checkbox"]').forEach(cb => {
-            cb.checked = songSeasons.includes(cb.value);
-          });
-          
-          editModal.classList.add('is-active');
-        }
+        const songName = btn.getAttribute('data-song-name');
+        document.getElementById('filesModalSongName').textContent = songName;
+        document.getElementById('addFileSongId').value = songId;
+        document.getElementById('fileName').value = '';
+        document.getElementById('fileUrl').value = '';
+        document.getElementById('category').value = 'sheet_music';
+        renderFilesList(songId);
+        filesModal.classList.add('is-active');
       });
     });
 
-    // Delete functionality
-    const deleteModal = document.getElementById('deleteModal');
-    const deleteBtns = document.querySelectorAll('.delete-btn');
-    
-    deleteBtns.forEach(btn => {
+    // ── Edit modal ───────────────────────────────────────────────────────────
+
+    const editModal = document.getElementById('editModal');
+
+    document.querySelectorAll('.edit-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         const songId = btn.getAttribute('data-song-id');
-        document.getElementById('deleteSongId').value = songId;
+        const song = songsData.find(s => s.id === songId);
+        if (!song) return;
+
+        document.getElementById('editSongId').value = song.id;
+        document.getElementById('editName').value = song.name;
+        document.getElementById('editComposer').value = song.composer || '';
+        document.getElementById('editArranger').value = song.arranger || '';
+
+        if (song.runTime) {
+          document.getElementById('editRunTimeMinutes').value = Math.floor(song.runTime / 60);
+          document.getElementById('editRunTimeSeconds').value = song.runTime % 60;
+        } else {
+          document.getElementById('editRunTimeMinutes').value = '';
+          document.getElementById('editRunTimeSeconds').value = '';
+        }
+
+        const songParts = songPartsMapJS.get(songId) || [];
+        document.querySelectorAll('#editParts input[type="checkbox"]').forEach(cb => {
+          cb.checked = songParts.includes(cb.value);
+        });
+
+        const songSeasons = songSeasonsMapJS.get(songId) || [];
+        document.querySelectorAll('#editSeasons input[type="checkbox"]').forEach(cb => {
+          cb.checked = songSeasons.includes(cb.value);
+        });
+
+        editModal.classList.add('is-active');
+      });
+    });
+
+    // ── Delete modal ─────────────────────────────────────────────────────────
+
+    const deleteModal = document.getElementById('deleteModal');
+
+    document.querySelectorAll('.delete-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.getElementById('deleteSongId').value = btn.getAttribute('data-song-id');
         deleteModal.classList.add('is-active');
       });
     });
 
-    // Modal close functionality
-    function closeModal(modal) {
-      modal.classList.remove('is-active');
-    }
+    // ── Close all modals ─────────────────────────────────────────────────────
 
     document.querySelectorAll('.modal .delete, .modal .cancel-btn, .modal-background').forEach(el => {
       el.addEventListener('click', (e) => {
         e.preventDefault();
-        const modal = el.closest('.modal');
-        closeModal(modal);
+        el.closest('.modal').classList.remove('is-active');
       });
     });
   </script>
