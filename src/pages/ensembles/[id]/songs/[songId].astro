@@ -129,6 +129,7 @@ function categoryTagClass(cat: string) {
     <div class="box mb-5">
       {songFiles.map((file) => {
         const isAudio = file.url.match(/\.(mp3)$/i);
+        const isPdf = file.url.match(/\.(pdf)$/i);
         return (
           <div class="mb-4">
             <div class="is-flex is-align-items-center" style="gap: 0.75rem;">
@@ -168,6 +169,20 @@ function categoryTagClass(cat: string) {
                 style="width: 100%;"
                 src={`/files/${file.id}?inline`}
               />
+            )}
+            {isPdf && (
+              <details class="mt-2">
+                <summary class="is-clickable has-text-grey is-size-7" style="list-style: none; display: flex; align-items: center; gap: 0.3rem; width: fit-content;">
+                  <span class="pdf-arrow" style="display: inline-block; transition: transform 0.15s;">▶</span>
+                  <span>Show PDF</span>
+                </summary>
+                <embed
+                  src={`/files/${file.id}?inline`}
+                  type="application/pdf"
+                  class="mt-2"
+                  style="width: 100%; height: 600px;"
+                />
+              </details>
             )}
           </div>
         );
@@ -251,6 +266,14 @@ function categoryTagClass(cat: string) {
         }
       });
     }
+
+    document.querySelectorAll('details').forEach((details) => {
+      const arrow = details.querySelector('.pdf-arrow') as HTMLElement | null;
+      if (!arrow) return;
+      details.addEventListener('toggle', () => {
+        arrow.style.transform = details.open ? 'rotate(90deg)' : '';
+      });
+    });
   </script>
 
   {!isAdmin && (
