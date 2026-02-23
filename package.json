@@ -18,7 +18,7 @@
     "preview": "astro preview",
     "astro": "astro",
     "check": "astro check",
-    "lint": "oxlint src/lib db --deny-warnings && astro check",
+    "lint": "oxlint src/lib db --deny-warnings",
     "fmt": "oxlint src/lib db --fix",
     "astro:db:push": "astro db push --remote",
     "fly:deploy": "./deploy.sh",
