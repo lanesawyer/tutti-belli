@@ -1,15 +1,15 @@
 import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 
-const endpoint = import.meta.env.STORAGE_ENDPOINT as string;
+const endpoint = (import.meta.env.STORAGE_ENDPOINT ?? process.env.STORAGE_ENDPOINT) as string;
 const region = endpoint.replace('https://s3.', '').replace('.backblazeb2.com', '');
-const bucket = import.meta.env.STORAGE_BUCKET as string;
+const bucket = (import.meta.env.STORAGE_BUCKET ?? process.env.STORAGE_BUCKET) as string;
 
 const client = new S3Client({
   endpoint,
   region,
   credentials: {
-    accessKeyId: import.meta.env.STORAGE_KEY_ID as string,
-    secretAccessKey: import.meta.env.STORAGE_KEY as string,
+    accessKeyId: (import.meta.env.STORAGE_KEY_ID ?? process.env.STORAGE_KEY_ID) as string,
+    secretAccessKey: (import.meta.env.STORAGE_KEY ?? process.env.STORAGE_KEY) as string,
   },
 });
 
@@ -28,7 +28,7 @@ export function validateSongFile(file: File): { valid: boolean; error?: string }
 
 export async function uploadSongFile(file: File, ensembleId: string): Promise<string> {
   const sanitizedName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-  const key = `${ensembleId}/${crypto.randomUUID()}-${sanitizedName}`;
+  const key = `${ensembleId}/songs/${crypto.randomUUID()}-${sanitizedName}`;
 
   const buffer = await file.arrayBuffer();
 
@@ -45,7 +45,6 @@ export async function uploadSongFile(file: File, ensembleId: string): Promise<st
 }
 
 export function keyFromUrl(url: string): string {
-  // Strip "https://endpoint/bucket/" prefix to get the object key
   const prefix = `${endpoint}/${bucket}/`;
   return url.startsWith(prefix) ? url.slice(prefix.length) : url;
 }
