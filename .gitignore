@@ -22,3 +22,8 @@ pnpm-debug.log*
 
 # jetbrains setting folder
 .idea/
+
+# Playwright
+playwright-report/
+test-results/
+tests/e2e/.auth/

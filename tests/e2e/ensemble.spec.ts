@@ -1,0 +1,46 @@
+/**
+ * E2E tests for ensemble management flows.
+ */
+import { test, expect } from '@playwright/test';
+
+test('admin can see the site admin panel', async ({ page }) => {
+  await page.goto('/admin');
+  await expect(page).toHaveURL('/admin');
+  await expect(page.locator('h1')).toContainText(/admin/i);
+});
+
+test('admin can view their ensembles list', async ({ page }) => {
+  await page.goto('/ensembles');
+  await expect(page).toHaveURL('/ensembles');
+  await expect(page.locator('body')).toContainText('Chamber Orchestra');
+});
+
+test('admin can navigate to ensemble detail page', async ({ page }) => {
+  await page.goto('/ensembles');
+  await page.locator('a').filter({ hasText: 'Chamber Orchestra' }).first().click();
+  await expect(page).toHaveURL(/\/ensembles\/.+/);
+  await expect(page.locator('h1, h2').first()).toBeVisible();
+});
+
+test('admin can access ensemble edit page', async ({ page }) => {
+  await page.goto('/ensembles');
+  await page.locator('a').filter({ hasText: 'Chamber Orchestra' }).first().click();
+  // Look for a settings/edit link
+  const editLink = page.locator('a').filter({ hasText: /edit|settings/i }).first();
+  if (await editLink.count() > 0) {
+    await editLink.click();
+    await expect(page).toHaveURL(/\/edit/);
+  } else {
+    // Navigate directly to the edit page
+    const url = page.url();
+    await page.goto(url + '/edit');
+    await expect(page.locator('h1, h2').first()).toBeVisible();
+  }
+});
+
+test('invite join page loads', async ({ page }) => {
+  // The join page is public — test it loads without error
+  const response = await page.goto('/invite/join');
+  expect(response?.status()).toBeLessThan(500);
+  await expect(page.locator('body')).not.toContainText('Internal Server Error');
+});

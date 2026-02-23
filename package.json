@@ -13,7 +13,12 @@
     "lint": "oxlint src/lib db --deny-warnings && astro check",
     "fmt": "oxlint src/lib db --fix",
     "astro:db:push": "astro db push --remote",
-    "fly:deploy": "./deploy.sh"
+    "fly:deploy": "./deploy.sh",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui"
   },
   "dependencies": {
     "@astrojs/check": "^0.9.6",
@@ -29,9 +34,14 @@
     "typescript": "5.9.3"
   },
   "devDependencies": {
+    "@libsql/client": "^0.17.0",
+    "@playwright/test": "^1.58.2",
     "@types/bcryptjs": "2.4.6",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/qrcode": "1.5.5",
-    "oxlint": "0.16.12"
+    "@vitest/coverage-v8": "^4.0.18",
+    "drizzle-orm": "^0.45.1",
+    "oxlint": "0.16.12",
+    "vitest": "^4.0.18"
   }
 }
