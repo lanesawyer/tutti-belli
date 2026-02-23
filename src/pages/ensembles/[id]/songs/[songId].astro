@@ -127,32 +127,51 @@ function categoryTagClass(cat: string) {
     <div class="notification is-info is-light">No files attached to this song yet.</div>
   ) : (
     <div class="box mb-5">
-      {songFiles.map((file) => (
-        <div class="is-flex is-align-items-center mb-3" style="gap: 0.75rem;">
-          <span class={`tag ${categoryTagClass(file.category)} is-normal`} style="flex-shrink:0; min-width: 7rem; justify-content: center;">
-            {categoryLabel(file.category)}
-          </span>
-          <a
-            href={`/files/${file.id}`}
-            class="has-text-weight-medium"
-            style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"
-          >
-            {file.name}
-          </a>
-          <span class="has-text-grey is-size-7" style="flex-shrink:0; white-space:nowrap;">
-            {file.uploaderName} &middot; {new Date(file.uploadedAt).toLocaleDateString()}
-          </span>
-          {isAdmin && (
-            <form method="POST" style="flex-shrink:0;" onsubmit="return confirm('Delete this file?');">
-              <input type="hidden" name="action" value="delete_file" />
-              <input type="hidden" name="fileId" value={file.id} />
-              <button type="submit" class="button is-danger is-small">
-                <span class="icon is-small"><i class="fas fa-trash"></i></span>
-              </button>
-            </form>
-          )}
-        </div>
-      ))}
+      {songFiles.map((file) => {
+        const isAudio = file.url.match(/\.(mp3)$/i);
+        return (
+          <div class="mb-4">
+            <div class="is-flex is-align-items-center" style="gap: 0.75rem;">
+              <span class={`tag ${categoryTagClass(file.category)} is-normal`} style="flex-shrink:0; min-width: 7rem; justify-content: center;">
+                {categoryLabel(file.category)}
+              </span>
+              <span
+                class="has-text-weight-medium"
+                style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"
+              >
+                {file.name}
+              </span>
+              <span class="has-text-grey is-size-7" style="flex-shrink:0; white-space:nowrap;">
+                {file.uploaderName} &middot; {new Date(file.uploadedAt).toLocaleDateString()}
+              </span>
+              <a
+                href={`/files/${file.id}`}
+                class="button is-small"
+                title="Download"
+              >
+                <span class="icon is-small"><i class="fas fa-download"></i></span>
+              </a>
+              {isAdmin && (
+                <form method="POST" style="flex-shrink:0;" onsubmit="return confirm('Delete this file?');">
+                  <input type="hidden" name="action" value="delete_file" />
+                  <input type="hidden" name="fileId" value={file.id} />
+                  <button type="submit" class="button is-danger is-small">
+                    <span class="icon is-small"><i class="fas fa-trash"></i></span>
+                  </button>
+                </form>
+              )}
+            </div>
+            {isAudio && (
+              <audio
+                controls
+                class="mt-2"
+                style="width: 100%;"
+                src={`/files/${file.id}?inline`}
+              />
+            )}
+          </div>
+        );
+      })}
     </div>
   )}
 

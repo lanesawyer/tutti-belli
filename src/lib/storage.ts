@@ -56,10 +56,13 @@ export async function deleteStorageFile(url: string): Promise<void> {
 }
 
 export async function getFileStream(
-  url: string
-): Promise<{ body: ReadableStream; contentType: string; contentLength?: number }> {
+  url: string,
+  range?: string
+): Promise<{ body: ReadableStream; contentType: string; contentLength?: number; contentRange?: string; status: number }> {
   const key = keyFromUrl(url);
-  const response = await client.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
+  const response = await client.send(
+    new GetObjectCommand({ Bucket: bucket, Key: key, Range: range })
+  );
 
   if (!response.Body) throw new Error('Empty response from storage');
 
@@ -67,5 +70,7 @@ export async function getFileStream(
     body: response.Body.transformToWebStream(),
     contentType: response.ContentType ?? 'application/octet-stream',
     contentLength: response.ContentLength,
+    contentRange: response.ContentRange,
+    status: range ? 206 : 200,
   };
 }
