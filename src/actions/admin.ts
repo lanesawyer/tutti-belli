@@ -3,12 +3,7 @@ import { z } from 'astro/zod';
 import { db, eq, Ensemble, User, EnsembleMember } from 'astro:db';
 import { adminDeleteUser } from '../lib/profile';
 import { findUniqueSlug } from '../lib/slug';
-
-function assertSiteAdmin(user: { role: string } | undefined | null) {
-  if (!user || user.role !== 'admin') {
-    throw new ActionError({ code: 'FORBIDDEN' });
-  }
-}
+import { assertSiteAdmin } from './utils';
 
 export const admin = {
   createEnsemble: defineAction({

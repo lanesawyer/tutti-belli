@@ -1,19 +1,7 @@
 import { defineAction, ActionError } from 'astro:actions';
 import { z } from 'astro/zod';
 import { db, eq, and, EnsembleMember, Part } from 'astro:db';
-import { canManageEnsemble } from '../lib/permissions';
-
-async function assertAdmin(ensembleId: string, user: { id: string; role: string }) {
-  const membership = await db
-    .select()
-    .from(EnsembleMember)
-    .where(and(eq(EnsembleMember.ensembleId, ensembleId), eq(EnsembleMember.userId, user.id)))
-    .get();
-
-  if (!canManageEnsemble(user, membership)) {
-    throw new ActionError({ code: 'FORBIDDEN' });
-  }
-}
+import { assertEnsembleAdmin } from './utils';
 
 export const parts = {
   add: defineAction({
@@ -26,7 +14,7 @@ export const parts = {
     handler: async ({ ensembleId, name, sortOrder }, context) => {
       const user = context.locals.user;
       if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
-      await assertAdmin(ensembleId, user);
+      await assertEnsembleAdmin(ensembleId, user);
 
       await db.insert(Part).values({
         id: crypto.randomUUID(),
@@ -48,7 +36,7 @@ export const parts = {
     handler: async ({ ensembleId, partId, name, sortOrder }, context) => {
       const user = context.locals.user;
       if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
-      await assertAdmin(ensembleId, user);
+      await assertEnsembleAdmin(ensembleId, user);
 
       await db
         .update(Part)
@@ -66,7 +54,7 @@ export const parts = {
     handler: async ({ ensembleId, partId }, context) => {
       const user = context.locals.user;
       if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
-      await assertAdmin(ensembleId, user);
+      await assertEnsembleAdmin(ensembleId, user);
 
       const membersWithPart = await db
         .select()

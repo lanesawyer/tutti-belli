@@ -2,6 +2,7 @@
 import Layout from '../../../../layouts/Layout.astro';
 import Button from '../../../../components/Button.astro';
 import { db, eq, and, EnsembleMember, Event, EventProgram, Attendance, User, SeasonSong, Song } from 'astro:db';
+import { actions } from 'astro:actions';
 import QRCode from 'qrcode';
 import { canManageEnsemble } from '../../../../lib/permissions';
 import { ensembleAdminTools } from '../../../../lib/config';
@@ -43,8 +44,6 @@ if (!event) {
   return Astro.redirect(`/ensembles/${canonicalId}/events`);
 }
 
-let message = '';
-
 // Calculate check-in window
 const now = new Date();
 const scheduledTime = new Date(event.scheduledAt);
@@ -55,116 +54,24 @@ const canCheckIn = now >= checkInStartTime && now <= checkInEndTime;
 const isTooEarly = now < checkInStartTime;
 const isTooLate = now > checkInEndTime;
 
-// Handle actions
-if (Astro.request.method === 'POST') {
-  const formData = await Astro.request.formData();
-  const action = formData.get('action')?.toString();
-
-  if (action === 'checkin') {
-    // Check time window (admins bypass this)
-    if (!canCheckIn && !isAdmin) {
-      if (isTooEarly) {
-        const minutesUntilOpen = Math.ceil((checkInStartTime.getTime() - now.getTime()) / (60 * 1000));
-        message = `Check-in opens ${ensemble.checkInStartMinutes} minutes before the event (in ${minutesUntilOpen} minutes).`;
-      } else if (isTooLate) {
-        message = `Check-in closed ${ensemble.checkInEndMinutes} minutes after event start.`;
-      }
-    } else {
-      const [existing] = await db
-        .select()
-        .from(Attendance)
-        .where(and(eq(Attendance.eventId, eventId), eq(Attendance.userId, user.id)));
-
-      if (!existing) {
-        await db.insert(Attendance).values({
-          id: crypto.randomUUID(),
-          eventId,
-          userId: user.id,
-          checkedInMethod: 'manual',
-        });
-        message = 'Successfully checked in!';
-      } else {
-        message = 'You have already checked in for this event.';
-      }
-    }
-  } else if (action === 'remove' && isAdmin) {
-    const attendanceId = formData.get('attendanceId')?.toString();
-    if (attendanceId) {
-      await db.delete(Attendance).where(eq(Attendance.id, attendanceId));
-      message = 'Attendance removed.';
-    }
-  } else if (action === 'add' && isAdmin) {
-    const userId = formData.get('userId')?.toString();
-    if (userId) {
-      const [existing] = await db
-        .select()
-        .from(Attendance)
-        .where(and(eq(Attendance.eventId, eventId), eq(Attendance.userId, userId)));
-
-      if (!existing) {
-        await db.insert(Attendance).values({
-          id: crypto.randomUUID(),
-          eventId,
-          userId,
-          checkedInMethod: 'admin',
-        });
-        message = 'Member marked as present.';
-      }
-    }
-  } else if (action === 'edit' && isAdmin) {
-    const title = formData.get('title')?.toString();
-    const description = formData.get('description')?.toString();
-    const date = formData.get('date')?.toString();
-    const time = formData.get('time')?.toString();
-    const location = formData.get('location')?.toString();
-    const durationMinutes = parseInt(formData.get('durationMinutes')?.toString() || '90');
-
-    if (title && date && time) {
-      const scheduledAt = new Date(`${date}T${time}`);
-
-      await db.update(Event)
-        .set({
-          title: title.trim(),
-          description: description?.trim() || '',
-          scheduledAt,
-          durationMinutes,
-          location: location?.trim() || '',
-        })
-        .where(eq(Event.id, eventId));
-
-      message = 'Event updated successfully!';
-
-      const [updatedEvent] = await db.select().from(Event).where(eq(Event.id, eventId));
-      if (updatedEvent) {
-        Object.assign(event, updatedEvent);
-      }
-    } else {
-      message = 'Title, date, and time are required.';
-    }
-  } else if (action === 'add-program-song' && isAdmin && event.category === 'performance') {
-    const songId = formData.get('songId')?.toString();
-    if (songId) {
-      const currentProgram = await db.select({ sortOrder: EventProgram.sortOrder })
-        .from(EventProgram).where(eq(EventProgram.eventId, eventId));
-      const maxOrder = currentProgram.length > 0
-        ? Math.max(...currentProgram.map(p => p.sortOrder))
-        : 0;
-      await db.insert(EventProgram).values({
-        id: crypto.randomUUID(),
-        eventId,
-        songId,
-        sortOrder: maxOrder + 1,
-      });
-      return Astro.redirect(`/ensembles/${canonicalId}/events/${eventId}`);
-    }
-  } else if (action === 'remove-program-song' && isAdmin && event.category === 'performance') {
-    const programEntryId = formData.get('programEntryId')?.toString();
-    if (programEntryId) {
-      await db.delete(EventProgram).where(eq(EventProgram.id, programEntryId));
-      return Astro.redirect(`/ensembles/${canonicalId}/events/${eventId}`);
-    }
-  }
+// Re-fetch event after a potential edit so the page reflects the latest values
+const editResult = Astro.getActionResult(actions.events.edit);
+if (editResult && !editResult.error) {
+  const [updatedEvent] = await db.select().from(Event).where(eq(Event.id, eventId));
+  if (updatedEvent) Object.assign(event, updatedEvent);
 }
+
+const checkInResult = Astro.getActionResult(actions.events.checkIn);
+const addAttendanceResult = Astro.getActionResult(actions.events.addAttendance);
+const removeAttendanceResult = Astro.getActionResult(actions.events.removeAttendance);
+
+let message = '';
+if (checkInResult?.error) message = checkInResult.error.message || 'Check-in failed.';
+else if (checkInResult) message = 'Successfully checked in!';
+else if (addAttendanceResult && !addAttendanceResult.error) message = 'Member marked as present.';
+else if (removeAttendanceResult && !removeAttendanceResult.error) message = 'Attendance removed.';
+else if (editResult && !editResult.error) message = 'Event updated successfully!';
+else if (editResult?.error) message = editResult.error.message || 'Failed to update event.';
 
 // Get attendance records
 const attendanceRecords = await db
@@ -356,8 +263,9 @@ const isPerformance = event.category === 'performance';
         )}
 
         {!isPast && !isUserCheckedIn && canCheckIn && (
-          <form method="POST">
-            <input type="hidden" name="action" value="checkin" />
+          <form method="POST" action={actions.events.checkIn}>
+            <input type="hidden" name="ensembleId" value={ensemble.id} />
+            <input type="hidden" name="eventId" value={event.id} />
             <Button type="submit" color="primary" size="large" fullwidth>
               <span class="icon">
                 <i class="fas fa-check"></i>
@@ -383,8 +291,9 @@ const isPerformance = event.category === 'performance';
         )}
 
         {!isPast && !isUserCheckedIn && !canCheckIn && isAdmin && (
-          <form method="POST">
-            <input type="hidden" name="action" value="checkin" />
+          <form method="POST" action={actions.events.checkIn}>
+            <input type="hidden" name="ensembleId" value={ensemble.id} />
+            <input type="hidden" name="eventId" value={event.id} />
             <Button type="submit" color="warning" size="large" fullwidth>
               <span class="icon">
                 <i class="fas fa-user-shield"></i>
@@ -470,8 +379,8 @@ const isPerformance = event.category === 'performance';
                       </span>
                     </td>
                     <td>
-                      <form method="POST" style="display: inline;">
-                        <input type="hidden" name="action" value="remove" />
+                      <form method="POST" action={actions.events.removeAttendance} style="display: inline;">
+                        <input type="hidden" name="ensembleId" value={ensemble.id} />
                         <input type="hidden" name="attendanceId" value={record.id} />
                         <Button type="submit" color="danger" size="small">
                           Remove
@@ -499,8 +408,9 @@ const isPerformance = event.category === 'performance';
                     <input class="input is-static" type="text" value={member.name} readonly />
                   </div>
                   <div class="control">
-                    <form method="POST" style="display: inline;">
-                      <input type="hidden" name="action" value="add" />
+                    <form method="POST" action={actions.events.addAttendance} style="display: inline;">
+                      <input type="hidden" name="ensembleId" value={ensemble.id} />
+                      <input type="hidden" name="eventId" value={event.id} />
                       <input type="hidden" name="userId" value={member.id} />
                       <Button type="submit" color="success">
                         Mark Present
@@ -547,8 +457,8 @@ const isPerformance = event.category === 'performance';
                 <td class="has-text-grey">{song.composer ?? '—'}</td>
                 {isAdmin && (
                   <td>
-                    <form method="POST" style="display: inline;">
-                      <input type="hidden" name="action" value="remove-program-song" />
+                    <form method="POST" action={actions.events.removeProgramSong} style="display: inline;">
+                      <input type="hidden" name="ensembleId" value={ensemble.id} />
                       <input type="hidden" name="programEntryId" value={song.entryId} />
                       <Button type="submit" color="danger" size="small">
                         <span class="icon is-small"><i class="fas fa-times"></i></span>
@@ -563,8 +473,9 @@ const isPerformance = event.category === 'performance';
       )}
 
       {isAdmin && availableSeasonSongs.length > 0 && (
-        <form method="POST" class="mt-4">
-          <input type="hidden" name="action" value="add-program-song" />
+        <form method="POST" action={actions.events.addProgramSong} class="mt-4">
+          <input type="hidden" name="ensembleId" value={ensemble.id} />
+          <input type="hidden" name="eventId" value={event.id} />
           <div class="field has-addons">
             <div class="control is-expanded">
               <div class="select is-fullwidth">
@@ -610,9 +521,10 @@ const isPerformance = event.category === 'performance';
           <p class="modal-card-title">Edit Event</p>
           <button class="delete" aria-label="close" id="close-edit-modal"></button>
         </header>
-        <form method="POST">
+        <form method="POST" action={actions.events.edit}>
           <section class="modal-card-body">
-            <input type="hidden" name="action" value="edit" />
+            <input type="hidden" name="ensembleId" value={ensemble.id} />
+            <input type="hidden" name="eventId" value={event.id} />
 
             <div class="field">
               <label class="label" for="edit-title">Title</label>
