@@ -34,7 +34,7 @@ export default defineConfig({
           name: 'integration',
           include: ['tests/integration/**/*.test.ts'],
           environment: 'node',
-          singleThread: true,
+          fileParallelism: false,
           setupFiles: ['tests/integration/setup.ts'],
         },
       },

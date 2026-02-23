@@ -19,7 +19,7 @@ export function getSession(token: string | undefined): SessionPayload | null {
   try {
     const payload = jwt.verify(token, JWT_SECRET) as SessionPayload;
     return payload;
-  } catch (error) {
+  } catch {
     return null;
   }
 }

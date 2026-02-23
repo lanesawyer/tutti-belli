@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { registerUser, updateName, updatePhone, deleteAccount } from '../../src/lib/profile.ts';
 import { db, User, EnsembleMember, eq } from 'astro:db';
 import { createUser, createEnsemble, createMembership } from './fixtures.ts';
@@ -92,7 +92,7 @@ describe('updatePhone', () => {
     const user = await createUser();
     const result = await updatePhone(user!.id, '5551234567');
     expect(result.type).toBe('error');
-    expect(result.message).toMatch(/333-333-3333/);
+    expect((result as { type: 'error'; message: string }).message).toMatch(/333-333-3333/);
   });
 
   it('returns a redirect result on success', async () => {
@@ -107,21 +107,21 @@ describe('deleteAccount', () => {
     const admin = await createUser({ role: 'admin' });
     const result = await deleteAccount(admin!.id, 'admin', 'test123');
     expect(result.type).toBe('error');
-    expect(result.message).toMatch(/administrator/i);
+    expect((result as { type: 'error'; message: string }).message).toMatch(/administrator/i);
   });
 
   it('returns an error when no password is provided', async () => {
     const user = await createUser();
     const result = await deleteAccount(user!.id, 'user', undefined);
     expect(result.type).toBe('error');
-    expect(result.message).toMatch(/password/i);
+    expect((result as { type: 'error'; message: string }).message).toMatch(/password/i);
   });
 
   it('returns an error for an incorrect password', async () => {
     const user = await createUser({ password: 'correct-password' });
     const result = await deleteAccount(user!.id, 'user', 'wrong-password');
     expect(result.type).toBe('error');
-    expect(result.message).toMatch(/incorrect password/i);
+    expect((result as { type: 'error'; message: string }).message).toMatch(/incorrect password/i);
   });
 
   it('deletes the user and their memberships on success', async () => {
