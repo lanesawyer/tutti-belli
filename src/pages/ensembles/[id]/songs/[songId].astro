@@ -8,6 +8,7 @@ import {
   deleteSongFile,
 } from '../../../../lib/songs';
 import { canManageEnsemble } from '../../../../lib/permissions';
+import { getEnsembleUrlId } from '../../../../lib/slug';
 
 const user = Astro.locals.user!;
 const { id, songId } = Astro.params;
@@ -16,9 +17,14 @@ const { ensemble, song, parts, seasons, songPartsData, seasonSongsData, songFile
   await getSongDetailData(id!, songId!);
 
 if (!ensemble) return new Response('Ensemble not found', { status: 404 });
-if (!song || song.ensembleId !== id) return new Response('Song not found', { status: 404 });
+if (!song || song.ensembleId !== ensemble.id) return new Response('Song not found', { status: 404 });
 
-const membership = await getMembership(id!, user.id);
+const canonicalId = getEnsembleUrlId(ensemble);
+if (Astro.request.method === 'GET' && id !== canonicalId) {
+  return Astro.redirect(Astro.url.pathname.replace(`/ensembles/${id}`, `/ensembles/${canonicalId}`), 301);
+}
+
+const membership = await getMembership(ensemble.id, user.id);
 const isAdmin = canManageEnsemble(user, membership);
 
 let fileError: string | undefined;
@@ -30,15 +36,15 @@ if (Astro.request.method === 'POST') {
   const action = formData.get('action');
 
   if (action === 'add_file') {
-    const result = await addSongFile(formData, user.id, id);
+    const result = await addSongFile(formData, user.id, ensemble.id);
     if (result.error) {
       fileError = result.error;
     } else {
-      return Astro.redirect(`/ensembles/${id}/songs/${songId}`);
+      return Astro.redirect(`/ensembles/${canonicalId}/songs/${songId}`);
     }
   } else if (action === 'delete_file') {
     await deleteSongFile(formData);
-    return Astro.redirect(`/ensembles/${id}/songs/${songId}`);
+    return Astro.redirect(`/ensembles/${canonicalId}/songs/${songId}`);
   }
 }
 
@@ -72,13 +78,13 @@ function getYouTubeId(url: string): string | null {
 <EnsemblePageLayout
   title={`${song.name} - ${ensemble.name}`}
   ensembleName={ensemble.name}
-  ensembleId={id!}
+  ensembleId={canonicalId}
   pageTitle={song.name}
-  extraBreadcrumbs={[['Songs', `/ensembles/${id}/songs`]]}
+  extraBreadcrumbs={[['Songs', `/ensembles/${canonicalId}/songs`]]}
   isAdmin={isAdmin}
 >
   {isAdmin && (
-    <a slot="action" href={`/ensembles/${id}/songs`} class="button">
+    <a slot="action" href={`/ensembles/${canonicalId}/songs`} class="button">
       <span class="icon"><i class="fas fa-arrow-left"></i></span>
       <span>Back to Songs</span>
     </a>
@@ -373,7 +379,7 @@ function getYouTubeId(url: string): string | null {
   </script>
 
   {!isAdmin && (
-    <a href={`/ensembles/${id}/songs`} class="button">
+    <a href={`/ensembles/${canonicalId}/songs`} class="button">
       <span class="icon"><i class="fas fa-arrow-left"></i></span>
       <span>Back to Songs</span>
     </a>

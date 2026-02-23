@@ -2,29 +2,30 @@
 import EnsemblePageLayout from '../../../layouts/EnsemblePageLayout.astro';
 import Table from '../../../components/Table.astro';
 import Modal from '../../../components/Modal.astro';
-import { db, eq, and, desc, Ensemble, EnsembleMember, Season, SeasonMembership, User } from 'astro:db';
+import { db, eq, and, desc, EnsembleMember, Season, SeasonMembership, User } from 'astro:db';
 import { canManageEnsemble } from '../../../lib/permissions';
+import { getEnsembleBySlugOrId } from '../../../lib/ensemble';
+import { getEnsembleUrlId } from '../../../lib/slug';
 
 const user = Astro.locals.user!;
 
 const { id } = Astro.params;
-
-// Get the ensemble
-const ensemble = await db
-  .select()
-  .from(Ensemble)
-  .where(eq(Ensemble.id, id!))
-  .get();
+const ensemble = await getEnsembleBySlugOrId(id!);
 
 if (!ensemble) {
   return new Response('Ensemble not found', { status: 404 });
+}
+
+const canonicalId = getEnsembleUrlId(ensemble);
+if (Astro.request.method === 'GET' && id !== canonicalId) {
+  return Astro.redirect(Astro.url.pathname.replace(`/ensembles/${id}`, `/ensembles/${canonicalId}`), 301);
 }
 
 // Check if user is a member
 const membership = await db
   .select()
   .from(EnsembleMember)
-  .where(and(eq(EnsembleMember.ensembleId, id!), eq(EnsembleMember.userId, user.id)))
+  .where(and(eq(EnsembleMember.ensembleId, ensemble.id), eq(EnsembleMember.userId, user.id)))
   .get();
 
 if (!membership) {
@@ -56,12 +57,12 @@ if (Astro.request.method === 'POST') {
       messageType = 'danger';
     } else {
       if (setActive) {
-        await db.update(Season).set({ isActive: 0 }).where(eq(Season.ensembleId, id!));
+        await db.update(Season).set({ isActive: 0 }).where(eq(Season.ensembleId, ensemble.id));
       }
 
       await db.insert(Season).values({
         id: crypto.randomUUID(),
-        ensembleId: id!,
+        ensembleId: ensemble.id,
         name: name.trim(),
         startDate: startDate ? new Date(startDate) : undefined,
         endDate: endDate ? new Date(endDate) : undefined,
@@ -80,7 +81,7 @@ if (Astro.request.method === 'POST') {
 
     if (seasonId && name && name.trim()) {
       if (setActive) {
-        await db.update(Season).set({ isActive: 0 }).where(eq(Season.ensembleId, id!));
+        await db.update(Season).set({ isActive: 0 }).where(eq(Season.ensembleId, ensemble.id));
       }
 
       await db
@@ -143,7 +144,7 @@ if (Astro.request.method === 'POST') {
 const seasons = await db
   .select()
   .from(Season)
-  .where(eq(Season.ensembleId, id!))
+  .where(eq(Season.ensembleId, ensemble.id))
   .orderBy(desc(Season.createdAt));
 
 // Get all ensemble members
@@ -151,7 +152,7 @@ const allMembers = await db
   .select({ id: User.id, name: User.name, email: User.email })
   .from(EnsembleMember)
   .innerJoin(User, eq(EnsembleMember.userId, User.id))
-  .where(eq(EnsembleMember.ensembleId, id!));
+  .where(eq(EnsembleMember.ensembleId, ensemble.id));
 
 // Get season memberships
 const seasonMemberships = await db
@@ -169,7 +170,7 @@ const membershipsBySeasonId = seasonMemberships.reduce((acc, m) => {
 <EnsemblePageLayout
   title={`Seasons - ${ensemble.name}`}
   ensembleName={ensemble.name}
-  ensembleId={id!}
+  ensembleId={canonicalId}
   pageTitle="Seasons"
   message={message}
   messageType={messageType}

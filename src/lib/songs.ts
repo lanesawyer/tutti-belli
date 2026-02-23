@@ -2,7 +2,6 @@ import {
   db,
   eq,
   and,
-  Ensemble,
   EnsembleMember,
   Song,
   SongPart,
@@ -13,16 +12,21 @@ import {
   User,
 } from 'astro:db';
 import { uploadSongFile, validateSongFile, deleteStorageFile } from './storage';
+import { getEnsembleBySlugOrId } from './ensemble';
 
 // ─── Queries ────────────────────────────────────────────────────────────────
 
 export async function getSongDetailData(ensembleId: string, songId: string) {
-  const [ensemble, song, parts, seasons, songPartsData, seasonSongsData, songFiles] =
+  const ensemble = await getEnsembleBySlugOrId(ensembleId);
+  if (!ensemble) {
+    return { ensemble: null, song: null, parts: [], seasons: [], songPartsData: [], seasonSongsData: [], songFiles: [] };
+  }
+
+  const [song, parts, seasons, songPartsData, seasonSongsData, songFiles] =
     await Promise.all([
-      db.select().from(Ensemble).where(eq(Ensemble.id, ensembleId)).get(),
       db.select().from(Song).where(eq(Song.id, songId)).get(),
-      db.select().from(Part).where(eq(Part.ensembleId, ensembleId)).all(),
-      db.select().from(Season).where(eq(Season.ensembleId, ensembleId)).all(),
+      db.select().from(Part).where(eq(Part.ensembleId, ensemble.id)).all(),
+      db.select().from(Season).where(eq(Season.ensembleId, ensemble.id)).all(),
       db.select().from(SongPart).where(eq(SongPart.songId, songId)).all(),
       db.select().from(SeasonSong).where(eq(SeasonSong.songId, songId)).all(),
       db
@@ -44,12 +48,16 @@ export async function getSongDetailData(ensembleId: string, songId: string) {
 }
 
 export async function getSongsPageData(ensembleId: string) {
-  const [ensemble, songs, parts, seasons, songPartsData, seasonSongsData, songFilesData] =
+  const ensemble = await getEnsembleBySlugOrId(ensembleId);
+  if (!ensemble) {
+    return { ensemble: null, songs: [], parts: [], seasons: [], songPartsData: [], seasonSongsData: [], songFilesData: [] };
+  }
+
+  const [songs, parts, seasons, songPartsData, seasonSongsData, songFilesData] =
     await Promise.all([
-      db.select().from(Ensemble).where(eq(Ensemble.id, ensembleId)).get(),
-      db.select().from(Song).where(eq(Song.ensembleId, ensembleId)).all(),
-      db.select().from(Part).where(eq(Part.ensembleId, ensembleId)).all(),
-      db.select().from(Season).where(eq(Season.ensembleId, ensembleId)).all(),
+      db.select().from(Song).where(eq(Song.ensembleId, ensemble.id)).all(),
+      db.select().from(Part).where(eq(Part.ensembleId, ensemble.id)).all(),
+      db.select().from(Season).where(eq(Season.ensembleId, ensemble.id)).all(),
       db.select().from(SongPart).all(),
       db.select().from(SeasonSong).all(),
       db.select().from(SongFile).all(),

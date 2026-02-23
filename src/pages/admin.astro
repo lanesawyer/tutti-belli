@@ -3,6 +3,7 @@ import Layout from '../layouts/Layout.astro';
 import Table from '../components/Table.astro';
 import { db, eq, Ensemble, User, EnsembleMember } from 'astro:db';
 import { adminDeleteUser } from '../lib/profile';
+import { findUniqueSlug } from '../lib/slug';
 
 const user = Astro.locals.user;
 
@@ -25,9 +26,11 @@ if (Astro.request.method === 'POST') {
       error = 'Ensemble name is required';
     } else {
       const ensembleId = crypto.randomUUID();
+      const slug = await findUniqueSlug(name, ensembleId);
       await db.insert(Ensemble).values({
         id: ensembleId,
         name,
+        slug,
         description: description || '',
         createdBy: user.id,
       });

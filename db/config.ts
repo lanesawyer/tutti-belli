@@ -14,6 +14,7 @@ const Ensemble = defineTable({
   columns: {
     id: column.text({ primaryKey: true }),
     name: column.text(),
+    slug: column.text({ optional: true, unique: true }),
     description: column.text({ optional: true }),
     imageUrl: column.text({ optional: true }),
     discordLink: column.text({ optional: true }),

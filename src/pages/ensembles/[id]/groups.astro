@@ -2,29 +2,30 @@
 import EnsemblePageLayout from '../../../layouts/EnsemblePageLayout.astro';
 import Table from '../../../components/Table.astro';
 import Modal from '../../../components/Modal.astro';
-import { db, eq, and, desc, Ensemble, EnsembleMember, Group, GroupMembership, User } from 'astro:db';
+import { db, eq, and, desc, EnsembleMember, Group, GroupMembership, User } from 'astro:db';
 import { canManageEnsemble } from '../../../lib/permissions';
+import { getEnsembleBySlugOrId } from '../../../lib/ensemble';
+import { getEnsembleUrlId } from '../../../lib/slug';
 
 const user = Astro.locals.user!;
 
 const { id } = Astro.params;
-
-// Get the ensemble
-const ensemble = await db
-  .select()
-  .from(Ensemble)
-  .where(eq(Ensemble.id, id!))
-  .get();
+const ensemble = await getEnsembleBySlugOrId(id!);
 
 if (!ensemble) {
   return new Response('Ensemble not found', { status: 404 });
+}
+
+const canonicalId = getEnsembleUrlId(ensemble);
+if (Astro.request.method === 'GET' && id !== canonicalId) {
+  return Astro.redirect(Astro.url.pathname.replace(`/ensembles/${id}`, `/ensembles/${canonicalId}`), 301);
 }
 
 // Check if user is a member
 const membership = await db
   .select()
   .from(EnsembleMember)
-  .where(and(eq(EnsembleMember.ensembleId, id!), eq(EnsembleMember.userId, user.id)))
+  .where(and(eq(EnsembleMember.ensembleId, ensemble.id), eq(EnsembleMember.userId, user.id)))
   .get();
 
 if (!membership) {
@@ -56,7 +57,7 @@ if (Astro.request.method === 'POST') {
     } else {
       await db.insert(Group).values({
         id: crypto.randomUUID(),
-        ensembleId: id!,
+        ensembleId: ensemble.id,
         name: name.trim(),
         description: description?.trim() || null,
         color,
@@ -113,7 +114,7 @@ if (Astro.request.method === 'POST') {
 const groups = await db
   .select()
   .from(Group)
-  .where(eq(Group.ensembleId, id!))
+  .where(eq(Group.ensembleId, ensemble.id))
   .orderBy(desc(Group.createdAt));
 
 // Get all ensemble members
@@ -121,7 +122,7 @@ const allMembers = await db
   .select({ id: User.id, name: User.name, email: User.email })
   .from(EnsembleMember)
   .innerJoin(User, eq(EnsembleMember.userId, User.id))
-  .where(eq(EnsembleMember.ensembleId, id!));
+  .where(eq(EnsembleMember.ensembleId, ensemble.id));
 
 // Get group memberships
 const groupMemberships = await db
@@ -148,7 +149,7 @@ const colorOptions = [
 <EnsemblePageLayout
   title={`Groups - ${ensemble.name}`}
   ensembleName={ensemble.name}
-  ensembleId={id!}
+  ensembleId={canonicalId}
   pageTitle="Groups"
   pageSubtitle="Organize members into groups for better management"
   message={message}
