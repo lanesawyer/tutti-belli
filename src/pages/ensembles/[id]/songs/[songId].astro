@@ -4,12 +4,14 @@ import {
   getSongDetailData,
   getMembership,
   formatRuntime,
-  addSongFile,
-  deleteSongFile,
+  categoryLabel,
+  categoryTagClass,
+  getYouTubeId,
 } from '../../../../lib/songs';
 import { canManageEnsemble } from '../../../../lib/permissions';
 import Button from '../../../../components/Button.astro';
 import { getEnsembleUrlId } from '../../../../lib/slug';
+import { actions } from 'astro:actions';
 
 const user = Astro.locals.user!;
 const { id, songId } = Astro.params;
@@ -21,59 +23,24 @@ if (!ensemble) return new Response('Ensemble not found', { status: 404 });
 if (!song || song.ensembleId !== ensemble.id) return new Response('Song not found', { status: 404 });
 
 const canonicalId = getEnsembleUrlId(ensemble);
-if (Astro.request.method === 'GET' && id !== canonicalId) {
+if (id !== canonicalId) {
   return Astro.redirect(Astro.url.pathname.replace(`/ensembles/${id}`, `/ensembles/${canonicalId}`), 301);
 }
 
 const membership = await getMembership(ensemble.id, user.id);
 const isAdmin = canManageEnsemble(user, membership);
 
-let fileError: string | undefined;
+const addFileResult = Astro.getActionResult(actions.songs.addFile);
+const deleteFileResult = Astro.getActionResult(actions.songs.deleteFile);
 
-if (Astro.request.method === 'POST') {
-  if (!isAdmin) return new Response('Unauthorized', { status: 403 });
-
-  const formData = await Astro.request.formData();
-  const action = formData.get('action');
-
-  if (action === 'add_file') {
-    const result = await addSongFile(formData, user.id, ensemble.id);
-    if (result.error) {
-      fileError = result.error;
-    } else {
-      return Astro.redirect(`/ensembles/${canonicalId}/songs/${songId}`);
-    }
-  } else if (action === 'delete_file') {
-    await deleteSongFile(formData);
-    return Astro.redirect(`/ensembles/${canonicalId}/songs/${songId}`);
-  }
+if ((addFileResult && !addFileResult.error) || (deleteFileResult && !deleteFileResult.error)) {
+  return Astro.redirect(`/ensembles/${canonicalId}/songs/${songId}`);
 }
+
+const fileError = addFileResult?.error?.message;
 
 const songParts = songPartsData.map((sp) => parts.find((p) => p.id === sp.partId)).filter(Boolean);
 const songSeasons = seasonSongsData.map((ss) => seasons.find((s) => s.id === ss.seasonId)).filter(Boolean);
-
-function categoryLabel(cat: string) {
-  if (cat === 'sheet_music') return 'Sheet Music';
-  if (cat === 'rehearsal_track') return 'Rehearsal Track';
-  if (cat === 'link') return 'Link';
-  return 'Other';
-}
-
-function categoryTagClass(cat: string) {
-  if (cat === 'sheet_music') return 'is-success';
-  if (cat === 'rehearsal_track') return 'is-warning';
-  if (cat === 'link') return 'is-info';
-  return 'is-light';
-}
-
-function getYouTubeId(url: string): string | null {
-  try {
-    const u = new URL(url);
-    if (u.hostname === 'youtu.be') return u.pathname.slice(1).split('?')[0];
-    if (u.hostname.includes('youtube.com')) return u.searchParams.get('v');
-  } catch {}
-  return null;
-}
 ---
 
 <EnsemblePageLayout
@@ -146,7 +113,7 @@ function getYouTubeId(url: string): string | null {
   ) : (
     <div class="box mb-5">
       {songFiles.map((file) => {
-        const isLink = file.category === 'link';
+        const isLink = (file.category as string) === 'link';
         const isAudio = !isLink && file.url.match(/\.(mp3)$/i);
         const isPdf = !isLink && file.url.match(/\.(pdf)$/i);
         const youtubeId = isLink ? getYouTubeId(file.url) : null;
@@ -199,8 +166,8 @@ function getYouTubeId(url: string): string | null {
                 </Button>
               )}
               {isAdmin && (
-                <form method="POST" style="flex-shrink:0;" onsubmit="return confirm('Delete this resource?');">
-                  <input type="hidden" name="action" value="delete_file" />
+                <form method="POST" action={actions.songs.deleteFile} style="flex-shrink:0;" onsubmit="return confirm('Delete this resource?');">
+                  <input type="hidden" name="ensembleId" value={ensemble.id} />
                   <input type="hidden" name="fileId" value={file.id} />
                   <Button type="submit" color="danger" size="small">
                     <span class="icon is-small"><i class="fas fa-trash"></i></span>
@@ -259,8 +226,8 @@ function getYouTubeId(url: string): string | null {
       {fileError && (
         <div class="notification is-danger is-light mb-4">{fileError}</div>
       )}
-      <form method="POST" enctype="multipart/form-data">
-        <input type="hidden" name="action" value="add_file" />
+      <form method="POST" action={actions.songs.addFile} enctype="multipart/form-data">
+        <input type="hidden" name="ensembleId" value={ensemble.id} />
         <input type="hidden" name="songId" value={songId} />
 
         <div class="field">

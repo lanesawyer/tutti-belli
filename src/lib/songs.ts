@@ -111,60 +111,62 @@ export function buildSongFilesMap<T extends { songId: string }>(
 
 const VALID_CATEGORIES = ['sheet_music', 'rehearsal_track', 'other', 'link'] as const;
 
-export async function addSong(
-  ensembleId: string,
-  formData: FormData
-): Promise<void> {
-  const name = (formData.get('name') as string)?.trim();
+export interface SongInput {
+  name: string;
+  composer?: string;
+  arranger?: string;
+  runTimeMinutes: number;
+  runTimeSeconds: number;
+  parts: string[];
+  seasons: string[];
+}
+
+export async function addSong(ensembleId: string, input: SongInput): Promise<void> {
+  const name = input.name.trim();
   if (!name) return;
 
-  const composer = (formData.get('composer') as string)?.trim() || null;
-  const arranger = (formData.get('arranger') as string)?.trim() || null;
-  const runTimeMinutes = parseInt(formData.get('runTimeMinutes') as string) || 0;
-  const runTimeSeconds = parseInt(formData.get('runTimeSeconds') as string) || 0;
-  const runTime = runTimeMinutes * 60 + runTimeSeconds || null;
-  const selectedParts = formData.getAll('parts') as string[];
-  const selectedSeasons = formData.getAll('seasons') as string[];
+  const composer = input.composer?.trim() || null;
+  const arranger = input.arranger?.trim() || null;
+  const runTime = input.runTimeMinutes * 60 + input.runTimeSeconds || null;
 
   const songId = crypto.randomUUID();
   await db.insert(Song).values({ id: songId, ensembleId, name, composer, arranger, runTime });
 
-  for (const partId of selectedParts) {
+  for (const partId of input.parts) {
     await db.insert(SongPart).values({ id: crypto.randomUUID(), songId, partId });
   }
-  for (const seasonId of selectedSeasons) {
+  for (const seasonId of input.seasons) {
     await db.insert(SeasonSong).values({ id: crypto.randomUUID(), songId, seasonId });
   }
 }
 
-export async function editSong(formData: FormData): Promise<void> {
-  const songId = formData.get('songId') as string;
-  const name = (formData.get('name') as string)?.trim();
+export interface EditSongInput extends SongInput {
+  songId: string;
+}
+
+export async function editSong(input: EditSongInput): Promise<void> {
+  const { songId } = input;
+  const name = input.name.trim();
   if (!songId || !name) return;
 
-  const composer = (formData.get('composer') as string)?.trim() || null;
-  const arranger = (formData.get('arranger') as string)?.trim() || null;
-  const runTimeMinutes = parseInt(formData.get('runTimeMinutes') as string) || 0;
-  const runTimeSeconds = parseInt(formData.get('runTimeSeconds') as string) || 0;
-  const runTime = runTimeMinutes * 60 + runTimeSeconds || null;
-  const selectedParts = formData.getAll('parts') as string[];
-  const selectedSeasons = formData.getAll('seasons') as string[];
+  const composer = input.composer?.trim() || null;
+  const arranger = input.arranger?.trim() || null;
+  const runTime = input.runTimeMinutes * 60 + input.runTimeSeconds || null;
 
   await db.update(Song).set({ name, composer, arranger, runTime }).where(eq(Song.id, songId));
 
   await db.delete(SongPart).where(eq(SongPart.songId, songId));
   await db.delete(SeasonSong).where(eq(SeasonSong.songId, songId));
 
-  for (const partId of selectedParts) {
+  for (const partId of input.parts) {
     await db.insert(SongPart).values({ id: crypto.randomUUID(), songId, partId });
   }
-  for (const seasonId of selectedSeasons) {
+  for (const seasonId of input.seasons) {
     await db.insert(SeasonSong).values({ id: crypto.randomUUID(), songId, seasonId });
   }
 }
 
-export async function deleteSong(formData: FormData): Promise<void> {
-  const songId = formData.get('songId') as string;
+export async function deleteSong(songId: string): Promise<void> {
   if (!songId) return;
 
   await db.delete(SongPart).where(eq(SongPart.songId, songId));
@@ -177,31 +179,37 @@ export async function deleteSong(formData: FormData): Promise<void> {
   await db.delete(Song).where(eq(Song.id, songId));
 }
 
+export interface AddSongFileInput {
+  songId: string;
+  fileName: string;
+  category: (typeof VALID_CATEGORIES)[number];
+  fileUrl?: string;
+  file?: File;
+}
+
 export async function addSongFile(
-  formData: FormData,
+  input: AddSongFileInput,
   uploadedBy: string,
   ensembleId?: string
 ): Promise<{ error?: string }> {
-  const songId = formData.get('songId') as string;
-  const name = (formData.get('fileName') as string)?.trim();
-  const rawCategory = formData.get('category') as string;
-  const category = (VALID_CATEGORIES as readonly string[]).includes(rawCategory)
-    ? (rawCategory as (typeof VALID_CATEGORIES)[number])
+  const { songId } = input;
+  const name = input.fileName.trim();
+  const category = (VALID_CATEGORIES as readonly string[]).includes(input.category)
+    ? (input.category as (typeof VALID_CATEGORIES)[number])
     : 'other';
 
   if (!songId || !name) return {};
 
-  const uploadedFile = formData.get('file') as File | null;
   let url: string;
 
   if (category === 'link') {
-    url = (formData.get('fileUrl') as string)?.trim();
+    url = input.fileUrl?.trim() ?? '';
     if (!url) return { error: 'A URL is required for links.' };
-  } else if (uploadedFile && uploadedFile.size > 0) {
+  } else if (input.file && input.file.size > 0) {
     if (!ensembleId) return { error: 'Missing ensemble context for upload.' };
-    const validation = validateSongFile(uploadedFile);
+    const validation = validateSongFile(input.file);
     if (!validation.valid) return { error: validation.error };
-    url = await uploadSongFile(uploadedFile, ensembleId);
+    url = await uploadSongFile(input.file, ensembleId);
   } else {
     return { error: 'A file is required.' };
   }
@@ -210,8 +218,7 @@ export async function addSongFile(
   return {};
 }
 
-export async function deleteSongFile(formData: FormData): Promise<void> {
-  const fileId = formData.get('fileId') as string;
+export async function deleteSongFile(fileId: string): Promise<void> {
   if (!fileId) return;
 
   const file = await db.select().from(SongFile).where(eq(SongFile.id, fileId)).get();
@@ -226,4 +233,27 @@ export function formatRuntime(seconds: number | null): string {
   const mins = Math.floor(seconds / 60);
   const secs = seconds % 60;
   return `${mins}:${secs.toString().padStart(2, '0')}`;
+}
+
+export function categoryLabel(cat: string): string {
+  if (cat === 'sheet_music') return 'Sheet Music';
+  if (cat === 'rehearsal_track') return 'Rehearsal Track';
+  if (cat === 'link') return 'Link';
+  return 'Other';
+}
+
+export function categoryTagClass(cat: string): string {
+  if (cat === 'sheet_music') return 'is-success';
+  if (cat === 'rehearsal_track') return 'is-warning';
+  if (cat === 'link') return 'is-info';
+  return 'is-light';
+}
+
+export function getYouTubeId(url: string): string | null {
+  try {
+    const u = new URL(url);
+    if (u.hostname === 'youtu.be') return u.pathname.slice(1).split('?')[0];
+    if (u.hostname.includes('youtube.com')) return u.searchParams.get('v');
+  } catch {}
+  return null;
 }

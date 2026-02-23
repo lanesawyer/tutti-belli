@@ -10,14 +10,10 @@ import {
   buildSongPartsMap,
   buildSongSeasonsMap,
   buildSongFilesMap,
-  addSong,
-  editSong,
-  deleteSong,
-  addSongFile,
-  deleteSongFile,
   formatRuntime,
 } from '../../../../lib/songs';
 import { getEnsembleUrlId } from '../../../../lib/slug';
+import { actions } from 'astro:actions';
 
 const user = Astro.locals.user!;
 const { id } = Astro.params;
@@ -30,25 +26,26 @@ if (!ensemble) {
 }
 
 const canonicalId = getEnsembleUrlId(ensemble);
-if (Astro.request.method === 'GET' && id !== canonicalId) {
+if (id !== canonicalId) {
   return Astro.redirect(Astro.url.pathname.replace(`/ensembles/${id}`, `/ensembles/${canonicalId}`), 301);
 }
 
 const membership = await getMembership(ensemble.id, user.id);
 const isAdmin = canManageEnsemble(user, membership);
 
-if (Astro.request.method === 'POST') {
-  if (!isAdmin) return new Response('Unauthorized', { status: 403 });
+const addResult = Astro.getActionResult(actions.songs.add);
+const editResult = Astro.getActionResult(actions.songs.edit);
+const deleteResult = Astro.getActionResult(actions.songs.delete);
+const addFileResult = Astro.getActionResult(actions.songs.addFile);
+const deleteFileResult = Astro.getActionResult(actions.songs.deleteFile);
 
-  const formData = await Astro.request.formData();
-  const action = formData.get('action');
-
-  if (action === 'add') await addSong(ensemble.id, formData);
-  else if (action === 'edit') await editSong(formData);
-  else if (action === 'delete') await deleteSong(formData);
-  else if (action === 'add_file') await addSongFile(formData, user.id, ensemble.id);
-  else if (action === 'delete_file') await deleteSongFile(formData);
-
+if (
+  (addResult && !addResult.error) ||
+  (editResult && !editResult.error) ||
+  (deleteResult && !deleteResult.error) ||
+  (addFileResult && !addFileResult.error) ||
+  (deleteFileResult && !deleteFileResult.error)
+) {
   return Astro.redirect(`/ensembles/${canonicalId}/songs`);
 }
 
@@ -157,8 +154,8 @@ const songFilesMap = buildSongFilesMap(ensembleSongIds, songFilesData);
   <Fragment slot="modals">
 <!-- Add Song Modal -->
 <Modal id="addModal" title="Add Song">
-  <form id="addForm" method="POST">
-    <input type="hidden" name="action" value="add" />
+  <form id="addForm" method="POST" action={actions.songs.add}>
+    <input type="hidden" name="ensembleId" value={ensemble.id} />
 
     <div class="field">
       <label class="label" for="name">Song Name *</label>
@@ -247,8 +244,8 @@ const songFilesMap = buildSongFilesMap(ensembleSongIds, songFilesData);
       <hr />
 
       <h3 class="title is-6">Add File</h3>
-      <form id="addFileForm" method="POST">
-        <input type="hidden" name="action" value="add_file" />
+      <form id="addFileForm" method="POST" action={actions.songs.addFile}>
+        <input type="hidden" name="ensembleId" value={ensemble.id} />
         <input type="hidden" name="songId" id="addFileSongId" />
 
         <div class="field">
@@ -298,8 +295,8 @@ const songFilesMap = buildSongFilesMap(ensembleSongIds, songFilesData);
 
 <!-- Edit Modal -->
 <Modal id="editModal" title="Edit Song">
-  <form id="editForm" method="POST">
-    <input type="hidden" name="action" value="edit" />
+  <form id="editForm" method="POST" action={actions.songs.edit}>
+    <input type="hidden" name="ensembleId" value={ensemble.id} />
     <input type="hidden" name="songId" id="editSongId" />
 
     <div class="field">
@@ -376,8 +373,8 @@ const songFilesMap = buildSongFilesMap(ensembleSongIds, songFilesData);
 <!-- Delete Confirmation Modal -->
 <Modal id="deleteModal" title="Delete Song">
   <p>Are you sure you want to delete this song? This action cannot be undone.</p>
-  <form id="deleteForm" method="POST">
-    <input type="hidden" name="action" value="delete" />
+  <form id="deleteForm" method="POST" action={actions.songs.delete}>
+    <input type="hidden" name="ensembleId" value={ensemble.id} />
     <input type="hidden" name="songId" id="deleteSongId" />
   </form>
 
@@ -394,10 +391,12 @@ const songFilesMap = buildSongFilesMap(ensembleSongIds, songFilesData);
   data-song-seasons={JSON.stringify(Array.from(songSeasonsMap.entries()))}
   data-song-files={JSON.stringify(Array.from(songFilesMap.entries()))}
   data-is-admin={isAdmin ? 'true' : 'false'}
+  data-ensemble-id={ensemble.id}
 ></script>
 
 <script is:inline>
   const dataScript = document.currentScript.previousElementSibling;
+  const ensembleId = dataScript.dataset.ensembleId || '';
   const songsData = JSON.parse(dataScript.dataset.songs || '[]');
   const songPartsMapJS = new Map(JSON.parse(dataScript.dataset.songParts || '[]'));
   const songSeasonsMapJS = new Map(JSON.parse(dataScript.dataset.songSeasons || '[]'));
@@ -438,8 +437,8 @@ const songFilesMap = buildSongFilesMap(ensembleSongIds, songFilesData);
         <a href="/files/${f.id}" class="has-text-weight-medium"
            style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${f.name}</a>
         ${isAdmin ? `
-        <form method="POST" style="flex-shrink:0;" onsubmit="return confirm('Delete this file?');">
-          <input type="hidden" name="action" value="delete_file" />
+        <form method="POST" action="/_actions/songs.deleteFile" style="flex-shrink:0;" onsubmit="return confirm('Delete this file?');">
+          <input type="hidden" name="ensembleId" value="${ensembleId}" />
           <input type="hidden" name="fileId" value="${f.id}" />
           <button type="submit" class="button is-danger is-small">
             <span class="icon is-small"><i class="fas fa-trash"></i></span>
