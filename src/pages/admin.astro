@@ -2,9 +2,8 @@
 import Layout from '../layouts/Layout.astro';
 import Table from '../components/Table.astro';
 import Button from '../components/Button.astro';
-import { db, eq, Ensemble, User, EnsembleMember } from 'astro:db';
-import { adminDeleteUser } from '../lib/profile';
-import { findUniqueSlug } from '../lib/slug';
+import { db, Ensemble, User } from 'astro:db';
+import { actions } from 'astro:actions';
 
 const user = Astro.locals.user;
 
@@ -12,80 +11,31 @@ if (!user || user.role !== 'admin') {
   return Astro.redirect('/');
 }
 
+const createResult = Astro.getActionResult(actions.admin.createEnsemble);
+const deleteEnsembleResult = Astro.getActionResult(actions.admin.deleteEnsemble);
+const toggleAdminResult = Astro.getActionResult(actions.admin.toggleAdmin);
+const deleteUserResult = Astro.getActionResult(actions.admin.deleteUser);
+
 let message = '';
 let error = '';
 
-if (Astro.request.method === 'POST') {
-  const formData = await Astro.request.formData();
-  const action = formData.get('action')?.toString();
-
-  if (action === 'create-ensemble') {
-    const name = formData.get('name')?.toString();
-    const description = formData.get('description')?.toString();
-
-    if (!name) {
-      error = 'Ensemble name is required';
-    } else {
-      const ensembleId = crypto.randomUUID();
-      const slug = await findUniqueSlug(name, ensembleId);
-      await db.insert(Ensemble).values({
-        id: ensembleId,
-        name,
-        slug,
-        description: description || '',
-        createdBy: user.id,
-      });
-
-      // Add creator as admin
-      await db.insert(EnsembleMember).values({
-        id: crypto.randomUUID(),
-        ensembleId,
-        userId: user.id,
-        role: 'admin',
-      });
-
-      message = `Ensemble "${name}" created successfully!`;
-    }
-  } else if (action === 'delete-ensemble') {
-    const ensembleId = formData.get('ensembleId')?.toString();
-    if (ensembleId) {
-      // Delete members first
-      await db.delete(EnsembleMember).where(eq(EnsembleMember.ensembleId, ensembleId));
-      // Delete ensemble
-      await db.delete(Ensemble).where(eq(Ensemble.id, ensembleId));
-      message = 'Ensemble deleted successfully!';
-    }
-  } else if (action === 'toggle-admin') {
-    const userId = formData.get('userId')?.toString();
-    if (userId && userId !== user.id) {
-      const [targetUser] = await db.select().from(User).where(eq(User.id, userId));
-      if (targetUser) {
-        const newRole = targetUser.role === 'admin' ? 'user' : 'admin';
-        await db.update(User).set({ role: newRole }).where(eq(User.id, userId));
-        message = `User ${targetUser.name} is now ${newRole === 'admin' ? 'a site admin' : 'a regular user'}`;
-      }
-    }
-  } else if (action === 'delete-user') {
-    const userId = formData.get('userId')?.toString();
-    if (userId && userId !== user.id) {
-      const [targetUser] = await db.select().from(User).where(eq(User.id, userId));
-      if (targetUser) {
-        await adminDeleteUser(userId);
-        message = `User "${targetUser.name}" has been deleted.`;
-      }
-    }
-  }
-
-  // Refresh page to show updates
-  if (message || error) {
-    return Astro.redirect('/admin?msg=' + encodeURIComponent(message || error));
-  }
-}
-
-// Get query message
-const urlMessage = Astro.url.searchParams.get('msg');
-if (urlMessage) {
-  message = urlMessage;
+if (createResult?.data) {
+  message = `Ensemble "${createResult.data.name}" created successfully!`;
+} else if (createResult?.error) {
+  error = createResult.error.message;
+} else if (deleteEnsembleResult && !deleteEnsembleResult.error) {
+  message = 'Ensemble deleted successfully!';
+} else if (deleteEnsembleResult?.error) {
+  error = deleteEnsembleResult.error.message;
+} else if (toggleAdminResult?.data) {
+  const { name, newRole } = toggleAdminResult.data;
+  message = `User ${name} is now ${newRole === 'admin' ? 'a site admin' : 'a regular user'}`;
+} else if (toggleAdminResult?.error) {
+  error = toggleAdminResult.error.message;
+} else if (deleteUserResult?.data) {
+  message = `User "${deleteUserResult.data.name}" has been deleted.`;
+} else if (deleteUserResult?.error) {
+  error = deleteUserResult.error.message;
 }
 
 // Get all ensembles
@@ -113,9 +63,7 @@ const allUsers = await db.select().from(User);
   <!-- Create Ensemble -->
   <div class="box">
     <h2 class="title is-4">Create New Ensemble</h2>
-    <form method="POST">
-      <input type="hidden" name="action" value="create-ensemble" />
-      
+    <form method="POST" action={actions.admin.createEnsemble}>
       <div class="field">
         <label class="label" for="name">Ensemble Name</label>
         <div class="control">
@@ -158,7 +106,7 @@ const allUsers = await db.select().from(User);
   <!-- Manage Ensembles -->
   <div class="box">
     <h2 class="title is-4">Manage Ensembles ({allEnsembles.length})</h2>
-    
+
     {allEnsembles.length > 0 ? (
       <Table>
         <thead>
@@ -180,8 +128,7 @@ const allUsers = await db.select().from(User);
                   <Button href={`/ensembles/${ensemble.id}`} color="info" size="small">
                     View
                   </Button>
-                  <form method="POST" style="display: inline;">
-                    <input type="hidden" name="action" value="delete-ensemble" />
+                  <form method="POST" action={actions.admin.deleteEnsemble} style="display: inline;">
                     <input type="hidden" name="ensembleId" value={ensemble.id} />
                     <Button
                       type="submit"
@@ -208,7 +155,7 @@ const allUsers = await db.select().from(User);
   <!-- Manage Users -->
   <div class="box">
     <h2 class="title is-4">Manage Users ({allUsers.length})</h2>
-    
+
     <Table>
       <thead>
         <tr>
@@ -233,8 +180,7 @@ const allUsers = await db.select().from(User);
             <td>
               {u.id !== user.id && (
                 <div class="buttons are-small">
-                  <form method="POST" style="display: inline;">
-                    <input type="hidden" name="action" value="toggle-admin" />
+                  <form method="POST" action={actions.admin.toggleAdmin} style="display: inline;">
                     <input type="hidden" name="userId" value={u.id} />
                     <Button
                       type="submit"
@@ -244,8 +190,7 @@ const allUsers = await db.select().from(User);
                       {u.role === 'admin' ? 'Remove Admin' : 'Make Admin'}
                     </Button>
                   </form>
-                  <form method="POST" style="display: inline;">
-                    <input type="hidden" name="action" value="delete-user" />
+                  <form method="POST" action={actions.admin.deleteUser} style="display: inline;">
                     <input type="hidden" name="userId" value={u.id} />
                     <Button
                       type="submit"
