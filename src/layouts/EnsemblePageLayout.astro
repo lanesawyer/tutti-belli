@@ -1,6 +1,7 @@
 ---
 import Layout from './Layout.astro';
 import { ensembleAdminTools } from '../lib/config';
+import Breadcrumb from '../components/Breadcrumb.astro';
 
 interface Props {
   title: string;
@@ -53,16 +54,12 @@ const currentPath = Astro.url.pathname;
     </div>
   )}
 
-  <nav class="breadcrumb" aria-label="breadcrumbs">
-    <ul>
-      <li><a href="/ensembles">Ensembles</a></li>
-      <li><a href={`/ensembles/${ensembleId}`}>{ensembleName}</a></li>
-      {extraBreadcrumbs.map(([label, href]) => (
-        <li><a href={href}>{label}</a></li>
-      ))}
-      <li class="is-active"><a href="#" aria-current="page">{pageTitle}</a></li>
-    </ul>
-  </nav>
+  <Breadcrumb items={[
+    { label: 'Ensembles', href: '/ensembles' },
+    { label: ensembleName, href: `/ensembles/${ensembleId}` },
+    ...extraBreadcrumbs.map(([label, href]) => ({ label, href })),
+    { label: pageTitle },
+  ]} />
 
   <div class="level mb-4">
     <div class="level-left">

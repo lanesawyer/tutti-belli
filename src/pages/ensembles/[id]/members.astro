@@ -8,6 +8,7 @@ import { getInitials, getColorFromInitials } from '../../../lib/avatar';
 import { getEnsembleBySlugOrId } from '../../../lib/ensemble';
 import { getEnsembleUrlId } from '../../../lib/slug';
 import Button from '../../../components/Button.astro';
+import Breadcrumb from '../../../components/Breadcrumb.astro';
 
 const user = Astro.locals.user!;
 
@@ -129,13 +130,11 @@ if (Astro.request.method === 'POST') {
   </div>
   <section class="section">
     <div class="container">
-      <nav class="breadcrumb" aria-label="breadcrumbs">
-        <ul>
-          <li><a href="/ensembles">Ensembles</a></li>
-          <li><a href={`/ensembles/${canonicalId}`}>{ensemble.name}</a></li>
-          <li class="is-active"><a href="#" aria-current="page">Manage Members</a></li>
-        </ul>
-      </nav>
+      <Breadcrumb items={[
+        { label: 'Ensembles', href: '/ensembles' },
+        { label: ensemble.name, href: `/ensembles/${canonicalId}` },
+        { label: 'Manage Members' },
+      ]} />
 
       <div class="level mb-5">
         <div class="level-left">

@@ -7,6 +7,7 @@ import { ensembleAdminTools } from '../../../lib/config';
 import { getEnsembleBySlugOrId } from '../../../lib/ensemble';
 import { generateSlug, getEnsembleUrlId } from '../../../lib/slug';
 import Button from '../../../components/Button.astro';
+import Breadcrumb from '../../../components/Breadcrumb.astro';
 
 const user = Astro.locals.user!;
 
@@ -183,13 +184,11 @@ if (Astro.request.method === 'POST') {
   </div>
   <section class="section">
     <div class="container">
-      <nav class="breadcrumb" aria-label="breadcrumbs">
-        <ul>
-          <li><a href="/ensembles">Ensembles</a></li>
-          <li><a href={`/ensembles/${canonicalId}`}>{ensemble.name}</a></li>
-          <li class="is-active"><a href="#" aria-current="page">Edit</a></li>
-        </ul>
-      </nav>
+      <Breadcrumb items={[
+        { label: 'Ensembles', href: '/ensembles' },
+        { label: ensemble.name, href: `/ensembles/${canonicalId}` },
+        { label: 'Edit' },
+      ]} />
 
       <h1 class="title">Edit Ensemble</h1>
 
