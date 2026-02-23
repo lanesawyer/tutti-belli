@@ -1,10 +1,7 @@
 ---
 import { deleteSession } from '../lib/session';
 
-const sessionId = Astro.cookies.get('session')?.value;
-if (sessionId) {
-  deleteSession(sessionId);
-}
+deleteSession();
 
 Astro.cookies.delete('session', { path: '/' });
 

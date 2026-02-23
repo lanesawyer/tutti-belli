@@ -53,8 +53,7 @@ if (Astro.request.method === 'POST') {
         // Fire-and-forget: don't block registration if email fails
         sendWelcomeEmail(email, name).catch(() => {});
 
-        const redirectUrl = await getRedirectUrl(userId, customRedirect);
-        return Astro.redirect(redirectUrl);
+        return Astro.redirect(await getRedirectUrl(userId, customRedirect));
       }
     }
   } catch (e) {
@@ -64,8 +63,7 @@ if (Astro.request.method === 'POST') {
 
 // Redirect if already logged in
 if (Astro.locals.user) {
-  const redirectUrl = await getRedirectUrl(Astro.locals.user.id, customRedirect);
-  return Astro.redirect(redirectUrl);
+  return Astro.redirect(await getRedirectUrl(Astro.locals.user.id, customRedirect));
 }
 ---
 

@@ -32,8 +32,7 @@ if (Astro.request.method === 'POST') {
           maxAge: 60 * 60 * 24 * 30, // 30 days
         });
 
-        const redirectUrl = await getRedirectUrl(user.id, customRedirect);
-        return Astro.redirect(redirectUrl);
+        return Astro.redirect(await getRedirectUrl(user.id, customRedirect));
       }
     }
   } catch (e) {
@@ -43,8 +42,7 @@ if (Astro.request.method === 'POST') {
 
 // Redirect if already logged in
 if (Astro.locals.user) {
-  const redirectUrl = await getRedirectUrl(Astro.locals.user.id, customRedirect);
-  return Astro.redirect(redirectUrl);
+  return Astro.redirect(await getRedirectUrl(Astro.locals.user.id, customRedirect));
 }
 ---
 

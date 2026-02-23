@@ -3,7 +3,7 @@ import EnsemblePageLayout from '../../../layouts/EnsemblePageLayout.astro';
 import Table from '../../../components/Table.astro';
 import Modal from '../../../components/Modal.astro';
 import Button from '../../../components/Button.astro';
-import { db, eq, and, desc, EnsembleMember, Season, SeasonMembership, User } from 'astro:db';
+import { db, eq, and, desc, EnsembleMember, Season, SeasonMembership, User, Event } from 'astro:db';
 import { canManageEnsemble } from '../../../lib/permissions';
 import { getEnsembleBySlugOrId } from '../../../lib/ensemble';
 import { getEnsembleUrlId } from '../../../lib/slug';
@@ -101,11 +101,10 @@ if (Astro.request.method === 'POST') {
   } else if (action === 'delete') {
     const seasonId = formData.get('seasonId')?.toString();
     if (seasonId) {
-      const { Rehearsal } = await import('astro:db');
       const rehearsals = await db
         .select()
-        .from(Rehearsal)
-        .where(eq(Rehearsal.seasonId, seasonId))
+        .from(Event)
+        .where(eq(Event.seasonId, seasonId))
         .limit(1);
 
       if (rehearsals.length > 0) {
