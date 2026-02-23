@@ -38,6 +38,23 @@ export default defineConfig({
       dependencies: ['setup'],
       testMatch: /.*permissions\.spec\.ts/,
     },
+    {
+      name: 'firefox-admin',
+      use: {
+        ...devices['Desktop Firefox'],
+        storageState: 'tests/e2e/.auth/admin.json',
+      },
+      dependencies: ['setup'],
+    },
+    {
+      name: 'firefox-user',
+      use: {
+        ...devices['Desktop Firefox'],
+        storageState: 'tests/e2e/.auth/user.json',
+      },
+      dependencies: ['setup'],
+      testMatch: /.*permissions\.spec\.ts/,
+    },
   ],
   webServer: {
     command: 'pnpm dev',

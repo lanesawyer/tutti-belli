@@ -40,7 +40,7 @@ export default defineConfig({
       },
     ],
     coverage: {
-      provider: 'v8',
+      provider: 'istanbul',
       include: ['src/lib/**/*.ts'],
       exclude: ['src/lib/email.ts', 'src/lib/storage.ts'],
       reporter: ['text', 'html'],

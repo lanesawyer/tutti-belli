@@ -2,14 +2,14 @@
   "name": "ensemble-management-software",
   "type": "module",
   "version": "0.0.1",
-  "packageManager": "pnpm@10.6.0",
+  "packageManager": "pnpm@10.30.1",
   "engines": {
     "node": "22.9.0",
-    "pnpm": "10.6.0"
+    "pnpm": "10.30.1"
   },
   "volta": {
     "node": "22.9.0",
-    "pnpm": "10.6.0"
+    "pnpm": "10.30.1"
   },
   "scripts": {
     "dev": "astro dev",
@@ -47,7 +47,7 @@
     "@types/bcryptjs": "2.4.6",
     "@types/jsonwebtoken": "9.0.10",
     "@types/qrcode": "1.5.5",
-    "@vitest/coverage-v8": "4.0.18",
+    "@vitest/coverage-istanbul": "4.0.18",
     "drizzle-orm": "0.45.1",
     "oxlint": "0.16.12",
     "vitest": "4.0.18"
