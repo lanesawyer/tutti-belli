@@ -1,6 +1,7 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import InviteCodeWidget from '../../components/InviteCodeWidget.astro';
+import Button from '../../components/Button.astro';
 import DashboardSection from '../../components/DashboardSection.astro';
 import { db, eq, and, desc, EnsembleMember, User, EnsembleInvite, Part, Announcement, Group, GroupMembership, Event, Season, SeasonMembership, SeasonSong, Song, EnsembleLink } from 'astro:db';
 import { canManageEnsemble } from '../../lib/permissions';
@@ -333,22 +334,22 @@ if (Astro.request.method === 'POST') {
         <div class="level-right">
           {ensemble.discordLink && (
             <div class="level-item">
-              <a href={ensemble.discordLink} target="_blank" rel="noopener noreferrer" class="button is-link" title="Join Discord Server">
+              <Button href={ensemble.discordLink} target="_blank" rel="noopener noreferrer" color="link" title="Join Discord Server">
                 <span class="icon">
                   <i class="fab fa-discord"></i>
                 </span>
                 <span>Discord</span>
-              </a>
+              </Button>
             </div>
           )}
           {ensembleLinks.map((link) => (
             <div class="level-item">
-              <a href={link.url} target="_blank" rel="noopener noreferrer" class="button is-light">
+              <Button href={link.url} target="_blank" rel="noopener noreferrer" color="light">
                 <span class="icon">
                   <i class="fas fa-link"></i>
                 </span>
                 <span>{link.label}</span>
-              </a>
+              </Button>
             </div>
           ))}
         </div>
@@ -385,9 +386,9 @@ if (Astro.request.method === 'POST') {
             <p class="has-text-centered">No announcements yet.</p>
             {isAdmin && (
               <p class="has-text-centered mt-2">
-                <a href={`/ensembles/${canonicalId}/announcements`} class="button is-small is-link">
+                <Button href={`/ensembles/${canonicalId}/announcements`} color="link" size="small">
                   Create First Announcement
-                </a>
+                </Button>
               </p>
             )}
           </div>
@@ -415,10 +416,10 @@ if (Astro.request.method === 'POST') {
               <div class="ann-slide" data-index={latestAnnouncements.length} style="display:none">
                 <div class="has-text-centered" style="padding: 2rem 1rem;">
                   <p class="mb-4 has-text-grey">See all announcements from this ensemble.</p>
-                  <a href={`/ensembles/${canonicalId}/announcements`} class="button is-link is-medium">
+                  <Button href={`/ensembles/${canonicalId}/announcements`} color="link">
                     <span class="icon"><i class="fas fa-bullhorn"></i></span>
                     <span>View All Announcements</span>
-                  </a>
+                  </Button>
                 </div>
               </div>
             </div>
@@ -452,9 +453,9 @@ if (Astro.request.method === 'POST') {
             <p class="has-text-centered">No upcoming rehearsals.</p>
             {isAdmin && (
               <p class="has-text-centered mt-2">
-                <a href={`/ensembles/${canonicalId}/events`} class="button is-small is-primary">
+                <Button href={`/ensembles/${canonicalId}/events`} color="primary" size="small">
                   Schedule Event
-                </a>
+                </Button>
               </p>
             )}
           </div>
@@ -511,9 +512,9 @@ if (Astro.request.method === 'POST') {
             <p class="has-text-centered">No upcoming performances.</p>
             {isAdmin && (
               <p class="has-text-centered mt-2">
-                <a href={`/ensembles/${canonicalId}/events`} class="button is-small is-warning">
+                <Button href={`/ensembles/${canonicalId}/events`} color="warning" size="small">
                   Schedule Performance
-                </a>
+                </Button>
               </p>
             )}
           </div>
@@ -571,9 +572,9 @@ if (Astro.request.method === 'POST') {
               <p class="has-text-centered">No songs added to this season yet.</p>
               {isAdmin && (
                 <p class="has-text-centered mt-2">
-                  <a href={`/ensembles/${canonicalId}/songs`} class="button is-small is-info">
+                  <Button href={`/ensembles/${canonicalId}/songs`} color="info" size="small">
                     Add Songs
-                  </a>
+                  </Button>
                 </p>
               )}
             </div>
@@ -724,12 +725,12 @@ if (Astro.request.method === 'POST') {
         )}
       </DashboardSection>
 
-      <a href="/ensembles" class="button">
+      <Button href="/ensembles">
         <span class="icon">
           <i class="fas fa-arrow-left"></i>
         </span>
         <span>Back to Ensembles</span>
-      </a>
+      </Button>
     </div>
 
     <!-- Admin Sidebar -->
@@ -794,22 +795,22 @@ if (Astro.request.method === 'POST') {
                     <form method="POST" style="display: inline; width: 48%;">
                       <input type="hidden" name="action" value="approve-member" />
                       <input type="hidden" name="membershipId" value={member.membershipId} />
-                      <button type="submit" class="button is-success is-small is-fullwidth">
+                      <Button type="submit" color="success" size="small" fullwidth>
                         <span class="icon">
                           <i class="fas fa-check"></i>
                         </span>
                         <span>Approve</span>
-                      </button>
+                      </Button>
                     </form>
                     <form method="POST" style="display: inline; width: 48%;">
                       <input type="hidden" name="action" value="reject-member" />
                       <input type="hidden" name="membershipId" value={member.membershipId} />
-                      <button type="submit" class="button is-danger is-small is-fullwidth">
+                      <Button type="submit" color="danger" size="small" fullwidth>
                         <span class="icon">
                           <i class="fas fa-times"></i>
                         </span>
                         <span>Reject</span>
-                      </button>
+                      </Button>
                     </form>
                   </div>
                 </div>

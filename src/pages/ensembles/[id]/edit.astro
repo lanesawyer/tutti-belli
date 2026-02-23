@@ -6,6 +6,7 @@ import { canManageEnsemble } from '../../../lib/permissions';
 import { ensembleAdminTools } from '../../../lib/config';
 import { getEnsembleBySlugOrId } from '../../../lib/ensemble';
 import { generateSlug, getEnsembleUrlId } from '../../../lib/slug';
+import Button from '../../../components/Button.astro';
 
 const user = Astro.locals.user!;
 
@@ -277,9 +278,9 @@ if (Astro.request.method === 'POST') {
                           <input class="input is-static" type="text" readonly value={`${link.label} — ${link.url}`} />
                         </div>
                         <div class="control">
-                          <button type="submit" form={`delete-link-${link.id}`} class="button is-danger is-light" title="Remove link">
+                          <Button type="submit" form={`delete-link-${link.id}`} color="danger" light title="Remove link">
                             <span class="icon"><i class="fas fa-times"></i></span>
-                          </button>
+                          </Button>
                         </div>
                       </div>
                     ))}
@@ -294,10 +295,10 @@ if (Astro.request.method === 'POST') {
                     <input class="input" type="url" form="add-link-form" name="url" placeholder="https://..." />
                   </div>
                   <div class="control">
-                    <button type="submit" form="add-link-form" class="button is-link is-light">
+                    <Button type="submit" form="add-link-form" color="link" light>
                       <span class="icon"><i class="fas fa-plus"></i></span>
                       <span>Add</span>
-                    </button>
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -403,17 +404,17 @@ if (Astro.request.method === 'POST') {
 
               <div class="field is-grouped">
                 <div class="control">
-                  <button type="submit" class="button is-primary">
+                  <Button type="submit" color="primary">
                     <span class="icon">
                       <i class="fas fa-save"></i>
                     </span>
                     <span>Save Changes</span>
-                  </button>
+                  </Button>
                 </div>
                 <div class="control">
-                  <a href={`/ensembles/${canonicalId}`} class="button is-light">
+                  <Button href={`/ensembles/${canonicalId}`} color="light">
                     Cancel
-                  </a>
+                  </Button>
                 </div>
               </div>
             </form>

@@ -29,6 +29,7 @@ pnpm astro:db:push    # Push schema changes to remote Turso DB
 ### Philosophy
 - Don't duplicate logic, if there are commonalities, extract it into a shared utility in `src/lib/`
 - Keep the frontmatter Astro files light, most server logic should be in `src/lib/` files
+- **Always use components from `src/components/` instead of writing raw HTML equivalents.** Before writing a `<button>`, `<a class="button">`, or modal, check if a component exists: `Button.astro`, `Modal.astro`, `Table.astro`, `InviteCodeWidget.astro`, etc. Prefer extending a component over one-off inline markup.
 
 ### Request Handling Pattern
 Every page that handles user actions follows this pattern in the `.astro` frontmatter:

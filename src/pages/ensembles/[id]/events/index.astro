@@ -2,6 +2,7 @@
 import EnsemblePageLayout from '../../../../layouts/EnsemblePageLayout.astro';
 import Table from '../../../../components/Table.astro';
 import Modal from '../../../../components/Modal.astro';
+import Button from '../../../../components/Button.astro';
 import { db, eq, and, desc, EnsembleMember, Event, Season } from 'astro:db';
 import { canManageEnsemble } from '../../../../lib/permissions';
 import { getEnsembleBySlugOrId } from '../../../../lib/ensemble';
@@ -122,10 +123,10 @@ const pastEvents = events.filter(e => {
   isAdmin={isAdmin}
 >
   {isAdmin && (
-    <button slot="action" class="button is-primary" id="create-event-btn">
+    <Button slot="action" color="primary" id="create-event-btn">
       <span class="icon"><i class="fas fa-plus"></i></span>
       <span>Schedule Event</span>
-    </button>
+    </Button>
   )}
 
   {events.length === 0 ? (
@@ -169,16 +170,17 @@ const pastEvents = events.filter(e => {
                     <td>{event.durationMinutes} min</td>
                     <td>
                       <div class="buttons are-small">
-                        <a href={`/ensembles/${canonicalId}/events/${event.id}`} class="button is-info">
+                        <Button href={`/ensembles/${canonicalId}/events/${event.id}`} color="info">
                           View
-                        </a>
+                        </Button>
                         {isAdmin && (
-                          <button
-                            class="button is-danger delete-event-btn"
+                          <Button
+                            color="danger"
+                            class="delete-event-btn"
                             data-event-id={event.id}
                           >
                             <span class="icon"><i class="fas fa-trash"></i></span>
-                          </button>
+                          </Button>
                         )}
                       </div>
                     </td>
@@ -219,9 +221,9 @@ const pastEvents = events.filter(e => {
                     <td>{scheduledDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
                     <td>{event.location || '-'}</td>
                     <td>
-                      <a href={`/ensembles/${canonicalId}/events/${event.id}`} class="button is-small">
+                      <Button href={`/ensembles/${canonicalId}/events/${event.id}`} size="small">
                         {isAdmin ? 'Attendance' : 'Details'}
-                      </a>
+                      </Button>
                     </td>
                   </tr>
                 );
@@ -307,8 +309,8 @@ const pastEvents = events.filter(e => {
     </form>
 
     <div slot="footer">
-      <button type="submit" form="createForm" class="button is-primary">Schedule</button>
-      <button class="button" type="button" data-modal-close>Cancel</button>
+      <Button type="submit" form="createForm" color="primary">Schedule</Button>
+      <Button type="button" data-modal-close>Cancel</Button>
     </div>
   </Modal>
 )}
@@ -323,8 +325,8 @@ const pastEvents = events.filter(e => {
     </form>
 
     <div slot="footer">
-      <button type="submit" form="deleteForm" class="button is-danger">Delete</button>
-      <button class="button" type="button" data-modal-close>Cancel</button>
+      <Button type="submit" form="deleteForm" color="danger">Delete</Button>
+      <Button type="button" data-modal-close>Cancel</Button>
     </div>
   </Modal>
 )}

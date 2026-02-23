@@ -8,6 +8,7 @@ import {
   deleteSongFile,
 } from '../../../../lib/songs';
 import { canManageEnsemble } from '../../../../lib/permissions';
+import Button from '../../../../components/Button.astro';
 import { getEnsembleUrlId } from '../../../../lib/slug';
 
 const user = Astro.locals.user!;
@@ -84,10 +85,10 @@ function getYouTubeId(url: string): string | null {
   isAdmin={isAdmin}
 >
   {isAdmin && (
-    <a slot="action" href={`/ensembles/${canonicalId}/songs`} class="button">
+    <Button slot="action" href={`/ensembles/${canonicalId}/songs`}>
       <span class="icon"><i class="fas fa-arrow-left"></i></span>
       <span>Back to Songs</span>
-    </a>
+    </Button>
   )}
 
   <!-- Song details -->
@@ -177,31 +178,33 @@ function getYouTubeId(url: string): string | null {
                 {file.uploaderName} &middot; {new Date(file.uploadedAt).toLocaleDateString()}
               </span>
               {isLink ? (
-                <a
+                <Button
                   href={file.url}
-                  class="button is-small is-info is-light"
+                  color="info"
+                  size="small"
+                  light
                   target="_blank"
                   rel="noopener noreferrer"
                   title="Open link"
                 >
                   <span class="icon is-small"><i class="fas fa-external-link-alt"></i></span>
-                </a>
+                </Button>
               ) : (
-                <a
+                <Button
                   href={`/files/${file.id}`}
-                  class="button is-small"
+                  size="small"
                   title="Download"
                 >
                   <span class="icon is-small"><i class="fas fa-download"></i></span>
-                </a>
+                </Button>
               )}
               {isAdmin && (
                 <form method="POST" style="flex-shrink:0;" onsubmit="return confirm('Delete this resource?');">
                   <input type="hidden" name="action" value="delete_file" />
                   <input type="hidden" name="fileId" value={file.id} />
-                  <button type="submit" class="button is-danger is-small">
+                  <Button type="submit" color="danger" size="small">
                     <span class="icon is-small"><i class="fas fa-trash"></i></span>
-                  </button>
+                  </Button>
                 </form>
               )}
             </div>
@@ -314,10 +317,10 @@ function getYouTubeId(url: string): string | null {
             <div class="field">
               <label class="label">&nbsp;</label>
               <div class="control">
-                <button type="submit" class="button is-primary">
+                <Button type="submit" color="primary">
                   <span class="icon"><i class="fas fa-upload"></i></span>
                   <span>Upload</span>
-                </button>
+                </Button>
               </div>
             </div>
           </div>
@@ -379,9 +382,9 @@ function getYouTubeId(url: string): string | null {
   </script>
 
   {!isAdmin && (
-    <a href={`/ensembles/${canonicalId}/songs`} class="button">
+    <Button href={`/ensembles/${canonicalId}/songs`}>
       <span class="icon"><i class="fas fa-arrow-left"></i></span>
       <span>Back to Songs</span>
-    </a>
+    </Button>
   )}
 </EnsemblePageLayout>

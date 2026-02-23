@@ -1,4 +1,6 @@
 ---
+import Button from './Button.astro';
+
 interface Props {
   invites: Array<{
     id: string;
@@ -24,12 +26,12 @@ const { invites } = Astro.props;
   <div class="mb-4">
     <form method="POST">
       <input type="hidden" name="action" value="create-invite" />
-      <button type="submit" class="button is-success is-small is-fullwidth">
+      <Button type="submit" color="success" size="small" fullwidth>
         <span class="icon">
           <i class="fas fa-plus"></i>
         </span>
         <span>Generate Code</span>
-      </button>
+      </Button>
     </form>
   </div>
 
@@ -51,16 +53,18 @@ const { invites } = Astro.props;
                   />
                 </div>
                 <div class="control">
-                  <button 
+                  <Button
                     type="button"
-                    class="button is-info is-small copy-invite-btn"
+                    color="info"
+                    size="small"
+                    class="copy-invite-btn"
                     data-invite-id={invite.id}
                   >
                     <span class="icon">
                       <i class="fas fa-copy"></i>
                     </span>
                     <span>Copy</span>
-                  </button>
+                  </Button>
                 </div>
               </div>
               <small class="has-text-grey mb-2">
@@ -69,9 +73,9 @@ const { invites } = Astro.props;
               <form method="POST">
                 <input type="hidden" name="action" value="delete-invite" />
                 <input type="hidden" name="inviteId" value={invite.id} />
-                <button type="submit" class="button is-danger is-small is-fullwidth">
+                <Button type="submit" color="danger" size="small" fullwidth>
                   Delete
-                </button>
+                </Button>
               </form>
             </div>
           </div>

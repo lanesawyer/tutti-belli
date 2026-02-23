@@ -1,5 +1,6 @@
 ---
 import Layout from '../../layouts/Layout.astro';
+import Button from '../../components/Button.astro';
 import { db, eq, Ensemble, EnsembleMember } from 'astro:db';
 import { getEnsembleUrlId } from '../../lib/slug';
 
@@ -29,12 +30,12 @@ const userEnsembles = await db
     </div>
     <div class="level-right">
       <div class="level-item">
-        <a href="/invite/join" class="button is-primary">
+        <Button href="/invite/join" color="primary">
           <span class="icon">
             <i class="fas fa-ticket"></i>
           </span>
           <span>Join with Invite Code</span>
-        </a>
+        </Button>
       </div>
     </div>
   </div>

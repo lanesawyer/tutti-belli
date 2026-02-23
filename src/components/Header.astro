@@ -1,5 +1,6 @@
 ---
 import { APP_NAME } from '../lib/config';
+import Button from './Button.astro';
 const user = Astro.locals.user;
 ---
 
@@ -49,12 +50,12 @@ const user = Astro.locals.user;
         ) : (
           <div class="navbar-item">
             <div class="buttons">
-              <a class="button is-primary" href="/register">
+              <Button href="/register" color="primary">
                 <strong>Sign up</strong>
-              </a>
-              <a class="button is-light" href="/login">
+              </Button>
+              <Button href="/login" color="light">
                 Log in
-              </a>
+              </Button>
             </div>
           </div>
         )}

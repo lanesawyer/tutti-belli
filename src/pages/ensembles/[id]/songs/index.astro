@@ -2,6 +2,7 @@
 import EnsemblePageLayout from '../../../../layouts/EnsemblePageLayout.astro';
 import Table from '../../../../components/Table.astro';
 import Modal from '../../../../components/Modal.astro';
+import Button from '../../../../components/Button.astro';
 import { canManageEnsemble } from '../../../../lib/permissions';
 import {
   getSongsPageData,
@@ -66,10 +67,10 @@ const songFilesMap = buildSongFilesMap(ensembleSongIds, songFilesData);
   isAdmin={isAdmin}
 >
   {isAdmin && (
-    <button slot="action" class="button is-primary" id="add-song-btn">
+    <Button slot="action" color="primary" id="add-song-btn">
       <span class="icon"><i class="fas fa-plus"></i></span>
       <span>Add Song</span>
-    </button>
+    </Button>
   )}
 
   {songs.length === 0 ? (
@@ -126,22 +127,22 @@ const songFilesMap = buildSongFilesMap(ensembleSongIds, songFilesData);
               </td>
               <td>
                 <div class="buttons are-small">
-                  <button
-                    class="button is-linkspan files-btn"
+                  <Button
+                    class="is-linkspan files-btn"
                     data-song-id={song.id}
                     data-song-name={song.name}
                   >
                     <span class="icon is-small"><i class="fas fa-folder-open"></i></span>
                     {songFiles.length > 0 && <span>{songFiles.length}</span>}
-                  </button>
+                  </Button>
                   {isAdmin && (
                     <>
-                      <button class="button is-info edit-btn" data-song-id={song.id}>
+                      <Button color="info" class="edit-btn" data-song-id={song.id}>
                         <span class="icon is-small"><i class="fas fa-pencil"></i></span>
-                      </button>
-                      <button class="button is-danger delete-btn" data-song-id={song.id}>
+                      </Button>
+                      <Button color="danger" class="delete-btn" data-song-id={song.id}>
                         <span class="icon is-small"><i class="fas fa-trash"></i></span>
-                      </button>
+                      </Button>
                     </>
                   )}
                 </div>
@@ -228,8 +229,8 @@ const songFilesMap = buildSongFilesMap(ensembleSongIds, songFilesData);
   </form>
 
   <div slot="footer">
-    <button type="submit" form="addForm" class="button is-primary">Add Song</button>
-    <button class="button" type="button" data-modal-close>Cancel</button>
+    <Button type="submit" form="addForm" color="primary">Add Song</Button>
+    <Button type="button" data-modal-close>Cancel</Button>
   </div>
 </Modal>
 
@@ -280,10 +281,10 @@ const songFilesMap = buildSongFilesMap(ensembleSongIds, songFilesData);
 
         <div class="field">
           <div class="control">
-            <button type="submit" class="button is-primary is-small">
+            <Button type="submit" color="primary" size="small">
               <span class="icon is-small"><i class="fas fa-plus"></i></span>
               <span>Add File</span>
-            </button>
+            </Button>
           </div>
         </div>
       </form>
@@ -291,7 +292,7 @@ const songFilesMap = buildSongFilesMap(ensembleSongIds, songFilesData);
   )}
 
   <div slot="footer">
-    <button class="button" type="button" data-modal-close>Close</button>
+    <Button type="button" data-modal-close>Close</Button>
   </div>
 </Modal>
 
@@ -367,8 +368,8 @@ const songFilesMap = buildSongFilesMap(ensembleSongIds, songFilesData);
   </form>
 
   <div slot="footer">
-    <button type="submit" form="editForm" class="button is-primary">Save Changes</button>
-    <button class="button" type="button" data-modal-close>Cancel</button>
+    <Button type="submit" form="editForm" color="primary">Save Changes</Button>
+    <Button type="button" data-modal-close>Cancel</Button>
   </div>
 </Modal>
 
@@ -381,8 +382,8 @@ const songFilesMap = buildSongFilesMap(ensembleSongIds, songFilesData);
   </form>
 
   <div slot="footer">
-    <button type="submit" form="deleteForm" class="button is-danger">Delete</button>
-    <button class="button" type="button" data-modal-close>Cancel</button>
+    <Button type="submit" form="deleteForm" color="danger">Delete</Button>
+    <Button type="button" data-modal-close>Cancel</Button>
   </div>
 </Modal>
 

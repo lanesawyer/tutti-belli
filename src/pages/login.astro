@@ -1,5 +1,6 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import Button from '../components/Button.astro';
 import { db, eq, User } from 'astro:db';
 import { verifyPassword } from '../lib/auth';
 import { createSession } from '../lib/session';
@@ -95,9 +96,9 @@ if (Astro.locals.user) {
 
         <div class="field">
           <div class="control">
-            <button class="button is-primary is-fullwidth" type="submit">
+            <Button color="primary" fullwidth type="submit">
               Log In
-            </button>
+            </Button>
           </div>
         </div>
       </form>

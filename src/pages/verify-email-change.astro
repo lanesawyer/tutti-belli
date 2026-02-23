@@ -1,5 +1,6 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import Button from '../components/Button.astro';
 import { db, eq, and, gt, isNull, User, EmailChangeToken } from 'astro:db';
 
 const token = Astro.url.searchParams.get('token');
@@ -66,7 +67,7 @@ if (!token) {
           <div class="notification is-danger is-light">
             <p>{error}</p>
             <p class="mt-3">
-              <a href="/profile" class="button is-light">Back to Profile</a>
+              <Button href="/profile" color="light">Back to Profile</Button>
             </p>
           </div>
         )}
@@ -79,7 +80,7 @@ if (!token) {
               Please use this address to log in going forward.
             </p>
             <p class="mt-3">
-              <a href="/profile" class="button is-primary">Go to Profile</a>
+              <Button href="/profile" color="primary">Go to Profile</Button>
             </p>
           </div>
         )}

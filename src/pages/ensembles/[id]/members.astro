@@ -7,6 +7,7 @@ import { ensembleAdminTools } from '../../../lib/config';
 import { getInitials, getColorFromInitials } from '../../../lib/avatar';
 import { getEnsembleBySlugOrId } from '../../../lib/ensemble';
 import { getEnsembleUrlId } from '../../../lib/slug';
+import Button from '../../../components/Button.astro';
 
 const user = Astro.locals.user!;
 
@@ -147,12 +148,12 @@ if (Astro.request.method === 'POST') {
         </div>
         <div class="level-right">
           <div class="level-item">
-            <a href={`/ensembles/${canonicalId}`} class="button">
+            <Button href={`/ensembles/${canonicalId}`}>
               <span class="icon">
                 <i class="fas fa-arrow-left"></i>
               </span>
               <span>Back to Ensemble</span>
-            </a>
+            </Button>
           </div>
         </div>
       </div>
@@ -206,25 +207,25 @@ if (Astro.request.method === 'POST') {
                                   <form method="POST" style="display: inline;">
                                     <input type="hidden" name="action" value="promote" />
                                     <input type="hidden" name="membershipId" value={member.membershipId} />
-                                    <button type="submit" class="button is-warning is-small">
+                                    <Button type="submit" color="warning" size="small">
                                       Make Admin
-                                    </button>
+                                    </Button>
                                   </form>
                                 ) : (
                                   <form method="POST" style="display: inline;">
                                     <input type="hidden" name="action" value="demote" />
                                     <input type="hidden" name="membershipId" value={member.membershipId} />
-                                    <button type="submit" class="button is-info is-small">
+                                    <Button type="submit" color="info" size="small">
                                       Remove Admin
-                                    </button>
+                                    </Button>
                                   </form>
                                 )}
                                 <form method="POST" style="display: inline;">
                                   <input type="hidden" name="action" value="remove" />
                                   <input type="hidden" name="membershipId" value={member.membershipId} />
-                                  <button type="submit" class="button is-danger is-small">
+                                  <Button type="submit" color="danger" size="small">
                                     Remove
-                                  </button>
+                                  </Button>
                                 </form>
                               </div>
                             </td>
@@ -279,25 +280,25 @@ if (Astro.request.method === 'POST') {
                                 <form method="POST" style="display: inline;">
                                   <input type="hidden" name="action" value="promote" />
                                   <input type="hidden" name="membershipId" value={member.membershipId} />
-                                  <button type="submit" class="button is-warning is-small">
+                                  <Button type="submit" color="warning" size="small">
                                     Make Admin
-                                  </button>
+                                  </Button>
                                 </form>
                               ) : (
                                 <form method="POST" style="display: inline;">
                                   <input type="hidden" name="action" value="demote" />
                                   <input type="hidden" name="membershipId" value={member.membershipId} />
-                                  <button type="submit" class="button is-info is-small">
+                                  <Button type="submit" color="info" size="small">
                                     Remove Admin
-                                  </button>
+                                  </Button>
                                 </form>
                               )}
                               <form method="POST" style="display: inline;">
                                 <input type="hidden" name="action" value="remove" />
                                 <input type="hidden" name="membershipId" value={member.membershipId} />
-                                <button type="submit" class="button is-danger is-small">
+                                <Button type="submit" color="danger" size="small">
                                   Remove
-                                </button>
+                                </Button>
                               </form>
                             </div>
                           </td>
@@ -350,25 +351,25 @@ if (Astro.request.method === 'POST') {
                           <form method="POST" style="display: inline;">
                             <input type="hidden" name="action" value="promote" />
                             <input type="hidden" name="membershipId" value={member.membershipId} />
-                            <button type="submit" class="button is-warning is-small">
+                            <Button type="submit" color="warning" size="small">
                               Make Admin
-                            </button>
+                            </Button>
                           </form>
                         ) : (
                           <form method="POST" style="display: inline;">
                             <input type="hidden" name="action" value="demote" />
                             <input type="hidden" name="membershipId" value={member.membershipId} />
-                            <button type="submit" class="button is-info is-small">
+                            <Button type="submit" color="info" size="small">
                               Remove Admin
-                            </button>
+                            </Button>
                           </form>
                         )}
                         <form method="POST" style="display: inline;">
                           <input type="hidden" name="action" value="remove" />
                           <input type="hidden" name="membershipId" value={member.membershipId} />
-                          <button type="submit" class="button is-danger is-small">
+                          <Button type="submit" color="danger" size="small">
                             Remove
-                          </button>
+                          </Button>
                         </form>
                       </div>
                     </td>

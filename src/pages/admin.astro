@@ -1,6 +1,7 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import Table from '../components/Table.astro';
+import Button from '../components/Button.astro';
 import { db, eq, Ensemble, User, EnsembleMember } from 'astro:db';
 import { adminDeleteUser } from '../lib/profile';
 import { findUniqueSlug } from '../lib/slug';
@@ -143,12 +144,12 @@ const allUsers = await db.select().from(User);
 
       <div class="field">
         <div class="control">
-          <button type="submit" class="button is-primary">
+          <Button type="submit" color="primary">
             <span class="icon">
               <i class="fas fa-plus"></i>
             </span>
             <span>Create Ensemble</span>
-          </button>
+          </Button>
         </div>
       </div>
     </form>
@@ -176,19 +177,20 @@ const allUsers = await db.select().from(User);
               <td>{new Date(ensemble.createdAt).toLocaleDateString()}</td>
               <td>
                 <div class="buttons are-small">
-                  <a href={`/ensembles/${ensemble.id}`} class="button is-info is-small">
+                  <Button href={`/ensembles/${ensemble.id}`} color="info" size="small">
                     View
-                  </a>
+                  </Button>
                   <form method="POST" style="display: inline;">
                     <input type="hidden" name="action" value="delete-ensemble" />
                     <input type="hidden" name="ensembleId" value={ensemble.id} />
-                    <button
+                    <Button
                       type="submit"
-                      class="button is-danger is-small"
+                      color="danger"
+                      size="small"
                       onclick="return confirm('Are you sure you want to delete this ensemble?')"
                     >
                       Delete
-                    </button>
+                    </Button>
                   </form>
                 </div>
               </td>
@@ -234,23 +236,25 @@ const allUsers = await db.select().from(User);
                   <form method="POST" style="display: inline;">
                     <input type="hidden" name="action" value="toggle-admin" />
                     <input type="hidden" name="userId" value={u.id} />
-                    <button
+                    <Button
                       type="submit"
-                      class={`button is-small ${u.role === 'admin' ? 'is-warning' : 'is-success'}`}
+                      color={u.role === 'admin' ? 'warning' : 'success'}
+                      size="small"
                     >
                       {u.role === 'admin' ? 'Remove Admin' : 'Make Admin'}
-                    </button>
+                    </Button>
                   </form>
                   <form method="POST" style="display: inline;">
                     <input type="hidden" name="action" value="delete-user" />
                     <input type="hidden" name="userId" value={u.id} />
-                    <button
+                    <Button
                       type="submit"
-                      class="button is-small is-danger"
+                      color="danger"
+                      size="small"
                       onclick={`return confirm('Delete user "${u.name}"? This cannot be undone.')`}
                     >
                       Delete
-                    </button>
+                    </Button>
                   </form>
                 </div>
               )}

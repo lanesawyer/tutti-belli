@@ -1,5 +1,6 @@
 ---
 import Layout from '../../layouts/Layout.astro';
+import Button from '../../components/Button.astro';
 import { db, eq, and, Event, Attendance, Ensemble } from 'astro:db';
 
 const user = Astro.locals.user;
@@ -141,23 +142,23 @@ const isPerformance = event.category === 'performance';
 
         {!message && canCheckIn && (
           <form method="POST" class="mt-5">
-            <button type="submit" class="button is-primary is-large is-fullwidth">
+            <Button type="submit" color="primary" size="large" fullwidth>
               <span class="icon">
                 <i class="fas fa-check"></i>
               </span>
               <span>Check In Now</span>
-            </button>
+            </Button>
           </form>
         )}
 
         {!message && !canCheckIn && (
           <div class="mt-5">
-            <button type="button" class="button is-large is-fullwidth" disabled>
+            <Button type="button" size="large" fullwidth disabled>
               <span class="icon">
                 <i class="fas fa-lock"></i>
               </span>
               <span>Check-in {isTooEarly ? 'Not Yet Available' : 'Closed'}</span>
-            </button>
+            </Button>
             <p class="help mt-2">
               {isTooEarly && `Check-in opens ${ensemble.checkInStartMinutes} minutes before event`}
               {isTooLate && `Check-in closed ${ensemble.checkInEndMinutes} minutes after event start`}
@@ -167,9 +168,9 @@ const isPerformance = event.category === 'performance';
 
         {success && (
           <div class="mt-4">
-            <a href={`/ensembles/${event.ensembleId}/events/${event.id}`} class="button is-info">
+            <Button href={`/ensembles/${event.ensembleId}/events/${event.id}`} color="info">
               View Event Details
-            </a>
+            </Button>
           </div>
         )}
       </div>

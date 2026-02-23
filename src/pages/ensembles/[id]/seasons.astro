@@ -2,6 +2,7 @@
 import EnsemblePageLayout from '../../../layouts/EnsemblePageLayout.astro';
 import Table from '../../../components/Table.astro';
 import Modal from '../../../components/Modal.astro';
+import Button from '../../../components/Button.astro';
 import { db, eq, and, desc, EnsembleMember, Season, SeasonMembership, User } from 'astro:db';
 import { canManageEnsemble } from '../../../lib/permissions';
 import { getEnsembleBySlugOrId } from '../../../lib/ensemble';
@@ -177,10 +178,10 @@ const membershipsBySeasonId = seasonMemberships.reduce((acc, m) => {
   isAdmin={isAdmin}
 >
   {isAdmin && (
-    <button slot="action" class="button is-primary" id="create-season-btn">
+    <Button slot="action" color="primary" id="create-season-btn">
       <span class="icon"><i class="fas fa-plus"></i></span>
       <span>Create Season</span>
-    </button>
+    </Button>
   )}
 
   {seasons.length === 0 ? (
@@ -220,15 +221,17 @@ const membershipsBySeasonId = seasonMemberships.reduce((acc, m) => {
               {isAdmin && (
                 <td>
                   <div class="buttons are-small">
-                    <button
-                      class="button is-info manage-members-btn"
+                    <Button
+                      color="info"
+                      class="manage-members-btn"
                       data-season-id={season.id}
                       data-season-name={season.name}
                     >
                       <span class="icon"><i class="fas fa-users"></i></span>
-                    </button>
-                    <button
-                      class="button is-warning edit-season-btn"
+                    </Button>
+                    <Button
+                      color="warning"
+                      class="edit-season-btn"
                       data-season-id={season.id}
                       data-season-name={season.name}
                       data-season-start={season.startDate ? new Date(season.startDate).toISOString().split('T')[0] : ''}
@@ -236,13 +239,14 @@ const membershipsBySeasonId = seasonMemberships.reduce((acc, m) => {
                       data-season-active={season.isActive === 1 ? 'true' : 'false'}
                     >
                       <span class="icon"><i class="fas fa-edit"></i></span>
-                    </button>
-                    <button
-                      class="button is-danger delete-season-btn"
+                    </Button>
+                    <Button
+                      color="danger"
+                      class="delete-season-btn"
                       data-season-id={season.id}
                     >
                       <span class="icon"><i class="fas fa-trash"></i></span>
-                    </button>
+                    </Button>
                   </div>
                 </td>
               )}
@@ -298,8 +302,8 @@ const membershipsBySeasonId = seasonMemberships.reduce((acc, m) => {
     </form>
 
     <div slot="footer">
-      <button type="submit" form="createForm" class="button is-primary">Create Season</button>
-      <button class="button" type="button" data-modal-close>Cancel</button>
+      <Button type="submit" form="createForm" color="primary">Create Season</Button>
+      <Button type="button" data-modal-close>Cancel</Button>
     </div>
   </Modal>
 )}
@@ -348,8 +352,8 @@ const membershipsBySeasonId = seasonMemberships.reduce((acc, m) => {
     </form>
 
     <div slot="footer">
-      <button type="submit" form="editForm" class="button is-primary">Save Changes</button>
-      <button class="button" type="button" data-modal-close>Cancel</button>
+      <Button type="submit" form="editForm" color="primary">Save Changes</Button>
+      <Button type="button" data-modal-close>Cancel</Button>
     </div>
   </Modal>
 )}
@@ -371,7 +375,7 @@ const membershipsBySeasonId = seasonMemberships.reduce((acc, m) => {
     ))}
 
     <div slot="footer">
-      <button class="button" type="button" id="close-members-btn">Done</button>
+      <Button type="button" id="close-members-btn">Done</Button>
     </div>
   </Modal>
 )}
@@ -387,8 +391,8 @@ const membershipsBySeasonId = seasonMemberships.reduce((acc, m) => {
     </form>
 
     <div slot="footer">
-      <button type="submit" form="deleteForm" class="button is-danger">Delete</button>
-      <button class="button" type="button" data-modal-close>Cancel</button>
+      <Button type="submit" form="deleteForm" color="danger">Delete</Button>
+      <Button type="button" data-modal-close>Cancel</Button>
     </div>
   </Modal>
 )}

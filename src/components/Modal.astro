@@ -1,4 +1,6 @@
 ---
+import Button from './Button.astro';
+
 interface Props {
   id: string;
   title: string;
@@ -19,7 +21,7 @@ const { id, title } = Astro.props;
     </section>
     <footer class="modal-card-foot">
       <slot name="footer">
-        <button class="button" type="button" data-modal-close>Close</button>
+        <Button type="button" data-modal-close>Close</Button>
       </slot>
     </footer>
   </div>
