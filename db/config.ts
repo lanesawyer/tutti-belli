@@ -173,7 +173,7 @@ const SongFile = defineTable({
     songId: column.text({ references: () => Song.columns.id }),
     name: column.text(),
     url: column.text(),
-    category: column.text({ enum: ['sheet_music', 'rehearsal_track', 'other'], default: 'other' }),
+    category: column.text({ enum: ['sheet_music', 'rehearsal_track', 'other', 'link'], default: 'other' }),
     uploadedBy: column.text({ references: () => User.columns.id }),
     uploadedAt: column.date({ default: NOW }),
   }

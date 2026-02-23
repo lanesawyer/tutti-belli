@@ -101,7 +101,7 @@ export function buildSongFilesMap<T extends { songId: string }>(
 
 // ─── Actions ────────────────────────────────────────────────────────────────
 
-const VALID_CATEGORIES = ['sheet_music', 'rehearsal_track', 'other'] as const;
+const VALID_CATEGORIES = ['sheet_music', 'rehearsal_track', 'other', 'link'] as const;
 
 export async function addSong(
   ensembleId: string,
@@ -186,14 +186,16 @@ export async function addSongFile(
   const uploadedFile = formData.get('file') as File | null;
   let url: string;
 
-  if (uploadedFile && uploadedFile.size > 0) {
+  if (category === 'link') {
+    url = (formData.get('fileUrl') as string)?.trim();
+    if (!url) return { error: 'A URL is required for links.' };
+  } else if (uploadedFile && uploadedFile.size > 0) {
     if (!ensembleId) return { error: 'Missing ensemble context for upload.' };
     const validation = validateSongFile(uploadedFile);
     if (!validation.valid) return { error: validation.error };
     url = await uploadSongFile(uploadedFile, ensembleId);
   } else {
-    url = (formData.get('fileUrl') as string)?.trim();
-    if (!url) return {};
+    return { error: 'A file is required.' };
   }
 
   await db.insert(SongFile).values({ id: crypto.randomUUID(), songId, name, url, category, uploadedBy });
@@ -205,7 +207,7 @@ export async function deleteSongFile(formData: FormData): Promise<void> {
   if (!fileId) return;
 
   const file = await db.select().from(SongFile).where(eq(SongFile.id, fileId)).get();
-  if (file) await deleteStorageFile(file.url);
+  if (file && file.category !== 'link') await deleteStorageFile(file.url);
   await db.delete(SongFile).where(eq(SongFile.id, fileId));
 }
 

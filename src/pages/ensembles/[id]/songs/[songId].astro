@@ -48,13 +48,24 @@ const songSeasons = seasonSongsData.map((ss) => seasons.find((s) => s.id === ss.
 function categoryLabel(cat: string) {
   if (cat === 'sheet_music') return 'Sheet Music';
   if (cat === 'rehearsal_track') return 'Rehearsal Track';
+  if (cat === 'link') return 'Link';
   return 'Other';
 }
 
 function categoryTagClass(cat: string) {
   if (cat === 'sheet_music') return 'is-success';
   if (cat === 'rehearsal_track') return 'is-warning';
+  if (cat === 'link') return 'is-info';
   return 'is-light';
+}
+
+function getYouTubeId(url: string): string | null {
+  try {
+    const u = new URL(url);
+    if (u.hostname === 'youtu.be') return u.pathname.slice(1).split('?')[0];
+    if (u.hostname.includes('youtube.com')) return u.searchParams.get('v');
+  } catch {}
+  return null;
 }
 ---
 
@@ -115,45 +126,71 @@ function categoryTagClass(cat: string) {
     </div>
   </div>
 
-  <!-- Files section -->
+  <!-- Resources section -->
   <h2 class="title is-4">
     <span class="icon-text">
       <span class="icon"><i class="fas fa-folder-open"></i></span>
-      <span>Files</span>
+      <span>Resources</span>
     </span>
   </h2>
 
   {songFiles.length === 0 ? (
-    <div class="notification is-info is-light">No files attached to this song yet.</div>
+    <div class="notification is-info is-light">No resources attached to this song yet.</div>
   ) : (
     <div class="box mb-5">
       {songFiles.map((file) => {
-        const isAudio = file.url.match(/\.(mp3)$/i);
-        const isPdf = file.url.match(/\.(pdf)$/i);
+        const isLink = file.category === 'link';
+        const isAudio = !isLink && file.url.match(/\.(mp3)$/i);
+        const isPdf = !isLink && file.url.match(/\.(pdf)$/i);
+        const youtubeId = isLink ? getYouTubeId(file.url) : null;
         return (
           <div class="mb-4">
             <div class="is-flex is-align-items-center" style="gap: 0.75rem;">
               <span class={`tag ${categoryTagClass(file.category)} is-normal`} style="flex-shrink:0; min-width: 7rem; justify-content: center;">
                 {categoryLabel(file.category)}
               </span>
-              <span
-                class="has-text-weight-medium"
-                style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"
-              >
-                {file.name}
-              </span>
+              {isLink ? (
+                <a
+                  href={file.url}
+                  class="has-text-weight-medium"
+                  style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {file.name}
+                </a>
+              ) : (
+                <span
+                  class="has-text-weight-medium"
+                  style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"
+                >
+                  {file.name}
+                </span>
+              )}
               <span class="has-text-grey is-size-7" style="flex-shrink:0; white-space:nowrap;">
                 {file.uploaderName} &middot; {new Date(file.uploadedAt).toLocaleDateString()}
               </span>
-              <a
-                href={`/files/${file.id}`}
-                class="button is-small"
-                title="Download"
-              >
-                <span class="icon is-small"><i class="fas fa-download"></i></span>
-              </a>
+              {isLink ? (
+                <a
+                  href={file.url}
+                  class="button is-small is-info is-light"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title="Open link"
+                >
+                  <span class="icon is-small"><i class="fas fa-external-link-alt"></i></span>
+                </a>
+              ) : (
+                <a
+                  href={`/files/${file.id}`}
+                  class="button is-small"
+                  title="Download"
+                >
+                  <span class="icon is-small"><i class="fas fa-download"></i></span>
+                </a>
+              )}
               {isAdmin && (
-                <form method="POST" style="flex-shrink:0;" onsubmit="return confirm('Delete this file?');">
+                <form method="POST" style="flex-shrink:0;" onsubmit="return confirm('Delete this resource?');">
                   <input type="hidden" name="action" value="delete_file" />
                   <input type="hidden" name="fileId" value={file.id} />
                   <button type="submit" class="button is-danger is-small">
@@ -184,6 +221,24 @@ function categoryTagClass(cat: string) {
                 />
               </details>
             )}
+            {youtubeId && (
+              <details class="mt-2">
+                <summary class="is-clickable has-text-grey is-size-7" style="list-style: none; display: flex; align-items: center; gap: 0.3rem; width: fit-content;">
+                  <span class="pdf-arrow" style="display: inline-block; transition: transform 0.15s;">▶</span>
+                  <span>Show Video</span>
+                </summary>
+                <div class="mt-2" style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden;">
+                  <iframe
+                    src={`https://www.youtube.com/embed/${youtubeId}`}
+                    title={file.name}
+                    frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowfullscreen
+                    style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"
+                  />
+                </div>
+              </details>
+            )}
           </div>
         );
       })}
@@ -192,7 +247,7 @@ function categoryTagClass(cat: string) {
 
   {isAdmin && (
     <div class="box">
-      <h3 class="title is-5">Upload File</h3>
+      <h3 class="title is-5">Upload Resource</h3>
       {fileError && (
         <div class="notification is-danger is-light mb-4">{fileError}</div>
       )}
@@ -200,8 +255,25 @@ function categoryTagClass(cat: string) {
         <input type="hidden" name="action" value="add_file" />
         <input type="hidden" name="songId" value={songId} />
 
-        <div class="columns is-multiline">
-          <div class="column is-full">
+        <div class="field">
+          <label class="label">Type *</label>
+          <div class="control">
+            <div class="buttons has-addons">
+              <label class="button is-selected is-success" id="btn-sheet_music">
+                <input type="radio" name="category" value="sheet_music" checked hidden /> Sheet Music
+              </label>
+              <label class="button" id="btn-rehearsal_track">
+                <input type="radio" name="category" value="rehearsal_track" hidden /> Rehearsal Track
+              </label>
+              <label class="button" id="btn-link">
+                <input type="radio" name="category" value="link" hidden /> Link
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="columns is-multiline mt-2">
+          <div class="column is-full" id="file-input-field">
             <div class="field">
               <label class="label" for="file">File *</label>
               <div class="control">
@@ -211,10 +283,17 @@ function categoryTagClass(cat: string) {
                   id="file"
                   name="file"
                   accept=".pdf,.mp3,application/pdf,audio/mpeg"
-                  required
                 />
               </div>
               <p class="help">PDF or MP3, max 50 MB</p>
+            </div>
+          </div>
+          <div class="column is-full" id="url-input-field" style="display:none;">
+            <div class="field">
+              <label class="label" for="fileUrl">URL *</label>
+              <div class="control">
+                <input class="input" type="url" id="fileUrl" name="fileUrl" placeholder="https://www.youtube.com/watch?v=..." />
+              </div>
             </div>
           </div>
           <div class="column">
@@ -222,20 +301,6 @@ function categoryTagClass(cat: string) {
               <label class="label" for="fileName">Display Name *</label>
               <div class="control">
                 <input class="input" type="text" id="fileName" name="fileName" placeholder="e.g. Soprano Sheet Music" required />
-              </div>
-            </div>
-          </div>
-          <div class="column is-narrow">
-            <div class="field">
-              <label class="label" for="category">Category</label>
-              <div class="control">
-                <div class="select is-fullwidth">
-                  <select id="category" name="category">
-                    <option value="sheet_music">Sheet Music</option>
-                    <option value="rehearsal_track">Rehearsal Track</option>
-                    <option value="other">Other</option>
-                  </select>
-                </div>
               </div>
             </div>
           </div>
@@ -258,6 +323,37 @@ function categoryTagClass(cat: string) {
   <script>
     const fileInput = document.getElementById('file') as HTMLInputElement | null;
     const nameInput = document.getElementById('fileName') as HTMLInputElement | null;
+    const fileField = document.getElementById('file-input-field') as HTMLElement | null;
+    const urlField = document.getElementById('url-input-field') as HTMLElement | null;
+    const radios = document.querySelectorAll<HTMLInputElement>('input[name="category"]');
+
+    const categoryColors: Record<string, string> = {
+      sheet_music: 'is-success',
+      rehearsal_track: 'is-warning',
+      link: 'is-info',
+    };
+
+    function onCategoryChange() {
+      const selected = (document.querySelector('input[name="category"]:checked') as HTMLInputElement | null)?.value;
+      const isLink = selected === 'link';
+      if (fileField) fileField.style.display = isLink ? 'none' : '';
+      if (urlField) urlField.style.display = isLink ? '' : 'none';
+      if (fileInput) fileInput.required = !isLink;
+      const urlInput = document.getElementById('fileUrl') as HTMLInputElement | null;
+      if (urlInput) urlInput.required = isLink;
+
+      radios.forEach((r) => {
+        const btn = document.getElementById(`btn-${r.value}`);
+        if (!btn) return;
+        const color = categoryColors[r.value] ?? 'is-light';
+        btn.classList.remove('is-selected', 'is-success', 'is-warning', 'is-info', 'is-light');
+        if (r.value === selected) btn.classList.add('is-selected', color);
+      });
+    }
+
+    radios.forEach((r) => r.addEventListener('change', onCategoryChange));
+    onCategoryChange();
+
     if (fileInput && nameInput) {
       fileInput.addEventListener('change', () => {
         const file = fileInput.files?.[0];
