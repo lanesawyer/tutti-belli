@@ -197,6 +197,46 @@ export async function checkInToEvent(params: {
   });
 }
 
+export async function checkInByCode(params: { code: string; userId: string }) {
+  const { code, userId } = params;
+
+  const event = await db.select().from(Event).where(eq(Event.checkInCode, code.toUpperCase())).get();
+  if (!event) throw new Error('Invalid check-in code.');
+
+  const ensembleData = await db.select().from(Ensemble).where(eq(Ensemble.id, event.ensembleId)).get();
+  if (!ensembleData) throw new Error('Ensemble not found.');
+
+  const now = new Date();
+  const scheduledTime = new Date(event.scheduledAt);
+  const checkInStartTime = new Date(scheduledTime.getTime() - ensembleData.checkInStartMinutes * 60 * 1000);
+  const checkInEndTime = new Date(scheduledTime.getTime() + ensembleData.checkInEndMinutes * 60 * 1000);
+
+  if (now < checkInStartTime) {
+    const minutesUntilOpen = Math.ceil((checkInStartTime.getTime() - now.getTime()) / (60 * 1000));
+    throw new Error(`Check-in opens ${ensembleData.checkInStartMinutes} minutes before the event (in ${minutesUntilOpen} minutes).`);
+  }
+  if (now > checkInEndTime) {
+    throw new Error(`Check-in closed ${ensembleData.checkInEndMinutes} minutes after event start.`);
+  }
+
+  const existing = await db
+    .select()
+    .from(Attendance)
+    .where(and(eq(Attendance.eventId, event.id), eq(Attendance.userId, userId)))
+    .get();
+
+  if (existing) throw new Error('You have already checked in for this event.');
+
+  await db.insert(Attendance).values({
+    id: crypto.randomUUID(),
+    eventId: event.id,
+    userId,
+    checkedInMethod: 'qr',
+  });
+
+  return { eventId: event.id, ensembleId: event.ensembleId };
+}
+
 export async function addAttendance(eventId: string, userId: string) {
   const existing = await db
     .select()

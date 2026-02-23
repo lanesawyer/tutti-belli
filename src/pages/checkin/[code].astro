@@ -1,7 +1,8 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import Button from '../../components/Button.astro';
-import { db, eq, and, Event, Attendance, Ensemble } from 'astro:db';
+import { actions } from 'astro:actions';
+import { db, eq, Event, Ensemble } from 'astro:db';
 
 const user = Astro.locals.user;
 if (!user) {
@@ -14,17 +15,14 @@ if (!code) {
 }
 
 // Find event by check-in code
-const [event] = await db
-  .select()
-  .from(Event)
-  .where(eq(Event.checkInCode, code.toUpperCase()));
+const event = await db.select().from(Event).where(eq(Event.checkInCode, code.toUpperCase())).get();
 
 if (!event) {
   return new Response('Invalid check-in code', { status: 404 });
 }
 
 // Get ensemble with check-in window settings
-const [ensemble] = await db.select().from(Ensemble).where(eq(Ensemble.id, event.ensembleId));
+const ensemble = await db.select().from(Ensemble).where(eq(Ensemble.id, event.ensembleId)).get();
 
 if (!ensemble) {
   return new Response('Ensemble not found', { status: 404 });
@@ -34,48 +32,15 @@ if (!ensemble) {
 const now = new Date();
 const scheduledTime = new Date(event.scheduledAt);
 const checkInStartTime = new Date(scheduledTime.getTime() - (ensemble.checkInStartMinutes * 60 * 1000));
-const checkInEndTime = new Date(scheduledTime.getTime() + (ensemble.checkInEndMinutes  * 60 * 1000));
+const checkInEndTime = new Date(scheduledTime.getTime() + (ensemble.checkInEndMinutes * 60 * 1000));
 
 const canCheckIn = now >= checkInStartTime && now <= checkInEndTime;
 const isTooEarly = now < checkInStartTime;
 const isTooLate = now > checkInEndTime;
 
-let message = '';
-let success = false;
-
-if (Astro.request.method === 'POST') {
-  // Check time window
-  if (!canCheckIn) {
-    if (isTooEarly) {
-      const minutesUntilOpen = Math.ceil((checkInStartTime.getTime() - now.getTime()) / (60 * 1000));
-      message = `Check-in opens ${ensemble.checkInStartMinutes} minutes before the event (in ${minutesUntilOpen} minutes).`;
-      success = false;
-    } else if (isTooLate) {
-      message = `Check-in closed ${ensemble.checkInEndMinutes} minutes after event start.`;
-      success = false;
-    }
-  } else {
-    // Check if already checked in
-    const [existing] = await db
-      .select()
-      .from(Attendance)
-      .where(and(eq(Attendance.eventId, event.id), eq(Attendance.userId, user.id)));
-
-    if (!existing) {
-      await db.insert(Attendance).values({
-        id: crypto.randomUUID(),
-        eventId: event.id,
-        userId: user.id,
-        checkedInMethod: 'qr',
-      });
-      message = 'Successfully checked in!';
-      success = true;
-    } else {
-      message = 'You have already checked in for this event.';
-      success = false;
-    }
-  }
-}
+const result = Astro.getActionResult(actions.events.checkInByCode);
+const success = result && !result.error;
+const message = result?.error?.message ?? (success ? 'Successfully checked in!' : '');
 
 const scheduledDate = new Date(event.scheduledAt);
 const isPerformance = event.category === 'performance';
@@ -140,8 +105,9 @@ const isPerformance = event.category === 'performance';
           </div>
         )}
 
-        {!message && canCheckIn && (
-          <form method="POST" class="mt-5">
+        {!result && canCheckIn && (
+          <form method="POST" action={actions.events.checkInByCode} class="mt-5">
+            <input type="hidden" name="code" value={code} />
             <Button type="submit" color="primary" size="large" fullwidth>
               <span class="icon">
                 <i class="fas fa-check"></i>
@@ -151,7 +117,7 @@ const isPerformance = event.category === 'performance';
           </form>
         )}
 
-        {!message && !canCheckIn && (
+        {!result && !canCheckIn && (
           <div class="mt-5">
             <Button type="button" size="large" fullwidth disabled>
               <span class="icon">

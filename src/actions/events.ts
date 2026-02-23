@@ -7,6 +7,7 @@ import {
   deleteEvent,
   editEvent,
   checkInToEvent,
+  checkInByCode,
   addAttendance,
   removeAttendance,
   addProgramSong,
@@ -146,6 +147,22 @@ export const events = {
       if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
       await assertEnsembleAdmin(ensembleId, user);
       await removeProgramSong(programEntryId);
+    },
+  }),
+
+  checkInByCode: defineAction({
+    accept: 'form',
+    input: z.object({
+      code: z.string(),
+    }),
+    handler: async ({ code }, context) => {
+      const user = context.locals.user;
+      if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
+      try {
+        return await checkInByCode({ code, userId: user.id });
+      } catch (e) {
+        throw new ActionError({ code: 'FORBIDDEN', message: (e as Error).message });
+      }
     },
   }),
 };
