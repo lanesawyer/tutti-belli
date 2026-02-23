@@ -4,6 +4,7 @@ import Table from '../../../components/Table.astro';
 import Modal from '../../../components/Modal.astro';
 import Button from '../../../components/Button.astro';
 import { db, eq, and, EnsembleMember, Part } from 'astro:db';
+import { actions } from 'astro:actions';
 import { canManageEnsemble } from '../../../lib/permissions';
 import { getEnsembleBySlugOrId } from '../../../lib/ensemble';
 import { getEnsembleUrlId } from '../../../lib/slug';
@@ -34,63 +35,36 @@ if (!isAdmin) {
   return new Response('Unauthorized', { status: 403 });
 }
 
+const addResult = Astro.getActionResult(actions.parts.add);
+const editResult = Astro.getActionResult(actions.parts.edit);
+const deleteResult = Astro.getActionResult(actions.parts.delete);
+
 let message = '';
 let messageType = '';
 
-// Handle form submissions
-if (Astro.request.method === 'POST') {
-  const formData = await Astro.request.formData();
-  const action = formData.get('action');
-
-  if (action === 'add') {
-    const name = formData.get('name') as string;
-    const sortOrder = parseInt(formData.get('sortOrder') as string) || 0;
-
-    if (name) {
-      await db.insert(Part).values({
-        id: crypto.randomUUID(),
-        ensembleId: ensemble.id,
-        name: name.trim(),
-        sortOrder,
-      });
-      message = 'Part added successfully!';
-      messageType = 'success';
-    } else {
-      message = 'Part name is required.';
-      messageType = 'danger';
-    }
-  } else if (action === 'edit') {
-    const partId = formData.get('partId') as string;
-    const name = formData.get('name') as string;
-    const sortOrder = parseInt(formData.get('sortOrder') as string) || 0;
-
-    if (partId && name) {
-      await db
-        .update(Part)
-        .set({ name: name.trim(), sortOrder })
-        .where(eq(Part.id, partId));
-      message = 'Part updated successfully!';
-      messageType = 'success';
-    }
-  } else if (action === 'delete') {
-    const partId = formData.get('partId') as string;
-
-    if (partId) {
-      const membersWithPart = await db
-        .select()
-        .from(EnsembleMember)
-        .where(and(eq(EnsembleMember.ensembleId, ensemble.id), eq(EnsembleMember.partId, partId)))
-        .all();
-
-      if (membersWithPart.length > 0) {
-        message = 'Cannot delete a part that has members assigned to it.';
-        messageType = 'danger';
-      } else {
-        await db.delete(Part).where(eq(Part.id, partId));
-        message = 'Part deleted.';
-        messageType = 'success';
-      }
-    }
+if (addResult) {
+  if (addResult.error) {
+    message = addResult.error.message ?? 'Failed to add part.';
+    messageType = 'danger';
+  } else {
+    message = 'Part added successfully!';
+    messageType = 'success';
+  }
+} else if (editResult) {
+  if (editResult.error) {
+    message = editResult.error.message ?? 'Failed to update part.';
+    messageType = 'danger';
+  } else {
+    message = 'Part updated successfully!';
+    messageType = 'success';
+  }
+} else if (deleteResult) {
+  if (deleteResult.error) {
+    message = deleteResult.error.message ?? 'Failed to delete part.';
+    messageType = 'danger';
+  } else {
+    message = 'Part deleted.';
+    messageType = 'success';
   }
 }
 
@@ -169,8 +143,8 @@ const nextSortOrder = parts.length > 0 ? Math.max(...parts.map(p => p.sortOrder)
   <Fragment slot="modals">
 <!-- Add Part Modal -->
 <Modal id="add-modal" title="Add Part">
-  <form id="addForm" method="POST">
-    <input type="hidden" name="action" value="add" />
+  <form id="addForm" method="POST" action={actions.parts.add}>
+    <input type="hidden" name="ensembleId" value={ensemble.id} />
 
     <div class="field">
       <label class="label" for="add-name">Part Name *</label>
@@ -196,8 +170,8 @@ const nextSortOrder = parts.length > 0 ? Math.max(...parts.map(p => p.sortOrder)
 
 <!-- Edit Part Modal -->
 <Modal id="edit-modal" title="Edit Part">
-  <form id="editForm" method="POST">
-    <input type="hidden" name="action" value="edit" />
+  <form id="editForm" method="POST" action={actions.parts.edit}>
+    <input type="hidden" name="ensembleId" value={ensemble.id} />
     <input type="hidden" name="partId" id="edit-part-id" />
 
     <div class="field">
@@ -226,8 +200,8 @@ const nextSortOrder = parts.length > 0 ? Math.max(...parts.map(p => p.sortOrder)
 <Modal id="delete-modal" title="Delete Part">
   <p>Are you sure you want to delete <strong id="delete-part-name"></strong>?</p>
   <p class="mt-2 has-text-grey">Parts with assigned members cannot be deleted.</p>
-  <form id="deleteForm" method="POST">
-    <input type="hidden" name="action" value="delete" />
+  <form id="deleteForm" method="POST" action={actions.parts.delete}>
+    <input type="hidden" name="ensembleId" value={ensemble.id} />
     <input type="hidden" name="partId" id="delete-part-id" />
   </form>
 
