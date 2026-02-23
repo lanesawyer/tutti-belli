@@ -1,4 +1,4 @@
-export const APP_NAME = 'Tutti Bella';
+export const APP_NAME = 'Tutti Belli';
 
 export type AdminTool = {
   href: (ensembleId: string) => string;
