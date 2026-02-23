@@ -1,56 +1,35 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import { getMembershipsWithParts, updateName, updatePhone, updateAvatar, updatePart, deleteAccount, initiateEmailChange } from '../lib/profile';
+import Button from '../components/Button.astro';
+import { actions } from 'astro:actions';
+import { getMembershipsWithParts } from '../lib/profile';
 
 const user = Astro.locals.user!;
 
-let message = '';
-let messageType = '';
+const updateNameResult = Astro.getActionResult(actions.profile.updateName);
+const updatePhoneResult = Astro.getActionResult(actions.profile.updatePhone);
+const updateAvatarResult = Astro.getActionResult(actions.profile.updateAvatar);
+const updatePartResult = Astro.getActionResult(actions.profile.updatePart);
+const changeEmailResult = Astro.getActionResult(actions.profile.changeEmail);
+const deleteAccountResult = Astro.getActionResult(actions.profile.deleteAccount);
 
-if (Astro.request.method === 'POST') {
-  const formData = await Astro.request.formData();
-  const action = formData.get('action')?.toString();
-
-  let result = null;
-
-  if (action === 'update-name') {
-    result = await updateName(user.id, formData.get('name')?.toString());
-  } else if (action === 'update-phone') {
-    result = await updatePhone(user.id, formData.get('phone')?.toString());
-  } else if (action === 'update-avatar') {
-    try {
-      result = await updateAvatar(
-        user.id,
-        user.avatarUrl,
-        formData.get('avatar') as File,
-        formData.get('removeAvatar')?.toString() === 'true'
-      );
-    } catch (error) {
-      console.error('Error updating avatar:', error);
-      message = 'Failed to update avatar';
-      messageType = 'danger';
-    }
-  } else if (action === 'update-part') {
-    result = await updatePart(
-      formData.get('membershipId')?.toString(),
-      formData.get('partId')?.toString()
-    );
-  } else if (action === 'delete-account') {
-    result = await deleteAccount(user.id, user.role, formData.get('password')?.toString());
-  } else if (action === 'change-email') {
-    result = await initiateEmailChange(user.id, user.name, user.email, formData.get('newEmail')?.toString());
-  }
-
-  if (result?.type === 'redirect') {
-    if (action === 'delete-account') {
-      Astro.cookies.delete('session', { path: '/' });
-    }
-    return Astro.redirect(result.url);
-  } else if (result?.type === 'error') {
-    message = result.message;
-    messageType = 'danger';
-  }
+if (deleteAccountResult && !deleteAccountResult.error) {
+  return Astro.redirect('/');
 }
+
+if (updateNameResult && !updateNameResult.error) return Astro.redirect('/profile');
+if (updatePhoneResult && !updatePhoneResult.error) return Astro.redirect('/profile');
+if (updateAvatarResult && !updateAvatarResult.error) return Astro.redirect('/profile');
+if (updatePartResult && !updatePartResult.error) return Astro.redirect('/profile');
+if (changeEmailResult && !changeEmailResult.error) return Astro.redirect('/profile?emailChangePending=1');
+
+const errorResult =
+  updateNameResult?.error ||
+  updatePhoneResult?.error ||
+  updateAvatarResult?.error ||
+  updatePartResult?.error ||
+  changeEmailResult?.error ||
+  deleteAccountResult?.error;
 
 const emailChangePending = Astro.url.searchParams.get('emailChangePending') === '1';
 
@@ -60,10 +39,10 @@ const { memberships, partsByEnsemble } = await getMembershipsWithParts(user.id);
 <Layout title="Profile">
   <div class="container">
     <h1 class="title">My Profile</h1>
-    
-    {message && (
-      <div class={`notification is-${messageType}`}>
-        {message}
+
+    {errorResult && (
+      <div class="notification is-danger">
+        {errorResult.message}
       </div>
     )}
 
@@ -71,7 +50,7 @@ const { memberships, partsByEnsemble } = await getMembershipsWithParts(user.id);
       <div class="column is-half">
         <div class="box">
           <h2 class="title is-4">Personal Information</h2>
-          
+
           {user.avatarUrl && (
             <div class="mb-4 has-text-centered">
               <figure class="image is-128x128" style="margin: 0 auto;">
@@ -80,9 +59,7 @@ const { memberships, partsByEnsemble } = await getMembershipsWithParts(user.id);
             </div>
           )}
 
-          <form method="POST" enctype="multipart/form-data" class="mb-5">
-            <input type="hidden" name="action" value="update-avatar" />
-            
+          <form method="POST" enctype="multipart/form-data" action={actions.profile.updateAvatar} class="mb-5">
             <div class="field">
               <label class="label">Profile Picture</label>
               {user.avatarUrl && (
@@ -120,21 +97,19 @@ const { memberships, partsByEnsemble } = await getMembershipsWithParts(user.id);
 
             <div class="field">
               <div class="control">
-                <button type="submit" class="button is-primary">
+                <Button type="submit" color="primary">
                   <span class="icon">
                     <i class="fas fa-save"></i>
                   </span>
                   <span>Update Avatar</span>
-                </button>
+                </Button>
               </div>
             </div>
           </form>
 
           <hr />
-          
-          <form method="POST" class="mt-4">
-            <input type="hidden" name="action" value="update-name" />
-            
+
+          <form method="POST" action={actions.profile.updateName} class="mt-4">
             <div class="field">
               <label class="label" for="name">Name</label>
               <div class="field has-addons">
@@ -149,20 +124,18 @@ const { memberships, partsByEnsemble } = await getMembershipsWithParts(user.id);
                   />
                 </div>
                 <div class="control">
-                  <button type="submit" class="button is-primary">
+                  <Button type="submit" color="primary">
                     <span class="icon">
                       <i class="fas fa-save"></i>
                     </span>
                     <span>Save</span>
-                  </button>
+                  </Button>
                 </div>
               </div>
             </div>
           </form>
 
-          <form method="POST" class="mt-4">
-            <input type="hidden" name="action" value="update-phone" />
-
+          <form method="POST" action={actions.profile.updatePhone} class="mt-4">
             <div class="field">
               <label class="label" for="phone">Phone Number</label>
               <div class="field has-addons">
@@ -178,12 +151,12 @@ const { memberships, partsByEnsemble } = await getMembershipsWithParts(user.id);
                   />
                 </div>
                 <div class="control">
-                  <button type="submit" class="button is-primary">
+                  <Button type="submit" color="primary">
                     <span class="icon">
                       <i class="fas fa-save"></i>
                     </span>
                     <span>Save</span>
-                  </button>
+                  </Button>
                 </div>
               </div>
             </div>
@@ -212,8 +185,7 @@ const { memberships, partsByEnsemble } = await getMembershipsWithParts(user.id);
               </summary>
               <div class="box mt-3">
                 <p class="mb-3">Enter your new email address. A verification link will be sent there. Your current email continues to work for login until verified.</p>
-                <form method="POST">
-                  <input type="hidden" name="action" value="change-email" />
+                <form method="POST" action={actions.profile.changeEmail}>
                   <div class="field has-addons">
                     <div class="control is-expanded">
                       <input
@@ -225,12 +197,12 @@ const { memberships, partsByEnsemble } = await getMembershipsWithParts(user.id);
                       />
                     </div>
                     <div class="control">
-                      <button type="submit" class="button is-warning">
+                      <Button type="submit" color="warning">
                         <span class="icon">
                           <i class="fas fa-paper-plane"></i>
                         </span>
                         <span>Send Verification</span>
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 </form>
@@ -260,42 +232,41 @@ const { memberships, partsByEnsemble } = await getMembershipsWithParts(user.id);
         <div class="box">
           <h2 class="title is-4">My Parts</h2>
           <p class="subtitle is-6">Select your part for each ensemble</p>
-          
+
           {memberships.length === 0 ? (
             <div class="notification is-info is-light">
               <p>You are not a member of any ensembles yet.</p>
-              <a href="/ensembles" class="button is-primary mt-3">
+              <Button href="/ensembles" color="primary" class="mt-3">
                 <span class="icon">
                   <i class="fas fa-plus"></i>
                 </span>
                 <span>Join an Ensemble</span>
-              </a>
+              </Button>
             </div>
           ) : (
             <div class="content">
               {memberships.map((membership) => {
                 const parts = partsByEnsemble.get(membership.ensembleId) || [];
-                
+
                 return (
                   <div class="box">
                     <h3 class="title is-5">{membership.ensembleName}</h3>
-                    
+
                     {parts.length === 0 ? (
                       <div class="notification is-warning is-light">
                         <p class="is-size-7">No parts defined for this ensemble yet. Contact an ensemble admin to add parts.</p>
                       </div>
                     ) : (
-                      <form method="POST">
-                        <input type="hidden" name="action" value="update-part" />
+                      <form method="POST" action={actions.profile.updatePart}>
                         <input type="hidden" name="membershipId" value={membership.membershipId} />
-                        
+
                         <div class="field has-addons">
                           <div class="control is-expanded">
                             <div class="select is-fullwidth">
                               <select name="partId">
                                 <option value="">-- No Part --</option>
                                 {parts.map((part: any) => (
-                                  <option 
+                                  <option
                                     value={part.id}
                                     selected={part.id === membership.partId}
                                   >
@@ -306,12 +277,12 @@ const { memberships, partsByEnsemble } = await getMembershipsWithParts(user.id);
                             </div>
                           </div>
                           <div class="control">
-                            <button type="submit" class="button is-primary">
+                            <Button type="submit" color="primary">
                               <span class="icon">
                                 <i class="fas fa-save"></i>
                               </span>
                               <span>Update</span>
-                            </button>
+                            </Button>
                           </div>
                         </div>
                       </form>
@@ -326,12 +297,12 @@ const { memberships, partsByEnsemble } = await getMembershipsWithParts(user.id);
     </div>
 
     <div class="buttons mt-5">
-      <a href="/ensembles" class="button is-primary">
+      <Button href="/ensembles" color="primary">
         <span class="icon">
           <i class="fas fa-users"></i>
         </span>
         <span>My Ensembles</span>
-      </a>
+      </Button>
     </div>
 
     <div class="box mt-5" style="border: 2px solid hsl(var(--bulma-danger-h), var(--bulma-danger-s), var(--bulma-danger-l));">
@@ -355,8 +326,7 @@ const { memberships, partsByEnsemble } = await getMembershipsWithParts(user.id);
 
           <div class="box mt-4">
             <p class="mb-3 has-text-weight-semibold">Enter your password to confirm account deletion:</p>
-            <form method="POST">
-              <input type="hidden" name="action" value="delete-account" />
+            <form method="POST" action={actions.profile.deleteAccount}>
               <div class="field has-addons">
                 <div class="control is-expanded">
                   <input
@@ -369,12 +339,12 @@ const { memberships, partsByEnsemble } = await getMembershipsWithParts(user.id);
                   />
                 </div>
                 <div class="control">
-                  <button type="submit" class="button is-danger">
+                  <Button type="submit" color="danger">
                     <span class="icon">
                       <i class="fas fa-trash-alt"></i>
                     </span>
                     <span>Delete Account</span>
-                  </button>
+                  </Button>
                 </div>
               </div>
             </form>
@@ -388,7 +358,7 @@ const { memberships, partsByEnsemble } = await getMembershipsWithParts(user.id);
     // Update file name display for avatar upload
     const avatarInput = document.getElementById('avatarInput') as HTMLInputElement;
     const avatarFileName = document.getElementById('avatarFileName');
-    
+
     avatarInput?.addEventListener('change', () => {
       if (avatarInput.files && avatarInput.files.length > 0) {
         const file = avatarInput.files[0];

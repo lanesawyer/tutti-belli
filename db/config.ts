@@ -14,6 +14,7 @@ const Ensemble = defineTable({
   columns: {
     id: column.text({ primaryKey: true }),
     name: column.text(),
+    slug: column.text({ optional: true, unique: true }),
     description: column.text({ optional: true }),
     imageUrl: column.text({ optional: true }),
     discordLink: column.text({ optional: true }),
@@ -173,7 +174,7 @@ const SongFile = defineTable({
     songId: column.text({ references: () => Song.columns.id }),
     name: column.text(),
     url: column.text(),
-    category: column.text({ enum: ['sheet_music', 'rehearsal_track', 'other'], default: 'other' }),
+    category: column.text({ enum: ['sheet_music', 'rehearsal_track', 'other', 'link'], default: 'other' }),
     uploadedBy: column.text({ references: () => User.columns.id }),
     uploadedAt: column.date({ default: NOW }),
   }

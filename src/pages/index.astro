@@ -1,5 +1,7 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import Button from '../components/Button.astro';
+import { APP_NAME } from '../lib/config';
 
 const user = Astro.locals.user;
 ---
@@ -8,7 +10,7 @@ const user = Astro.locals.user;
   <section class="hero is-medium is-primary">
     <div class="hero-body">
       <p class="title">
-        Welcome to Ensemble Management
+        Welcome to {APP_NAME}
       </p>
       <p class="subtitle">
         Organize and manage your musical ensembles with ease
@@ -44,18 +46,18 @@ const user = Astro.locals.user;
       <div class="content has-text-centered">
         <h2 class="title is-3">Get Started Today</h2>
         <div class="buttons is-centered">
-          <a href="/register" class="button is-primary is-large">
+          <Button href="/register" color="primary" size="large">
             <span class="icon">
               <i class="fas fa-user-plus"></i>
             </span>
             <span>Sign Up</span>
-          </a>
-          <a href="/login" class="button is-light is-large">
+          </Button>
+          <Button href="/login" color="light" size="large">
             <span class="icon">
               <i class="fas fa-sign-in-alt"></i>
             </span>
             <span>Log In</span>
-          </a>
+          </Button>
         </div>
       </div>
     </section>
@@ -66,19 +68,19 @@ const user = Astro.locals.user;
       <div class="content has-text-centered">
         <h2 class="title is-3">Welcome back, {user.name}!</h2>
         <div class="buttons is-centered">
-          <a href="/ensembles" class="button is-primary is-large">
+          <Button href="/ensembles" color="primary" size="large">
             <span class="icon">
               <i class="fas fa-users"></i>
             </span>
             <span>View My Ensembles</span>
-          </a>
+          </Button>
           {user.role === 'admin' && (
-            <a href="/admin" class="button is-info is-large">
+            <Button href="/admin" color="info" size="large">
               <span class="icon">
                 <i class="fas fa-cog"></i>
               </span>
               <span>Admin Panel</span>
-            </a>
+            </Button>
           )}
         </div>
       </div>

@@ -2,26 +2,31 @@
 import EnsemblePageLayout from '../../../../layouts/EnsemblePageLayout.astro';
 import Table from '../../../../components/Table.astro';
 import Modal from '../../../../components/Modal.astro';
-import { db, eq, and, desc, Ensemble, EnsembleMember, Event, Season } from 'astro:db';
+import Button from '../../../../components/Button.astro';
+import { db, eq, and, desc, EnsembleMember, Event, Season } from 'astro:db';
+import { actions } from 'astro:actions';
 import { canManageEnsemble } from '../../../../lib/permissions';
+import { getEnsembleBySlugOrId } from '../../../../lib/ensemble';
+import { getEnsembleUrlId } from '../../../../lib/slug';
+
 const user = Astro.locals.user!;
 
 const { id } = Astro.params;
-if (!id) {
+const ensemble = await getEnsembleBySlugOrId(id!);
+if (!ensemble) {
   return Astro.redirect('/ensembles');
 }
 
-// Get ensemble details
-const [ensemble] = await db.select().from(Ensemble).where(eq(Ensemble.id, id));
-if (!ensemble) {
-  return Astro.redirect('/ensembles');
+const canonicalId = getEnsembleUrlId(ensemble);
+if (Astro.request.method === 'GET' && id !== canonicalId) {
+  return Astro.redirect(Astro.url.pathname.replace(`/ensembles/${id}`, `/ensembles/${canonicalId}`), 301);
 }
 
 // Check if user is a member
 const [membership] = await db
   .select()
   .from(EnsembleMember)
-  .where(and(eq(EnsembleMember.ensembleId, id), eq(EnsembleMember.userId, user.id)));
+  .where(and(eq(EnsembleMember.ensembleId, ensemble.id), eq(EnsembleMember.userId, user.id)));
 
 if (!membership) {
   return Astro.redirect('/ensembles');
@@ -33,61 +38,30 @@ const isAdmin = canManageEnsemble(user, membership);
 const [activeSeason] = await db
   .select()
   .from(Season)
-  .where(and(eq(Season.ensembleId, id), eq(Season.isActive, 1)))
+  .where(and(eq(Season.ensembleId, ensemble.id), eq(Season.isActive, 1)))
   .limit(1);
+
+const createResult = Astro.getActionResult(actions.events.create);
+const deleteResult = Astro.getActionResult(actions.events.delete);
 
 let message = '';
 let messageType = '';
 
-if (Astro.request.method === 'POST' && isAdmin) {
-  const formData = await Astro.request.formData();
-  const action = formData.get('action')?.toString();
-
-  if (action === 'create') {
-    if (!activeSeason) {
-      message = 'No active season found. Please create and activate a season first.';
-      messageType = 'danger';
-    } else {
-      const title = formData.get('title')?.toString();
-      const description = formData.get('description')?.toString();
-      const date = formData.get('date')?.toString();
-      const time = formData.get('time')?.toString();
-      const location = formData.get('location')?.toString();
-      const durationMinutes = parseInt(formData.get('durationMinutes')?.toString() || '90');
-      const categoryRaw = formData.get('category')?.toString();
-      const category = categoryRaw === 'performance' ? 'performance' : 'rehearsal';
-
-      if (title && date && time) {
-        const scheduledAt = new Date(`${date}T${time}`);
-        const checkInCode = Math.random().toString(36).substring(2, 10).toUpperCase();
-
-        await db.insert(Event).values({
-          id: crypto.randomUUID(),
-          ensembleId: id,
-          seasonId: activeSeason.id,
-          category,
-          title,
-          description: description || '',
-          scheduledAt,
-          durationMinutes,
-          location: location || '',
-          checkInCode,
-        });
-
-        message = `${category === 'performance' ? 'Performance' : 'Rehearsal'} created successfully!`;
-        messageType = 'success';
-      } else {
-        message = 'Title, date, and time are required.';
-        messageType = 'danger';
-      }
-    }
-  } else if (action === 'delete') {
-    const eventId = formData.get('eventId')?.toString();
-    if (eventId) {
-      await db.delete(Event).where(eq(Event.id, eventId));
-      message = 'Event deleted successfully!';
-      messageType = 'success';
-    }
+if (createResult) {
+  if (createResult.error) {
+    message = createResult.error.message || 'Failed to create event.';
+    messageType = 'danger';
+  } else {
+    message = 'Event created successfully!';
+    messageType = 'success';
+  }
+} else if (deleteResult) {
+  if (deleteResult.error) {
+    message = deleteResult.error.message || 'Failed to delete event.';
+    messageType = 'danger';
+  } else {
+    message = 'Event deleted successfully!';
+    messageType = 'success';
   }
 }
 
@@ -95,7 +69,7 @@ if (Astro.request.method === 'POST' && isAdmin) {
 const events = await db
   .select()
   .from(Event)
-  .where(eq(Event.ensembleId, id))
+  .where(eq(Event.ensembleId, ensemble.id))
   .orderBy(desc(Event.scheduledAt));
 
 const now = new Date();
@@ -112,24 +86,24 @@ const pastEvents = events.filter(e => {
 <EnsemblePageLayout
   title={`Events - ${ensemble.name}`}
   ensembleName={ensemble.name}
-  ensembleId={id}
+  ensembleId={canonicalId}
   pageTitle="Events"
   message={message}
   messageType={messageType}
   isAdmin={isAdmin}
 >
   {isAdmin && (
-    <button slot="action" class="button is-primary" id="create-event-btn">
+    <Button slot="action" color="primary" id="create-event-btn">
       <span class="icon"><i class="fas fa-plus"></i></span>
       <span>Schedule Event</span>
-    </button>
+    </Button>
   )}
 
   {events.length === 0 ? (
     <div class="notification is-info is-light">
       No events scheduled yet.
       {!activeSeason && isAdmin && (
-        <span> You need an <a href={`/ensembles/${id}/seasons`}>active season</a> before scheduling events.</span>
+        <span> You need an <a href={`/ensembles/${canonicalId}/seasons`}>active season</a> before scheduling events.</span>
       )}
     </div>
   ) : (
@@ -166,16 +140,17 @@ const pastEvents = events.filter(e => {
                     <td>{event.durationMinutes} min</td>
                     <td>
                       <div class="buttons are-small">
-                        <a href={`/ensembles/${id}/events/${event.id}`} class="button is-info">
+                        <Button href={`/ensembles/${canonicalId}/events/${event.id}`} color="info">
                           View
-                        </a>
+                        </Button>
                         {isAdmin && (
-                          <button
-                            class="button is-danger delete-event-btn"
+                          <Button
+                            color="danger"
+                            class="delete-event-btn"
                             data-event-id={event.id}
                           >
                             <span class="icon"><i class="fas fa-trash"></i></span>
-                          </button>
+                          </Button>
                         )}
                       </div>
                     </td>
@@ -216,9 +191,9 @@ const pastEvents = events.filter(e => {
                     <td>{scheduledDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
                     <td>{event.location || '-'}</td>
                     <td>
-                      <a href={`/ensembles/${id}/events/${event.id}`} class="button is-small">
+                      <Button href={`/ensembles/${canonicalId}/events/${event.id}`} size="small">
                         {isAdmin ? 'Attendance' : 'Details'}
-                      </a>
+                      </Button>
                     </td>
                   </tr>
                 );
@@ -234,8 +209,8 @@ const pastEvents = events.filter(e => {
 <!-- Create Event Modal -->
 {isAdmin && (
   <Modal id="create-modal" title="Schedule Event">
-    <form id="createForm" method="POST">
-      <input type="hidden" name="action" value="create" />
+    <form id="createForm" method="POST" action={actions.events.create}>
+      <input type="hidden" name="ensembleId" value={ensemble.id} />
 
       <div class="columns">
         <div class="column">
@@ -304,8 +279,8 @@ const pastEvents = events.filter(e => {
     </form>
 
     <div slot="footer">
-      <button type="submit" form="createForm" class="button is-primary">Schedule</button>
-      <button class="button" type="button" data-modal-close>Cancel</button>
+      <Button type="submit" form="createForm" color="primary">Schedule</Button>
+      <Button type="button" data-modal-close>Cancel</Button>
     </div>
   </Modal>
 )}
@@ -314,14 +289,14 @@ const pastEvents = events.filter(e => {
 {isAdmin && (
   <Modal id="delete-modal" title="Delete Event">
     <p>Are you sure you want to delete this event? This action cannot be undone.</p>
-    <form id="deleteForm" method="POST">
-      <input type="hidden" name="action" value="delete" />
+    <form id="deleteForm" method="POST" action={actions.events.delete}>
+      <input type="hidden" name="ensembleId" value={ensemble.id} />
       <input type="hidden" name="eventId" id="deleteEventId" />
     </form>
 
     <div slot="footer">
-      <button type="submit" form="deleteForm" class="button is-danger">Delete</button>
-      <button class="button" type="button" data-modal-close>Cancel</button>
+      <Button type="submit" form="deleteForm" color="danger">Delete</Button>
+      <Button type="button" data-modal-close>Cancel</Button>
     </div>
   </Modal>
 )}

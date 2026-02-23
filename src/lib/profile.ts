@@ -15,8 +15,29 @@ import {
   EmailChangeToken,
 } from 'astro:db';
 import { fileToDataUri, validateImageFile } from './upload';
-import { verifyPassword } from './auth';
-import { sendEmailChangeVerificationEmail } from './email';
+import { hashPassword, verifyPassword } from './auth';
+import { sendEmailChangeVerificationEmail, sendWelcomeEmail } from './email';
+
+export async function registerUser(params: {
+  name: string;
+  email: string;
+  password: string;
+}): Promise<{ userId: string }> {
+  const { name, email, password } = params;
+
+  const existing = await db.select({ id: User.id }).from(User).where(eq(User.email, email)).get();
+  if (existing) throw new Error('An account with this email already exists.');
+
+  const userId = crypto.randomUUID();
+  const passwordHash = await hashPassword(password);
+
+  await db.insert(User).values({ id: userId, email, passwordHash, name, role: 'user' });
+
+  // Fire-and-forget: don't block registration if email fails
+  sendWelcomeEmail(email, name).catch(() => {});
+
+  return { userId };
+}
 
 export type ActionResult =
   | { type: 'redirect'; url: string }

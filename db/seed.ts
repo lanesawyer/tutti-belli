@@ -53,6 +53,7 @@ export default async function seed() {
     {
       id: ensembleId,
       name: 'Chamber Orchestra',
+      slug: 'chamber-orchestra',
       description: 'A test ensemble for development and testing',
       discordLink: 'https://discord.gg/example',
       codeOfConduct: `Welcome to the Chamber Orchestra!

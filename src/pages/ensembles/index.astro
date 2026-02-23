@@ -1,6 +1,8 @@
 ---
 import Layout from '../../layouts/Layout.astro';
+import Button from '../../components/Button.astro';
 import { db, eq, Ensemble, EnsembleMember } from 'astro:db';
+import { getEnsembleUrlId } from '../../lib/slug';
 
 const user = Astro.locals.user!;
 
@@ -8,6 +10,7 @@ const user = Astro.locals.user!;
 const userEnsembles = await db
   .select({
     id: Ensemble.id,
+    slug: Ensemble.slug,
     name: Ensemble.name,
     description: Ensemble.description,
     role: EnsembleMember.role,
@@ -27,12 +30,12 @@ const userEnsembles = await db
     </div>
     <div class="level-right">
       <div class="level-item">
-        <a href="/invite/join" class="button is-primary">
+        <Button href="/invite/join" color="primary">
           <span class="icon">
             <i class="fas fa-ticket"></i>
           </span>
           <span>Join with Invite Code</span>
-        </a>
+        </Button>
       </div>
     </div>
   </div>
@@ -54,11 +57,8 @@ const userEnsembles = await db
               </div>
             </div>
             <footer class="card-footer">
-              <a href={`/ensembles/${ensemble.id}`} class="card-footer-item">
+              <a href={`/ensembles/${getEnsembleUrlId(ensemble)}`} class="card-footer-item">
                 View Details
-              </a>
-              <a href={`/ensembles/${ensemble.id}/rehearsals`} class="card-footer-item">
-                Rehearsals
               </a>
             </footer>
           </div>

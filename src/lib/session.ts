@@ -24,7 +24,7 @@ export function getSession(token: string | undefined): SessionPayload | null {
   }
 }
 
-export function deleteSession(token: string): void {
+export function deleteSession(): void {
   // JWTs are stateless, so we just need to delete the cookie
   // The token will expire naturally or the cookie will be cleared
 }

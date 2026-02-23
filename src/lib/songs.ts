@@ -2,7 +2,6 @@ import {
   db,
   eq,
   and,
-  Ensemble,
   EnsembleMember,
   Song,
   SongPart,
@@ -12,16 +11,22 @@ import {
   SeasonSong,
   User,
 } from 'astro:db';
+import { uploadSongFile, validateSongFile, deleteStorageFile } from './storage';
+import { getEnsembleBySlugOrId } from './ensemble';
 
 // ─── Queries ────────────────────────────────────────────────────────────────
 
 export async function getSongDetailData(ensembleId: string, songId: string) {
-  const [ensemble, song, parts, seasons, songPartsData, seasonSongsData, songFiles] =
+  const ensemble = await getEnsembleBySlugOrId(ensembleId);
+  if (!ensemble) {
+    return { ensemble: null, song: null, parts: [], seasons: [], songPartsData: [], seasonSongsData: [], songFiles: [] };
+  }
+
+  const [song, parts, seasons, songPartsData, seasonSongsData, songFiles] =
     await Promise.all([
-      db.select().from(Ensemble).where(eq(Ensemble.id, ensembleId)).get(),
       db.select().from(Song).where(eq(Song.id, songId)).get(),
-      db.select().from(Part).where(eq(Part.ensembleId, ensembleId)).all(),
-      db.select().from(Season).where(eq(Season.ensembleId, ensembleId)).all(),
+      db.select().from(Part).where(eq(Part.ensembleId, ensemble.id)).all(),
+      db.select().from(Season).where(eq(Season.ensembleId, ensemble.id)).all(),
       db.select().from(SongPart).where(eq(SongPart.songId, songId)).all(),
       db.select().from(SeasonSong).where(eq(SeasonSong.songId, songId)).all(),
       db
@@ -43,12 +48,16 @@ export async function getSongDetailData(ensembleId: string, songId: string) {
 }
 
 export async function getSongsPageData(ensembleId: string) {
-  const [ensemble, songs, parts, seasons, songPartsData, seasonSongsData, songFilesData] =
+  const ensemble = await getEnsembleBySlugOrId(ensembleId);
+  if (!ensemble) {
+    return { ensemble: null, songs: [], parts: [], seasons: [], songPartsData: [], seasonSongsData: [], songFilesData: [] };
+  }
+
+  const [songs, parts, seasons, songPartsData, seasonSongsData, songFilesData] =
     await Promise.all([
-      db.select().from(Ensemble).where(eq(Ensemble.id, ensembleId)).get(),
-      db.select().from(Song).where(eq(Song.ensembleId, ensembleId)).all(),
-      db.select().from(Part).where(eq(Part.ensembleId, ensembleId)).all(),
-      db.select().from(Season).where(eq(Season.ensembleId, ensembleId)).all(),
+      db.select().from(Song).where(eq(Song.ensembleId, ensemble.id)).all(),
+      db.select().from(Part).where(eq(Part.ensembleId, ensemble.id)).all(),
+      db.select().from(Season).where(eq(Season.ensembleId, ensemble.id)).all(),
       db.select().from(SongPart).all(),
       db.select().from(SeasonSong).all(),
       db.select().from(SongFile).all(),
@@ -100,87 +109,120 @@ export function buildSongFilesMap<T extends { songId: string }>(
 
 // ─── Actions ────────────────────────────────────────────────────────────────
 
-const VALID_CATEGORIES = ['sheet_music', 'rehearsal_track', 'other'] as const;
+const VALID_CATEGORIES = ['sheet_music', 'rehearsal_track', 'other', 'link'] as const;
 
-export async function addSong(
-  ensembleId: string,
-  formData: FormData
-): Promise<void> {
-  const name = (formData.get('name') as string)?.trim();
+export interface SongInput {
+  name: string;
+  composer?: string;
+  arranger?: string;
+  runTimeMinutes: number;
+  runTimeSeconds: number;
+  parts: string[];
+  seasons: string[];
+}
+
+export async function addSong(ensembleId: string, input: SongInput): Promise<void> {
+  const name = input.name.trim();
   if (!name) return;
 
-  const composer = (formData.get('composer') as string)?.trim() || null;
-  const arranger = (formData.get('arranger') as string)?.trim() || null;
-  const runTimeMinutes = parseInt(formData.get('runTimeMinutes') as string) || 0;
-  const runTimeSeconds = parseInt(formData.get('runTimeSeconds') as string) || 0;
-  const runTime = runTimeMinutes * 60 + runTimeSeconds || null;
-  const selectedParts = formData.getAll('parts') as string[];
-  const selectedSeasons = formData.getAll('seasons') as string[];
+  const composer = input.composer?.trim() || null;
+  const arranger = input.arranger?.trim() || null;
+  const runTime = input.runTimeMinutes * 60 + input.runTimeSeconds || null;
 
   const songId = crypto.randomUUID();
   await db.insert(Song).values({ id: songId, ensembleId, name, composer, arranger, runTime });
 
-  for (const partId of selectedParts) {
+  for (const partId of input.parts) {
     await db.insert(SongPart).values({ id: crypto.randomUUID(), songId, partId });
   }
-  for (const seasonId of selectedSeasons) {
+  for (const seasonId of input.seasons) {
     await db.insert(SeasonSong).values({ id: crypto.randomUUID(), songId, seasonId });
   }
 }
 
-export async function editSong(formData: FormData): Promise<void> {
-  const songId = formData.get('songId') as string;
-  const name = (formData.get('name') as string)?.trim();
+export interface EditSongInput extends SongInput {
+  songId: string;
+}
+
+export async function editSong(input: EditSongInput): Promise<void> {
+  const { songId } = input;
+  const name = input.name.trim();
   if (!songId || !name) return;
 
-  const composer = (formData.get('composer') as string)?.trim() || null;
-  const arranger = (formData.get('arranger') as string)?.trim() || null;
-  const runTimeMinutes = parseInt(formData.get('runTimeMinutes') as string) || 0;
-  const runTimeSeconds = parseInt(formData.get('runTimeSeconds') as string) || 0;
-  const runTime = runTimeMinutes * 60 + runTimeSeconds || null;
-  const selectedParts = formData.getAll('parts') as string[];
-  const selectedSeasons = formData.getAll('seasons') as string[];
+  const composer = input.composer?.trim() || null;
+  const arranger = input.arranger?.trim() || null;
+  const runTime = input.runTimeMinutes * 60 + input.runTimeSeconds || null;
 
   await db.update(Song).set({ name, composer, arranger, runTime }).where(eq(Song.id, songId));
 
   await db.delete(SongPart).where(eq(SongPart.songId, songId));
   await db.delete(SeasonSong).where(eq(SeasonSong.songId, songId));
 
-  for (const partId of selectedParts) {
+  for (const partId of input.parts) {
     await db.insert(SongPart).values({ id: crypto.randomUUID(), songId, partId });
   }
-  for (const seasonId of selectedSeasons) {
+  for (const seasonId of input.seasons) {
     await db.insert(SeasonSong).values({ id: crypto.randomUUID(), songId, seasonId });
   }
 }
 
-export async function deleteSong(formData: FormData): Promise<void> {
-  const songId = formData.get('songId') as string;
+export async function deleteSong(songId: string): Promise<void> {
   if (!songId) return;
 
   await db.delete(SongPart).where(eq(SongPart.songId, songId));
   await db.delete(SeasonSong).where(eq(SeasonSong.songId, songId));
+
+  const files = await db.select().from(SongFile).where(eq(SongFile.songId, songId)).all();
+  await Promise.all(files.map((f) => deleteStorageFile(f.url)));
   await db.delete(SongFile).where(eq(SongFile.songId, songId));
+
   await db.delete(Song).where(eq(Song.id, songId));
 }
 
-export async function addSongFile(formData: FormData, uploadedBy: string): Promise<void> {
-  const songId = formData.get('songId') as string;
-  const name = (formData.get('fileName') as string)?.trim();
-  const url = (formData.get('fileUrl') as string)?.trim();
-  const rawCategory = formData.get('category') as string;
-  const category = (VALID_CATEGORIES as readonly string[]).includes(rawCategory)
-    ? (rawCategory as (typeof VALID_CATEGORIES)[number])
-    : 'other';
-
-  if (!songId || !name || !url) return;
-
-  await db.insert(SongFile).values({ id: crypto.randomUUID(), songId, name, url, category, uploadedBy });
+export interface AddSongFileInput {
+  songId: string;
+  fileName: string;
+  category: (typeof VALID_CATEGORIES)[number];
+  fileUrl?: string;
+  file?: File;
 }
 
-export async function deleteSongFile(formData: FormData): Promise<void> {
-  const fileId = formData.get('fileId') as string;
+export async function addSongFile(
+  input: AddSongFileInput,
+  uploadedBy: string,
+  ensembleId?: string
+): Promise<{ error?: string }> {
+  const { songId } = input;
+  const name = input.fileName.trim();
+  const category = (VALID_CATEGORIES as readonly string[]).includes(input.category)
+    ? (input.category as (typeof VALID_CATEGORIES)[number])
+    : 'other';
+
+  if (!songId || !name) return {};
+
+  let url: string;
+
+  if (category === 'link') {
+    url = input.fileUrl?.trim() ?? '';
+    if (!url) return { error: 'A URL is required for links.' };
+  } else if (input.file && input.file.size > 0) {
+    if (!ensembleId) return { error: 'Missing ensemble context for upload.' };
+    const validation = validateSongFile(input.file);
+    if (!validation.valid) return { error: validation.error };
+    url = await uploadSongFile(input.file, ensembleId);
+  } else {
+    return { error: 'A file is required.' };
+  }
+
+  await db.insert(SongFile).values({ id: crypto.randomUUID(), songId, name, url, category, uploadedBy });
+  return {};
+}
+
+export async function deleteSongFile(fileId: string): Promise<void> {
   if (!fileId) return;
+
+  const file = await db.select().from(SongFile).where(eq(SongFile.id, fileId)).get();
+  if (file && file.category !== 'link') await deleteStorageFile(file.url);
   await db.delete(SongFile).where(eq(SongFile.id, fileId));
 }
 
@@ -191,4 +233,27 @@ export function formatRuntime(seconds: number | null): string {
   const mins = Math.floor(seconds / 60);
   const secs = seconds % 60;
   return `${mins}:${secs.toString().padStart(2, '0')}`;
+}
+
+export function categoryLabel(cat: string): string {
+  if (cat === 'sheet_music') return 'Sheet Music';
+  if (cat === 'rehearsal_track') return 'Rehearsal Track';
+  if (cat === 'link') return 'Link';
+  return 'Other';
+}
+
+export function categoryTagClass(cat: string): string {
+  if (cat === 'sheet_music') return 'is-success';
+  if (cat === 'rehearsal_track') return 'is-warning';
+  if (cat === 'link') return 'is-info';
+  return 'is-light';
+}
+
+export function getYouTubeId(url: string): string | null {
+  try {
+    const u = new URL(url);
+    if (u.hostname === 'youtu.be') return u.pathname.slice(1).split('?')[0];
+    if (u.hostname.includes('youtube.com')) return u.searchParams.get('v');
+  } catch {}
+  return null;
 }

@@ -1,6 +1,7 @@
 ---
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
+import { APP_NAME } from '../lib/config';
 
 interface Props {
   title: string;
@@ -13,7 +14,7 @@ const { title } = Astro.props;
 <html lang="en" data-theme="light" class="has-navbar-fixed-top">
   <head>
     <meta charset="UTF-8" />
-    <meta name="description" content="Ensemble Management System" />
+    <meta name="description" content={APP_NAME} />
     <meta name="viewport" content="width=device-width" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.0/css/bulma.min.css">
@@ -34,7 +35,7 @@ const { title } = Astro.props;
         document.documentElement.setAttribute('data-theme', theme);
       })();
     </script>
-    <title>{title} - Ensemble Management</title>
+    <title>{title} - {APP_NAME}</title>
     <style>
       :root {
         --navbar-bg: #363636;

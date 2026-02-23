@@ -23,21 +23,23 @@ pnpm astro:db:push    # Push schema changes to remote Turso DB
 - **Astro 5** with `output: 'server'` — all pages are server-rendered, no client-side JS frameworks
 - **Astro DB** (LibSQL/Turso) — queried directly in page components via `import { db, eq, ... } from 'astro:db'`
 - **Bulma 1.0** for CSS (dark mode supported via CSS custom properties + localStorage toggle)
-- **Zero client-side JS framework** — all interactions are HTML form POSTs handled in the same `.astro` page frontmatter
+- **Zero client-side JS framework** — all interactions are HTML form POSTs handled via Astro Actions (`src/actions/`)
 
 
 ### Philosophy
 - Don't duplicate logic, if there are commonalities, extract it into a shared utility in `src/lib/`
 - Keep the frontmatter Astro files light, most server logic should be in `src/lib/` files
+- **Always use components from `src/components/` instead of writing raw HTML equivalents.** Before writing a `<button>`, `<a class="button">`, or modal, check if a component exists: `Button.astro`, `Modal.astro`, `Table.astro`, `InviteCodeWidget.astro`, etc. Prefer extending a component over one-off inline markup.
 
 ### Request Handling Pattern
-Every page that handles user actions follows this pattern in the `.astro` frontmatter:
-1. Check `Astro.request.method === 'POST'`
-2. Parse `await Astro.request.formData()`
-3. Validate and perform DB operations
-4. Redirect or re-render with error/success messages
+Form mutations use **Astro Actions** (`src/actions/`). Do not use the old pattern of checking `Astro.request.method === 'POST'` in page frontmatter.
 
-There are no separate API routes — form handling lives directly in page components.
+- Define actions in `src/actions/<feature>.ts` using `defineAction` with `accept: 'form'` and a Zod input schema
+- Export them from `src/actions/index.ts` under the `server` object
+- In pages, use `action={actions.feature.actionName}` on `<form>` elements and `Astro.getActionResult(actions.feature.actionName)` to read results
+- Throw `ActionError` (from `astro:actions`) for validation/auth failures instead of returning error objects
+- Business logic still lives in `src/lib/` — actions are thin wrappers that call lib functions and translate errors into `ActionError`
+- Redirects on success happen in page frontmatter after checking `getActionResult`; the session cookie can be cleared inside the action handler via `context.cookies`
 
 ### Authentication & Authorization
 - **Middleware** (`src/middleware.ts`): Runs on every request, extracts JWT from `session` cookie, populates `Astro.locals.user` and `Astro.locals.session`. Redirects unauthenticated users to `/login` for protected routes.

@@ -1,3 +1,5 @@
+export const APP_NAME = 'Tutti Belli';
+
 export type AdminTool = {
   href: (ensembleId: string) => string;
   icon: string;

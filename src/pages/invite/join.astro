@@ -1,6 +1,8 @@
 ---
 import Layout from '../../layouts/Layout.astro';
+import Button from '../../components/Button.astro';
 import { db, eq, and, EnsembleInvite, EnsembleMember, Ensemble } from 'astro:db';
+import { APP_NAME } from '../../lib/config';
 
 const user = Astro.locals.user;
 
@@ -127,21 +129,21 @@ if (Astro.request.method === 'POST') {
       {!user ? (
         <div class="box">
           <div class="content has-text-centered mb-5">
-            <p class="is-size-5">You need an Ensemble Management account to join</p>
+            <p class="is-size-5">You need a {APP_NAME} account to join</p>
           </div>
           <div class="buttons is-centered">
-            <a href={`/register?redirect=${encodeURIComponent(Astro.url.pathname + Astro.url.search)}`} class="button is-primary is-large">
+            <Button href={`/register?redirect=${encodeURIComponent(Astro.url.pathname + Astro.url.search)}`} color="primary" size="large">
               <span class="icon">
                 <i class="fas fa-user-plus"></i>
               </span>
               <span>Create Account</span>
-            </a>
-            <a href={`/login?redirect=${encodeURIComponent(Astro.url.pathname + Astro.url.search)}`} class="button is-light is-large">
+            </Button>
+            <Button href={`/login?redirect=${encodeURIComponent(Astro.url.pathname + Astro.url.search)}`} color="light" size="large">
               <span class="icon">
                 <i class="fas fa-sign-in-alt"></i>
               </span>
               <span>Sign In</span>
-            </a>
+            </Button>
           </div>
           <p class="has-text-centered mt-4 help">Already have an account? Click "Sign In" to continue</p>
         </div>
@@ -184,17 +186,17 @@ if (Astro.request.method === 'POST') {
 
         <div class="field is-grouped mt-5">
           <div class="control">
-            <button type="submit" class="button is-primary is-large">
+            <Button type="submit" color="primary" size="large">
               <span class="icon">
                 <i class="fas fa-check"></i>
               </span>
               <span>Join Ensemble</span>
-            </button>
+            </Button>
           </div>
           <div class="control">
-            <a href="/ensembles" class="button is-light is-large">
+            <Button href="/ensembles" color="light" size="large">
               Cancel
-            </a>
+            </Button>
           </div>
         </div>
       </form>

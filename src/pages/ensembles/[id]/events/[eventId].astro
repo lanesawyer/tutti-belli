@@ -1,9 +1,13 @@
 ---
 import Layout from '../../../../layouts/Layout.astro';
-import { db, eq, and, Ensemble, EnsembleMember, Event, EventProgram, Attendance, User, SeasonSong, Song } from 'astro:db';
+import Button from '../../../../components/Button.astro';
+import { db, eq, and, EnsembleMember, Event, EventProgram, Attendance, User, SeasonSong, Song } from 'astro:db';
+import { actions } from 'astro:actions';
 import QRCode from 'qrcode';
 import { canManageEnsemble } from '../../../../lib/permissions';
 import { ensembleAdminTools } from '../../../../lib/config';
+import { getEnsembleBySlugOrId } from '../../../../lib/ensemble';
+import { getEnsembleUrlId } from '../../../../lib/slug';
 
 const user = Astro.locals.user!;
 
@@ -12,17 +16,21 @@ if (!id || !eventId) {
   return Astro.redirect('/ensembles');
 }
 
-// Get ensemble details
-const [ensemble] = await db.select().from(Ensemble).where(eq(Ensemble.id, id));
+const ensemble = await getEnsembleBySlugOrId(id);
 if (!ensemble) {
   return Astro.redirect('/ensembles');
+}
+
+const canonicalId = getEnsembleUrlId(ensemble);
+if (Astro.request.method === 'GET' && id !== canonicalId) {
+  return Astro.redirect(Astro.url.pathname.replace(`/ensembles/${id}`, `/ensembles/${canonicalId}`), 301);
 }
 
 // Check if user is a member
 const [membership] = await db
   .select()
   .from(EnsembleMember)
-  .where(and(eq(EnsembleMember.ensembleId, id), eq(EnsembleMember.userId, user.id)));
+  .where(and(eq(EnsembleMember.ensembleId, ensemble.id), eq(EnsembleMember.userId, user.id)));
 
 if (!membership) {
   return Astro.redirect('/ensembles');
@@ -33,10 +41,8 @@ const isAdmin = canManageEnsemble(user, membership);
 // Get event details
 const [event] = await db.select().from(Event).where(eq(Event.id, eventId));
 if (!event) {
-  return Astro.redirect(`/ensembles/${id}/events`);
+  return Astro.redirect(`/ensembles/${canonicalId}/events`);
 }
-
-let message = '';
 
 // Calculate check-in window
 const now = new Date();
@@ -48,116 +54,24 @@ const canCheckIn = now >= checkInStartTime && now <= checkInEndTime;
 const isTooEarly = now < checkInStartTime;
 const isTooLate = now > checkInEndTime;
 
-// Handle actions
-if (Astro.request.method === 'POST') {
-  const formData = await Astro.request.formData();
-  const action = formData.get('action')?.toString();
-
-  if (action === 'checkin') {
-    // Check time window (admins bypass this)
-    if (!canCheckIn && !isAdmin) {
-      if (isTooEarly) {
-        const minutesUntilOpen = Math.ceil((checkInStartTime.getTime() - now.getTime()) / (60 * 1000));
-        message = `Check-in opens ${ensemble.checkInStartMinutes} minutes before the event (in ${minutesUntilOpen} minutes).`;
-      } else if (isTooLate) {
-        message = `Check-in closed ${ensemble.checkInEndMinutes} minutes after event start.`;
-      }
-    } else {
-      const [existing] = await db
-        .select()
-        .from(Attendance)
-        .where(and(eq(Attendance.eventId, eventId), eq(Attendance.userId, user.id)));
-
-      if (!existing) {
-        await db.insert(Attendance).values({
-          id: crypto.randomUUID(),
-          eventId,
-          userId: user.id,
-          checkedInMethod: 'manual',
-        });
-        message = 'Successfully checked in!';
-      } else {
-        message = 'You have already checked in for this event.';
-      }
-    }
-  } else if (action === 'remove' && isAdmin) {
-    const attendanceId = formData.get('attendanceId')?.toString();
-    if (attendanceId) {
-      await db.delete(Attendance).where(eq(Attendance.id, attendanceId));
-      message = 'Attendance removed.';
-    }
-  } else if (action === 'add' && isAdmin) {
-    const userId = formData.get('userId')?.toString();
-    if (userId) {
-      const [existing] = await db
-        .select()
-        .from(Attendance)
-        .where(and(eq(Attendance.eventId, eventId), eq(Attendance.userId, userId)));
-
-      if (!existing) {
-        await db.insert(Attendance).values({
-          id: crypto.randomUUID(),
-          eventId,
-          userId,
-          checkedInMethod: 'admin',
-        });
-        message = 'Member marked as present.';
-      }
-    }
-  } else if (action === 'edit' && isAdmin) {
-    const title = formData.get('title')?.toString();
-    const description = formData.get('description')?.toString();
-    const date = formData.get('date')?.toString();
-    const time = formData.get('time')?.toString();
-    const location = formData.get('location')?.toString();
-    const durationMinutes = parseInt(formData.get('durationMinutes')?.toString() || '90');
-
-    if (title && date && time) {
-      const scheduledAt = new Date(`${date}T${time}`);
-
-      await db.update(Event)
-        .set({
-          title: title.trim(),
-          description: description?.trim() || '',
-          scheduledAt,
-          durationMinutes,
-          location: location?.trim() || '',
-        })
-        .where(eq(Event.id, eventId));
-
-      message = 'Event updated successfully!';
-
-      const [updatedEvent] = await db.select().from(Event).where(eq(Event.id, eventId));
-      if (updatedEvent) {
-        Object.assign(event, updatedEvent);
-      }
-    } else {
-      message = 'Title, date, and time are required.';
-    }
-  } else if (action === 'add-program-song' && isAdmin && event.category === 'performance') {
-    const songId = formData.get('songId')?.toString();
-    if (songId) {
-      const currentProgram = await db.select({ sortOrder: EventProgram.sortOrder })
-        .from(EventProgram).where(eq(EventProgram.eventId, eventId));
-      const maxOrder = currentProgram.length > 0
-        ? Math.max(...currentProgram.map(p => p.sortOrder))
-        : 0;
-      await db.insert(EventProgram).values({
-        id: crypto.randomUUID(),
-        eventId,
-        songId,
-        sortOrder: maxOrder + 1,
-      });
-      return Astro.redirect(`/ensembles/${id}/events/${eventId}`);
-    }
-  } else if (action === 'remove-program-song' && isAdmin && event.category === 'performance') {
-    const programEntryId = formData.get('programEntryId')?.toString();
-    if (programEntryId) {
-      await db.delete(EventProgram).where(eq(EventProgram.id, programEntryId));
-      return Astro.redirect(`/ensembles/${id}/events/${eventId}`);
-    }
-  }
+// Re-fetch event after a potential edit so the page reflects the latest values
+const editResult = Astro.getActionResult(actions.events.edit);
+if (editResult && !editResult.error) {
+  const [updatedEvent] = await db.select().from(Event).where(eq(Event.id, eventId));
+  if (updatedEvent) Object.assign(event, updatedEvent);
 }
+
+const checkInResult = Astro.getActionResult(actions.events.checkIn);
+const addAttendanceResult = Astro.getActionResult(actions.events.addAttendance);
+const removeAttendanceResult = Astro.getActionResult(actions.events.removeAttendance);
+
+let message = '';
+if (checkInResult?.error) message = checkInResult.error.message || 'Check-in failed.';
+else if (checkInResult) message = 'Successfully checked in!';
+else if (addAttendanceResult && !addAttendanceResult.error) message = 'Member marked as present.';
+else if (removeAttendanceResult && !removeAttendanceResult.error) message = 'Attendance removed.';
+else if (editResult && !editResult.error) message = 'Event updated successfully!';
+else if (editResult?.error) message = editResult.error.message || 'Failed to update event.';
 
 // Get attendance records
 const attendanceRecords = await db
@@ -181,7 +95,7 @@ const allMembers = await db
   })
   .from(EnsembleMember)
   .innerJoin(User, eq(EnsembleMember.userId, User.id))
-  .where(eq(EnsembleMember.ensembleId, id));
+  .where(eq(EnsembleMember.ensembleId, ensemble.id));
 
 const attendedUserIds = new Set(attendanceRecords.map(a => a.userId));
 const absentMembers = allMembers.filter(m => !attendedUserIds.has(m.id));
@@ -242,13 +156,13 @@ const isPerformance = event.category === 'performance';
     <div class="navbar-item has-dropdown is-hoverable" slot="navbar-start">
       <a class="navbar-link">{ensemble.name}</a>
       <div class="navbar-dropdown">
-        <a class={`navbar-item${Astro.url.pathname === `/ensembles/${id}` ? ' is-active' : ''}`} href={`/ensembles/${id}`}>
+        <a class={`navbar-item${Astro.url.pathname === `/ensembles/${canonicalId}` ? ' is-active' : ''}`} href={`/ensembles/${canonicalId}`}>
           <span class="icon is-small mr-1"><i class="fas fa-home"></i></span>
           Dashboard
         </a>
         <hr class="navbar-divider" />
         {ensembleAdminTools.map((tool) => {
-          const href = tool.href(id!);
+          const href = tool.href(canonicalId);
           return (
             <a class={`navbar-item${Astro.url.pathname.startsWith(href) ? ' is-active' : ''}`} href={href}>
               <span class="icon is-small mr-1"><i class={`fas ${tool.icon}`}></i></span>
@@ -305,19 +219,19 @@ const isPerformance = event.category === 'performance';
       <div class="level-item">
         <div class="buttons">
           {isAdmin && (
-            <button class="button is-warning" id="edit-event-btn">
+            <Button color="warning" id="edit-event-btn">
               <span class="icon">
                 <i class="fas fa-edit"></i>
               </span>
               <span>Edit Event</span>
-            </button>
+            </Button>
           )}
-          <a href={`/ensembles/${id}/events`} class="button">
+          <Button href={`/ensembles/${canonicalId}/events`}>
             <span class="icon">
               <i class="fas fa-arrow-left"></i>
             </span>
             <span>Back to Events</span>
-          </a>
+          </Button>
         </div>
       </div>
     </div>
@@ -349,25 +263,26 @@ const isPerformance = event.category === 'performance';
         )}
 
         {!isPast && !isUserCheckedIn && canCheckIn && (
-          <form method="POST">
-            <input type="hidden" name="action" value="checkin" />
-            <button type="submit" class="button is-primary is-large is-fullwidth">
+          <form method="POST" action={actions.events.checkIn}>
+            <input type="hidden" name="ensembleId" value={ensemble.id} />
+            <input type="hidden" name="eventId" value={event.id} />
+            <Button type="submit" color="primary" size="large" fullwidth>
               <span class="icon">
                 <i class="fas fa-check"></i>
               </span>
               <span>Check In Now</span>
-            </button>
+            </Button>
           </form>
         )}
 
         {!isPast && !isUserCheckedIn && !canCheckIn && !isAdmin && (
           <div>
-            <button type="button" class="button is-large is-fullwidth" disabled>
+            <Button type="button" size="large" fullwidth disabled>
               <span class="icon">
                 <i class="fas fa-lock"></i>
               </span>
               <span>Check-in {isTooEarly ? 'Not Yet Available' : 'Closed'}</span>
-            </button>
+            </Button>
             <p class="help mt-2 has-text-centered">
               {isTooEarly && `Check-in opens ${ensemble.checkInStartMinutes} minutes before event`}
               {isTooLate && `Check-in closed ${ensemble.checkInEndMinutes} minutes after event start`}
@@ -376,14 +291,15 @@ const isPerformance = event.category === 'performance';
         )}
 
         {!isPast && !isUserCheckedIn && !canCheckIn && isAdmin && (
-          <form method="POST">
-            <input type="hidden" name="action" value="checkin" />
-            <button type="submit" class="button is-warning is-large is-fullwidth">
+          <form method="POST" action={actions.events.checkIn}>
+            <input type="hidden" name="ensembleId" value={ensemble.id} />
+            <input type="hidden" name="eventId" value={event.id} />
+            <Button type="submit" color="warning" size="large" fullwidth>
               <span class="icon">
                 <i class="fas fa-user-shield"></i>
               </span>
               <span>Admin Check-In (Bypasses Time Window)</span>
-            </button>
+            </Button>
           </form>
         )}
 
@@ -463,12 +379,12 @@ const isPerformance = event.category === 'performance';
                       </span>
                     </td>
                     <td>
-                      <form method="POST" style="display: inline;">
-                        <input type="hidden" name="action" value="remove" />
+                      <form method="POST" action={actions.events.removeAttendance} style="display: inline;">
+                        <input type="hidden" name="ensembleId" value={ensemble.id} />
                         <input type="hidden" name="attendanceId" value={record.id} />
-                        <button type="submit" class="button is-danger is-small">
+                        <Button type="submit" color="danger" size="small">
                           Remove
-                        </button>
+                        </Button>
                       </form>
                     </td>
                   </tr>
@@ -492,12 +408,13 @@ const isPerformance = event.category === 'performance';
                     <input class="input is-static" type="text" value={member.name} readonly />
                   </div>
                   <div class="control">
-                    <form method="POST" style="display: inline;">
-                      <input type="hidden" name="action" value="add" />
+                    <form method="POST" action={actions.events.addAttendance} style="display: inline;">
+                      <input type="hidden" name="ensembleId" value={ensemble.id} />
+                      <input type="hidden" name="eventId" value={event.id} />
                       <input type="hidden" name="userId" value={member.id} />
-                      <button type="submit" class="button is-success">
+                      <Button type="submit" color="success">
                         Mark Present
-                      </button>
+                      </Button>
                     </form>
                   </div>
                 </div>
@@ -540,12 +457,12 @@ const isPerformance = event.category === 'performance';
                 <td class="has-text-grey">{song.composer ?? '—'}</td>
                 {isAdmin && (
                   <td>
-                    <form method="POST" style="display: inline;">
-                      <input type="hidden" name="action" value="remove-program-song" />
+                    <form method="POST" action={actions.events.removeProgramSong} style="display: inline;">
+                      <input type="hidden" name="ensembleId" value={ensemble.id} />
                       <input type="hidden" name="programEntryId" value={song.entryId} />
-                      <button type="submit" class="button is-danger is-small">
+                      <Button type="submit" color="danger" size="small">
                         <span class="icon is-small"><i class="fas fa-times"></i></span>
-                      </button>
+                      </Button>
                     </form>
                   </td>
                 )}
@@ -556,8 +473,9 @@ const isPerformance = event.category === 'performance';
       )}
 
       {isAdmin && availableSeasonSongs.length > 0 && (
-        <form method="POST" class="mt-4">
-          <input type="hidden" name="action" value="add-program-song" />
+        <form method="POST" action={actions.events.addProgramSong} class="mt-4">
+          <input type="hidden" name="ensembleId" value={ensemble.id} />
+          <input type="hidden" name="eventId" value={event.id} />
           <div class="field has-addons">
             <div class="control is-expanded">
               <div class="select is-fullwidth">
@@ -571,10 +489,10 @@ const isPerformance = event.category === 'performance';
               </div>
             </div>
             <div class="control">
-              <button type="submit" class="button is-primary">
+              <Button type="submit" color="primary">
                 <span class="icon"><i class="fas fa-plus"></i></span>
                 <span>Add to Program</span>
-              </button>
+              </Button>
             </div>
           </div>
           <p class="help">Only songs from the current season's repertoire can be added.</p>
@@ -588,7 +506,7 @@ const isPerformance = event.category === 'performance';
       {isAdmin && availableSeasonSongs.length === 0 && programSongs.length === 0 && (
         <p class="is-size-7 has-text-grey mt-3">
           No songs in the current season's repertoire.
-          <a href={`/ensembles/${id}/songs`}> Add songs to the season</a> first.
+          <a href={`/ensembles/${canonicalId}/songs`}> Add songs to the season</a> first.
         </p>
       )}
     </div>
@@ -603,9 +521,10 @@ const isPerformance = event.category === 'performance';
           <p class="modal-card-title">Edit Event</p>
           <button class="delete" aria-label="close" id="close-edit-modal"></button>
         </header>
-        <form method="POST">
+        <form method="POST" action={actions.events.edit}>
           <section class="modal-card-body">
-            <input type="hidden" name="action" value="edit" />
+            <input type="hidden" name="ensembleId" value={ensemble.id} />
+            <input type="hidden" name="eventId" value={event.id} />
 
             <div class="field">
               <label class="label" for="edit-title">Title</label>
@@ -697,8 +616,8 @@ const isPerformance = event.category === 'performance';
             </div>
           </section>
           <footer class="modal-card-foot">
-            <button class="button is-primary" type="submit">Save Changes</button>
-            <button class="button" type="button" id="cancel-edit">Cancel</button>
+            <Button color="primary" type="submit">Save Changes</Button>
+            <Button type="button" id="cancel-edit">Cancel</Button>
           </footer>
         </form>
       </div>

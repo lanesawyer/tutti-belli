@@ -1,5 +1,6 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import Button from '../components/Button.astro';
 import { db, eq, User } from 'astro:db';
 import { verifyPassword } from '../lib/auth';
 import { createSession } from '../lib/session';
@@ -31,8 +32,7 @@ if (Astro.request.method === 'POST') {
           maxAge: 60 * 60 * 24 * 30, // 30 days
         });
 
-        const redirectUrl = await getRedirectUrl(user.id, customRedirect);
-        return Astro.redirect(redirectUrl);
+        return Astro.redirect(await getRedirectUrl(user.id, customRedirect));
       }
     }
   } catch (e) {
@@ -42,8 +42,7 @@ if (Astro.request.method === 'POST') {
 
 // Redirect if already logged in
 if (Astro.locals.user) {
-  const redirectUrl = await getRedirectUrl(Astro.locals.user.id, customRedirect);
-  return Astro.redirect(redirectUrl);
+  return Astro.redirect(await getRedirectUrl(Astro.locals.user.id, customRedirect));
 }
 ---
 
@@ -95,9 +94,9 @@ if (Astro.locals.user) {
 
         <div class="field">
           <div class="control">
-            <button class="button is-primary is-fullwidth" type="submit">
+            <Button color="primary" fullwidth type="submit">
               Log In
-            </button>
+            </Button>
           </div>
         </div>
       </form>

@@ -1,4 +1,4 @@
-# Ensemble Management Software
+# Tutti Belli
 
 A web application for managing musical ensembles built with Astro, Astro DB, and Bulma CSS.
 
@@ -40,7 +40,7 @@ A web application for managing musical ensembles built with Astro, Astro DB, and
 1. Clone the repository:
 ```bash
 git clone <repository-url>
-cd ensemble-management-software
+cd tutti-belli
 ```
 
 2. Install dependencies:

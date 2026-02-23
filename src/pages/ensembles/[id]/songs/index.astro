@@ -2,6 +2,7 @@
 import EnsemblePageLayout from '../../../../layouts/EnsemblePageLayout.astro';
 import Table from '../../../../components/Table.astro';
 import Modal from '../../../../components/Modal.astro';
+import Button from '../../../../components/Button.astro';
 import { canManageEnsemble } from '../../../../lib/permissions';
 import {
   getSongsPageData,
@@ -9,13 +10,10 @@ import {
   buildSongPartsMap,
   buildSongSeasonsMap,
   buildSongFilesMap,
-  addSong,
-  editSong,
-  deleteSong,
-  addSongFile,
-  deleteSongFile,
   formatRuntime,
 } from '../../../../lib/songs';
+import { getEnsembleUrlId } from '../../../../lib/slug';
+import { actions } from 'astro:actions';
 
 const user = Astro.locals.user!;
 const { id } = Astro.params;
@@ -27,22 +25,28 @@ if (!ensemble) {
   return new Response('Ensemble not found', { status: 404 });
 }
 
-const membership = await getMembership(id!, user.id);
+const canonicalId = getEnsembleUrlId(ensemble);
+if (id !== canonicalId) {
+  return Astro.redirect(Astro.url.pathname.replace(`/ensembles/${id}`, `/ensembles/${canonicalId}`), 301);
+}
+
+const membership = await getMembership(ensemble.id, user.id);
 const isAdmin = canManageEnsemble(user, membership);
 
-if (Astro.request.method === 'POST') {
-  if (!isAdmin) return new Response('Unauthorized', { status: 403 });
+const addResult = Astro.getActionResult(actions.songs.add);
+const editResult = Astro.getActionResult(actions.songs.edit);
+const deleteResult = Astro.getActionResult(actions.songs.delete);
+const addFileResult = Astro.getActionResult(actions.songs.addFile);
+const deleteFileResult = Astro.getActionResult(actions.songs.deleteFile);
 
-  const formData = await Astro.request.formData();
-  const action = formData.get('action');
-
-  if (action === 'add') await addSong(id!, formData);
-  else if (action === 'edit') await editSong(formData);
-  else if (action === 'delete') await deleteSong(formData);
-  else if (action === 'add_file') await addSongFile(formData, user.id);
-  else if (action === 'delete_file') await deleteSongFile(formData);
-
-  return Astro.redirect(`/ensembles/${id}/songs`);
+if (
+  (addResult && !addResult.error) ||
+  (editResult && !editResult.error) ||
+  (deleteResult && !deleteResult.error) ||
+  (addFileResult && !addFileResult.error) ||
+  (deleteFileResult && !deleteFileResult.error)
+) {
+  return Astro.redirect(`/ensembles/${canonicalId}/songs`);
 }
 
 const ensembleSongIds = new Set(songs.map((s) => s.id));
@@ -54,16 +58,16 @@ const songFilesMap = buildSongFilesMap(ensembleSongIds, songFilesData);
 <EnsemblePageLayout
   title={`Songs - ${ensemble.name}`}
   ensembleName={ensemble.name}
-  ensembleId={id!}
+  ensembleId={canonicalId}
   pageTitle="Songs"
   pageSubtitle={`Repertoire for ${ensemble.name}`}
   isAdmin={isAdmin}
 >
   {isAdmin && (
-    <button slot="action" class="button is-primary" id="add-song-btn">
+    <Button slot="action" color="primary" id="add-song-btn">
       <span class="icon"><i class="fas fa-plus"></i></span>
       <span>Add Song</span>
-    </button>
+    </Button>
   )}
 
   {songs.length === 0 ? (
@@ -91,7 +95,7 @@ const songFilesMap = buildSongFilesMap(ensembleSongIds, songFilesData);
           return (
             <tr>
               <td>
-                <a href={`/ensembles/${id}/songs/${song.id}`} class="has-text-weight-bold">
+                <a href={`/ensembles/${canonicalId}/songs/${song.id}`} class="has-text-weight-bold">
                   {song.name}
                 </a>
               </td>
@@ -120,22 +124,22 @@ const songFilesMap = buildSongFilesMap(ensembleSongIds, songFilesData);
               </td>
               <td>
                 <div class="buttons are-small">
-                  <button
-                    class="button is-linkspan files-btn"
+                  <Button
+                    class="is-linkspan files-btn"
                     data-song-id={song.id}
                     data-song-name={song.name}
                   >
                     <span class="icon is-small"><i class="fas fa-folder-open"></i></span>
                     {songFiles.length > 0 && <span>{songFiles.length}</span>}
-                  </button>
+                  </Button>
                   {isAdmin && (
                     <>
-                      <button class="button is-info edit-btn" data-song-id={song.id}>
+                      <Button color="info" class="edit-btn" data-song-id={song.id}>
                         <span class="icon is-small"><i class="fas fa-pencil"></i></span>
-                      </button>
-                      <button class="button is-danger delete-btn" data-song-id={song.id}>
+                      </Button>
+                      <Button color="danger" class="delete-btn" data-song-id={song.id}>
                         <span class="icon is-small"><i class="fas fa-trash"></i></span>
-                      </button>
+                      </Button>
                     </>
                   )}
                 </div>
@@ -150,8 +154,8 @@ const songFilesMap = buildSongFilesMap(ensembleSongIds, songFilesData);
   <Fragment slot="modals">
 <!-- Add Song Modal -->
 <Modal id="addModal" title="Add Song">
-  <form id="addForm" method="POST">
-    <input type="hidden" name="action" value="add" />
+  <form id="addForm" method="POST" action={actions.songs.add}>
+    <input type="hidden" name="ensembleId" value={ensemble.id} />
 
     <div class="field">
       <label class="label" for="name">Song Name *</label>
@@ -222,8 +226,8 @@ const songFilesMap = buildSongFilesMap(ensembleSongIds, songFilesData);
   </form>
 
   <div slot="footer">
-    <button type="submit" form="addForm" class="button is-primary">Add Song</button>
-    <button class="button" type="button" data-modal-close>Cancel</button>
+    <Button type="submit" form="addForm" color="primary">Add Song</Button>
+    <Button type="button" data-modal-close>Cancel</Button>
   </div>
 </Modal>
 
@@ -240,8 +244,8 @@ const songFilesMap = buildSongFilesMap(ensembleSongIds, songFilesData);
       <hr />
 
       <h3 class="title is-6">Add File</h3>
-      <form id="addFileForm" method="POST">
-        <input type="hidden" name="action" value="add_file" />
+      <form id="addFileForm" method="POST" action={actions.songs.addFile}>
+        <input type="hidden" name="ensembleId" value={ensemble.id} />
         <input type="hidden" name="songId" id="addFileSongId" />
 
         <div class="field">
@@ -274,10 +278,10 @@ const songFilesMap = buildSongFilesMap(ensembleSongIds, songFilesData);
 
         <div class="field">
           <div class="control">
-            <button type="submit" class="button is-primary is-small">
+            <Button type="submit" color="primary" size="small">
               <span class="icon is-small"><i class="fas fa-plus"></i></span>
               <span>Add File</span>
-            </button>
+            </Button>
           </div>
         </div>
       </form>
@@ -285,14 +289,14 @@ const songFilesMap = buildSongFilesMap(ensembleSongIds, songFilesData);
   )}
 
   <div slot="footer">
-    <button class="button" type="button" data-modal-close>Close</button>
+    <Button type="button" data-modal-close>Close</Button>
   </div>
 </Modal>
 
 <!-- Edit Modal -->
 <Modal id="editModal" title="Edit Song">
-  <form id="editForm" method="POST">
-    <input type="hidden" name="action" value="edit" />
+  <form id="editForm" method="POST" action={actions.songs.edit}>
+    <input type="hidden" name="ensembleId" value={ensemble.id} />
     <input type="hidden" name="songId" id="editSongId" />
 
     <div class="field">
@@ -361,22 +365,22 @@ const songFilesMap = buildSongFilesMap(ensembleSongIds, songFilesData);
   </form>
 
   <div slot="footer">
-    <button type="submit" form="editForm" class="button is-primary">Save Changes</button>
-    <button class="button" type="button" data-modal-close>Cancel</button>
+    <Button type="submit" form="editForm" color="primary">Save Changes</Button>
+    <Button type="button" data-modal-close>Cancel</Button>
   </div>
 </Modal>
 
 <!-- Delete Confirmation Modal -->
 <Modal id="deleteModal" title="Delete Song">
   <p>Are you sure you want to delete this song? This action cannot be undone.</p>
-  <form id="deleteForm" method="POST">
-    <input type="hidden" name="action" value="delete" />
+  <form id="deleteForm" method="POST" action={actions.songs.delete}>
+    <input type="hidden" name="ensembleId" value={ensemble.id} />
     <input type="hidden" name="songId" id="deleteSongId" />
   </form>
 
   <div slot="footer">
-    <button type="submit" form="deleteForm" class="button is-danger">Delete</button>
-    <button class="button" type="button" data-modal-close>Cancel</button>
+    <Button type="submit" form="deleteForm" color="danger">Delete</Button>
+    <Button type="button" data-modal-close>Cancel</Button>
   </div>
 </Modal>
 
@@ -387,10 +391,12 @@ const songFilesMap = buildSongFilesMap(ensembleSongIds, songFilesData);
   data-song-seasons={JSON.stringify(Array.from(songSeasonsMap.entries()))}
   data-song-files={JSON.stringify(Array.from(songFilesMap.entries()))}
   data-is-admin={isAdmin ? 'true' : 'false'}
+  data-ensemble-id={ensemble.id}
 ></script>
 
 <script is:inline>
   const dataScript = document.currentScript.previousElementSibling;
+  const ensembleId = dataScript.dataset.ensembleId || '';
   const songsData = JSON.parse(dataScript.dataset.songs || '[]');
   const songPartsMapJS = new Map(JSON.parse(dataScript.dataset.songParts || '[]'));
   const songSeasonsMapJS = new Map(JSON.parse(dataScript.dataset.songSeasons || '[]'));
@@ -428,11 +434,11 @@ const songFilesMap = buildSongFilesMap(ensembleSongIds, songFilesData);
     container.innerHTML = files.map(f => `
       <div class="is-flex is-align-items-center mb-2" style="gap: 0.5rem;">
         <span class="tag ${categoryTagClass(f.category)} is-small" style="flex-shrink:0;">${categoryLabel(f.category)}</span>
-        <a href="${f.url}" target="_blank" rel="noopener" class="has-text-weight-medium"
+        <a href="/files/${f.id}" class="has-text-weight-medium"
            style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${f.name}</a>
         ${isAdmin ? `
-        <form method="POST" style="flex-shrink:0;" onsubmit="return confirm('Delete this file?');">
-          <input type="hidden" name="action" value="delete_file" />
+        <form method="POST" action="/_actions/songs.deleteFile" style="flex-shrink:0;" onsubmit="return confirm('Delete this file?');">
+          <input type="hidden" name="ensembleId" value="${ensembleId}" />
           <input type="hidden" name="fileId" value="${f.id}" />
           <button type="submit" class="button is-danger is-small">
             <span class="icon is-small"><i class="fas fa-trash"></i></span>
