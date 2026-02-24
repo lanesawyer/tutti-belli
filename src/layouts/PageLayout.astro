@@ -8,6 +8,7 @@ interface Props {
   pageSubtitle?: string;
   message?: string;
   messageType?: 'link' | 'primary' | 'info' | 'success' | 'warning' | 'danger';
+  backgroundIcon?: string;
 }
 
 const {
@@ -16,10 +17,11 @@ const {
   pageSubtitle,
   message,
   messageType = 'success',
+  backgroundIcon,
 } = Astro.props;
 ---
 
-<Layout title={title}>
+<Layout title={title} backgroundIcon={backgroundIcon}>
   <slot name="navbar-start" slot="navbar-start" />
 
   <slot name="before" />

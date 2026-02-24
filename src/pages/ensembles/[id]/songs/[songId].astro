@@ -51,6 +51,7 @@ const songSeasons = seasonSongsData.map((ss) => seasons.find((s) => s.id === ss.
   pageTitle={song.name}
   extraBreadcrumbs={[['Songs', `/ensembles/${canonicalId}/songs`]]}
   isAdmin={isAdmin}
+  backgroundIcon="fa-music"
 >
   {isAdmin && (
     <Button slot="action" href={`/ensembles/${canonicalId}/songs`}>

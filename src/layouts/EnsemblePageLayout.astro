@@ -14,6 +14,7 @@ interface Props {
   message?: string;
   messageType?: 'link' | 'primary' | 'info' | 'success' | 'warning' | 'danger';
   isAdmin?: boolean;
+  backgroundIcon?: string;
 }
 
 const {
@@ -26,6 +27,7 @@ const {
   message,
   messageType,
   isAdmin = false,
+  backgroundIcon,
 } = Astro.props;
 
 const currentPath = Astro.url.pathname;
@@ -37,6 +39,7 @@ const currentPath = Astro.url.pathname;
   pageSubtitle={pageSubtitle}
   message={message}
   messageType={messageType}
+  backgroundIcon={backgroundIcon}
 >
   {isAdmin && (
     <div class="navbar-item has-dropdown is-hoverable" slot="navbar-start">

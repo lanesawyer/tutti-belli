@@ -7,9 +7,11 @@ import { getActiveBanner } from '../lib/banner';
 
 interface Props {
   title: string;
+  /** Font Awesome icon class (e.g. "fa-music") to tile as a subtle background pattern */
+  backgroundIcon?: string;
 }
 
-const { title } = Astro.props;
+const { title, backgroundIcon } = Astro.props;
 
 const activeBanner = await getActiveBanner();
 ---
@@ -172,9 +174,97 @@ const activeBanner = await getActiveBanner();
       .site-banner-primary { background-color: #00d1b2; color: #fff; }
       .site-banner-link    { background-color: #485fc7; color: #fff; }
 
+      .page-bg-pattern {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 0;
+        pointer-events: none;
+        display: grid;
+        grid-template-columns: repeat(8, 1fr);
+        align-content: start;
+        gap: 3rem 3rem;
+        padding: 2rem;
+        opacity: 0.04;
+        user-select: none;
+        will-change: transform;
+      }
+
+      .page-bg-pattern i {
+        font-size: 2rem;
+        color: currentColor;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      /* Offset every other row by half a column to create a diagonal diamond pattern */
+      .page-bg-pattern i:nth-child(16n+9),
+      .page-bg-pattern i:nth-child(16n+10),
+      .page-bg-pattern i:nth-child(16n+11),
+      .page-bg-pattern i:nth-child(16n+12),
+      .page-bg-pattern i:nth-child(16n+13),
+      .page-bg-pattern i:nth-child(16n+14),
+      .page-bg-pattern i:nth-child(16n+15),
+      .page-bg-pattern i:nth-child(16n+16) {
+        transform: translateX(50%);
+      }
+
+      /* Ensure page content sits above the background */
+      #site-header,
+      main {
+        position: relative;
+        z-index: 1;
+      }
+
     </style>
   </head>
   <body style="min-height: 100vh; display: flex; flex-direction: column;">
+    <div class="page-bg-pattern" aria-hidden="true" transition:persist="page-bg-pattern" data-icon={backgroundIcon || ''}>
+      {Array.from({ length: 192 }).map(() => (
+        <i class={backgroundIcon ? `fas ${backgroundIcon}` : ''}></i>
+      ))}
+    </div>
+    <script is:inline>
+      // JS-driven animation using wall-clock time so it never resets on navigation.
+      // The rAF loop starts once and runs for the lifetime of the page session.
+      (function () {
+        const DURATION = 200000; // ms for one full cycle, must stay in sync with any CSS changes
+        let rafId = null;
+
+        function tick() {
+          const el = document.querySelector('.page-bg-pattern');
+          if (el && el.dataset.icon) {
+            // progress 0..1 based on wall clock, loops seamlessly
+            const progress = (Date.now() % DURATION) / DURATION;
+            // drift from -50% to 0% (icons scroll upward into view from bottom)
+            const y = -50 + progress * 50;
+            el.style.transform = `translateY(${y}%)`;
+          }
+          rafId = requestAnimationFrame(tick);
+        }
+
+        // Only start one loop ever, even across Astro's client-side navigations
+        if (!window.__bgPatternRaf) {
+          window.__bgPatternRaf = true;
+          tick();
+        }
+
+        // Update icon class when navigating to a page with a different (or no) icon
+        document.addEventListener('astro:before-swap', (e) => {
+          const incoming = e.newDocument.querySelector('.page-bg-pattern');
+          const current = document.querySelector('.page-bg-pattern');
+          if (!current) return;
+          const icon = incoming ? incoming.dataset.icon : '';
+          current.dataset.icon = icon;
+          current.querySelectorAll('i').forEach(i => {
+            i.className = icon ? `fas ${icon}` : '';
+          });
+          current.style.display = icon ? '' : 'none';
+        });
+      })();
+    </script>
     <div id="site-header" style="position: sticky; top: 0; z-index: 30;">
       {activeBanner && (
         <div id="site-banner" class={`site-banner-${activeBanner.color}`}>

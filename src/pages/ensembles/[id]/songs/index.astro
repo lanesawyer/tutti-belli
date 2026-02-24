@@ -67,6 +67,7 @@ const songFilesMap = buildSongFilesMap(ensembleSongIds, songFilesData);
   pageTitle="Songs"
   pageSubtitle={`Repertoire for ${ensemble.name}`}
   isAdmin={isAdmin}
+  backgroundIcon="fa-music"
 >
   {isAdmin && (
     <Button slot="action" color="primary" id="add-song-btn">
