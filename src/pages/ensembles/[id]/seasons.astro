@@ -388,60 +388,62 @@ const membershipsBySeasonId = seasonMemberships.reduce((acc, m) => {
 )}
 
 <script is:inline define:vars={{ membershipsBySeasonId }}>
-  document.getElementById('create-season-btn')?.addEventListener('click', () => {
-    document.getElementById('create-modal')?.classList.add('is-active');
-  });
-
-  document.querySelectorAll('.edit-season-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.getElementById('edit-seasonId').value = btn.getAttribute('data-season-id');
-      document.getElementById('edit-name').value = btn.getAttribute('data-season-name');
-      document.getElementById('edit-startDate').value = btn.getAttribute('data-season-start');
-      document.getElementById('edit-endDate').value = btn.getAttribute('data-season-end');
-      document.getElementById('edit-setActive').checked = btn.getAttribute('data-season-active') === 'true';
-      document.getElementById('edit-modal')?.classList.add('is-active');
+  document.addEventListener('astro:page-load', () => {
+    document.getElementById('create-season-btn')?.addEventListener('click', () => {
+      document.getElementById('create-modal')?.classList.add('is-active');
     });
-  });
 
-  document.querySelectorAll('.manage-members-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const seasonId = btn.getAttribute('data-season-id');
-      document.getElementById('members-seasonId').value = seasonId;
-
-      const seasonMembers = membershipsBySeasonId[seasonId] || [];
-      const memberUserIds = new Set(seasonMembers.map(m => m.userId));
-
-      document.querySelectorAll('.member-checkbox').forEach(checkbox => {
-        checkbox.checked = memberUserIds.has(checkbox.getAttribute('data-user-id'));
+    document.querySelectorAll('.edit-season-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.getElementById('edit-seasonId').value = btn.getAttribute('data-season-id');
+        document.getElementById('edit-name').value = btn.getAttribute('data-season-name');
+        document.getElementById('edit-startDate').value = btn.getAttribute('data-season-start');
+        document.getElementById('edit-endDate').value = btn.getAttribute('data-season-end');
+        document.getElementById('edit-setActive').checked = btn.getAttribute('data-season-active') === 'true';
+        document.getElementById('edit-modal')?.classList.add('is-active');
       });
-
-      document.getElementById('members-modal')?.classList.add('is-active');
     });
-  });
 
-  document.querySelectorAll('.member-checkbox').forEach(checkbox => {
-    checkbox.addEventListener('change', async () => {
-      const seasonId = document.getElementById('members-seasonId').value;
-      const userId = checkbox.getAttribute('data-user-id');
+    document.querySelectorAll('.manage-members-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const seasonId = btn.getAttribute('data-season-id');
+        document.getElementById('members-seasonId').value = seasonId;
 
-      const formData = new FormData();
-      formData.append('action', 'toggle-member');
-      formData.append('seasonId', seasonId);
-      formData.append('userId', userId);
+        const seasonMembers = membershipsBySeasonId[seasonId] || [];
+        const memberUserIds = new Set(seasonMembers.map(m => m.userId));
 
-      await fetch('', { method: 'POST', body: formData });
+        document.querySelectorAll('.member-checkbox').forEach(checkbox => {
+          checkbox.checked = memberUserIds.has(checkbox.getAttribute('data-user-id'));
+        });
+
+        document.getElementById('members-modal')?.classList.add('is-active');
+      });
     });
-  });
 
-  document.getElementById('close-members-btn')?.addEventListener('click', () => {
-    document.getElementById('members-modal')?.classList.remove('is-active');
-    window.location.reload();
-  });
+    document.querySelectorAll('.member-checkbox').forEach(checkbox => {
+      checkbox.addEventListener('change', async () => {
+        const seasonId = document.getElementById('members-seasonId').value;
+        const userId = checkbox.getAttribute('data-user-id');
 
-  document.querySelectorAll('.delete-season-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.getElementById('delete-seasonId').value = btn.getAttribute('data-season-id');
-      document.getElementById('delete-modal')?.classList.add('is-active');
+        const formData = new FormData();
+        formData.append('action', 'toggle-member');
+        formData.append('seasonId', seasonId);
+        formData.append('userId', userId);
+
+        await fetch('', { method: 'POST', body: formData });
+      });
+    });
+
+    document.getElementById('close-members-btn')?.addEventListener('click', () => {
+      document.getElementById('members-modal')?.classList.remove('is-active');
+      window.location.reload();
+    });
+
+    document.querySelectorAll('.delete-season-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.getElementById('delete-seasonId').value = btn.getAttribute('data-season-id');
+        document.getElementById('delete-modal')?.classList.add('is-active');
+      });
     });
   });
 </script>

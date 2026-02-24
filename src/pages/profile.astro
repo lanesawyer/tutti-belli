@@ -9,7 +9,7 @@ const user = Astro.locals.user!;
 
 const updateNameResult = Astro.getActionResult(actions.profile.updateName);
 const updatePhoneResult = Astro.getActionResult(actions.profile.updatePhone);
-const updateAvatarResult = Astro.getActionResult(actions.profile.updateAvatar);
+const updateInfoResult = Astro.getActionResult(actions.profile.updateInfo);
 const updatePartResult = Astro.getActionResult(actions.profile.updatePart);
 const changeEmailResult = Astro.getActionResult(actions.profile.changeEmail);
 const deleteAccountResult = Astro.getActionResult(actions.profile.deleteAccount);
@@ -20,14 +20,14 @@ if (deleteAccountResult && !deleteAccountResult.error) {
 
 if (updateNameResult && !updateNameResult.error) return Astro.redirect('/profile');
 if (updatePhoneResult && !updatePhoneResult.error) return Astro.redirect('/profile');
-if (updateAvatarResult && !updateAvatarResult.error) return Astro.redirect('/profile');
+if (updateInfoResult && !updateInfoResult.error) return Astro.redirect('/profile');
 if (updatePartResult && !updatePartResult.error) return Astro.redirect('/profile');
 if (changeEmailResult && !changeEmailResult.error) return Astro.redirect('/profile?emailChangePending=1');
 
 const errorResult =
   updateNameResult?.error ||
   updatePhoneResult?.error ||
-  updateAvatarResult?.error ||
+  updateInfoResult?.error ||
   updatePartResult?.error ||
   changeEmailResult?.error ||
   deleteAccountResult?.error;
@@ -50,21 +50,64 @@ const { memberships, partsByEnsemble } = await getMembershipsWithParts(user.id);
     <div class="columns">
       <div class="column is-half">
         <div class="box">
-          <h2 class="title is-4">Personal Information</h2>
-
-          {user.avatarUrl && (
-            <div class="mb-4 has-text-centered">
-              <figure class="image is-128x128" style="margin: 0 auto;">
-                <img src={user.avatarUrl} alt={user.name} style="object-fit: cover; border-radius: 50%;" />
-              </figure>
+          <div class="is-flex is-align-items-center mb-5" style="gap: 1rem;">
+            {user.avatarUrl
+              ? (
+                <figure class="image is-96x96" style="flex-shrink: 0;">
+                  <img src={user.avatarUrl} alt={user.name} style="object-fit: cover; border-radius: 50%; width: 96px; height: 96px;" />
+                </figure>
+              )
+              : (
+                <span class="icon" style="flex-shrink: 0; width: 96px; height: 96px; font-size: 96px; line-height: 1;">
+                  <i class="fas fa-user-circle"></i>
+                </span>
+              )
+            }
+            <div>
+              <p class="title is-4 mb-1">{user.name}</p>
+              <div class="tags mb-0">
+                <span class={`tag ${user.role === 'admin' ? 'is-danger' : 'is-info'}`}>
+                  {user.role === 'admin' ? 'Site Administrator' : 'User'}
+                </span>
+              </div>
             </div>
-          )}
+          </div>
 
-          <form method="POST" enctype="multipart/form-data" action={actions.profile.updateAvatar} class="mb-5">
+          <form method="POST" enctype="multipart/form-data" action={actions.profile.updateInfo}>
+            <div class="field">
+              <label class="label" for="name">Name</label>
+              <div class="control">
+                <input
+                  class="input"
+                  type="text"
+                  id="name"
+                  name="name"
+                  value={user.name}
+                  required
+                />
+              </div>
+            </div>
+
+            <div class="field">
+              <label class="label" for="phone">Phone Number</label>
+              <div class="control">
+                <input
+                  class="input"
+                  type="tel"
+                  id="phone"
+                  name="phone"
+                  value={user.phone ?? ''}
+                  placeholder="333-333-3333"
+                  pattern="[0-9]{3}-[0-9]{3}-[0-9]{4}"
+                  title="###-###-####"
+                />
+              </div>
+            </div>
+
             <div class="field">
               <label class="label">Profile Picture</label>
               {user.avatarUrl && (
-                <label class="checkbox mb-2">
+                <label class="checkbox mb-2" style="display: block;">
                   <input type="checkbox" name="removeAvatar" value="true" />
                   Remove current avatar
                 </label>
@@ -102,66 +145,13 @@ const { memberships, partsByEnsemble } = await getMembershipsWithParts(user.id);
                   <span class="icon">
                     <i class="fas fa-save"></i>
                   </span>
-                  <span>Update Avatar</span>
+                  <span>Save</span>
                 </Button>
               </div>
             </div>
           </form>
 
           <hr />
-
-          <form method="POST" action={actions.profile.updateName} class="mt-4">
-            <div class="field">
-              <label class="label" for="name">Name</label>
-              <div class="field has-addons">
-                <div class="control is-expanded">
-                  <input
-                    class="input"
-                    type="text"
-                    id="name"
-                    name="name"
-                    value={user.name}
-                    required
-                  />
-                </div>
-                <div class="control">
-                  <Button type="submit" color="primary">
-                    <span class="icon">
-                      <i class="fas fa-save"></i>
-                    </span>
-                    <span>Save</span>
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </form>
-
-          <form method="POST" action={actions.profile.updatePhone} class="mt-4">
-            <div class="field">
-              <label class="label" for="phone">Phone Number</label>
-              <div class="field has-addons">
-                <div class="control is-expanded">
-                  <input
-                    class="input"
-                    type="tel"
-                    id="phone"
-                    name="phone"
-                    value={user.phone ?? ''}
-                    placeholder="333-333-3333"
-                    pattern="[0-9]{3}-[0-9]{3}-[0-9]{4}"
-                  />
-                </div>
-                <div class="control">
-                  <Button type="submit" color="primary">
-                    <span class="icon">
-                      <i class="fas fa-save"></i>
-                    </span>
-                    <span>Save</span>
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </form>
 
           <div class="field">
             <label class="label">Email</label>
@@ -209,22 +199,6 @@ const { memberships, partsByEnsemble } = await getMembershipsWithParts(user.id);
                 </form>
               </div>
             </details>
-          </div>
-
-          <div class="field">
-            <label class="label">Account Type</label>
-            <div class="control">
-              <span class={`tag is-medium ${user.role === 'admin' ? 'is-danger' : 'is-info'}`}>
-                {user.role === 'admin' ? 'Site Administrator' : 'User'}
-              </span>
-            </div>
-          </div>
-
-          <div class="field">
-            <label class="label">Member Since</label>
-            <div class="control">
-              <input class="input" type="text" value={new Date(user.createdAt).toLocaleDateString()} disabled />
-            </div>
           </div>
         </div>
       </div>
@@ -295,15 +269,6 @@ const { memberships, partsByEnsemble } = await getMembershipsWithParts(user.id);
           )}
         </div>
       </div>
-    </div>
-
-    <div class="buttons mt-5">
-      <Button href="/ensembles" color="primary">
-        <span class="icon">
-          <i class="fas fa-users"></i>
-        </span>
-        <span>My Ensembles</span>
-      </Button>
     </div>
 
     <div class="box mt-5" style="border: 2px solid hsl(var(--bulma-danger-h), var(--bulma-danger-s), var(--bulma-danger-l));">

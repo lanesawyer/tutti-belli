@@ -68,6 +68,37 @@ export const profile = {
     },
   }),
 
+  updateInfo: defineAction({
+    accept: 'form',
+    input: z.object({
+      name: z.string(),
+      phone: z.string().nullable(),
+      avatar: z.instanceof(File).optional(),
+      removeAvatar: z.coerce.boolean().optional(),
+    }),
+    handler: async ({ name, phone, avatar, removeAvatar }, context) => {
+      const user = context.locals.user;
+      if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
+      const nameResult = await updateName(user.id, name);
+      if (nameResult.type === 'error') {
+        throw new ActionError({ code: 'BAD_REQUEST', message: nameResult.message });
+      }
+      const phoneResult = await updatePhone(user.id, phone ?? undefined);
+      if (phoneResult.type === 'error') {
+        throw new ActionError({ code: 'BAD_REQUEST', message: phoneResult.message });
+      }
+      const avatarResult = await updateAvatar(
+        user.id,
+        user.avatarUrl,
+        avatar ?? new File([], ''),
+        removeAvatar ?? false
+      );
+      if (avatarResult.type === 'error') {
+        throw new ActionError({ code: 'BAD_REQUEST', message: avatarResult.message });
+      }
+    },
+  }),
+
   updateAvatar: defineAction({
     accept: 'form',
     input: z.object({
