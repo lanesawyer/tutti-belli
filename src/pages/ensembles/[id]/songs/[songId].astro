@@ -10,6 +10,7 @@ import {
 } from '../../../../lib/songs';
 import { canManageEnsemble } from '../../../../lib/permissions';
 import Button from '../../../../components/Button.astro';
+import FileInput from '../../../../components/FileInput.astro';
 import Notification from '../../../../components/Notification.astro';
 import { getEnsembleUrlId } from '../../../../lib/slug';
 import { actions } from 'astro:actions';
@@ -250,17 +251,13 @@ const songSeasons = seasonSongsData.map((ss) => seasons.find((s) => s.id === ss.
         <div class="columns is-multiline mt-2">
           <div class="column is-full" id="file-input-field">
             <div class="field">
-              <label class="label" for="file">File *</label>
-              <div class="control">
-                <input
-                  class="input"
-                  type="file"
-                  id="file"
-                  name="file"
-                  accept=".pdf,.mp3,application/pdf,audio/mpeg"
-                />
-              </div>
-              <p class="help">PDF or MP3, max 50 MB</p>
+              <FileInput
+                name="file"
+                id="file"
+                label="File *"
+                accept=".pdf,.mp3,application/pdf,audio/mpeg"
+                help="PDF or MP3, max 50 MB"
+              />
             </div>
           </div>
           <div class="column is-full" id="url-input-field" style="display:none;">
