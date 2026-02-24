@@ -1,5 +1,5 @@
 ---
-import Layout from './Layout.astro';
+import PageLayout from './PageLayout.astro';
 import { ensembleAdminTools } from '../lib/config';
 import Breadcrumb from '../components/Breadcrumb.astro';
 
@@ -12,7 +12,7 @@ interface Props {
   /** Extra breadcrumb entries before the active page. Each is [label, href]. */
   extraBreadcrumbs?: [string, string][];
   message?: string;
-  messageType?: string;
+  messageType?: 'link' | 'primary' | 'info' | 'success' | 'warning' | 'danger';
   isAdmin?: boolean;
 }
 
@@ -31,7 +31,13 @@ const {
 const currentPath = Astro.url.pathname;
 ---
 
-<Layout title={title}>
+<PageLayout
+  title={title}
+  pageTitle={pageTitle}
+  pageSubtitle={pageSubtitle}
+  message={message}
+  messageType={messageType}
+>
   {isAdmin && (
     <div class="navbar-item has-dropdown is-hoverable" slot="navbar-start">
       <a class="navbar-link">{ensembleName}</a>
@@ -54,35 +60,17 @@ const currentPath = Astro.url.pathname;
     </div>
   )}
 
-  <Breadcrumb items={[
-    { label: 'Ensembles', href: '/ensembles' },
-    { label: ensembleName, href: `/ensembles/${ensembleId}` },
-    ...extraBreadcrumbs.map(([label, href]) => ({ label, href })),
-    { label: pageTitle },
-  ]} />
+  <Breadcrumb
+    slot="before"
+    items={[
+      { label: 'Ensembles', href: '/ensembles' },
+      { label: ensembleName, href: `/ensembles/${ensembleId}` },
+      ...extraBreadcrumbs.map(([label, href]) => ({ label, href })),
+      { label: pageTitle },
+    ]}
+  />
 
-  <div class="level mb-4">
-    <div class="level-left">
-      <div class="level-item">
-        <div>
-          <h1 class="title">{pageTitle}</h1>
-          {pageSubtitle && <p class="subtitle">{pageSubtitle}</p>}
-        </div>
-      </div>
-    </div>
-    <div class="level-right">
-      <div class="level-item">
-        <slot name="action" />
-      </div>
-    </div>
-  </div>
-
-  {message && (
-    <div class={`notification is-${messageType} mb-4`}>
-      {message}
-    </div>
-  )}
-
+  <slot name="action" slot="action" />
   <slot />
-  <slot name="modals" />
-</Layout>
+  <slot name="modals" slot="modals" />
+</PageLayout>

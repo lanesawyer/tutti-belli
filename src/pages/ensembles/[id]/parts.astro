@@ -41,7 +41,7 @@ const editResult = Astro.getActionResult(actions.parts.edit);
 const deleteResult = Astro.getActionResult(actions.parts.delete);
 
 let message = '';
-let messageType = '';
+let messageType: 'success' | 'danger' | undefined;
 
 if (addResult) {
   if (addResult.error) {
