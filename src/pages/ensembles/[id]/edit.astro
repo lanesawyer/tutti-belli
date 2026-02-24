@@ -449,19 +449,21 @@ if (Astro.request.method === 'POST') {
   </section>
 
   <script>
-    // Update file name display
-    const fileInput = document.getElementById('imageInput') as HTMLInputElement;
-    const fileName = document.getElementById('fileName');
+    document.addEventListener('astro:page-load', () => {
+      // Update file name display
+      const fileInput = document.getElementById('imageInput') as HTMLInputElement;
+      const fileName = document.getElementById('fileName');
 
-    fileInput?.addEventListener('change', () => {
-      if (fileInput.files && fileInput.files.length > 0) {
-        const file = fileInput.files[0];
-        if (fileName) {
-          fileName.textContent = file.name;
+      fileInput?.addEventListener('change', () => {
+        if (fileInput.files && fileInput.files.length > 0) {
+          const file = fileInput.files[0];
+          if (fileName) {
+            fileName.textContent = file.name;
+          }
+        } else if (fileName) {
+          fileName.textContent = 'No file selected';
         }
-      } else if (fileName) {
-        fileName.textContent = 'No file selected';
-      }
+      });
     });
   </script>
 </Layout>

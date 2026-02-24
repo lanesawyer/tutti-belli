@@ -321,19 +321,21 @@ const { memberships, partsByEnsemble } = await getMembershipsWithParts(user.id);
   </div>
 
   <script>
-    // Update file name display for avatar upload
-    const avatarInput = document.getElementById('avatarInput') as HTMLInputElement;
-    const avatarFileName = document.getElementById('avatarFileName');
+    document.addEventListener('astro:page-load', () => {
+      // Update file name display for avatar upload
+      const avatarInput = document.getElementById('avatarInput') as HTMLInputElement;
+      const avatarFileName = document.getElementById('avatarFileName');
 
-    avatarInput?.addEventListener('change', () => {
-      if (avatarInput.files && avatarInput.files.length > 0) {
-        const file = avatarInput.files[0];
-        if (avatarFileName) {
-          avatarFileName.textContent = file.name;
+      avatarInput?.addEventListener('change', () => {
+        if (avatarInput.files && avatarInput.files.length > 0) {
+          const file = avatarInput.files[0];
+          if (avatarFileName) {
+            avatarFileName.textContent = file.name;
+          }
+        } else if (avatarFileName) {
+          avatarFileName.textContent = 'No file selected';
         }
-      } else if (avatarFileName) {
-        avatarFileName.textContent = 'No file selected';
-      }
+      });
     });
   </script>
 </Layout>
