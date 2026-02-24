@@ -5,7 +5,7 @@ import node from '@astrojs/node';
 
 // https://astro.build/config
 export default defineConfig({
-  site: 'https://tutti.lanesawyer.dev',
+  site: 'https://tuttibelli.org',
   integrations: [db()],
   output: 'server',
   adapter: node({

@@ -1,9 +1,9 @@
-# fly.toml app configuration file generated for ensemble-management-software on 2026-02-21T11:47:50-08:00
+# fly.toml app configuration file generated for tutti-belli on 2026-02-21T11:47:50-08:00
 #
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
 
-app = 'ensemble-management-software'
+app = 'tutti-belli'
 primary_region = 'sjc'
 
 [build]
