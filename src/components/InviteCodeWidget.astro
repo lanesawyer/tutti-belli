@@ -1,5 +1,6 @@
 ---
 import Button from './Button.astro';
+import Notification from './Notification.astro';
 
 interface Props {
   invites: Array<{
@@ -83,9 +84,9 @@ const { invites } = Astro.props;
       })}
     </div>
   ) : (
-    <div class="notification is-info is-light is-size-7">
+    <Notification color="info" light class="is-size-7">
       No invite codes yet.
-    </div>
+    </Notification>
   )}
 </div>
 

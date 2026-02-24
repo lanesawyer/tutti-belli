@@ -2,15 +2,7 @@
   "name": "ensemble-management-software",
   "type": "module",
   "version": "0.0.1",
-  "packageManager": "pnpm@10.30.1",
-  "engines": {
-    "node": "24.13.1",
-    "pnpm": "10.30.1"
-  },
-  "volta": {
-    "node": "24.13.1",
-    "pnpm": "10.30.1"
-  },
+  "packageManager": "pnpm@10.30.2",
   "scripts": {
     "dev": "astro dev",
     "dev:remote": "astro dev --remote",
@@ -51,5 +43,13 @@
     "drizzle-orm": "0.45.1",
     "oxlint": "0.16.12",
     "vitest": "4.0.18"
+  },
+  "engines": {
+    "node": "24.13.1",
+    "pnpm": "10.30.2"
+  },
+  "volta": {
+    "node": "24.13.1",
+    "pnpm": "10.30.2"
   }
 }

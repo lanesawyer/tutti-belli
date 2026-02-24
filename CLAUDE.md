@@ -81,3 +81,27 @@ Required in `.env` (see `.env.example`):
 
 ### Seed Data (dev mode)
 Local dev auto-seeds with: admin@example.com / admin123 (site admin), test@example.com / test123 (regular user), a "Chamber Orchestra" ensemble with invite code TEST1234, voice parts, a season, and a sample rehearsal.
+
+## Testing
+
+```bash
+pnpm test                  # Run all unit + integration tests (Vitest)
+pnpm test:coverage         # Run with coverage report
+pnpm test:e2e              # Run Playwright e2e tests (requires dev server)
+pnpm test:e2e:ui           # Playwright UI mode
+```
+
+### Test Structure
+
+Three tiers — write tests at the appropriate level for new code:
+
+- **Unit** (`tests/unit/`) — Pure functions in `src/lib/` with no DB or external deps. Use Vitest. If a file imports `storage.ts`, mock it first (it has module-level S3 side effects that crash without env vars).
+- **Integration** (`tests/integration/`) — `src/lib/` functions that query the DB. Use Vitest with the real LibSQL test DB (mocked via `tests/integration/__mocks__/astro-db.ts`). Use fixture helpers from `tests/integration/fixtures.ts` to create test data. Mock storage the same way as unit tests.
+- **E2E** (`tests/e2e/`) — Full browser flows via Playwright. Use the `chromium-admin` project (admin auth state) for admin-gated pages. Navigate to ensemble sub-pages by constructing the URL from `page.url()` rather than clicking navbar dropdown links (they are hidden until hovered in Bulma). Submit buttons that use `form="formId"` to associate with a form outside their DOM parent must be located with `button[type="submit"][form="formId"]`.
+
+### When to Write Tests
+
+- **New `src/lib/` function**: add a unit test; add an integration test if it touches the DB.
+- **New Astro Action**: the action schema/validation logic is tested via integration tests on the underlying lib function. Add an e2e test for the happy-path form flow.
+- **New page or feature**: add an e2e test covering the primary user flow and any permission boundaries.
+- **Bug fix**: add a test that would have caught the bug.

@@ -3,10 +3,10 @@ import EnsemblePageLayout from '../../../../layouts/EnsemblePageLayout.astro';
 import Table from '../../../../components/Table.astro';
 import Modal from '../../../../components/Modal.astro';
 import Button from '../../../../components/Button.astro';
-import { db, eq, and, desc, EnsembleMember, Event, Season } from 'astro:db';
+import Notification from '../../../../components/Notification.astro';
+import { db, eq, and, desc, Event, Season } from 'astro:db';
 import { actions } from 'astro:actions';
-import { canManageEnsemble } from '../../../../lib/permissions';
-import { getEnsembleBySlugOrId } from '../../../../lib/ensemble';
+import { getEnsembleBySlugOrId, getEnsembleAccess } from '../../../../lib/ensemble';
 import { getEnsembleUrlId } from '../../../../lib/slug';
 
 const user = Astro.locals.user!;
@@ -22,17 +22,9 @@ if (Astro.request.method === 'GET' && id !== canonicalId) {
   return Astro.redirect(Astro.url.pathname.replace(`/ensembles/${id}`, `/ensembles/${canonicalId}`), 301);
 }
 
-// Check if user is a member
-const [membership] = await db
-  .select()
-  .from(EnsembleMember)
-  .where(and(eq(EnsembleMember.ensembleId, ensemble.id), eq(EnsembleMember.userId, user.id)));
-
-if (!membership) {
-  return Astro.redirect('/ensembles');
-}
-
-const isAdmin = canManageEnsemble(user, membership);
+const access = await getEnsembleAccess(user, ensemble.id);
+if (!access) return Astro.redirect('/ensembles');
+const { isAdmin } = access;
 
 // Get the active season for this ensemble
 const [activeSeason] = await db
@@ -100,12 +92,12 @@ const pastEvents = events.filter(e => {
   )}
 
   {events.length === 0 ? (
-    <div class="notification is-info is-light">
+    <Notification color="info" light>
       No events scheduled yet.
       {!activeSeason && isAdmin && (
         <span> You need an <a href={`/ensembles/${canonicalId}/seasons`}>active season</a> before scheduling events.</span>
       )}
-    </div>
+    </Notification>
   ) : (
     <>
       {upcomingEvents.length > 0 && (

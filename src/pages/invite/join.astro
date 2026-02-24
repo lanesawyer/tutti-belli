@@ -1,6 +1,7 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import Button from '../../components/Button.astro';
+import Notification from '../../components/Notification.astro';
 import { db, eq, and, EnsembleInvite, EnsembleMember, Ensemble } from 'astro:db';
 import { APP_NAME } from '../../lib/config';
 
@@ -98,15 +99,15 @@ if (Astro.request.method === 'POST') {
       <p class="subtitle">{user ? 'Enter your invite code to join an ensemble' : 'Sign in or create an account to join'}</p>
 
       {error && (
-        <div class="notification is-danger is-light">
+        <Notification color="danger" light>
           {error}
-        </div>
+        </Notification>
       )}
 
       {success && (
-        <div class="notification is-success is-light">
+        <Notification color="success" light>
           Successfully joined the ensemble!
-        </div>
+        </Notification>
       )}
 
       {!user && ensemble && (

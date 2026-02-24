@@ -1,6 +1,7 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import Button from '../components/Button.astro';
+import Notification from '../components/Notification.astro';
 import { actions } from 'astro:actions';
 import { getMembershipsWithParts } from '../lib/profile';
 
@@ -41,9 +42,9 @@ const { memberships, partsByEnsemble } = await getMembershipsWithParts(user.id);
     <h1 class="title">My Profile</h1>
 
     {errorResult && (
-      <div class="notification is-danger">
+      <Notification color="danger">
         {errorResult.message}
-      </div>
+      </Notification>
     )}
 
     <div class="columns">
@@ -169,9 +170,9 @@ const { memberships, partsByEnsemble } = await getMembershipsWithParts(user.id);
             </div>
 
             {emailChangePending && (
-              <div class="notification is-info is-light mt-2">
+              <Notification color="info" light class="mt-2">
                 <strong>Verification email sent.</strong> Check your new inbox and click the link to confirm the change. The link expires in 1 hour.
-              </div>
+              </Notification>
             )}
 
             <details class="mt-3">
@@ -234,7 +235,7 @@ const { memberships, partsByEnsemble } = await getMembershipsWithParts(user.id);
           <p class="subtitle is-6">Select your part for each ensemble</p>
 
           {memberships.length === 0 ? (
-            <div class="notification is-info is-light">
+            <Notification color="info" light>
               <p>You are not a member of any ensembles yet.</p>
               <Button href="/ensembles" color="primary" class="mt-3">
                 <span class="icon">
@@ -242,7 +243,7 @@ const { memberships, partsByEnsemble } = await getMembershipsWithParts(user.id);
                 </span>
                 <span>Join an Ensemble</span>
               </Button>
-            </div>
+            </Notification>
           ) : (
             <div class="content">
               {memberships.map((membership) => {
@@ -253,9 +254,9 @@ const { memberships, partsByEnsemble } = await getMembershipsWithParts(user.id);
                     <h3 class="title is-5">{membership.ensembleName}</h3>
 
                     {parts.length === 0 ? (
-                      <div class="notification is-warning is-light">
+                      <Notification color="warning" light>
                         <p class="is-size-7">No parts defined for this ensemble yet. Contact an ensemble admin to add parts.</p>
-                      </div>
+                      </Notification>
                     ) : (
                       <form method="POST" action={actions.profile.updatePart}>
                         <input type="hidden" name="membershipId" value={membership.membershipId} />
@@ -310,9 +311,9 @@ const { memberships, partsByEnsemble } = await getMembershipsWithParts(user.id);
       <p class="mb-4">Permanently delete your account and all associated data. This action cannot be undone.</p>
 
       {user.role === 'admin' && (
-        <div class="notification is-warning is-light">
+        <Notification color="warning" light>
           Site administrators cannot delete their own account. Transfer admin rights first.
-        </div>
+        </Notification>
       )}
 
       {user.role !== 'admin' && (

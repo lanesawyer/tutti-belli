@@ -1,12 +1,12 @@
 ---
 import Layout from '../../../../layouts/Layout.astro';
 import Button from '../../../../components/Button.astro';
-import { db, eq, and, EnsembleMember, Event, EventProgram, Attendance, User, SeasonSong, Song } from 'astro:db';
+import Notification from '../../../../components/Notification.astro';
+import { db, eq, EnsembleMember, Event, EventProgram, Attendance, User, SeasonSong, Song } from 'astro:db';
 import { actions } from 'astro:actions';
 import QRCode from 'qrcode';
-import { canManageEnsemble } from '../../../../lib/permissions';
 import { ensembleAdminTools } from '../../../../lib/config';
-import { getEnsembleBySlugOrId } from '../../../../lib/ensemble';
+import { getEnsembleBySlugOrId, getEnsembleAccess } from '../../../../lib/ensemble';
 import { getEnsembleUrlId } from '../../../../lib/slug';
 
 const user = Astro.locals.user!;
@@ -26,17 +26,9 @@ if (Astro.request.method === 'GET' && id !== canonicalId) {
   return Astro.redirect(Astro.url.pathname.replace(`/ensembles/${id}`, `/ensembles/${canonicalId}`), 301);
 }
 
-// Check if user is a member
-const [membership] = await db
-  .select()
-  .from(EnsembleMember)
-  .where(and(eq(EnsembleMember.ensembleId, ensemble.id), eq(EnsembleMember.userId, user.id)));
-
-if (!membership) {
-  return Astro.redirect('/ensembles');
-}
-
-const isAdmin = canManageEnsemble(user, membership);
+const access = await getEnsembleAccess(user, ensemble.id);
+if (!access) return Astro.redirect('/ensembles');
+const { isAdmin } = access;
 
 // Get event details
 const [event] = await db.select().from(Event).where(eq(Event.id, eventId));
@@ -238,9 +230,9 @@ const isPerformance = event.category === 'performance';
   </div>
 
   {message && (
-    <div class="notification is-success is-light">
+    <Notification color="success" light>
       {message}
-    </div>
+    </Notification>
   )}
 
   {event.description && (
@@ -255,11 +247,11 @@ const isPerformance = event.category === 'performance';
         <h2 class="title is-4">Check-In</h2>
 
         {!isPast && (
-          <div class="notification is-info is-light mb-4">
+          <Notification color="info" light class="mb-4">
             <p class="has-text-weight-semibold">Check-in Window:</p>
             <p>Opens {ensemble.checkInStartMinutes} minutes before event</p>
             <p>Closes {ensemble.checkInEndMinutes} minutes after event start</p>
-          </div>
+          </Notification>
         )}
 
         {!isPast && !isUserCheckedIn && canCheckIn && (
@@ -304,20 +296,20 @@ const isPerformance = event.category === 'performance';
         )}
 
         {!isPast && isUserCheckedIn && (
-          <div class="notification is-success">
+          <Notification color="success">
             <p class="has-text-centered">
               <span class="icon is-large">
                 <i class="fas fa-check-circle fa-2x"></i>
               </span>
             </p>
             <p class="has-text-centered has-text-weight-bold">You're checked in!</p>
-          </div>
+          </Notification>
         )}
 
         {isPast && !isUserCheckedIn && (
-          <div class="notification is-warning">
+          <Notification color="warning">
             This event has passed and you did not check in.
-          </div>
+          </Notification>
         )}
       </div>
 
@@ -392,9 +384,9 @@ const isPerformance = event.category === 'performance';
               </tbody>
             </table>
           ) : (
-            <div class="notification is-info is-light">
+            <Notification color="info" light>
               No one has checked in yet.
-            </div>
+            </Notification>
           )}
 
           {absentMembers.length > 0 && (
@@ -438,7 +430,7 @@ const isPerformance = event.category === 'performance';
       </h2>
 
       {programSongs.length === 0 ? (
-        <div class="notification is-info is-light">No songs on the program yet.</div>
+        <Notification color="info" light>No songs on the program yet.</Notification>
       ) : (
         <table class="table is-fullwidth is-striped">
           <thead>
