@@ -11,12 +11,12 @@ export const songs = {
       name: z.string().min(1, 'Song name is required.'),
       composer: z.string().optional(),
       arranger: z.string().optional(),
-      runTimeMinutes: z.coerce.number().int().min(0).default(0),
-      runTimeSeconds: z.coerce.number().int().min(0).max(59).default(0),
-      parts: z.union([z.string(), z.array(z.string())]).optional().transform((v) =>
+      runTimeMinutes: z.preprocess((v) => (v === '' ? undefined : v), z.coerce.number().int().min(0).default(0)),
+      runTimeSeconds: z.preprocess((v) => (v === '' ? undefined : v), z.coerce.number().int().min(0).max(59).default(0)),
+      parts: z.preprocess((v) => (v == null ? undefined : v), z.union([z.string(), z.array(z.string())]).optional()).transform((v) =>
         v === undefined ? [] : Array.isArray(v) ? v : [v]
       ),
-      seasons: z.union([z.string(), z.array(z.string())]).optional().transform((v) =>
+      seasons: z.preprocess((v) => (v == null ? undefined : v), z.union([z.string(), z.array(z.string())]).optional()).transform((v) =>
         v === undefined ? [] : Array.isArray(v) ? v : [v]
       ),
     }),
@@ -37,12 +37,12 @@ export const songs = {
       name: z.string().min(1, 'Song name is required.'),
       composer: z.string().optional(),
       arranger: z.string().optional(),
-      runTimeMinutes: z.coerce.number().int().min(0).default(0),
-      runTimeSeconds: z.coerce.number().int().min(0).max(59).default(0),
-      parts: z.union([z.string(), z.array(z.string())]).optional().transform((v) =>
+      runTimeMinutes: z.preprocess((v) => (v === '' ? undefined : v), z.coerce.number().int().min(0).default(0)),
+      runTimeSeconds: z.preprocess((v) => (v === '' ? undefined : v), z.coerce.number().int().min(0).max(59).default(0)),
+      parts: z.preprocess((v) => (v == null ? undefined : v), z.union([z.string(), z.array(z.string())]).optional()).transform((v) =>
         v === undefined ? [] : Array.isArray(v) ? v : [v]
       ),
-      seasons: z.union([z.string(), z.array(z.string())]).optional().transform((v) =>
+      seasons: z.preprocess((v) => (v == null ? undefined : v), z.union([z.string(), z.array(z.string())]).optional()).transform((v) =>
         v === undefined ? [] : Array.isArray(v) ? v : [v]
       ),
     }),
