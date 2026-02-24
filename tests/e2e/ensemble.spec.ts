@@ -33,6 +33,16 @@ test('admin can access ensemble edit page', async ({ page }) => {
   await expect(page.locator('h1, h2').first()).toBeVisible();
 });
 
+test('user can create a new ensemble and is redirected to it', async ({ page }) => {
+  await page.goto('/ensembles/new');
+  await expect(page).toHaveURL('/ensembles/new');
+  await page.fill('input[name="name"]', 'My Test Ensemble');
+  await page.fill('textarea[name="description"]', 'A test ensemble created via e2e');
+  await page.click('button[type="submit"]');
+  await expect(page).toHaveURL(/\/ensembles\/.+/);
+  await expect(page).not.toHaveURL('/ensembles/new');
+});
+
 test('invite join page loads', async ({ page }) => {
   // The join page is public — test it loads without error
   const response = await page.goto('/invite/join');

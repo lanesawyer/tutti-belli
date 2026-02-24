@@ -18,6 +18,12 @@ test('regular user does not see admin panel link in navigation', async ({ page }
   await expect(page.locator('a[href="/admin"]')).not.toBeVisible();
 });
 
+test('regular user can access the create ensemble page', async ({ page }) => {
+  await page.goto('/ensembles/new');
+  await expect(page).toHaveURL('/ensembles/new');
+  await expect(page.locator('input[name="name"]')).toBeVisible();
+});
+
 test('unauthenticated access to a protected API route redirects to login', async ({ page }) => {
   // Use a new context without any auth cookies
   await page.context().clearCookies();
