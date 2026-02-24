@@ -98,6 +98,9 @@ jobs:
     name: E2E Tests
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    container:
+      image: mcr.microsoft.com/playwright:v1.58.2-noble
+      options: --user 1001
     steps:
       - uses: actions/checkout@v4
 
@@ -109,8 +112,6 @@ jobs:
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
-
-      - run: pnpm exec playwright install --with-deps chromium firefox
 
       - run: pnpm test:e2e
         env:
