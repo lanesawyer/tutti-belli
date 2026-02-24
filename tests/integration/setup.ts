@@ -156,6 +156,7 @@ const CREATE_STATEMENTS = [
     "eventId" TEXT NOT NULL REFERENCES "Event"("id"),
     "songId" TEXT NOT NULL REFERENCES "Song"("id"),
     "sortOrder" INTEGER DEFAULT 0 NOT NULL,
+    "notes" TEXT,
     "addedAt" TEXT DEFAULT CURRENT_TIMESTAMP
   )`,
   `CREATE TABLE IF NOT EXISTS "EnsembleLink" (

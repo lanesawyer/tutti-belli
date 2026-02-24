@@ -2,7 +2,7 @@
  * Test data factory helpers for integration tests.
  * Each function inserts a row and returns the created record.
  */
-import { db, User, Ensemble, EnsembleMember, Season, Event, Part, eq } from 'astro:db';
+import { db, User, Ensemble, EnsembleMember, Season, Event, Part, Song, SeasonSong, EventProgram, eq } from 'astro:db';
 import { hashPassword } from '../../src/lib/auth.ts';
 
 export async function createUser(overrides: {
@@ -114,4 +114,44 @@ export async function createEvent(
     checkInCode: overrides.checkInCode ?? `CODE${id.slice(0, 6).toUpperCase()}`,
   });
   return db.select().from(Event).where(eq(Event.id, id)).get() as Promise<typeof Event.$inferSelect>;
+}
+
+export async function createSong(
+  ensembleId: string,
+  overrides: { id?: string; name?: string; composer?: string } = {}
+) {
+  const id = overrides.id ?? crypto.randomUUID();
+  await db.insert(Song).values({
+    id,
+    ensembleId,
+    name: overrides.name ?? 'Test Song',
+    composer: overrides.composer,
+  });
+  return db.select().from(Song).where(eq(Song.id, id)).get() as Promise<typeof Song.$inferSelect>;
+}
+
+export async function createSeasonSong(
+  seasonId: string,
+  songId: string,
+  overrides: { id?: string } = {}
+) {
+  const id = overrides.id ?? crypto.randomUUID();
+  await db.insert(SeasonSong).values({ id, seasonId, songId });
+  return db.select().from(SeasonSong).where(eq(SeasonSong.id, id)).get() as Promise<typeof SeasonSong.$inferSelect>;
+}
+
+export async function createEventProgramEntry(
+  eventId: string,
+  songId: string,
+  overrides: { id?: string; sortOrder?: number; notes?: string } = {}
+) {
+  const id = overrides.id ?? crypto.randomUUID();
+  await db.insert(EventProgram).values({
+    id,
+    eventId,
+    songId,
+    sortOrder: overrides.sortOrder ?? 1,
+    notes: overrides.notes,
+  });
+  return db.select().from(EventProgram).where(eq(EventProgram.id, id)).get() as Promise<typeof EventProgram.$inferSelect>;
 }
