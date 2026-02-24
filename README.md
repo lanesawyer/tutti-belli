@@ -281,7 +281,7 @@ pnpm fmt        # Auto-fix linting issues
 
 ## License
 
-MIT
+AGPL V3 License. See LICENSE file for details.
 
 ## Contributing
 
