@@ -55,6 +55,7 @@ export const EventProgram = asDrizzleTable('EventProgram', tables.EventProgram);
 export const PasswordResetToken = asDrizzleTable('PasswordResetToken', tables.PasswordResetToken);
 export const EmailChangeToken = asDrizzleTable('EmailChangeToken', tables.EmailChangeToken);
 export const EnsembleLink = asDrizzleTable('EnsembleLink', tables.EnsembleLink);
+export const SiteBanner = asDrizzleTable('SiteBanner', tables.SiteBanner);
 
 // Re-export query helpers — these are all the same imports that `astro:db` exposes
 export {

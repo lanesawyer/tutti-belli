@@ -184,10 +184,18 @@ const CREATE_STATEMENTS = [
     "usedAt" TEXT,
     "createdAt" TEXT DEFAULT CURRENT_TIMESTAMP
   )`,
+  `CREATE TABLE IF NOT EXISTS "SiteBanner" (
+    "id" TEXT PRIMARY KEY,
+    "message" TEXT NOT NULL,
+    "color" TEXT DEFAULT 'info' NOT NULL,
+    "isActive" INTEGER DEFAULT 1 NOT NULL,
+    "createdAt" TEXT DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TEXT DEFAULT CURRENT_TIMESTAMP
+  )`,
 ];
 
 const TABLE_NAMES = [
-  'EmailChangeToken', 'PasswordResetToken', 'EventProgram', 'SongFile',
+  'SiteBanner', 'EmailChangeToken', 'PasswordResetToken', 'EventProgram', 'SongFile',
   'SeasonSong', 'SongPart', 'Song', 'GroupMembership', 'Group',
   'Announcement', 'Attendance', 'Event', 'SeasonMembership', 'EnsembleInvite',
   'Season', 'EnsembleLink', 'EnsembleMember', 'Part', 'Ensemble', 'User',
