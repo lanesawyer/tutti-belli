@@ -110,6 +110,13 @@ jobs:
       - run: pnpm test:e2e
         env:
           JWT_SECRET: ${{ secrets.JWT_SECRET || 'ci-test-secret' }}
+          # storage.ts reads these at module load time (not lazily), so the
+          # server crashes on startup if they're missing — even though e2e tests
+          # never actually upload or download files. Placeholders are fine here.
+          STORAGE_ENDPOINT: https://s3.us-west-004.backblazeb2.com
+          STORAGE_BUCKET: ci-placeholder
+          STORAGE_KEY_ID: ci-placeholder
+          STORAGE_KEY: ci-placeholder
 
       - uses: actions/upload-artifact@v4
         if: always()
