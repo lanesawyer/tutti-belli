@@ -14,21 +14,22 @@ test('admin can navigate to the events list page', async ({ page }) => {
   await page.goto('/ensembles');
   // Find the Chamber Orchestra link and navigate to its events
   await page.locator('.card').filter({ hasText: 'Chamber Orchestra' }).locator('a').first().click();
-  await expect(page).toHaveURL(/\/ensembles\//);
+  await expect(page).toHaveURL(/\/ensembles\/.+/);
+  // Navigate directly via URL rather than clicking the navbar dropdown (which requires hover)
+  const ensembleUrl = page.url();
+  await page.goto(ensembleUrl + '/events');
 
-  await page.locator('a', { hasText: /events/i }).first().click();
   await expect(page).toHaveURL(/\/events/);
   await expect(page.locator('h1, h2').first()).toBeVisible();
 });
 
 test('events page loads and shows the events section', async ({ page }) => {
-  // Navigate directly — use the known seed ensemble slug
   await page.goto('/ensembles');
-  const ensembleLink = page.locator('.card').filter({ hasText: 'Chamber Orchestra' }).locator('a').first();
-  await ensembleLink.click();
-
-  const eventsLink = page.locator('nav a, a').filter({ hasText: /events/i }).first();
-  await eventsLink.click();
+  await page.locator('.card').filter({ hasText: 'Chamber Orchestra' }).locator('a').first().click();
+  await expect(page).toHaveURL(/\/ensembles\/.+/);
+  // Navigate directly via URL rather than clicking the navbar dropdown (which requires hover)
+  const ensembleUrl = page.url();
+  await page.goto(ensembleUrl + '/events');
 
   await expect(page).toHaveURL(/\/events/);
   // Events list page should load without error

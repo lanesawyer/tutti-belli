@@ -25,17 +25,12 @@ test('admin can navigate to ensemble detail page', async ({ page }) => {
 test('admin can access ensemble edit page', async ({ page }) => {
   await page.goto('/ensembles');
   await page.locator('.card').filter({ hasText: 'Chamber Orchestra' }).locator('a').first().click();
-  // Look for a settings/edit link
-  const editLink = page.locator('a').filter({ hasText: /edit|settings/i }).first();
-  if (await editLink.count() > 0) {
-    await editLink.click();
-    await expect(page).toHaveURL(/\/edit/);
-  } else {
-    // Navigate directly to the edit page
-    const url = page.url();
-    await page.goto(url + '/edit');
-    await expect(page.locator('h1, h2').first()).toBeVisible();
-  }
+  await expect(page).toHaveURL(/\/ensembles\/.+/);
+  // Navigate directly via URL rather than clicking the navbar dropdown (which requires hover)
+  const ensembleUrl = page.url();
+  await page.goto(ensembleUrl + '/edit');
+  await expect(page).toHaveURL(/\/edit/);
+  await expect(page.locator('h1, h2').first()).toBeVisible();
 });
 
 test('invite join page loads', async ({ page }) => {
