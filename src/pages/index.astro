@@ -203,6 +203,38 @@ const user = Astro.locals.user;
     </div>
   </section>
 
+  <section class="section">
+    <div class="container">
+      <div class="columns is-vcentered">
+        <div class="column is-narrow has-text-centered mr-5">
+          <span class="icon has-text-primary" style="font-size: 4rem;">
+            <i class="fas fa-envelope"></i>
+          </span>
+        </div>
+        <div class="column">
+          <h2 class="title is-3">Get in touch</h2>
+          <p class="subtitle is-5">
+            Have a feature request, found a bug, or want to get involved? Open an issue on GitHub or send an email.
+          </p>
+          <div class="buttons">
+            <a href="https://github.com/lanesawyer/tutti-belli/issues" target="_blank" rel="noopener noreferrer" class="button is-dark">
+              <span class="icon">
+                <i class="fab fa-github"></i>
+              </span>
+              <span>Open an Issue</span>
+            </a>
+            <a href="mailto:github@lanesawyer.dev" class="button is-primary is-outlined">
+              <span class="icon">
+                <i class="fas fa-envelope"></i>
+              </span>
+              <span>Send an Email</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
   {!user && (
     <section class="section">
       <div class="content has-text-centered">
