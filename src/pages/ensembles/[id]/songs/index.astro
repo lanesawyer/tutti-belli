@@ -49,6 +49,10 @@ if (
   return Astro.redirect(`/ensembles/${canonicalId}/songs`);
 }
 
+const addError = addResult?.error?.message ?? (addResult?.error ? 'Failed to add song.' : null);
+const editError = editResult?.error?.message ?? (editResult?.error ? 'Failed to update song.' : null);
+const deleteError = deleteResult?.error?.message ?? (deleteResult?.error ? 'Failed to delete song.' : null);
+
 const ensembleSongIds = new Set(songs.map((s) => s.id));
 const songPartsMap = buildSongPartsMap(songPartsData);
 const songSeasonsMap = buildSongSeasonsMap(seasonSongsData);
@@ -154,6 +158,12 @@ const songFilesMap = buildSongFilesMap(ensembleSongIds, songFilesData);
   <Fragment slot="modals">
 <!-- Add Song Modal -->
 <Modal id="addModal" title="Add Song">
+  {addError && (
+    <div class="notification is-danger is-light mb-4">
+      <button class="delete" onclick="this.parentElement.remove()"></button>
+      {addError}
+    </div>
+  )}
   <form id="addForm" method="POST" action={actions.songs.add}>
     <input type="hidden" name="ensembleId" value={ensemble.id} />
 
@@ -295,6 +305,12 @@ const songFilesMap = buildSongFilesMap(ensembleSongIds, songFilesData);
 
 <!-- Edit Modal -->
 <Modal id="editModal" title="Edit Song">
+  {editError && (
+    <div class="notification is-danger is-light mb-4">
+      <button class="delete" onclick="this.parentElement.remove()"></button>
+      {editError}
+    </div>
+  )}
   <form id="editForm" method="POST" action={actions.songs.edit}>
     <input type="hidden" name="ensembleId" value={ensemble.id} />
     <input type="hidden" name="songId" id="editSongId" />
@@ -372,6 +388,12 @@ const songFilesMap = buildSongFilesMap(ensembleSongIds, songFilesData);
 
 <!-- Delete Confirmation Modal -->
 <Modal id="deleteModal" title="Delete Song">
+  {deleteError && (
+    <div class="notification is-danger is-light mb-4">
+      <button class="delete" onclick="this.parentElement.remove()"></button>
+      {deleteError}
+    </div>
+  )}
   <p>Are you sure you want to delete this song? This action cannot be undone.</p>
   <form id="deleteForm" method="POST" action={actions.songs.delete}>
     <input type="hidden" name="ensembleId" value={ensemble.id} />
@@ -392,6 +414,7 @@ const songFilesMap = buildSongFilesMap(ensembleSongIds, songFilesData);
   data-song-files={JSON.stringify(Array.from(songFilesMap.entries()))}
   data-is-admin={isAdmin ? 'true' : 'false'}
   data-ensemble-id={ensemble.id}
+  data-open-modal={addError ? 'addModal' : editError ? 'editModal' : deleteError ? 'deleteModal' : ''}
 ></script>
 
 <script is:inline>
@@ -413,6 +436,12 @@ const songFilesMap = buildSongFilesMap(ensembleSongIds, songFilesData);
     if (cat === 'sheet_music') return 'is-success';
     if (cat === 'rehearsal_track') return 'is-warning';
     return 'is-light';
+  }
+
+  // ── Auto-open modal on error (after form submission failure) ──────────────
+  const openModal = dataScript.dataset.openModal;
+  if (openModal) {
+    document.getElementById(openModal)?.classList.add('is-active');
   }
 
   // ── Add modal ─────────────────────────────────────────────────────────────
