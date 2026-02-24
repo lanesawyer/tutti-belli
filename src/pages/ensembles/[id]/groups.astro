@@ -347,59 +347,61 @@ const colorOptions = [
 )}
 
 <script is:inline define:vars={{ membershipsByGroupId }}>
-  document.getElementById('create-group-btn')?.addEventListener('click', () => {
-    document.getElementById('create-modal')?.classList.add('is-active');
-  });
-
-  document.querySelectorAll('.edit-group-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.getElementById('edit-groupId').value = btn.getAttribute('data-group-id');
-      document.getElementById('edit-name').value = btn.getAttribute('data-group-name');
-      document.getElementById('edit-description').value = btn.getAttribute('data-group-description');
-      document.getElementById('edit-color').value = btn.getAttribute('data-group-color');
-      document.getElementById('edit-modal')?.classList.add('is-active');
+  document.addEventListener('astro:page-load', () => {
+    document.getElementById('create-group-btn')?.addEventListener('click', () => {
+      document.getElementById('create-modal')?.classList.add('is-active');
     });
-  });
 
-  document.querySelectorAll('.manage-members-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const groupId = btn.getAttribute('data-group-id');
-      document.getElementById('members-groupId').value = groupId;
-
-      const groupMembers = membershipsByGroupId[groupId] || [];
-      const memberUserIds = new Set(groupMembers.map(m => m.userId));
-
-      document.querySelectorAll('.member-checkbox').forEach(checkbox => {
-        checkbox.checked = memberUserIds.has(checkbox.getAttribute('data-user-id'));
+    document.querySelectorAll('.edit-group-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.getElementById('edit-groupId').value = btn.getAttribute('data-group-id');
+        document.getElementById('edit-name').value = btn.getAttribute('data-group-name');
+        document.getElementById('edit-description').value = btn.getAttribute('data-group-description');
+        document.getElementById('edit-color').value = btn.getAttribute('data-group-color');
+        document.getElementById('edit-modal')?.classList.add('is-active');
       });
-
-      document.getElementById('members-modal')?.classList.add('is-active');
     });
-  });
 
-  document.querySelectorAll('.member-checkbox').forEach(checkbox => {
-    checkbox.addEventListener('change', async () => {
-      const groupId = document.getElementById('members-groupId').value;
-      const userId = checkbox.getAttribute('data-user-id');
+    document.querySelectorAll('.manage-members-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const groupId = btn.getAttribute('data-group-id');
+        document.getElementById('members-groupId').value = groupId;
 
-      const formData = new FormData();
-      formData.append('action', 'toggle-member');
-      formData.append('groupId', groupId);
-      formData.append('userId', userId);
+        const groupMembers = membershipsByGroupId[groupId] || [];
+        const memberUserIds = new Set(groupMembers.map(m => m.userId));
 
-      await fetch('', { method: 'POST', body: formData });
+        document.querySelectorAll('.member-checkbox').forEach(checkbox => {
+          checkbox.checked = memberUserIds.has(checkbox.getAttribute('data-user-id'));
+        });
+
+        document.getElementById('members-modal')?.classList.add('is-active');
+      });
     });
-  });
 
-  document.getElementById('close-members-btn')?.addEventListener('click', () => {
-    document.getElementById('members-modal')?.classList.remove('is-active');
-    window.location.reload();
-  });
+    document.querySelectorAll('.member-checkbox').forEach(checkbox => {
+      checkbox.addEventListener('change', async () => {
+        const groupId = document.getElementById('members-groupId').value;
+        const userId = checkbox.getAttribute('data-user-id');
 
-  document.querySelectorAll('.delete-group-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.getElementById('delete-groupId').value = btn.getAttribute('data-group-id');
-      document.getElementById('delete-modal')?.classList.add('is-active');
+        const formData = new FormData();
+        formData.append('action', 'toggle-member');
+        formData.append('groupId', groupId);
+        formData.append('userId', userId);
+
+        await fetch('', { method: 'POST', body: formData });
+      });
+    });
+
+    document.getElementById('close-members-btn')?.addEventListener('click', () => {
+      document.getElementById('members-modal')?.classList.remove('is-active');
+      window.location.reload();
+    });
+
+    document.querySelectorAll('.delete-group-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.getElementById('delete-groupId').value = btn.getAttribute('data-group-id');
+        document.getElementById('delete-modal')?.classList.add('is-active');
+      });
     });
   });
 </script>

@@ -21,20 +21,24 @@ const user = Astro.locals.user;
     <div id="navbarMenu" class="navbar-menu">
       <div class="navbar-start">
         {user && (
-          <>
-            <a class="navbar-item" href="/ensembles">My Ensembles</a>
-            {user.role === 'admin' && (
-              <a class="navbar-item" href="/admin">Admin Panel</a>
-            )}
-          </>
+          <a class="navbar-item" href="/ensembles">My Ensembles</a>
         )}
         <slot name="navbar-start" />
       </div>
 
       <div class="navbar-end">
+        {user?.role === 'admin' && (
+          <a class="navbar-item" href="/admin">Admin Panel</a>
+        )}
+        {user?.role === 'admin' && (
+          <div class="navbar-item" style="padding: 0;">
+            <div style="width: 1px; background-color: rgba(255,255,255,0.2); height: 1.5rem; margin: 0 0.25rem;"></div>
+          </div>
+        )}
         <div class="navbar-item">
           <button id="theme-toggle" title="Toggle dark mode">
-            <i class="fas fa-moon" id="theme-icon"></i>
+            <i class="fas fa-moon theme-icon-light"></i>
+            <i class="fas fa-sun theme-icon-dark"></i>
           </button>
         </div>
         {user ? (
@@ -81,10 +85,11 @@ const user = Astro.locals.user;
   #theme-toggle:hover {
     opacity: 0.8;
   }
+
 </style>
 
 <script>
-  document.addEventListener('DOMContentLoaded', () => {
+  document.addEventListener('astro:page-load', () => {
     // Mobile menu toggle
     const $navbarBurgers = Array.prototype.slice.call(document.querySelectorAll('.navbar-burger'), 0);
     $navbarBurgers.forEach(el => {
@@ -100,29 +105,12 @@ const user = Astro.locals.user;
     const html = document.documentElement;
     const themeToggle = document.getElementById('theme-toggle');
 
-    const updateIcon = (theme: string) => {
-      if (themeToggle) {
-        if (theme === 'dark') {
-          themeToggle.innerHTML = '<i class="fas fa-sun" id="theme-icon"></i>';
-        } else {
-          themeToggle.innerHTML = '<i class="fas fa-moon" id="theme-icon"></i>';
-        }
-      }
-    };
-
-    // Set initial icon after a brief delay for Font Awesome to load
-    setTimeout(() => {
-      const currentTheme = html.getAttribute('data-theme') || 'light';
-      updateIcon(currentTheme);
-    }, 200);
-
     themeToggle?.addEventListener('click', () => {
       const currentTheme = html.getAttribute('data-theme') || 'light';
       const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
 
       html.setAttribute('data-theme', newTheme);
       localStorage.setItem('theme', newTheme);
-      updateIcon(newTheme);
     });
 
     // Listen for system theme changes
@@ -130,7 +118,6 @@ const user = Astro.locals.user;
       if (!localStorage.getItem('theme')) {
         const newTheme = e.matches ? 'dark' : 'light';
         html.setAttribute('data-theme', newTheme);
-        updateIcon(newTheme);
       }
     });
   });

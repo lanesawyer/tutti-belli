@@ -458,7 +458,7 @@ if (Astro.request.method === 'POST') {
                 <Message color={isToday ? 'success' : 'primary'}>
                   <a slot="header" href={`/ensembles/${canonicalId}/events/${event.id}`} class="has-text-white">
                     {event.title}
-                    {isToday && <span class="tag is-light ml-2">Today</span>}
+                    {isToday && <span class="tag is-dark ml-2">Today</span>}
                   </a>
                   <small slot="header" class="has-text-weight-normal">
                     {scheduledDate.toLocaleDateString()} at {scheduledDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -513,7 +513,7 @@ if (Astro.request.method === 'POST') {
                 <Message color={isToday ? 'success' : 'warning'}>
                   <a slot="header" href={`/ensembles/${canonicalId}/events/${event.id}`} class="has-text-white">
                     {event.title}
-                    {isToday && <span class="tag is-light ml-2">Today</span>}
+                    {isToday && <span class="tag is-dark ml-2">Today</span>}
                   </a>
                   <small slot="header" class="has-text-weight-normal">
                     {scheduledDate.toLocaleDateString()} at {scheduledDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -730,7 +730,7 @@ if (Astro.request.method === 'POST') {
           <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem;">
             {ensembleAdminTools.map((tool) => (
               <a href={tool.href(id!)} class="button" style="height: auto; padding: 0.75rem 0.25rem; flex-direction: column; align-items: center; justify-content: center;">
-                <i class={`fas ${tool.icon} fa-lg mb-1`}></i>
+                <i class={`fas ${tool.icon} mb-1`} style="font-size: 1.25rem;"></i>
                 <span class="is-size-7">{tool.label}</span>
               </a>
             ))}

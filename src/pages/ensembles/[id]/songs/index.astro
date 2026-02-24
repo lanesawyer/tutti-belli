@@ -406,6 +406,7 @@ const songFilesMap = buildSongFilesMap(ensembleSongIds, songFilesData);
 
 <script
   is:inline
+  id="songs-data"
   data-songs={JSON.stringify(songs)}
   data-song-parts={JSON.stringify(Array.from(songPartsMap.entries()))}
   data-song-seasons={JSON.stringify(Array.from(songSeasonsMap.entries()))}
@@ -416,127 +417,132 @@ const songFilesMap = buildSongFilesMap(ensembleSongIds, songFilesData);
 ></script>
 
 <script is:inline>
-  const dataScript = document.currentScript.previousElementSibling;
-  const ensembleId = dataScript.dataset.ensembleId || '';
-  const songsData = JSON.parse(dataScript.dataset.songs || '[]');
-  const songPartsMapJS = new Map(JSON.parse(dataScript.dataset.songParts || '[]'));
-  const songSeasonsMapJS = new Map(JSON.parse(dataScript.dataset.songSeasons || '[]'));
-  const songFilesMapJS = new Map(JSON.parse(dataScript.dataset.songFiles || '[]'));
-  const isAdmin = dataScript.dataset.isAdmin === 'true';
+  function initSongsPage() {
+    const dataScript = document.getElementById('songs-data');
+    if (!dataScript) return;
+    const ensembleId = dataScript.dataset.ensembleId || '';
+    const songsData = JSON.parse(dataScript.dataset.songs || '[]');
+    const songPartsMapJS = new Map(JSON.parse(dataScript.dataset.songParts || '[]'));
+    const songSeasonsMapJS = new Map(JSON.parse(dataScript.dataset.songSeasons || '[]'));
+    const songFilesMapJS = new Map(JSON.parse(dataScript.dataset.songFiles || '[]'));
+    const isAdmin = dataScript.dataset.isAdmin === 'true';
 
-  function categoryLabel(cat) {
-    if (cat === 'sheet_music') return 'Sheet Music';
-    if (cat === 'rehearsal_track') return 'Rehearsal Track';
-    return 'Other';
-  }
-
-  function categoryTagClass(cat) {
-    if (cat === 'sheet_music') return 'is-success';
-    if (cat === 'rehearsal_track') return 'is-warning';
-    return 'is-light';
-  }
-
-  // ── Auto-open modal on error (after form submission failure) ──────────────
-  const openModal = dataScript.dataset.openModal;
-  if (openModal) {
-    document.getElementById(openModal)?.classList.add('is-active');
-  }
-
-  // ── Add modal ─────────────────────────────────────────────────────────────
-  document.getElementById('add-song-btn')?.addEventListener('click', () => {
-    document.getElementById('addModal')?.classList.add('is-active');
-  });
-
-  // ── Files modal ──────────────────────────────────────────────────────────
-
-  const filesModal = document.getElementById('filesModal');
-
-  function renderFilesList(songId) {
-    const files = songFilesMapJS.get(songId) || [];
-    const container = document.getElementById('filesModalList');
-    if (files.length === 0) {
-      container.innerHTML = '<p class="has-text-grey">No files yet.</p>';
-      return;
+    function categoryLabel(cat) {
+      if (cat === 'sheet_music') return 'Sheet Music';
+      if (cat === 'rehearsal_track') return 'Rehearsal Track';
+      return 'Other';
     }
-    container.innerHTML = files.map(f => `
-      <div class="is-flex is-align-items-center mb-2" style="gap: 0.5rem;">
-        <span class="tag ${categoryTagClass(f.category)} is-small" style="flex-shrink:0;">${categoryLabel(f.category)}</span>
-        <a href="/files/${f.id}" class="has-text-weight-medium"
-           style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${f.name}</a>
-        ${isAdmin ? `
-        <form method="POST" action="/_actions/songs.deleteFile" style="flex-shrink:0;" onsubmit="return confirm('Delete this file?');">
-          <input type="hidden" name="ensembleId" value="${ensembleId}" />
-          <input type="hidden" name="fileId" value="${f.id}" />
-          <button type="submit" class="button is-danger is-small">
-            <span class="icon is-small"><i class="fas fa-trash"></i></span>
-          </button>
-        </form>
-        ` : ''}
-      </div>
-    `).join('');
+
+    function categoryTagClass(cat) {
+      if (cat === 'sheet_music') return 'is-success';
+      if (cat === 'rehearsal_track') return 'is-warning';
+      return 'is-light';
+    }
+
+    // ── Auto-open modal on error (after form submission failure) ──────────────
+    const openModal = dataScript.dataset.openModal;
+    if (openModal) {
+      document.getElementById(openModal)?.classList.add('is-active');
+    }
+
+    // ── Add modal ─────────────────────────────────────────────────────────────
+    document.getElementById('add-song-btn')?.addEventListener('click', () => {
+      document.getElementById('addModal')?.classList.add('is-active');
+    });
+
+    // ── Files modal ──────────────────────────────────────────────────────────
+
+    const filesModal = document.getElementById('filesModal');
+
+    function renderFilesList(songId) {
+      const files = songFilesMapJS.get(songId) || [];
+      const container = document.getElementById('filesModalList');
+      if (files.length === 0) {
+        container.innerHTML = '<p class="has-text-grey">No files yet.</p>';
+        return;
+      }
+      container.innerHTML = files.map(f => `
+        <div class="is-flex is-align-items-center mb-2" style="gap: 0.5rem;">
+          <span class="tag ${categoryTagClass(f.category)} is-small" style="flex-shrink:0;">${categoryLabel(f.category)}</span>
+          <a href="/files/${f.id}" class="has-text-weight-medium"
+             style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${f.name}</a>
+          ${isAdmin ? `
+          <form method="POST" action="/_actions/songs.deleteFile" style="flex-shrink:0;" onsubmit="return confirm('Delete this file?');">
+            <input type="hidden" name="ensembleId" value="${ensembleId}" />
+            <input type="hidden" name="fileId" value="${f.id}" />
+            <button type="submit" class="button is-danger is-small">
+              <span class="icon is-small"><i class="fas fa-trash"></i></span>
+            </button>
+          </form>
+          ` : ''}
+        </div>
+      `).join('');
+    }
+
+    document.querySelectorAll('.files-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const songId = btn.getAttribute('data-song-id');
+        const songName = btn.getAttribute('data-song-name');
+        document.getElementById('filesModalSongName').textContent = songName;
+        document.getElementById('addFileSongId').value = songId;
+        document.getElementById('fileName').value = '';
+        document.getElementById('fileUrl').value = '';
+        document.getElementById('category').value = 'sheet_music';
+        renderFilesList(songId);
+        filesModal.classList.add('is-active');
+      });
+    });
+
+    // ── Edit modal ───────────────────────────────────────────────────────────
+
+    const editModal = document.getElementById('editModal');
+
+    document.querySelectorAll('.edit-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const songId = btn.getAttribute('data-song-id');
+        const song = songsData.find(s => s.id === songId);
+        if (!song) return;
+
+        document.getElementById('editSongId').value = song.id;
+        document.getElementById('editName').value = song.name;
+        document.getElementById('editComposer').value = song.composer || '';
+        document.getElementById('editArranger').value = song.arranger || '';
+
+        if (song.runTime) {
+          document.getElementById('editRunTimeMinutes').value = Math.floor(song.runTime / 60);
+          document.getElementById('editRunTimeSeconds').value = song.runTime % 60;
+        } else {
+          document.getElementById('editRunTimeMinutes').value = '';
+          document.getElementById('editRunTimeSeconds').value = '';
+        }
+
+        const songParts = songPartsMapJS.get(songId) || [];
+        document.querySelectorAll('#editParts input[type="checkbox"]').forEach(cb => {
+          cb.checked = songParts.includes(cb.value);
+        });
+
+        const songSeasons = songSeasonsMapJS.get(songId) || [];
+        document.querySelectorAll('#editSeasons input[type="checkbox"]').forEach(cb => {
+          cb.checked = songSeasons.includes(cb.value);
+        });
+
+        editModal.classList.add('is-active');
+      });
+    });
+
+    // ── Delete modal ─────────────────────────────────────────────────────────
+
+    const deleteModal = document.getElementById('deleteModal');
+
+    document.querySelectorAll('.delete-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.getElementById('deleteSongId').value = btn.getAttribute('data-song-id');
+        deleteModal.classList.add('is-active');
+      });
+    });
   }
 
-  document.querySelectorAll('.files-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const songId = btn.getAttribute('data-song-id');
-      const songName = btn.getAttribute('data-song-name');
-      document.getElementById('filesModalSongName').textContent = songName;
-      document.getElementById('addFileSongId').value = songId;
-      document.getElementById('fileName').value = '';
-      document.getElementById('fileUrl').value = '';
-      document.getElementById('category').value = 'sheet_music';
-      renderFilesList(songId);
-      filesModal.classList.add('is-active');
-    });
-  });
-
-  // ── Edit modal ───────────────────────────────────────────────────────────
-
-  const editModal = document.getElementById('editModal');
-
-  document.querySelectorAll('.edit-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const songId = btn.getAttribute('data-song-id');
-      const song = songsData.find(s => s.id === songId);
-      if (!song) return;
-
-      document.getElementById('editSongId').value = song.id;
-      document.getElementById('editName').value = song.name;
-      document.getElementById('editComposer').value = song.composer || '';
-      document.getElementById('editArranger').value = song.arranger || '';
-
-      if (song.runTime) {
-        document.getElementById('editRunTimeMinutes').value = Math.floor(song.runTime / 60);
-        document.getElementById('editRunTimeSeconds').value = song.runTime % 60;
-      } else {
-        document.getElementById('editRunTimeMinutes').value = '';
-        document.getElementById('editRunTimeSeconds').value = '';
-      }
-
-      const songParts = songPartsMapJS.get(songId) || [];
-      document.querySelectorAll('#editParts input[type="checkbox"]').forEach(cb => {
-        cb.checked = songParts.includes(cb.value);
-      });
-
-      const songSeasons = songSeasonsMapJS.get(songId) || [];
-      document.querySelectorAll('#editSeasons input[type="checkbox"]').forEach(cb => {
-        cb.checked = songSeasons.includes(cb.value);
-      });
-
-      editModal.classList.add('is-active');
-    });
-  });
-
-  // ── Delete modal ─────────────────────────────────────────────────────────
-
-  const deleteModal = document.getElementById('deleteModal');
-
-  document.querySelectorAll('.delete-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.getElementById('deleteSongId').value = btn.getAttribute('data-song-id');
-      deleteModal.classList.add('is-active');
-    });
-  });
+  document.addEventListener('astro:page-load', initSongsPage);
 </script>
   </Fragment>
 </EnsemblePageLayout>

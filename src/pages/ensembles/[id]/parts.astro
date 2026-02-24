@@ -213,24 +213,26 @@ const nextSortOrder = parts.length > 0 ? Math.max(...parts.map(p => p.sortOrder)
 </Modal>
 
 <script is:inline>
-  document.getElementById('add-part-btn')?.addEventListener('click', () => {
-    document.getElementById('add-modal')?.classList.add('is-active');
-  });
-
-  document.querySelectorAll('.edit-part-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.getElementById('edit-part-id').value = btn.getAttribute('data-part-id');
-      document.getElementById('edit-name').value = btn.getAttribute('data-part-name');
-      document.getElementById('edit-sortOrder').value = btn.getAttribute('data-part-sort-order');
-      document.getElementById('edit-modal')?.classList.add('is-active');
+  document.addEventListener('astro:page-load', () => {
+    document.getElementById('add-part-btn')?.addEventListener('click', () => {
+      document.getElementById('add-modal')?.classList.add('is-active');
     });
-  });
 
-  document.querySelectorAll('.delete-part-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.getElementById('delete-part-id').value = btn.getAttribute('data-part-id');
-      document.getElementById('delete-part-name').textContent = btn.getAttribute('data-part-name');
-      document.getElementById('delete-modal')?.classList.add('is-active');
+    document.querySelectorAll('.edit-part-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.getElementById('edit-part-id').value = btn.getAttribute('data-part-id');
+        document.getElementById('edit-name').value = btn.getAttribute('data-part-name');
+        document.getElementById('edit-sortOrder').value = btn.getAttribute('data-part-sort-order');
+        document.getElementById('edit-modal')?.classList.add('is-active');
+      });
+    });
+
+    document.querySelectorAll('.delete-part-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.getElementById('delete-part-id').value = btn.getAttribute('data-part-id');
+        document.getElementById('delete-part-name').textContent = btn.getAttribute('data-part-name');
+        document.getElementById('delete-modal')?.classList.add('is-active');
+      });
     });
   });
 </script>
