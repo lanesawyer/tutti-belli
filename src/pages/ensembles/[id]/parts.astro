@@ -3,6 +3,7 @@ import EnsemblePageLayout from '../../../layouts/EnsemblePageLayout.astro';
 import Table from '../../../components/Table.astro';
 import Modal from '../../../components/Modal.astro';
 import Button from '../../../components/Button.astro';
+import Notification from '../../../components/Notification.astro';
 import { db, eq, and, EnsembleMember, Part } from 'astro:db';
 import { actions } from 'astro:actions';
 import { canManageEnsemble } from '../../../lib/permissions';
@@ -96,9 +97,9 @@ const nextSortOrder = parts.length > 0 ? Math.max(...parts.map(p => p.sortOrder)
   </Button>
 
   {parts.length === 0 ? (
-    <div class="notification is-info is-light">
+    <Notification color="info" light>
       No parts defined yet. Click "Add Part" to create one.
-    </div>
+    </Notification>
   ) : (
     <Table>
       <thead>

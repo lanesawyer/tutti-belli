@@ -1,6 +1,7 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import Button from '../../components/Button.astro';
+import Notification from '../../components/Notification.astro';
 import { db, eq, Ensemble, EnsembleMember } from 'astro:db';
 import { getEnsembleUrlId } from '../../lib/slug';
 
@@ -66,8 +67,8 @@ const userEnsembles = await db
       ))}
     </div>
   ) : (
-    <div class="notification is-info is-light">
+    <Notification color="info" light>
       <p>You haven't joined any ensembles yet. Ask your ensemble admin for an invite code!</p>
-    </div>
+    </Notification>
   )}
 </Layout>

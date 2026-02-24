@@ -10,6 +10,7 @@ import {
 } from '../../../../lib/songs';
 import { canManageEnsemble } from '../../../../lib/permissions';
 import Button from '../../../../components/Button.astro';
+import Notification from '../../../../components/Notification.astro';
 import { getEnsembleUrlId } from '../../../../lib/slug';
 import { actions } from 'astro:actions';
 
@@ -109,7 +110,7 @@ const songSeasons = seasonSongsData.map((ss) => seasons.find((s) => s.id === ss.
   </h2>
 
   {songFiles.length === 0 ? (
-    <div class="notification is-info is-light">No resources attached to this song yet.</div>
+    <Notification color="info" light>No resources attached to this song yet.</Notification>
   ) : (
     <div class="box mb-5">
       {songFiles.map((file) => {
@@ -224,7 +225,7 @@ const songSeasons = seasonSongsData.map((ss) => seasons.find((s) => s.id === ss.
     <div class="box">
       <h3 class="title is-5">Upload Resource</h3>
       {fileError && (
-        <div class="notification is-danger is-light mb-4">{fileError}</div>
+        <Notification color="danger" light class="mb-4">{fileError}</Notification>
       )}
       <form method="POST" action={actions.songs.addFile} enctype="multipart/form-data">
         <input type="hidden" name="ensembleId" value={ensemble.id} />

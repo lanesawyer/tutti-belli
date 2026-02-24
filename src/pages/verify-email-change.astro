@@ -1,6 +1,7 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import Button from '../components/Button.astro';
+import Notification from '../components/Notification.astro';
 import { db, eq, and, gt, isNull, User, EmailChangeToken } from 'astro:db';
 
 const token = Astro.url.searchParams.get('token');
@@ -64,16 +65,16 @@ if (!token) {
         <h1 class="title">Email Change Verification</h1>
 
         {error && (
-          <div class="notification is-danger is-light">
+          <Notification color="danger" light>
             <p>{error}</p>
             <p class="mt-3">
               <Button href="/profile" color="light">Back to Profile</Button>
             </p>
-          </div>
+          </Notification>
         )}
 
         {success && (
-          <div class="notification is-success is-light">
+          <Notification color="success" light>
             <p><strong>Email address updated!</strong></p>
             <p class="mt-2">
               Your email has been changed to <strong>{newEmailDisplay}</strong>.
@@ -82,7 +83,7 @@ if (!token) {
             <p class="mt-3">
               <Button href="/profile" color="primary">Go to Profile</Button>
             </p>
-          </div>
+          </Notification>
         )}
       </div>
     </div>

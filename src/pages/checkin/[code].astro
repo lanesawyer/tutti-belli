@@ -1,6 +1,7 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import Button from '../../components/Button.astro';
+import Notification from '../../components/Notification.astro';
 import { actions } from 'astro:actions';
 import { db, eq, Event, Ensemble } from 'astro:db';
 
@@ -93,16 +94,16 @@ const isPerformance = event.category === 'performance';
           )}
         </div>
 
-        <div class="notification is-info is-light mt-4">
+        <Notification color="info" light class="mt-4">
           <p class="has-text-weight-semibold">Check-in Window:</p>
           <p>Opens {ensemble.checkInStartMinutes} minutes before event</p>
           <p>Closes {ensemble.checkInEndMinutes} minutes after event start</p>
-        </div>
+        </Notification>
 
         {message && (
-          <div class={`notification ${success ? 'is-success' : 'is-warning'} is-light mt-4`}>
+          <Notification color={success ? 'success' : 'warning'} light class="mt-4">
             {message}
-          </div>
+          </Notification>
         )}
 
         {!result && canCheckIn && (

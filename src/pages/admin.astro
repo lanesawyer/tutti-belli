@@ -2,6 +2,7 @@
 import Layout from '../layouts/Layout.astro';
 import Table from '../components/Table.astro';
 import Button from '../components/Button.astro';
+import Notification from '../components/Notification.astro';
 import { db, Ensemble, User } from 'astro:db';
 import { actions } from 'astro:actions';
 
@@ -49,15 +50,15 @@ const allUsers = await db.select().from(User);
   <h1 class="title">Site Administration</h1>
 
   {message && (
-    <div class="notification is-success is-light">
+    <Notification color="success" light>
       {message}
-    </div>
+    </Notification>
   )}
 
   {error && (
-    <div class="notification is-danger is-light">
+    <Notification color="danger" light>
       {error}
-    </div>
+    </Notification>
   )}
 
   <!-- Create Ensemble -->
@@ -146,9 +147,9 @@ const allUsers = await db.select().from(User);
         </tbody>
       </Table>
     ) : (
-      <div class="notification is-info is-light">
+      <Notification color="info" light>
         No ensembles created yet.
-      </div>
+      </Notification>
     )}
   </div>
 

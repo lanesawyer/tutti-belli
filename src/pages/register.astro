@@ -1,6 +1,7 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import Button from '../components/Button.astro';
+import Notification from '../components/Notification.astro';
 import { actions } from 'astro:actions';
 import { getRedirectUrl } from '../lib/redirect';
 
@@ -25,9 +26,9 @@ const error = result?.error?.message ?? '';
       <h1 class="title">Sign Up</h1>
 
       {error && (
-        <div class="notification is-danger is-light">
+        <Notification color="danger" light>
           {error}
-        </div>
+        </Notification>
       )}
 
       <form method="POST" action={actions.profile.register}>
