@@ -3,16 +3,19 @@ import { ClientRouter } from 'astro:transitions';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import { APP_NAME } from '../lib/config';
+import { getActiveBanner } from '../lib/banner';
 
 interface Props {
   title: string;
 }
 
 const { title } = Astro.props;
+
+const activeBanner = await getActiveBanner();
 ---
 
 <!doctype html>
-<html lang="en" data-theme="light" class="has-navbar-fixed-top">
+<html lang="en" data-theme="light">
   <head>
     <meta charset="UTF-8" />
     <meta name="description" content={APP_NAME} />
@@ -157,12 +160,31 @@ const { title } = Astro.props;
         border-color: var(--body-text);
       }
 
+      #site-banner {
+        padding: 0.6rem 1.5rem;
+        text-align: center;
+        font-weight: 500;
+      }
+      .site-banner-info    { background-color: #3e8ed0; color: #fff; }
+      .site-banner-success { background-color: #48c78e; color: #fff; }
+      .site-banner-warning { background-color: #ffe08a; color: rgba(0,0,0,0.7); }
+      .site-banner-danger  { background-color: #f14668; color: #fff; }
+      .site-banner-primary { background-color: #00d1b2; color: #fff; }
+      .site-banner-link    { background-color: #485fc7; color: #fff; }
+
     </style>
   </head>
   <body style="min-height: 100vh; display: flex; flex-direction: column;">
-    <Header>
-      <slot name="navbar-start" slot="navbar-start" />
-    </Header>
+    <div id="site-header" style="position: sticky; top: 0; z-index: 30;">
+      {activeBanner && (
+        <div id="site-banner" class={`site-banner-${activeBanner.color}`}>
+          {activeBanner.message}
+        </div>
+      )}
+      <Header>
+        <slot name="navbar-start" slot="navbar-start" />
+      </Header>
+    </div>
 
     <main class="section" style="flex: 1;">
       <div class="container">

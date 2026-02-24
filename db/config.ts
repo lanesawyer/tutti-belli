@@ -225,6 +225,17 @@ const EmailChangeToken = defineTable({
   }
 });
 
+const SiteBanner = defineTable({
+  columns: {
+    id: column.text({ primaryKey: true }),
+    message: column.text(),
+    color: column.text({ enum: ['primary', 'link', 'info', 'success', 'warning', 'danger'], default: 'info' }),
+    isActive: column.number({ default: 1 }), // 1 = active, 0 = inactive
+    createdAt: column.date({ default: NOW }),
+    updatedAt: column.date({ default: NOW }),
+  }
+});
+
 export default defineDb({
-  tables: { User, Ensemble, EnsembleMember, Part, EnsembleInvite, Season, SeasonMembership, Event, Attendance, Announcement, Group, GroupMembership, Song, SongPart, SeasonSong, SongFile, EventProgram, PasswordResetToken, EmailChangeToken, EnsembleLink }
+  tables: { User, Ensemble, EnsembleMember, Part, EnsembleInvite, Season, SeasonMembership, Event, Attendance, Announcement, Group, GroupMembership, Song, SongPart, SeasonSong, SongFile, EventProgram, PasswordResetToken, EmailChangeToken, EnsembleLink, SiteBanner }
 });

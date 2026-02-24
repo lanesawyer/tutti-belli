@@ -4,6 +4,7 @@ import { db, eq, Ensemble, User, EnsembleMember } from 'astro:db';
 import { adminDeleteUser } from '../lib/profile';
 import { findUniqueSlug, getEnsembleUrlId } from '../lib/slug';
 import { assertSiteAdmin } from './utils';
+import { setBanner, clearBanner } from '../lib/banner';
 
 export const admin = {
   createEnsemble: defineAction({
@@ -99,6 +100,27 @@ export const admin = {
       await adminDeleteUser(userId);
 
       return { name: targetUser.name };
+    },
+  }),
+
+  setBanner: defineAction({
+    accept: 'form',
+    input: z.object({
+      message: z.string().min(1, 'Banner message is required.'),
+      color: z.enum(['primary', 'link', 'info', 'success', 'warning', 'danger']),
+    }),
+    handler: async ({ message, color }, context) => {
+      assertSiteAdmin(context.locals.user);
+      await setBanner(message, color);
+    },
+  }),
+
+  clearBanner: defineAction({
+    accept: 'form',
+    input: z.object({}),
+    handler: async (_input, context) => {
+      assertSiteAdmin(context.locals.user);
+      await clearBanner();
     },
   }),
 };
