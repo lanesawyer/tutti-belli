@@ -22,7 +22,7 @@ let message = '';
 let messageType: 'success' | 'danger' = 'success';
 
 if (createResult?.data) {
-  message = `Ensemble "${createResult.data.name}" created successfully!`;
+  message = `Ensemble created successfully!`;
 } else if (createResult?.error) {
   message = createResult.error.message;
   messageType = 'danger';

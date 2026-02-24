@@ -1,5 +1,5 @@
 ---
-import Layout from '../../layouts/Layout.astro';
+import PageLayout from '../../layouts/PageLayout.astro';
 import Button from '../../components/Button.astro';
 import Notification from '../../components/Notification.astro';
 import { db, eq, Ensemble, EnsembleMember } from 'astro:db';
@@ -22,23 +22,20 @@ const userEnsembles = await db
   .where(eq(EnsembleMember.userId, user.id));
 ---
 
-<Layout title="My Ensembles">
-  <div class="level">
-    <div class="level-left">
-      <div class="level-item">
-        <h1 class="title">My Ensembles</h1>
-      </div>
-    </div>
-    <div class="level-right">
-      <div class="level-item">
-        <Button href="/invite/join" color="primary">
-          <span class="icon">
-            <i class="fas fa-ticket"></i>
-          </span>
-          <span>Join with Invite Code</span>
-        </Button>
-      </div>
-    </div>
+<PageLayout title="My Ensembles" pageTitle="My Ensembles">
+  <div slot="action" class="buttons">
+    <Button href="/invite/join" color="light">
+      <span class="icon">
+        <i class="fas fa-ticket"></i>
+      </span>
+      <span>Join with Invite Code</span>
+    </Button>
+    <Button href="/ensembles/new" color="primary">
+      <span class="icon">
+        <i class="fas fa-plus"></i>
+      </span>
+      <span>Create Ensemble</span>
+    </Button>
   </div>
 
   {userEnsembles.length > 0 ? (
@@ -71,4 +68,4 @@ const userEnsembles = await db
       <p>You haven't joined any ensembles yet. Ask your ensemble admin for an invite code!</p>
     </Notification>
   )}
-</Layout>
+</PageLayout>

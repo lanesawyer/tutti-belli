@@ -2,7 +2,7 @@ import { defineAction, ActionError } from 'astro:actions';
 import { z } from 'astro/zod';
 import { db, eq, Ensemble, User, EnsembleMember } from 'astro:db';
 import { adminDeleteUser } from '../lib/profile';
-import { findUniqueSlug } from '../lib/slug';
+import { findUniqueSlug, getEnsembleUrlId } from '../lib/slug';
 import { assertSiteAdmin } from './utils';
 
 export const admin = {
@@ -14,7 +14,9 @@ export const admin = {
     }),
     handler: async ({ name, description }, context) => {
       const user = context.locals.user;
-      assertSiteAdmin(user);
+      if (!user) {
+        throw new ActionError({ code: 'UNAUTHORIZED' });
+      }
 
       const ensembleId = crypto.randomUUID();
       const slug = await findUniqueSlug(name, ensembleId);
@@ -23,17 +25,18 @@ export const admin = {
         name,
         slug,
         description: description || '',
-        createdBy: user!.id,
+        createdBy: user.id,
       });
 
       await db.insert(EnsembleMember).values({
         id: crypto.randomUUID(),
         ensembleId,
-        userId: user!.id,
+        userId: user.id,
         role: 'admin',
+        status: 'active',
       });
 
-      return { name };
+      return { ensembleUrlId: getEnsembleUrlId({ id: ensembleId, slug }) };
     },
   }),
 
