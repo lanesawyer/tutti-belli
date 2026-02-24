@@ -296,53 +296,61 @@ const songSeasons = seasonSongsData.map((ss) => seasons.find((s) => s.id === ss.
   )}
 
   <script>
-    const fileInput = document.getElementById('file') as HTMLInputElement | null;
-    const nameInput = document.getElementById('fileName') as HTMLInputElement | null;
-    const fileField = document.getElementById('file-input-field') as HTMLElement | null;
-    const urlField = document.getElementById('url-input-field') as HTMLElement | null;
-    const radios = document.querySelectorAll<HTMLInputElement>('input[name="category"]');
+    document.addEventListener('astro:page-load', () => {
+      const fileInput = document.getElementById('file') as HTMLInputElement | null;
+      const nameInput = document.getElementById('fileName') as HTMLInputElement | null;
+      const fileField = document.getElementById('file-input-field') as HTMLElement | null;
+      const urlField = document.getElementById('url-input-field') as HTMLElement | null;
+      const radios = document.querySelectorAll<HTMLInputElement>('input[name="category"]');
 
-    const categoryColors: Record<string, string> = {
-      sheet_music: 'is-success',
-      rehearsal_track: 'is-warning',
-      link: 'is-info',
-    };
+      const categoryColors: Record<string, string> = {
+        sheet_music: 'is-success',
+        rehearsal_track: 'is-warning',
+        link: 'is-info',
+      };
 
-    function onCategoryChange() {
-      const selected = (document.querySelector('input[name="category"]:checked') as HTMLInputElement | null)?.value;
-      const isLink = selected === 'link';
-      if (fileField) fileField.style.display = isLink ? 'none' : '';
-      if (urlField) urlField.style.display = isLink ? '' : 'none';
-      if (fileInput) fileInput.required = !isLink;
-      const urlInput = document.getElementById('fileUrl') as HTMLInputElement | null;
-      if (urlInput) urlInput.required = isLink;
+      function onCategoryChange() {
+        const selected = (document.querySelector('input[name="category"]:checked') as HTMLInputElement | null)?.value;
+        const isLink = selected === 'link';
+        if (fileField) fileField.style.display = isLink ? 'none' : '';
+        if (urlField) urlField.style.display = isLink ? '' : 'none';
+        if (fileInput) fileInput.required = !isLink;
+        const urlInput = document.getElementById('fileUrl') as HTMLInputElement | null;
+        if (urlInput) urlInput.required = isLink;
 
-      radios.forEach((r) => {
-        const btn = document.getElementById(`btn-${r.value}`);
-        if (!btn) return;
-        const color = categoryColors[r.value] ?? 'is-light';
-        btn.classList.remove('is-selected', 'is-success', 'is-warning', 'is-info', 'is-light');
-        if (r.value === selected) btn.classList.add('is-selected', color);
+        radios.forEach((r) => {
+          const btn = document.getElementById(`btn-${r.value}`);
+          if (!btn) return;
+          const color = categoryColors[r.value] ?? 'is-light';
+          btn.classList.remove('is-selected', 'is-success', 'is-warning', 'is-info', 'is-light');
+          if (r.value === selected) btn.classList.add('is-selected', color);
+        });
+      }
+
+      radios.forEach((r) => r.addEventListener('change', onCategoryChange));
+      onCategoryChange();
+
+      if (fileInput && nameInput) {
+        fileInput.addEventListener('change', () => {
+          const file = fileInput.files?.[0];
+          if (file && !nameInput.value) {
+            nameInput.value = file.name.replace(/\.[^.]+$/, '').replace(/[_-]/g, ' ');
+          }
+        });
+      }
+
+      document.querySelectorAll('details').forEach((details) => {
+        const arrow = details.querySelector('.pdf-arrow') as HTMLElement | null;
+        if (!arrow) return;
+        details.addEventListener('toggle', () => {
+          arrow.style.transform = details.open ? 'rotate(90deg)' : '';
+        });
       });
-    }
 
-    radios.forEach((r) => r.addEventListener('change', onCategoryChange));
-    onCategoryChange();
-
-    if (fileInput && nameInput) {
-      fileInput.addEventListener('change', () => {
-        const file = fileInput.files?.[0];
-        if (file && !nameInput.value) {
-          nameInput.value = file.name.replace(/\.[^.]+$/, '').replace(/[_-]/g, ' ');
-        }
-      });
-    }
-
-    document.querySelectorAll('details').forEach((details) => {
-      const arrow = details.querySelector('.pdf-arrow') as HTMLElement | null;
-      if (!arrow) return;
-      details.addEventListener('toggle', () => {
-        arrow.style.transform = details.open ? 'rotate(90deg)' : '';
+      // Re-load audio elements after client-side navigation — the browser may
+      // leave them in a broken/empty state when the DOM is swapped.
+      document.querySelectorAll('audio').forEach((audio) => {
+        audio.load();
       });
     });
   </script>

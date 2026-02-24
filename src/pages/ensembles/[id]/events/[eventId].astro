@@ -617,17 +617,19 @@ const isPerformance = event.category === 'performance';
   )}
 
   <script>
-    const editModal = document.getElementById('edit-modal');
-    const editBtn = document.getElementById('edit-event-btn');
-    const closeEditModal = document.getElementById('close-edit-modal');
-    const cancelEdit = document.getElementById('cancel-edit');
+    document.addEventListener('astro:page-load', () => {
+      const editModal = document.getElementById('edit-modal');
+      const editBtn = document.getElementById('edit-event-btn');
+      const closeEditModal = document.getElementById('close-edit-modal');
+      const cancelEdit = document.getElementById('cancel-edit');
 
-    const openEditModal = () => editModal?.classList.add('is-active');
-    const closeModal = () => editModal?.classList.remove('is-active');
+      const openEditModal = () => editModal?.classList.add('is-active');
+      const closeModal = () => editModal?.classList.remove('is-active');
 
-    editBtn?.addEventListener('click', openEditModal);
-    closeEditModal?.addEventListener('click', closeModal);
-    cancelEdit?.addEventListener('click', closeModal);
-    editModal?.querySelector('.modal-background')?.addEventListener('click', closeModal);
+      editBtn?.addEventListener('click', openEditModal);
+      closeEditModal?.addEventListener('click', closeModal);
+      cancelEdit?.addEventListener('click', closeModal);
+      editModal?.querySelector('.modal-background')?.addEventListener('click', closeModal);
+    });
   </script>
 </Layout>

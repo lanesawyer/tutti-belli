@@ -91,26 +91,28 @@ const { invites } = Astro.props;
 </div>
 
 <script>
-  document.querySelectorAll('.copy-invite-btn').forEach(btn => {
-    btn.addEventListener('click', function(this: HTMLButtonElement) {
-      const inviteId = this.getAttribute('data-invite-id');
-      const input = document.getElementById(`invite-${inviteId}`);
-      
-      if (input instanceof HTMLInputElement) {
-        input.select();
-        navigator.clipboard.writeText(input.value).then(() => {
-          const originalHTML = this.innerHTML;
-          this.innerHTML = '<span class="icon"><i class="fas fa-check"></i></span><span>Copied!</span>';
-          this.classList.add('is-success');
-          this.classList.remove('is-info');
-          
-          setTimeout(() => {
-            this.innerHTML = originalHTML;
-            this.classList.remove('is-success');
-            this.classList.add('is-info');
-          }, 2000);
-        });
-      }
+  document.addEventListener('astro:page-load', () => {
+    document.querySelectorAll('.copy-invite-btn').forEach(btn => {
+      btn.addEventListener('click', function(this: HTMLButtonElement) {
+        const inviteId = this.getAttribute('data-invite-id');
+        const input = document.getElementById(`invite-${inviteId}`);
+
+        if (input instanceof HTMLInputElement) {
+          input.select();
+          navigator.clipboard.writeText(input.value).then(() => {
+            const originalHTML = this.innerHTML;
+            this.innerHTML = '<span class="icon"><i class="fas fa-check"></i></span><span>Copied!</span>';
+            this.classList.add('is-success');
+            this.classList.remove('is-info');
+
+            setTimeout(() => {
+              this.innerHTML = originalHTML;
+              this.classList.remove('is-success');
+              this.classList.add('is-info');
+            }, 2000);
+          });
+        }
+      });
     });
   });
 </script>
