@@ -38,7 +38,7 @@ const createResult = Astro.getActionResult(actions.events.create);
 const deleteResult = Astro.getActionResult(actions.events.delete);
 
 let message = '';
-let messageType = '';
+let messageType: 'success' | 'danger' | undefined;
 
 if (createResult) {
   if (createResult.error) {

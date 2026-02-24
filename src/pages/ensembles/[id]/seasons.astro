@@ -27,7 +27,7 @@ if (!access) return new Response('Unauthorized - Not a member', { status: 403 })
 const { isAdmin } = access;
 
 let message = '';
-let messageType = '';
+let messageType: 'success' | 'danger' | undefined;
 
 // Handle form submission
 if (Astro.request.method === 'POST') {
