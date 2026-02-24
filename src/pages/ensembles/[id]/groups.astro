@@ -4,8 +4,7 @@ import Table from '../../../components/Table.astro';
 import Modal from '../../../components/Modal.astro';
 import Button from '../../../components/Button.astro';
 import { db, eq, and, desc, EnsembleMember, Group, GroupMembership, User } from 'astro:db';
-import { canManageEnsemble } from '../../../lib/permissions';
-import { getEnsembleBySlugOrId } from '../../../lib/ensemble';
+import { getEnsembleBySlugOrId, getEnsembleAccess } from '../../../lib/ensemble';
 import { getEnsembleUrlId } from '../../../lib/slug';
 
 const user = Astro.locals.user!;
@@ -22,18 +21,9 @@ if (Astro.request.method === 'GET' && id !== canonicalId) {
   return Astro.redirect(Astro.url.pathname.replace(`/ensembles/${id}`, `/ensembles/${canonicalId}`), 301);
 }
 
-// Check if user is a member
-const membership = await db
-  .select()
-  .from(EnsembleMember)
-  .where(and(eq(EnsembleMember.ensembleId, ensemble.id), eq(EnsembleMember.userId, user.id)))
-  .get();
-
-if (!membership) {
-  return new Response('Unauthorized - Not a member', { status: 403 });
-}
-
-const isAdmin = canManageEnsemble(user, membership);
+const access = await getEnsembleAccess(user, ensemble.id);
+if (!access) return new Response('Unauthorized - Not a member', { status: 403 });
+const { isAdmin } = access;
 
 let message = '';
 let messageType = '';
