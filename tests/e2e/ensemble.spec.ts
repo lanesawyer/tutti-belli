@@ -6,7 +6,7 @@ import { test, expect } from '@playwright/test';
 test('admin can see the site admin panel', async ({ page }) => {
   await page.goto('/admin');
   await expect(page).toHaveURL('/admin');
-  await expect(page.locator('h1')).toContainText(/admin/i);
+  await expect(page.locator('h1').first()).toContainText(/admin/i);
 });
 
 test('admin can view their ensembles list', async ({ page }) => {
@@ -17,14 +17,14 @@ test('admin can view their ensembles list', async ({ page }) => {
 
 test('admin can navigate to ensemble detail page', async ({ page }) => {
   await page.goto('/ensembles');
-  await page.locator('a').filter({ hasText: 'Chamber Orchestra' }).first().click();
+  await page.locator('.card').filter({ hasText: 'Chamber Orchestra' }).locator('a').first().click();
   await expect(page).toHaveURL(/\/ensembles\/.+/);
   await expect(page.locator('h1, h2').first()).toBeVisible();
 });
 
 test('admin can access ensemble edit page', async ({ page }) => {
   await page.goto('/ensembles');
-  await page.locator('a').filter({ hasText: 'Chamber Orchestra' }).first().click();
+  await page.locator('.card').filter({ hasText: 'Chamber Orchestra' }).locator('a').first().click();
   // Look for a settings/edit link
   const editLink = page.locator('a').filter({ hasText: /edit|settings/i }).first();
   if (await editLink.count() > 0) {

@@ -13,7 +13,7 @@ import { test, expect } from '@playwright/test';
 test('admin can navigate to the events list page', async ({ page }) => {
   await page.goto('/ensembles');
   // Find the Chamber Orchestra link and navigate to its events
-  await page.locator('a', { hasText: 'Chamber Orchestra' }).first().click();
+  await page.locator('.card').filter({ hasText: 'Chamber Orchestra' }).locator('a').first().click();
   await expect(page).toHaveURL(/\/ensembles\//);
 
   await page.locator('a', { hasText: /events/i }).first().click();
@@ -24,7 +24,7 @@ test('admin can navigate to the events list page', async ({ page }) => {
 test('events page loads and shows the events section', async ({ page }) => {
   // Navigate directly — use the known seed ensemble slug
   await page.goto('/ensembles');
-  const ensembleLink = page.locator('a').filter({ hasText: 'Chamber Orchestra' }).first();
+  const ensembleLink = page.locator('.card').filter({ hasText: 'Chamber Orchestra' }).locator('a').first();
   await ensembleLink.click();
 
   const eventsLink = page.locator('nav a, a').filter({ hasText: /events/i }).first();

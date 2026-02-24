@@ -9,7 +9,7 @@ import { test, expect } from '@playwright/test';
 
 async function navigateToSongs(page: ReturnType<typeof test['info']>['project']['use'] & any) {
   await page.goto('/ensembles');
-  await page.locator('a').filter({ hasText: 'Chamber Orchestra' }).first().click();
+  await page.locator('.card').filter({ hasText: 'Chamber Orchestra' }).locator('a').first().click();
   // Navigate to songs via the nav link
   await page.locator('a').filter({ hasText: /songs/i }).first().click();
   await expect(page).toHaveURL(/\/songs/);
@@ -17,7 +17,7 @@ async function navigateToSongs(page: ReturnType<typeof test['info']>['project'][
 
 test('songs page loads for an ensemble admin', async ({ page }) => {
   await page.goto('/ensembles');
-  await page.locator('a').filter({ hasText: 'Chamber Orchestra' }).first().click();
+  await page.locator('.card').filter({ hasText: 'Chamber Orchestra' }).locator('a').first().click();
   await page.locator('a').filter({ hasText: /songs/i }).first().click();
 
   await expect(page).toHaveURL(/\/songs/);
@@ -27,7 +27,7 @@ test('songs page loads for an ensemble admin', async ({ page }) => {
 
 test('admin can add a new song via the modal form', async ({ page }) => {
   await page.goto('/ensembles');
-  await page.locator('a').filter({ hasText: 'Chamber Orchestra' }).first().click();
+  await page.locator('.card').filter({ hasText: 'Chamber Orchestra' }).locator('a').first().click();
   await page.locator('a').filter({ hasText: /songs/i }).first().click();
 
   // Open add song modal
@@ -49,7 +49,7 @@ test('admin can add a new song via the modal form', async ({ page }) => {
 test('songs page shows "No songs" message when repertoire is empty', async ({ page }) => {
   // This is a structural test — just verify the page loads without 500 errors
   await page.goto('/ensembles');
-  await page.locator('a').filter({ hasText: 'Chamber Orchestra' }).first().click();
+  await page.locator('.card').filter({ hasText: 'Chamber Orchestra' }).locator('a').first().click();
   await page.locator('a').filter({ hasText: /songs/i }).first().click();
 
   await expect(page).toHaveURL(/\/songs/);
