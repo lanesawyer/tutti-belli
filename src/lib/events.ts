@@ -42,6 +42,7 @@ export async function getEventProgramData(eventId: string, seasonId: string) {
         name: Song.name,
         composer: Song.composer,
         sortOrder: EventProgram.sortOrder,
+        notes: EventProgram.notes,
       })
       .from(EventProgram)
       .innerJoin(Song, eq(EventProgram.songId, Song.id))
@@ -258,7 +259,7 @@ export async function removeAttendance(attendanceId: string) {
   await db.delete(Attendance).where(eq(Attendance.id, attendanceId));
 }
 
-export async function addProgramSong(eventId: string, songId: string) {
+export async function addProgramSong(eventId: string, songId: string, notes?: string) {
   const currentProgram = await db
     .select({ sortOrder: EventProgram.sortOrder })
     .from(EventProgram)
@@ -274,7 +275,15 @@ export async function addProgramSong(eventId: string, songId: string) {
     eventId,
     songId,
     sortOrder: maxOrder + 1,
+    notes: notes || undefined,
   });
+}
+
+export async function updateProgramSongNotes(programEntryId: string, notes: string) {
+  await db
+    .update(EventProgram)
+    .set({ notes: notes.trim() || null })
+    .where(eq(EventProgram.id, programEntryId));
 }
 
 export async function removeProgramSong(programEntryId: string) {

@@ -6,9 +6,20 @@ import {
   addAttendance,
   removeAttendance,
   getEvent,
+  addProgramSong,
+  removeProgramSong,
+  updateProgramSongNotes,
 } from '../../src/lib/events.ts';
-import { db, Attendance, Event, eq, and } from 'astro:db';
-import { createUser, createEnsemble, createSeason, createEvent } from './fixtures.ts';
+import { db, Attendance, Event, EventProgram, eq, and } from 'astro:db';
+import {
+  createUser,
+  createEnsemble,
+  createSeason,
+  createEvent,
+  createSong,
+  createSeasonSong,
+  createEventProgramEntry,
+} from './fixtures.ts';
 
 afterEach(() => {
   vi.useRealTimers();
@@ -278,5 +289,128 @@ describe('removeAttendance', () => {
       .where(eq(Attendance.id, record!.id))
       .get();
     expect(after).toBeUndefined();
+  });
+});
+
+describe('addProgramSong', () => {
+  it('adds a song to a rehearsal event', async () => {
+    const admin = await createUser({ role: 'admin' });
+    const ensemble = await createEnsemble(admin!.id);
+    const season = await createSeason(ensemble!.id);
+    const event = await createEvent(ensemble!.id, season!.id, { category: 'rehearsal' });
+    const song = await createSong(ensemble!.id);
+    await createSeasonSong(season!.id, song!.id);
+
+    await addProgramSong(event!.id, song!.id);
+
+    const rows = await db.select().from(EventProgram).where(eq(EventProgram.eventId, event!.id)).all();
+    expect(rows).toHaveLength(1);
+    expect(rows[0].songId).toBe(song!.id);
+    expect(rows[0].sortOrder).toBe(1);
+    expect(rows[0].notes).toBeNull();
+  });
+
+  it('adds a song to a performance event', async () => {
+    const admin = await createUser({ role: 'admin' });
+    const ensemble = await createEnsemble(admin!.id);
+    const season = await createSeason(ensemble!.id);
+    const event = await createEvent(ensemble!.id, season!.id, { category: 'performance' });
+    const song = await createSong(ensemble!.id);
+    await createSeasonSong(season!.id, song!.id);
+
+    await addProgramSong(event!.id, song!.id);
+
+    const rows = await db.select().from(EventProgram).where(eq(EventProgram.eventId, event!.id)).all();
+    expect(rows).toHaveLength(1);
+    expect(rows[0].songId).toBe(song!.id);
+  });
+
+  it('adds a song with notes', async () => {
+    const admin = await createUser({ role: 'admin' });
+    const ensemble = await createEnsemble(admin!.id);
+    const season = await createSeason(ensemble!.id);
+    const event = await createEvent(ensemble!.id, season!.id);
+    const song = await createSong(ensemble!.id);
+
+    await addProgramSong(event!.id, song!.id, 'Focus on intonation in measures 12-16');
+
+    const row = await db.select().from(EventProgram).where(eq(EventProgram.eventId, event!.id)).get();
+    expect(row!.notes).toBe('Focus on intonation in measures 12-16');
+  });
+
+  it('assigns ascending sortOrder for multiple songs', async () => {
+    const admin = await createUser({ role: 'admin' });
+    const ensemble = await createEnsemble(admin!.id);
+    const season = await createSeason(ensemble!.id);
+    const event = await createEvent(ensemble!.id, season!.id);
+    const song1 = await createSong(ensemble!.id, { name: 'Song A' });
+    const song2 = await createSong(ensemble!.id, { name: 'Song B' });
+
+    await addProgramSong(event!.id, song1!.id);
+    await addProgramSong(event!.id, song2!.id);
+
+    const rows = await db.select().from(EventProgram).where(eq(EventProgram.eventId, event!.id)).all();
+    const orders = rows.map(r => r.sortOrder).sort((a, b) => a - b);
+    expect(orders[1]).toBeGreaterThan(orders[0]);
+  });
+});
+
+describe('updateProgramSongNotes', () => {
+  it('sets notes on an existing program entry', async () => {
+    const admin = await createUser({ role: 'admin' });
+    const ensemble = await createEnsemble(admin!.id);
+    const season = await createSeason(ensemble!.id);
+    const event = await createEvent(ensemble!.id, season!.id);
+    const song = await createSong(ensemble!.id);
+    const entry = await createEventProgramEntry(event!.id, song!.id);
+
+    await updateProgramSongNotes(entry!.id, 'Work on dynamics');
+
+    const row = await db.select().from(EventProgram).where(eq(EventProgram.id, entry!.id)).get();
+    expect(row!.notes).toBe('Work on dynamics');
+  });
+
+  it('clears notes when given an empty string', async () => {
+    const admin = await createUser({ role: 'admin' });
+    const ensemble = await createEnsemble(admin!.id);
+    const season = await createSeason(ensemble!.id);
+    const event = await createEvent(ensemble!.id, season!.id);
+    const song = await createSong(ensemble!.id);
+    const entry = await createEventProgramEntry(event!.id, song!.id, { notes: 'Old notes' });
+
+    await updateProgramSongNotes(entry!.id, '');
+
+    const row = await db.select().from(EventProgram).where(eq(EventProgram.id, entry!.id)).get();
+    expect(row!.notes).toBeNull();
+  });
+
+  it('trims whitespace-only notes to null', async () => {
+    const admin = await createUser({ role: 'admin' });
+    const ensemble = await createEnsemble(admin!.id);
+    const season = await createSeason(ensemble!.id);
+    const event = await createEvent(ensemble!.id, season!.id);
+    const song = await createSong(ensemble!.id);
+    const entry = await createEventProgramEntry(event!.id, song!.id, { notes: 'Some notes' });
+
+    await updateProgramSongNotes(entry!.id, '   ');
+
+    const row = await db.select().from(EventProgram).where(eq(EventProgram.id, entry!.id)).get();
+    expect(row!.notes).toBeNull();
+  });
+});
+
+describe('removeProgramSong', () => {
+  it('removes an existing program entry', async () => {
+    const admin = await createUser({ role: 'admin' });
+    const ensemble = await createEnsemble(admin!.id);
+    const season = await createSeason(ensemble!.id);
+    const event = await createEvent(ensemble!.id, season!.id);
+    const song = await createSong(ensemble!.id);
+    const entry = await createEventProgramEntry(event!.id, song!.id);
+
+    await removeProgramSong(entry!.id);
+
+    const row = await db.select().from(EventProgram).where(eq(EventProgram.id, entry!.id)).get();
+    expect(row).toBeUndefined();
   });
 });

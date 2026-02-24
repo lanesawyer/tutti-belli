@@ -8,6 +8,7 @@ import { db, eq, and, desc, Event, Season } from 'astro:db';
 import { actions } from 'astro:actions';
 import { getEnsembleBySlugOrId, getEnsembleAccess } from '../../../../lib/ensemble';
 import { getEnsembleUrlId } from '../../../../lib/slug';
+import { formatDuration } from '../../../../lib/format';
 
 const user = Astro.locals.user!;
 
@@ -129,7 +130,7 @@ const pastEvents = events.filter(e => {
                     <td>{scheduledDate.toLocaleDateString()}</td>
                     <td>{scheduledDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
                     <td>{event.location || '-'}</td>
-                    <td>{event.durationMinutes} min</td>
+                    <td>{formatDuration(event.durationMinutes)}</td>
                     <td>
                       <div class="buttons are-small">
                         <Button href={`/ensembles/${canonicalId}/events/${event.id}`} color="info">

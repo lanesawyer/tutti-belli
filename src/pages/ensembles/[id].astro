@@ -5,11 +5,12 @@ import Button from '../../components/Button.astro';
 import DashboardSection from '../../components/DashboardSection.astro';
 import Message from '../../components/Message.astro';
 import Notification from '../../components/Notification.astro';
-import { db, eq, and, desc, EnsembleMember, User, EnsembleInvite, Part, Announcement, Group, GroupMembership, Event, Season, SeasonMembership, SeasonSong, Song, EnsembleLink } from 'astro:db';
+import { db, eq, and, desc, inArray, EnsembleMember, User, EnsembleInvite, Part, Announcement, Group, GroupMembership, Event, EventProgram, Season, SeasonMembership, SeasonSong, Song, EnsembleLink } from 'astro:db';
 import { getInitials, getColorFromInitials } from '../../lib/avatar';
 import { ensembleAdminTools } from '../../lib/config';
 import { getEnsembleBySlugOrId, getEnsembleAccess } from '../../lib/ensemble';
 import { getEnsembleUrlId } from '../../lib/slug';
+import { formatDuration } from '../../lib/format';
 
 const user = Astro.locals.user!;
 
@@ -165,6 +166,30 @@ const upcomingPerformances = allEvents
     return endTime > now && e.category === 'performance';
   })
   .slice(0, 5);
+
+// Fetch program songs for all upcoming events in one batch query
+const allUpcomingIds = [...upcomingRehearsals, ...upcomingPerformances].map(e => e.id);
+const upcomingProgramRows = allUpcomingIds.length > 0
+  ? await db
+      .select({
+        eventId: EventProgram.eventId,
+        songName: Song.name,
+        composer: Song.composer,
+        notes: EventProgram.notes,
+        sortOrder: EventProgram.sortOrder,
+      })
+      .from(EventProgram)
+      .innerJoin(Song, eq(EventProgram.songId, Song.id))
+      .where(inArray(EventProgram.eventId, allUpcomingIds))
+      .orderBy(EventProgram.sortOrder)
+      .all()
+  : [];
+
+const programByEventId = new Map<string, typeof upcomingProgramRows>();
+for (const row of upcomingProgramRows) {
+  if (!programByEventId.has(row.eventId)) programByEventId.set(row.eventId, []);
+  programByEventId.get(row.eventId)!.push(row);
+}
 
 // Get songs for the active season
 const seasonSongs = currentSeason ? await db
@@ -461,7 +486,7 @@ if (Astro.request.method === 'POST') {
                     {isToday && <span class="tag is-dark ml-2">Today</span>}
                   </a>
                   <small slot="header" class="has-text-weight-normal">
-                    {scheduledDate.toLocaleDateString()} at {scheduledDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    {scheduledDate.toLocaleDateString()} at {scheduledDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · {formatDuration(event.durationMinutes)}
                   </small>
                   {event.location && (
                     <p class="mb-2">
@@ -476,9 +501,21 @@ if (Astro.request.method === 'POST') {
                   {event.description && (
                     <p style="white-space: pre-wrap;">{event.description}</p>
                   )}
-                  <p class="mt-2">
-                    <small>Duration: {event.durationMinutes} minutes</small>
-                  </p>
+                  {(() => {
+                    const songs = programByEventId.get(event.id) ?? [];
+                    if (songs.length === 0) return null;
+                    return (
+                      <ul class="mt-2 mb-1">
+                        {songs.map(s => (
+                          <li>
+                            <span class="has-text-weight-semibold">{s.songName}</span>
+                            {s.composer && <span class="has-text-grey is-size-7"> — {s.composer}</span>}
+                            {s.notes && <span class="is-size-7"> · {s.notes}</span>}
+                          </li>
+                        ))}
+                      </ul>
+                    );
+                  })()}
                 </Message>
               );
             })}
@@ -516,7 +553,7 @@ if (Astro.request.method === 'POST') {
                     {isToday && <span class="tag is-dark ml-2">Today</span>}
                   </a>
                   <small slot="header" class="has-text-weight-normal">
-                    {scheduledDate.toLocaleDateString()} at {scheduledDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    {scheduledDate.toLocaleDateString()} at {scheduledDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · {formatDuration(event.durationMinutes)}
                   </small>
                   {event.location && (
                     <p class="mb-2">
@@ -531,9 +568,21 @@ if (Astro.request.method === 'POST') {
                   {event.description && (
                     <p style="white-space: pre-wrap;">{event.description}</p>
                   )}
-                  <p class="mt-2">
-                    <small>Duration: {event.durationMinutes} minutes</small>
-                  </p>
+                  {(() => {
+                    const songs = programByEventId.get(event.id) ?? [];
+                    if (songs.length === 0) return null;
+                    return (
+                      <ul class="mt-2 mb-1">
+                        {songs.map(s => (
+                          <li>
+                            <span class="has-text-weight-semibold">{s.songName}</span>
+                            {s.composer && <span class="has-text-grey is-size-7"> — {s.composer}</span>}
+                            {s.notes && <span class="is-size-7"> · {s.notes}</span>}
+                          </li>
+                        ))}
+                      </ul>
+                    );
+                  })()}
                 </Message>
               );
             })}

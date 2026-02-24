@@ -12,6 +12,7 @@ import {
   removeAttendance,
   addProgramSong,
   removeProgramSong,
+  updateProgramSongNotes,
 } from '../lib/events';
 
 export const events = {
@@ -127,12 +128,13 @@ export const events = {
       ensembleId: z.string(),
       eventId: z.string(),
       songId: z.string(),
+      notes: z.string().optional(),
     }),
-    handler: async ({ ensembleId, eventId, songId }, context) => {
+    handler: async ({ ensembleId, eventId, songId, notes }, context) => {
       const user = context.locals.user;
       if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
       await assertEnsembleAdmin(ensembleId, user);
-      await addProgramSong(eventId, songId);
+      await addProgramSong(eventId, songId, notes);
     },
   }),
 
@@ -147,6 +149,21 @@ export const events = {
       if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
       await assertEnsembleAdmin(ensembleId, user);
       await removeProgramSong(programEntryId);
+    },
+  }),
+
+  updateProgramSongNotes: defineAction({
+    accept: 'form',
+    input: z.object({
+      ensembleId: z.string(),
+      programEntryId: z.string(),
+      notes: z.string(),
+    }),
+    handler: async ({ ensembleId, programEntryId, notes }, context) => {
+      const user = context.locals.user;
+      if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
+      await assertEnsembleAdmin(ensembleId, user);
+      await updateProgramSongNotes(programEntryId, notes);
     },
   }),
 
