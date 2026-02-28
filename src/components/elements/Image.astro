@@ -1,0 +1,49 @@
+---
+import { Image as AstroImage } from 'astro:assets';
+
+type FixedSize = '16x16' | '24x24' | '32x32' | '48x48' | '64x64' | '96x96' | '128x128';
+type Ratio =
+  | 'square' | '1by1'
+  | '5by4' | '4by3' | '3by2' | '5by3'
+  | '16by9' | '2by1' | '3by1'
+  | '4by5' | '3by4' | '2by3' | '3by5'
+  | '9by16' | '1by2' | '1by3';
+
+interface Props {
+  src: string;
+  alt: string;
+  size?: FixedSize;
+  ratio?: Ratio;
+  rounded?: boolean;
+  fullwidth?: boolean;
+  /** Extra classes on the <figure> wrapper */
+  class?: string;
+  /** Extra inline styles on the <figure> wrapper */
+  style?: string;
+  /** Extra inline styles applied directly to the <img> */
+  imgStyle?: string;
+}
+
+const { src, alt, size, ratio, rounded, fullwidth, class: className, style, imgStyle } = Astro.props;
+
+const figureClasses = [
+  'image',
+  size && `is-${size}`,
+  ratio && `is-${ratio}`,
+  rounded && 'is-rounded',
+  fullwidth && 'is-fullwidth',
+  className,
+].filter(Boolean).join(' ');
+
+// Astro's <Image> component cannot optimize data URIs (base64) or SVG data URLs.
+// Fall back to a plain <img> for those cases.
+const isDataUri = src.startsWith('data:');
+---
+
+<figure class={figureClasses} style={style}>
+  {isDataUri ? (
+    <img src={src} alt={alt} style={imgStyle} />
+  ) : (
+    <AstroImage src={src} alt={alt} inferSize style={imgStyle} />
+  )}
+</figure>

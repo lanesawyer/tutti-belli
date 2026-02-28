@@ -6,8 +6,9 @@ import { canManageEnsemble } from '../../../lib/permissions';
 import { ensembleAdminTools } from '../../../lib/config';
 import { getEnsembleBySlugOrId } from '../../../lib/ensemble';
 import { generateSlug, getEnsembleUrlId } from '../../../lib/slug';
-import Button from '../../../components/Button.astro';
-import Icon from '../../../components/Icon.astro';
+import Button from '../../../components/elements/Button.astro';
+import Image from '../../../components/elements/Image.astro';
+import Icon from '../../../components/elements/Icon.astro';
 import Breadcrumb from '../../../components/Breadcrumb.astro';
 import FileInput from '../../../components/FileInput.astro';
 
@@ -321,9 +322,7 @@ if (Astro.request.method === 'POST') {
                 {ensemble.imageUrl && (
                   <div class="mb-3">
                     <p class="mb-2 has-text-weight-semibold">Current Image:</p>
-                    <figure class="image is-128x128">
-                      <img src={ensemble.imageUrl} alt={ensemble.name} style="object-fit: cover; border-radius: 8px;" />
-                    </figure>
+                    <Image src={ensemble.imageUrl} alt={ensemble.name} size="128x128" imgStyle="object-fit: cover; border-radius: 8px;" />
                     <label class="checkbox mt-2">
                       <input type="checkbox" name="removeImage" value="true" />
                       Remove current image

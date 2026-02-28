@@ -30,6 +30,7 @@ pnpm astro:db:push    # Push schema changes to remote Turso DB
 - Don't duplicate logic, if there are commonalities, extract it into a shared utility in `src/lib/`
 - Keep the frontmatter Astro files light, most server logic should be in `src/lib/` files
 - **Always use components from `src/components/` instead of writing raw HTML equivalents.** Before writing a `<button>`, `<a class="button">`, or modal, check if a component exists: `Button.astro`, `Modal.astro`, `Table.astro`, `InviteCodeWidget.astro`, etc. Prefer extending a component over one-off inline markup. This includes icons — always use `Icon.astro` instead of raw `<i class="fas ...">` tags. Extra classes can be appended to the `icon` prop string (e.g. `icon="fa-moon my-class"`).
+- **Never write raw `<img>` tags or `<figure class="image">` wrappers.** Always use `Image.astro` (`src/components/elements/Image.astro`). It wraps Bulma's image element, uses Astro's `<Image>` component for real URLs, and falls back to a plain `<img>` for data URIs. Props: `src`, `alt`, `size` (e.g. `"96x96"`), `ratio`, `rounded`, `fullwidth`, `class` (on the figure), `style` (on the figure), `imgStyle` (on the img).
 
 ### Client-side Scripts & Astro ClientRouter
 `<ClientRouter />` is active globally (in `Layout.astro`), which means pages are swapped client-side without a full browser reload. **All DOM manipulation in `<script>` tags must be wrapped in `document.addEventListener('astro:page-load', () => { ... })`** — otherwise the code runs once on first load and never again after navigation.

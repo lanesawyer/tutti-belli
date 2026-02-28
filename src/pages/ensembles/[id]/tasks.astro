@@ -1,11 +1,11 @@
 ---
 import EnsemblePageLayout from '../../../layouts/EnsemblePageLayout.astro';
-import Table from '../../../components/Table.astro';
+import Table from '../../../components/elements/Table.astro';
 import Modal from '../../../components/Modal.astro';
-import Button from '../../../components/Button.astro';
-import Icon from '../../../components/Icon.astro';
-import Tag from '../../../components/Tag.astro';
-import Notification from '../../../components/Notification.astro';
+import Button from '../../../components/elements/Button.astro';
+import Icon from '../../../components/elements/Icon.astro';
+import Tag from '../../../components/elements/Tag.astro';
+import Notification from '../../../components/elements/Notification.astro';
 import { db, eq, and, EnsembleMember, User, Season } from 'astro:db';
 import { actions } from 'astro:actions';
 import { canManageEnsemble } from '../../../lib/permissions';
