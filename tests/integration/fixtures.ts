@@ -2,7 +2,7 @@
  * Test data factory helpers for integration tests.
  * Each function inserts a row and returns the created record.
  */
-import { db, User, Ensemble, EnsembleMember, Season, Event, Part, Song, SeasonSong, EventProgram, eq } from 'astro:db';
+import { db, User, Ensemble, EnsembleMember, Season, Event, Part, Song, SeasonSong, EventProgram, Task, TaskCompletion, eq } from 'astro:db';
 import { hashPassword } from '../../src/lib/auth.ts';
 
 export async function createUser(overrides: {
@@ -154,4 +154,31 @@ export async function createEventProgramEntry(
     notes: overrides.notes,
   });
   return db.select().from(EventProgram).where(eq(EventProgram.id, id)).get() as Promise<typeof EventProgram.$inferSelect>;
+}
+
+export async function createTask(
+  ensembleId: string,
+  overrides: { id?: string; title?: string; description?: string; sortOrder?: number; seasonId?: string } = {}
+) {
+  const id = overrides.id ?? crypto.randomUUID();
+  await db.insert(Task).values({
+    id,
+    ensembleId,
+    seasonId: overrides.seasonId,
+    title: overrides.title ?? 'Test Task',
+    description: overrides.description,
+    sortOrder: overrides.sortOrder ?? 0,
+  });
+  return db.select().from(Task).where(eq(Task.id, id)).get() as Promise<typeof Task.$inferSelect>;
+}
+
+export async function createTaskCompletion(
+  taskId: string,
+  userId: string,
+  completedBy: string,
+  overrides: { id?: string } = {}
+) {
+  const id = overrides.id ?? crypto.randomUUID();
+  await db.insert(TaskCompletion).values({ id, taskId, userId, completedBy });
+  return db.select().from(TaskCompletion).where(eq(TaskCompletion.id, id)).get() as Promise<typeof TaskCompletion.$inferSelect>;
 }

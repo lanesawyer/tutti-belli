@@ -1,6 +1,10 @@
 /**
  * E2E tests for the site-wide banner feature.
  * Runs as admin (chromium-admin project).
+ *
+ * Uses test.describe.serial so tests never run concurrently — the banner is
+ * global shared DB state and parallel runs across browser projects would
+ * stomp each other.
  */
 import { test, expect } from '@playwright/test';
 
@@ -14,6 +18,8 @@ async function clearBanner(page: import('@playwright/test').Page) {
   await page.click('button[type="submit"][form="clear-banner-form"]');
   await expect(page.locator('.notification.is-success')).toBeVisible();
 }
+
+test.describe.serial('banner management', () => {
 
 test.beforeEach(async ({ page }) => {
   // Clear any active banner before each test so tests are isolated
@@ -78,3 +84,5 @@ test('banner is visible to regular users when set', async ({ page }) => {
   await page.goto('/');
   await expect(page.locator('#site-banner')).toContainText('Notice for all members');
 });
+
+}); // end describe.serial
