@@ -1,5 +1,6 @@
 ---
 import { APP_NAME } from '../lib/config';
+import Icon from './Icon.astro';
 
 const year = new Date().getFullYear();
 ---
@@ -12,27 +13,21 @@ const year = new Date().getFullYear();
     <p>
       <a href="https://github.com/lanesawyer/tutti-belli" target="_blank" rel="noopener noreferrer">
         <span class="icon-text">
-          <span class="icon">
-            <i class="fab fa-github"></i>
-          </span>
+          <Icon icon="fa-github" variant="fab" />
           <span>Open source on GitHub</span>
         </span>
       </a>
       <span class="mx-3 has-text-grey">·</span>
       <a href="https://github.com/lanesawyer/tutti-belli/issues" target="_blank" rel="noopener noreferrer">
         <span class="icon-text">
-          <span class="icon">
-            <i class="fas fa-bug"></i>
-          </span>
+          <Icon icon="fa-bug" />
           <span>Open an issue</span>
         </span>
       </a>
       <span class="mx-3 has-text-grey">·</span>
       <a href="mailto:github@lanesawyer.dev">
         <span class="icon-text">
-          <span class="icon">
-            <i class="fas fa-envelope"></i>
-          </span>
+          <Icon icon="fa-envelope" />
           <span>github@lanesawyer.dev</span>
         </span>
       </a>

@@ -10,6 +10,7 @@ import {
 } from '../../../../lib/songs';
 import { canManageEnsemble } from '../../../../lib/permissions';
 import Button from '../../../../components/Button.astro';
+import Icon from '../../../../components/Icon.astro';
 import Tag from '../../../../components/Tag.astro';
 import FileInput from '../../../../components/FileInput.astro';
 import Notification from '../../../../components/Notification.astro';
@@ -55,7 +56,7 @@ const songSeasons = seasonSongsData.map((ss) => seasons.find((s) => s.id === ss.
 >
   {isAdmin && (
     <Button slot="action" href={`/ensembles/${canonicalId}/songs`}>
-      <span class="icon"><i class="fas fa-arrow-left"></i></span>
+      <Icon icon="fa-arrow-left" />
       <span>Back to Songs</span>
     </Button>
   )}
@@ -105,7 +106,7 @@ const songSeasons = seasonSongsData.map((ss) => seasons.find((s) => s.id === ss.
   <!-- Resources section -->
   <h2 class="title is-4">
     <span class="icon-text">
-      <span class="icon"><i class="fas fa-folder-open"></i></span>
+      <Icon icon="fa-folder-open" />
       <span>Resources</span>
     </span>
   </h2>
@@ -156,7 +157,7 @@ const songSeasons = seasonSongsData.map((ss) => seasons.find((s) => s.id === ss.
                   rel="noopener noreferrer"
                   title="Open link"
                 >
-                  <span class="icon is-small"><i class="fas fa-external-link-alt"></i></span>
+                  <Icon icon="fa-external-link-alt" size="small" />
                 </Button>
               ) : (
                 <Button
@@ -164,7 +165,7 @@ const songSeasons = seasonSongsData.map((ss) => seasons.find((s) => s.id === ss.
                   size="small"
                   title="Download"
                 >
-                  <span class="icon is-small"><i class="fas fa-download"></i></span>
+                  <Icon icon="fa-download" size="small" />
                 </Button>
               )}
               {isAdmin && (
@@ -172,7 +173,7 @@ const songSeasons = seasonSongsData.map((ss) => seasons.find((s) => s.id === ss.
                   <input type="hidden" name="ensembleId" value={ensemble.id} />
                   <input type="hidden" name="fileId" value={file.id} />
                   <Button type="submit" color="danger" size="small">
-                    <span class="icon is-small"><i class="fas fa-trash"></i></span>
+                    <Icon icon="fa-trash" size="small" />
                   </Button>
                 </form>
               )}
@@ -282,7 +283,7 @@ const songSeasons = seasonSongsData.map((ss) => seasons.find((s) => s.id === ss.
               <label class="label">&nbsp;</label>
               <div class="control">
                 <Button type="submit" color="primary">
-                  <span class="icon"><i class="fas fa-upload"></i></span>
+                  <Icon icon="fa-upload" />
                   <span>Upload</span>
                 </Button>
               </div>
@@ -355,7 +356,7 @@ const songSeasons = seasonSongsData.map((ss) => seasons.find((s) => s.id === ss.
 
   {!isAdmin && (
     <Button href={`/ensembles/${canonicalId}/songs`}>
-      <span class="icon"><i class="fas fa-arrow-left"></i></span>
+      <Icon icon="fa-arrow-left" />
       <span>Back to Songs</span>
     </Button>
   )}

@@ -2,6 +2,7 @@
 import PageLayout from './PageLayout.astro';
 import { ensembleAdminTools } from '../lib/config';
 import Breadcrumb from '../components/Breadcrumb.astro';
+import Icon from '../components/Icon.astro';
 
 interface Props {
   title: string;
@@ -43,7 +44,7 @@ const currentPath = Astro.url.pathname;
       <a class="navbar-link">{ensembleName}</a>
       <div class="navbar-dropdown">
         <a class={`navbar-item${currentPath === `/ensembles/${ensembleId}` ? ' is-active' : ''}`} href={`/ensembles/${ensembleId}`}>
-          <span class="icon is-small mr-1"><i class="fas fa-home"></i></span>
+          <Icon icon="fa-home" size="small" class="mr-1" />
           Dashboard
         </a>
         <hr class="navbar-divider" />
@@ -51,7 +52,7 @@ const currentPath = Astro.url.pathname;
           const href = tool.href(ensembleId);
           return (
             <a class={`navbar-item${currentPath.startsWith(href) ? ' is-active' : ''}`} href={href}>
-              <span class="icon is-small mr-1"><i class={`fas ${tool.icon}`}></i></span>
+              <Icon icon={tool.icon} size="small" class="mr-1" />
               {tool.label}
             </a>
           );

@@ -7,6 +7,7 @@ import { getInitials, getColorFromInitials } from '../../../lib/avatar';
 import { getEnsembleBySlugOrId, getEnsembleAccess } from '../../../lib/ensemble';
 import { getEnsembleUrlId } from '../../../lib/slug';
 import Button from '../../../components/Button.astro';
+import Icon from '../../../components/Icon.astro';
 import Breadcrumb from '../../../components/Breadcrumb.astro';
 
 const user = Astro.locals.user!;
@@ -104,7 +105,7 @@ if (Astro.request.method === 'POST') {
     <a class="navbar-link">{ensemble.name}</a>
     <div class="navbar-dropdown">
       <a class={`navbar-item${Astro.url.pathname === `/ensembles/${canonicalId}` ? ' is-active' : ''}`} href={`/ensembles/${canonicalId}`}>
-        <span class="icon is-small mr-1"><i class="fas fa-home"></i></span>
+        <Icon icon="fa-home" size="small" class="mr-1" />
         Dashboard
       </a>
       <hr class="navbar-divider" />
@@ -112,7 +113,7 @@ if (Astro.request.method === 'POST') {
         const href = tool.href(canonicalId);
         return (
           <a class={`navbar-item${Astro.url.pathname.startsWith(href) ? ' is-active' : ''}`} href={href}>
-            <span class="icon is-small mr-1"><i class={`fas ${tool.icon}`}></i></span>
+            <Icon icon={tool.icon} size="small" class="mr-1" />
             {tool.label}
           </a>
         );
@@ -139,9 +140,7 @@ if (Astro.request.method === 'POST') {
         <div class="level-right">
           <div class="level-item">
             <Button href={`/ensembles/${canonicalId}`}>
-              <span class="icon">
-                <i class="fas fa-arrow-left"></i>
-              </span>
+              <Icon icon="fa-arrow-left" />
               <span>Back to Ensemble</span>
             </Button>
           </div>

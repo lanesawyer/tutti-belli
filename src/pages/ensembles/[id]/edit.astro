@@ -7,6 +7,7 @@ import { ensembleAdminTools } from '../../../lib/config';
 import { getEnsembleBySlugOrId } from '../../../lib/ensemble';
 import { generateSlug, getEnsembleUrlId } from '../../../lib/slug';
 import Button from '../../../components/Button.astro';
+import Icon from '../../../components/Icon.astro';
 import Breadcrumb from '../../../components/Breadcrumb.astro';
 import FileInput from '../../../components/FileInput.astro';
 
@@ -168,7 +169,7 @@ if (Astro.request.method === 'POST') {
     <a class="navbar-link">{ensemble.name}</a>
     <div class="navbar-dropdown">
       <a class={`navbar-item${Astro.url.pathname === `/ensembles/${canonicalId}` ? ' is-active' : ''}`} href={`/ensembles/${canonicalId}`}>
-        <span class="icon is-small mr-1"><i class="fas fa-home"></i></span>
+        <Icon icon="fa-home" size="small" class="mr-1" />
         Dashboard
       </a>
       <hr class="navbar-divider" />
@@ -176,7 +177,7 @@ if (Astro.request.method === 'POST') {
         const href = tool.href(canonicalId);
         return (
           <a class={`navbar-item${Astro.url.pathname.startsWith(href) ? ' is-active' : ''}`} href={href}>
-            <span class="icon is-small mr-1"><i class={`fas ${tool.icon}`}></i></span>
+            <Icon icon={tool.icon} size="small" class="mr-1" />
             {tool.label}
           </a>
         );
@@ -259,9 +260,7 @@ if (Astro.request.method === 'POST') {
                     value={ensemble.discordLink || ''}
                     placeholder="https://discord.gg/..."
                   />
-                  <span class="icon is-small is-left">
-                    <i class="fab fa-discord"></i>
-                  </span>
+                  <Icon icon="fa-discord" variant="fab" size="small" position="left" />
                 </div>
                 <p class="help">Optional Discord server invite link for this ensemble</p>
               </div>
@@ -279,7 +278,7 @@ if (Astro.request.method === 'POST') {
                         </div>
                         <div class="control">
                           <Button type="submit" form={`delete-link-${link.id}`} color="danger" light title="Remove link">
-                            <span class="icon"><i class="fas fa-times"></i></span>
+                            <Icon icon="fa-times" />
                           </Button>
                         </div>
                       </div>
@@ -296,7 +295,7 @@ if (Astro.request.method === 'POST') {
                   </div>
                   <div class="control">
                     <Button type="submit" form="add-link-form" color="link" light>
-                      <span class="icon"><i class="fas fa-plus"></i></span>
+                      <Icon icon="fa-plus" />
                       <span>Add</span>
                     </Button>
                   </div>
@@ -387,9 +386,7 @@ if (Astro.request.method === 'POST') {
               <div class="field is-grouped">
                 <div class="control">
                   <Button type="submit" color="primary">
-                    <span class="icon">
-                      <i class="fas fa-save"></i>
-                    </span>
+                    <Icon icon="fa-save" />
                     <span>Save Changes</span>
                   </Button>
                 </div>

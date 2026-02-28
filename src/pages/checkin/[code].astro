@@ -1,6 +1,7 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import Button from '../../components/Button.astro';
+import Icon from '../../components/Icon.astro';
 import Notification from '../../components/Notification.astro';
 import { actions } from 'astro:actions';
 import { db, eq, Event, Ensemble } from 'astro:db';
@@ -51,9 +52,7 @@ const isPerformance = event.category === 'performance';
   <div class="columns is-centered">
     <div class="column is-6-tablet is-5-desktop">
       <div class="box has-text-centered">
-        <span class="icon is-large has-text-primary mb-3">
-          <i class="fas fa-qrcode fa-3x"></i>
-        </span>
+        <Icon icon="fa-qrcode fa-3x" size="large" color="primary" class="mb-3" />
 
         <h1 class="title">Event Check-In</h1>
 
@@ -70,24 +69,18 @@ const isPerformance = event.category === 'performance';
           </p>
           <p>
             <span class="icon-text">
-              <span class="icon">
-                <i class="fas fa-calendar"></i>
-              </span>
+              <Icon icon="fa-calendar" />
               <span>{scheduledDate.toLocaleDateString()}</span>
             </span>
             <span class="ml-3 icon-text">
-              <span class="icon">
-                <i class="fas fa-clock"></i>
-              </span>
+              <Icon icon="fa-clock" />
               <span>{scheduledDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
             </span>
           </p>
           {event.location && (
             <p>
               <span class="icon-text">
-                <span class="icon">
-                  <i class="fas fa-map-marker-alt"></i>
-                </span>
+                <Icon icon="fa-map-marker-alt" />
                 <span>{event.location}</span>
               </span>
             </p>
@@ -110,9 +103,7 @@ const isPerformance = event.category === 'performance';
           <form method="POST" action={actions.events.checkInByCode} class="mt-5">
             <input type="hidden" name="code" value={code} />
             <Button type="submit" color="primary" size="large" fullwidth>
-              <span class="icon">
-                <i class="fas fa-check"></i>
-              </span>
+              <Icon icon="fa-check" />
               <span>Check In Now</span>
             </Button>
           </form>
@@ -121,9 +112,7 @@ const isPerformance = event.category === 'performance';
         {!result && !canCheckIn && (
           <div class="mt-5">
             <Button type="button" size="large" fullwidth disabled>
-              <span class="icon">
-                <i class="fas fa-lock"></i>
-              </span>
+              <Icon icon="fa-lock" />
               <span>Check-in {isTooEarly ? 'Not Yet Available' : 'Closed'}</span>
             </Button>
             <p class="help mt-2">

@@ -1,6 +1,7 @@
 ---
 import Layout from '../../../../layouts/Layout.astro';
 import Button from '../../../../components/Button.astro';
+import Icon from '../../../../components/Icon.astro';
 import Notification from '../../../../components/Notification.astro';
 import { db, eq, EnsembleMember, Event, Attendance, User } from 'astro:db';
 import { actions } from 'astro:actions';
@@ -126,7 +127,7 @@ const programLabel = isPerformance ? 'Set List' : 'Rehearsal Plan';
       <a class="navbar-link">{ensemble.name}</a>
       <div class="navbar-dropdown">
         <a class={`navbar-item${Astro.url.pathname === `/ensembles/${canonicalId}` ? ' is-active' : ''}`} href={`/ensembles/${canonicalId}`}>
-          <span class="icon is-small mr-1"><i class="fas fa-home"></i></span>
+          <Icon icon="fa-home" size="small" class="mr-1" />
           Dashboard
         </a>
         <hr class="navbar-divider" />
@@ -134,7 +135,7 @@ const programLabel = isPerformance ? 'Set List' : 'Rehearsal Plan';
           const href = tool.href(canonicalId);
           return (
             <a class={`navbar-item${Astro.url.pathname.startsWith(href) ? ' is-active' : ''}`} href={href}>
-              <span class="icon is-small mr-1"><i class={`fas ${tool.icon}`}></i></span>
+              <Icon icon={tool.icon} size="small" class="mr-1" />
               {tool.label}
             </a>
           );
@@ -155,28 +156,20 @@ const programLabel = isPerformance ? 'Set List' : 'Rehearsal Plan';
           </h1>
           <p class="subtitle">
             <span class="icon-text">
-              <span class="icon">
-                <i class="fas fa-calendar"></i>
-              </span>
+              <Icon icon="fa-calendar" />
               <span>{scheduledDate.toLocaleDateString()}</span>
             </span>
             <span class="ml-3 icon-text">
-              <span class="icon">
-                <i class="fas fa-clock"></i>
-              </span>
+              <Icon icon="fa-clock" />
               <span>{scheduledDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
             </span>
             <span class="ml-3 icon-text">
-              <span class="icon">
-                <i class="fas fa-hourglass-half"></i>
-              </span>
+              <Icon icon="fa-hourglass-half" />
               <span>{formatDuration(event.durationMinutes)}</span>
             </span>
             {event.location && (
               <span class="ml-3 icon-text">
-                <span class="icon">
-                  <i class="fas fa-map-marker-alt"></i>
-                </span>
+                <Icon icon="fa-map-marker-alt" />
                 <span>{event.location}</span>
               </span>
             )}
@@ -189,16 +182,12 @@ const programLabel = isPerformance ? 'Set List' : 'Rehearsal Plan';
         <div class="buttons">
           {isAdmin && (
             <Button color="warning" id="edit-event-btn">
-              <span class="icon">
-                <i class="fas fa-edit"></i>
-              </span>
+              <Icon icon="fa-edit" />
               <span>Edit Event</span>
             </Button>
           )}
           <Button href={`/ensembles/${canonicalId}/events`}>
-            <span class="icon">
-              <i class="fas fa-arrow-left"></i>
-            </span>
+            <Icon icon="fa-arrow-left" />
             <span>Back to Events</span>
           </Button>
         </div>
@@ -236,9 +225,7 @@ const programLabel = isPerformance ? 'Set List' : 'Rehearsal Plan';
             <input type="hidden" name="ensembleId" value={ensemble.id} />
             <input type="hidden" name="eventId" value={event.id} />
             <Button type="submit" color="primary" size="large" fullwidth>
-              <span class="icon">
-                <i class="fas fa-check"></i>
-              </span>
+              <Icon icon="fa-check" />
               <span>Check In Now</span>
             </Button>
           </form>
@@ -247,9 +234,7 @@ const programLabel = isPerformance ? 'Set List' : 'Rehearsal Plan';
         {!isPast && !isUserCheckedIn && !canCheckIn && !isAdmin && (
           <div>
             <Button type="button" size="large" fullwidth disabled>
-              <span class="icon">
-                <i class="fas fa-lock"></i>
-              </span>
+              <Icon icon="fa-lock" />
               <span>Check-in {isTooEarly ? 'Not Yet Available' : 'Closed'}</span>
             </Button>
             <p class="help mt-2 has-text-centered">
@@ -264,9 +249,7 @@ const programLabel = isPerformance ? 'Set List' : 'Rehearsal Plan';
             <input type="hidden" name="ensembleId" value={ensemble.id} />
             <input type="hidden" name="eventId" value={event.id} />
             <Button type="submit" color="warning" size="large" fullwidth>
-              <span class="icon">
-                <i class="fas fa-user-shield"></i>
-              </span>
+              <Icon icon="fa-user-shield" />
               <span>Admin Check-In (Bypasses Time Window)</span>
             </Button>
           </form>
@@ -275,9 +258,7 @@ const programLabel = isPerformance ? 'Set List' : 'Rehearsal Plan';
         {!isPast && isUserCheckedIn && (
           <Notification color="success">
             <p class="has-text-centered">
-              <span class="icon is-large">
-                <i class="fas fa-check-circle fa-2x"></i>
-              </span>
+              <Icon icon="fa-check-circle fa-2x" size="large" />
             </p>
             <p class="has-text-centered has-text-weight-bold">You're checked in!</p>
           </Notification>
@@ -398,9 +379,7 @@ const programLabel = isPerformance ? 'Set List' : 'Rehearsal Plan';
   <div class="box mt-2">
     <h2 class="title is-4">
       <span class="icon-text">
-        <span class={`icon ${isPerformance ? 'has-text-warning' : 'has-text-primary'}`}>
-          <i class="fas fa-music"></i>
-        </span>
+        <Icon icon="fa-music" color={isPerformance ? 'warning' : 'primary'} />
         <span>{programLabel}</span>
       </span>
     </h2>
@@ -437,7 +416,7 @@ const programLabel = isPerformance ? 'Set List' : 'Rehearsal Plan';
                       data-entry-id={song.entryId}
                       data-notes={song.notes ?? ''}
                     >
-                      <span class="icon is-small"><i class="fas fa-pencil"></i></span>
+                      <Icon icon="fa-pencil" size="small" />
                     </button>
                   </span>
                 ) : (
@@ -450,7 +429,7 @@ const programLabel = isPerformance ? 'Set List' : 'Rehearsal Plan';
                     <input type="hidden" name="ensembleId" value={ensemble.id} />
                     <input type="hidden" name="programEntryId" value={song.entryId} />
                     <Button type="submit" color="danger" size="small">
-                      <span class="icon is-small"><i class="fas fa-times"></i></span>
+                      <Icon icon="fa-times" size="small" />
                     </Button>
                   </form>
                 </td>
@@ -496,7 +475,7 @@ const programLabel = isPerformance ? 'Set List' : 'Rehearsal Plan';
         <div class="field">
           <div class="control">
             <Button type="submit" color="primary">
-              <span class="icon"><i class="fas fa-plus"></i></span>
+              <Icon icon="fa-plus" />
               <span>Add to {programLabel}</span>
             </Button>
           </div>

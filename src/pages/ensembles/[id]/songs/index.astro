@@ -3,6 +3,7 @@ import EnsemblePageLayout from '../../../../layouts/EnsemblePageLayout.astro';
 import Table from '../../../../components/Table.astro';
 import Modal from '../../../../components/Modal.astro';
 import Button from '../../../../components/Button.astro';
+import Icon from '../../../../components/Icon.astro';
 import Notification from '../../../../components/Notification.astro';
 import Tag from '../../../../components/Tag.astro';
 import { canManageEnsemble } from '../../../../lib/permissions';
@@ -71,7 +72,7 @@ const songFilesMap = buildSongFilesMap(ensembleSongIds, songFilesData);
 >
   {isAdmin && (
     <Button slot="action" color="primary" id="add-song-btn">
-      <span class="icon"><i class="fas fa-plus"></i></span>
+      <Icon icon="fa-plus" />
       <span>Add Song</span>
     </Button>
   )}
@@ -135,16 +136,16 @@ const songFilesMap = buildSongFilesMap(ensembleSongIds, songFilesData);
                     data-song-id={song.id}
                     data-song-name={song.name}
                   >
-                    <span class="icon is-small"><i class="fas fa-folder-open"></i></span>
+                    <Icon icon="fa-folder-open" size="small" />
                     {songFiles.length > 0 && <span>{songFiles.length}</span>}
                   </Button>
                   {isAdmin && (
                     <>
                       <Button color="info" class="edit-btn" data-song-id={song.id}>
-                        <span class="icon is-small"><i class="fas fa-pencil"></i></span>
+                        <Icon icon="fa-pencil" size="small" />
                       </Button>
                       <Button color="danger" class="delete-btn" data-song-id={song.id}>
-                        <span class="icon is-small"><i class="fas fa-trash"></i></span>
+                        <Icon icon="fa-trash" size="small" />
                       </Button>
                     </>
                   )}
@@ -290,7 +291,7 @@ const songFilesMap = buildSongFilesMap(ensembleSongIds, songFilesData);
         <div class="field">
           <div class="control">
             <Button type="submit" color="primary" size="small">
-              <span class="icon is-small"><i class="fas fa-plus"></i></span>
+              <Icon icon="fa-plus" size="small" />
               <span>Add File</span>
             </Button>
           </div>

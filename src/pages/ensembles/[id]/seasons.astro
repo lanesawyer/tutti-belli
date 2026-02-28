@@ -3,6 +3,7 @@ import EnsemblePageLayout from '../../../layouts/EnsemblePageLayout.astro';
 import Table from '../../../components/Table.astro';
 import Modal from '../../../components/Modal.astro';
 import Button from '../../../components/Button.astro';
+import Icon from '../../../components/Icon.astro';
 import Notification from '../../../components/Notification.astro';
 import Tag from '../../../components/Tag.astro';
 import { db, eq, and, desc, EnsembleMember, Season, SeasonMembership, User, Event } from 'astro:db';
@@ -170,7 +171,7 @@ const membershipsBySeasonId = seasonMemberships.reduce((acc, m) => {
 >
   {isAdmin && (
     <Button slot="action" color="primary" id="create-season-btn">
-      <span class="icon"><i class="fas fa-plus"></i></span>
+      <Icon icon="fa-plus" />
       <span>Create Season</span>
     </Button>
   )}
@@ -218,7 +219,7 @@ const membershipsBySeasonId = seasonMemberships.reduce((acc, m) => {
                       data-season-id={season.id}
                       data-season-name={season.name}
                     >
-                      <span class="icon"><i class="fas fa-users"></i></span>
+                      <Icon icon="fa-users" />
                     </Button>
                     <Button
                       color="warning"
@@ -229,14 +230,14 @@ const membershipsBySeasonId = seasonMemberships.reduce((acc, m) => {
                       data-season-end={season.endDate ? new Date(season.endDate).toISOString().split('T')[0] : ''}
                       data-season-active={season.isActive === 1 ? 'true' : 'false'}
                     >
-                      <span class="icon"><i class="fas fa-edit"></i></span>
+                      <Icon icon="fa-edit" />
                     </Button>
                     <Button
                       color="danger"
                       class="delete-season-btn"
                       data-season-id={season.id}
                     >
-                      <span class="icon"><i class="fas fa-trash"></i></span>
+                      <Icon icon="fa-trash" />
                     </Button>
                   </div>
                 </td>

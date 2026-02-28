@@ -1,6 +1,7 @@
 ---
 import PageLayout from '../../layouts/PageLayout.astro';
 import Button from '../../components/Button.astro';
+import Icon from '../../components/Icon.astro';
 import Notification from '../../components/Notification.astro';
 import Tag from '../../components/Tag.astro';
 import { db, eq, Ensemble, EnsembleMember } from 'astro:db';
@@ -26,15 +27,11 @@ const userEnsembles = await db
 <PageLayout title="My Ensembles" pageTitle="My Ensembles">
   <div slot="action" class="buttons">
     <Button href="/invite/join" color="light">
-      <span class="icon">
-        <i class="fas fa-ticket"></i>
-      </span>
+      <Icon icon="fa-ticket" />
       <span>Join with Invite Code</span>
     </Button>
     <Button href="/ensembles/new" color="primary">
-      <span class="icon">
-        <i class="fas fa-plus"></i>
-      </span>
+      <Icon icon="fa-plus" />
       <span>Create Ensemble</span>
     </Button>
   </div>

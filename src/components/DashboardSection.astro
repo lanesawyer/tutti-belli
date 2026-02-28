@@ -1,7 +1,9 @@
 ---
+import Icon from './Icon.astro';
+
 interface Props {
   title: string;
-  icon?: string;       // FA class e.g. "fas fa-bullhorn"
+  icon?: string;       // FA icon name e.g. "fa-bullhorn"
   viewAllHref?: string;
   viewAllLabel?: string;
   viewAllColor?: string; // Bulma color modifier e.g. "is-link", "is-primary"
@@ -25,9 +27,7 @@ const {
         <h2 class="title is-4">
           {icon ? (
             <span class="icon-text">
-              <span class="icon">
-                <i class={icon}></i>
-              </span>
+              <Icon icon={icon} />
               <span>{title}</span>
             </span>
           ) : title}
