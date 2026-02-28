@@ -1,12 +1,12 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import InviteCodeWidget from '../../components/InviteCodeWidget.astro';
-import Button from '../../components/Button.astro';
-import Icon from '../../components/Icon.astro';
-import Tag from '../../components/Tag.astro';
+import Button from '../../components/elements/Button.astro';
+import Icon from '../../components/elements/Icon.astro';
+import Tag from '../../components/elements/Tag.astro';
 import DashboardSection from '../../components/DashboardSection.astro';
 import Message from '../../components/Message.astro';
-import Notification from '../../components/Notification.astro';
+import Notification from '../../components/elements/Notification.astro';
 import { db, eq, and, desc, inArray, EnsembleMember, User, EnsembleInvite, Part, Announcement, Group, GroupMembership, Event, EventProgram, Season, SeasonMembership, SeasonSong, Song, EnsembleLink } from 'astro:db';
 import { getInitials, getColorFromInitials } from '../../lib/avatar';
 import { ensembleAdminTools } from '../../lib/config';
@@ -366,7 +366,7 @@ if (Astro.request.method === 'POST') {
 
   {!isPending && (
   <div class="columns">
-    <div class={`column ${isAdmin || (!isPending && (ensemble.discordLink || ensembleLinks.length > 0 || myTasks.length > 0)) ? 'is-9-desktop' : ''}`}>
+    <div class={`column ${!isPending && (isAdmin || ensemble.discordLink || ensembleLinks.length > 0 || myTasks.length > 0) ? 'is-9-desktop' : ''}`}>
       <!-- Announcements Section -->
       <DashboardSection
         title="Recent Announcements"
@@ -731,8 +731,8 @@ if (Astro.request.method === 'POST') {
       </Button>
     </div>
 
-    <!-- Links Sidebar (non-admin) -->
-    {!isAdmin && !isPending && (ensemble.discordLink || ensembleLinks.length > 0 || myTasks.length > 0) && (
+    <!-- Sidebar -->
+    {!isPending && (ensemble.discordLink || ensembleLinks.length > 0 || myTasks.length > 0 || isAdmin) && (
       <div class="column is-3-desktop">
         {(ensemble.discordLink || ensembleLinks.length > 0) && (
           <div class="box mb-5">
@@ -751,61 +751,7 @@ if (Astro.request.method === 'POST') {
               )}
               {ensembleLinks.map((link) => (
                 <Button href={link.url} target="_blank" rel="noopener noreferrer" color="light" fullwidth>
-                  <Icon icon="fa-link" />
-                  <span>{link.label}</span>
-                </Button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {myTasks.length > 0 && (
-          <div class="box">
-            <h2 class="title is-5 mb-4">
-              <span class="icon-text">
-                <Icon icon="fa-tasks" />
-                <span>My Tasks</span>
-              </span>
-            </h2>
-            <ul>
-              {myTasks.map((task) => (
-                <li class="mb-2">
-                  <span class="icon-text">
-                    {task.completed
-                      ? <Icon icon="fa-check-circle" color="success" />
-                      : <Icon icon="fa-circle" variant="far" color="grey-light" />}
-                    <span class:list={['ml-1', { 'has-text-grey': task.completed }]}>{task.title}</span>
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-      </div>
-    )}
-
-    <!-- Admin Sidebar -->
-    {isAdmin && (
-      <div class="column is-3-desktop">
-        {(ensemble.discordLink || ensembleLinks.length > 0) && (
-          <div class="box mb-5">
-            <h2 class="title is-5 mb-4">
-              <span class="icon-text">
-                <Icon icon="fa-link" />
-                <span>Links</span>
-              </span>
-            </h2>
-            <div class="buttons">
-              {ensemble.discordLink && (
-                <Button href={ensemble.discordLink} target="_blank" rel="noopener noreferrer" color="link" fullwidth>
-                  <Icon icon="fa-discord" variant="fab" />
-                  <span>Discord</span>
-                </Button>
-              )}
-              {ensembleLinks.map((link) => (
-                <Button href={link.url} target="_blank" rel="noopener noreferrer" color="light" fullwidth>
-                  <Icon icon="fa-link" />
-                  <span>{link.label}</span>
+                  {link.label}
                 </Button>
               ))}
             </div>
@@ -832,89 +778,95 @@ if (Astro.request.method === 'POST') {
                 </li>
               ))}
             </ul>
-            <Button href={`/ensembles/${canonicalId}/tasks`} size="small" color="link" fullwidth class="mt-3">
-              <Icon icon="fa-tasks" />
-              <span>Manage Tasks</span>
-            </Button>
+            {isAdmin && (
+              <Button href={`/ensembles/${canonicalId}/tasks`} size="small" color="link" fullwidth class="mt-3">
+                <Icon icon="fa-tasks" />
+                <span>Manage Tasks</span>
+              </Button>
+            )}
           </div>
         )}
 
-        <div class="box mb-5">
-          <h2 class="title is-5 mb-4">
-            <span class="icon-text">
-              <Icon icon="fa-cog" />
-              <span>Admin Tools</span>
-            </span>
-          </h2>
-          
-          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem;">
-            {ensembleAdminTools.map((tool) => (
-              <a href={tool.href(id!)} class="button" style="height: auto; padding: 0.75rem 0.25rem; flex-direction: column; align-items: center; justify-content: center;">
-                <i class={`fas ${tool.icon} mb-1`} style="font-size: 1.25rem;"></i>
-                <span class="is-size-7">{tool.label}</span>
-              </a>
-            ))}
-          </div>
-        </div>
+        {isAdmin && (
+          <>
+            <div class="box mb-5">
+              <h2 class="title is-5 mb-4">
+                <span class="icon-text">
+                  <Icon icon="fa-cog" />
+                  <span>Admin Tools</span>
+                </span>
+              </h2>
 
-        {pendingMembers.length > 0 && (
-          <div class="box mb-5">
-            <h2 class="title is-5 mb-4">
-              <span class="icon-text">
-                <Icon icon="fa-user-clock" color="warning" />
-                <span>Pending Members ({pendingMembers.length})</span>
-              </span>
-            </h2>
-            <p class="mb-4 is-size-7">These members are awaiting approval to join the ensemble</p>
-            
-            <div class="content">
-              {pendingMembers.map((member) => (
-                <div class="box p-2 mb-2">
-                  <div class="media">
-                    <div class="media-left">
-                      <figure class="image is-32x32">
-                        {member.avatarUrl ? (
-                          <img src={member.avatarUrl} alt={member.name} style="object-fit: cover; border-radius: 50%;" />
-                        ) : (
-                          <div style={`width: 32px; height: 32px; border-radius: 50%; background-color: ${getColorFromInitials(getInitials(member.name))}; display: flex; align-items: center; justify-content: center; color: white; font-size: 0.75rem; font-weight: bold;`}>
-                            {getInitials(member.name)}
-                          </div>
-                        )}
-                      </figure>
+              <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem;">
+                {ensembleAdminTools.map((tool) => (
+                  <a href={tool.href(id!)} class="button" style="height: auto; padding: 0.75rem 0.25rem; flex-direction: column; align-items: center; justify-content: center;">
+                    <i class={`fas ${tool.icon} mb-1`} style="font-size: 1.25rem;"></i>
+                    <span class="is-size-7">{tool.label}</span>
+                  </a>
+                ))}
+              </div>
+            </div>
+
+            {pendingMembers.length > 0 && (
+              <div class="box mb-5">
+                <h2 class="title is-5 mb-4">
+                  <span class="icon-text">
+                    <Icon icon="fa-user-clock" color="warning" />
+                    <span>Pending Members ({pendingMembers.length})</span>
+                  </span>
+                </h2>
+                <p class="mb-4 is-size-7">These members are awaiting approval to join the ensemble</p>
+
+                <div class="content">
+                  {pendingMembers.map((member) => (
+                    <div class="box p-2 mb-2">
+                      <div class="media">
+                        <div class="media-left">
+                          <figure class="image is-32x32">
+                            {member.avatarUrl ? (
+                              <img src={member.avatarUrl} alt={member.name} style="object-fit: cover; border-radius: 50%;" />
+                            ) : (
+                              <div style={`width: 32px; height: 32px; border-radius: 50%; background-color: ${getColorFromInitials(getInitials(member.name))}; display: flex; align-items: center; justify-content: center; color: white; font-size: 0.75rem; font-weight: bold;`}>
+                                {getInitials(member.name)}
+                              </div>
+                            )}
+                          </figure>
+                        </div>
+                        <div class="media-content">
+                          <p class="is-size-7 has-text-weight-semibold">{member.name}</p>
+                          <p class="is-size-7 has-text-grey">{member.email}</p>
+                          <p class="is-size-7 has-text-grey-light">
+                            <small>Applied {new Date(member.joinedAt).toLocaleDateString()}</small>
+                          </p>
+                        </div>
+                      </div>
+                      <div class="buttons are-small mt-2">
+                        <form method="POST" style="display: inline; width: 48%;">
+                          <input type="hidden" name="action" value="approve-member" />
+                          <input type="hidden" name="membershipId" value={member.membershipId} />
+                          <Button type="submit" color="success" size="small" fullwidth>
+                            <Icon icon="fa-check" />
+                            <span>Approve</span>
+                          </Button>
+                        </form>
+                        <form method="POST" style="display: inline; width: 48%;">
+                          <input type="hidden" name="action" value="reject-member" />
+                          <input type="hidden" name="membershipId" value={member.membershipId} />
+                          <Button type="submit" color="danger" size="small" fullwidth>
+                            <Icon icon="fa-times" />
+                            <span>Reject</span>
+                          </Button>
+                        </form>
+                      </div>
                     </div>
-                    <div class="media-content">
-                      <p class="is-size-7 has-text-weight-semibold">{member.name}</p>
-                      <p class="is-size-7 has-text-grey">{member.email}</p>
-                      <p class="is-size-7 has-text-grey-light">
-                        <small>Applied {new Date(member.joinedAt).toLocaleDateString()}</small>
-                      </p>
-                    </div>
-                  </div>
-                  <div class="buttons are-small mt-2">
-                    <form method="POST" style="display: inline; width: 48%;">
-                      <input type="hidden" name="action" value="approve-member" />
-                      <input type="hidden" name="membershipId" value={member.membershipId} />
-                      <Button type="submit" color="success" size="small" fullwidth>
-                        <Icon icon="fa-check" />
-                        <span>Approve</span>
-                      </Button>
-                    </form>
-                    <form method="POST" style="display: inline; width: 48%;">
-                      <input type="hidden" name="action" value="reject-member" />
-                      <input type="hidden" name="membershipId" value={member.membershipId} />
-                      <Button type="submit" color="danger" size="small" fullwidth>
-                        <Icon icon="fa-times" />
-                        <span>Reject</span>
-                      </Button>
-                    </form>
-                  </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </div>
-        )}
+              </div>
+            )}
 
-        <InviteCodeWidget invites={invites} />
+            <InviteCodeWidget invites={invites} />
+          </>
+        )}
       </div>
     )}
   </div>
