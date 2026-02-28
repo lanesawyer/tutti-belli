@@ -3,6 +3,7 @@ import EnsemblePageLayout from '../../../../layouts/EnsemblePageLayout.astro';
 import Table from '../../../../components/Table.astro';
 import Modal from '../../../../components/Modal.astro';
 import Button from '../../../../components/Button.astro';
+import Icon from '../../../../components/Icon.astro';
 import Notification from '../../../../components/Notification.astro';
 import { db, eq, and, desc, Event, Season } from 'astro:db';
 import { actions } from 'astro:actions';
@@ -87,7 +88,7 @@ const pastEvents = events.filter(e => {
 >
   {isAdmin && (
     <Button slot="action" color="primary" id="create-event-btn">
-      <span class="icon"><i class="fas fa-plus"></i></span>
+      <Icon icon="fa-plus" />
       <span>Schedule Event</span>
     </Button>
   )}
@@ -142,7 +143,7 @@ const pastEvents = events.filter(e => {
                             class="delete-event-btn"
                             data-event-id={event.id}
                           >
-                            <span class="icon"><i class="fas fa-trash"></i></span>
+                            <Icon icon="fa-trash" />
                           </Button>
                         )}
                       </div>

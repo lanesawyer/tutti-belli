@@ -3,7 +3,10 @@ import EnsemblePageLayout from '../../../layouts/EnsemblePageLayout.astro';
 import Table from '../../../components/Table.astro';
 import Modal from '../../../components/Modal.astro';
 import Button from '../../../components/Button.astro';
+import Icon from '../../../components/Icon.astro';
 import Notification from '../../../components/Notification.astro';
+import Tag from '../../../components/Tag.astro';
+import type { Color } from '../../../lib/bulma';
 import { db, eq, and, desc, EnsembleMember, Group, GroupMembership, User } from 'astro:db';
 import { getEnsembleBySlugOrId, getEnsembleAccess } from '../../../lib/ensemble';
 import { getEnsembleUrlId } from '../../../lib/slug';
@@ -150,7 +153,7 @@ const colorOptions = [
 >
   {isAdmin && (
     <Button slot="action" color="primary" id="create-group-btn">
-      <span class="icon"><i class="fas fa-plus"></i></span>
+      <Icon icon="fa-plus" />
       <span>Create Group</span>
     </Button>
   )}
@@ -175,13 +178,13 @@ const colorOptions = [
           return (
             <tr>
               <td>
-                <span class={`tag is-${group.color} mr-2`}>{group.name}</span>
+                <Tag color={group.color as Color} class="mr-2">{group.name}</Tag>
               </td>
               <td>{group.description || '-'}</td>
               <td>
                 {members.length > 0 ? (
                   <div class="tags are-small">
-                    {members.map(m => <span class="tag">{m.userName}</span>)}
+                    {members.map(m => <Tag>{m.userName}</Tag>)}
                   </div>
                 ) : (
                   <span class="has-text-grey-light is-italic">None</span>
@@ -195,7 +198,7 @@ const colorOptions = [
                       class="manage-members-btn"
                       data-group-id={group.id}
                     >
-                      <span class="icon"><i class="fas fa-users"></i></span>
+                      <Icon icon="fa-users" />
                     </Button>
                     <Button
                       color="warning"
@@ -205,14 +208,14 @@ const colorOptions = [
                       data-group-description={group.description || ''}
                       data-group-color={group.color}
                     >
-                      <span class="icon"><i class="fas fa-edit"></i></span>
+                      <Icon icon="fa-edit" />
                     </Button>
                     <Button
                       color="danger"
                       class="delete-group-btn"
                       data-group-id={group.id}
                     >
-                      <span class="icon"><i class="fas fa-trash"></i></span>
+                      <Icon icon="fa-trash" />
                     </Button>
                   </div>
                 </td>

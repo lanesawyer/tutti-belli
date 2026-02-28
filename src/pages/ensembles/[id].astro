@@ -2,6 +2,8 @@
 import Layout from '../../layouts/Layout.astro';
 import InviteCodeWidget from '../../components/InviteCodeWidget.astro';
 import Button from '../../components/Button.astro';
+import Icon from '../../components/Icon.astro';
+import Tag from '../../components/Tag.astro';
 import DashboardSection from '../../components/DashboardSection.astro';
 import Message from '../../components/Message.astro';
 import Notification from '../../components/Notification.astro';
@@ -312,7 +314,7 @@ if (Astro.request.method === 'POST') {
           const href = tool.href(canonicalId);
           return (
             <a class={`navbar-item${Astro.url.pathname.startsWith(href) ? ' is-active' : ''}`} href={href}>
-              <span class="icon is-small mr-1"><i class={`fas ${tool.icon}`}></i></span>
+              <Icon icon={tool.icon} size="small" class="mr-1" />
               {tool.label}
             </a>
           );
@@ -338,9 +340,7 @@ if (Astro.request.method === 'POST') {
             {currentSeason && (
               <p class="subtitle is-6 mt-2">
                 <span class="icon-text">
-                  <span class="icon has-text-info">
-                    <i class="fas fa-calendar-alt"></i>
-                  </span>
+                  <Icon icon="fa-calendar-alt" color="info" />
                   <span><strong>Current Season:</strong> {currentSeason.name}</span>
                 </span>
               </p>
@@ -353,9 +353,7 @@ if (Astro.request.method === 'POST') {
           {ensemble.discordLink && (
             <div class="level-item">
               <Button href={ensemble.discordLink} target="_blank" rel="noopener noreferrer" color="link" title="Join Discord Server">
-                <span class="icon">
-                  <i class="fab fa-discord"></i>
-                </span>
+                <Icon icon="fa-discord" variant="fab" />
                 <span>Discord</span>
               </Button>
             </div>
@@ -363,9 +361,7 @@ if (Astro.request.method === 'POST') {
           {ensembleLinks.map((link) => (
             <div class="level-item">
               <Button href={link.url} target="_blank" rel="noopener noreferrer" color="light">
-                <span class="icon">
-                  <i class="fas fa-link"></i>
-                </span>
+                <Icon icon="fa-link" />
                 <span>{link.label}</span>
               </Button>
             </div>
@@ -379,9 +375,7 @@ if (Astro.request.method === 'POST') {
     <Notification color="warning">
       <h2 class="title is-5">
         <span class="icon-text">
-          <span class="icon">
-            <i class="fas fa-hourglass-half"></i>
-          </span>
+          <Icon icon="fa-hourglass-half" />
           <span>Membership Pending Approval</span>
         </span>
       </h2>
@@ -431,7 +425,7 @@ if (Astro.request.method === 'POST') {
                 <div class="has-text-centered" style="padding: 2rem 1rem;">
                   <p class="mb-4 has-text-grey">See all announcements from this ensemble.</p>
                   <Button href={`/ensembles/${canonicalId}/announcements`} color="link">
-                    <span class="icon"><i class="fas fa-bullhorn"></i></span>
+                    <Icon icon="fa-bullhorn" />
                     <span>View All Announcements</span>
                   </Button>
                 </div>
@@ -440,7 +434,7 @@ if (Astro.request.method === 'POST') {
 
             <div class="ann-nav">
               <button class="ann-arrow" id="ann-prev" aria-label="Previous announcement">
-                <i class="fas fa-chevron-left"></i>
+                <Icon icon="fa-chevron-left" />
               </button>
               <div class="ann-dots">
                 {latestAnnouncements.map((_, i) => (
@@ -449,7 +443,7 @@ if (Astro.request.method === 'POST') {
                 <button class="ann-dot ann-dot-viewall" data-target={latestAnnouncements.length} aria-label="View all"></button>
               </div>
               <button class="ann-arrow" id="ann-next" aria-label="Next announcement">
-                <i class="fas fa-chevron-right"></i>
+                <Icon icon="fa-chevron-right" />
               </button>
             </div>
           </div>
@@ -483,7 +477,7 @@ if (Astro.request.method === 'POST') {
                 <Message color={isToday ? 'success' : 'primary'}>
                   <a slot="header" href={`/ensembles/${canonicalId}/events/${event.id}`} class="has-text-white">
                     {event.title}
-                    {isToday && <span class="tag is-dark ml-2">Today</span>}
+                    {isToday && <Tag color="dark" class="ml-2">Today</Tag>}
                   </a>
                   <small slot="header" class="has-text-weight-normal">
                     {scheduledDate.toLocaleDateString()} at {scheduledDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · {formatDuration(event.durationMinutes)}
@@ -491,9 +485,7 @@ if (Astro.request.method === 'POST') {
                   {event.location && (
                     <p class="mb-2">
                       <span class="icon-text">
-                        <span class="icon">
-                          <i class="fas fa-map-marker-alt"></i>
-                        </span>
+                        <Icon icon="fa-map-marker-alt" />
                         <span>{event.location}</span>
                       </span>
                     </p>
@@ -550,7 +542,7 @@ if (Astro.request.method === 'POST') {
                 <Message color={isToday ? 'success' : 'warning'}>
                   <a slot="header" href={`/ensembles/${canonicalId}/events/${event.id}`} class="has-text-white">
                     {event.title}
-                    {isToday && <span class="tag is-dark ml-2">Today</span>}
+                    {isToday && <Tag color="dark" class="ml-2">Today</Tag>}
                   </a>
                   <small slot="header" class="has-text-weight-normal">
                     {scheduledDate.toLocaleDateString()} at {scheduledDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · {formatDuration(event.durationMinutes)}
@@ -558,9 +550,7 @@ if (Astro.request.method === 'POST') {
                   {event.location && (
                     <p class="mb-2">
                       <span class="icon-text">
-                        <span class="icon">
-                          <i class="fas fa-map-marker-alt"></i>
-                        </span>
+                        <Icon icon="fa-map-marker-alt" />
                         <span>{event.location}</span>
                       </span>
                     </p>
@@ -671,9 +661,9 @@ if (Astro.request.method === 'POST') {
                             {userGroups.has(member.id) && (
                               <div class="tags are-small is-justify-content-center mt-2">
                                 {userGroups.get(member.id).map((group: any) => (
-                                  <span class={`tag is-${group.color}`} title={group.description || group.name}>
+                                  <Tag color={group.color} title={group.description || group.name}>
                                     {group.name}
-                                  </span>
+                                  </Tag>
                                 ))}
                               </div>
                             )}
@@ -756,9 +746,7 @@ if (Astro.request.method === 'POST') {
       </DashboardSection>
 
       <Button href="/ensembles">
-        <span class="icon">
-          <i class="fas fa-arrow-left"></i>
-        </span>
+        <Icon icon="fa-arrow-left" />
         <span>Back to Ensembles</span>
       </Button>
     </div>
@@ -769,9 +757,7 @@ if (Astro.request.method === 'POST') {
         <div class="box mb-5">
           <h2 class="title is-5 mb-4">
             <span class="icon-text">
-              <span class="icon">
-                <i class="fas fa-cog"></i>
-              </span>
+              <Icon icon="fa-cog" />
               <span>Admin Tools</span>
             </span>
           </h2>
@@ -790,9 +776,7 @@ if (Astro.request.method === 'POST') {
           <div class="box mb-5">
             <h2 class="title is-5 mb-4">
               <span class="icon-text">
-                <span class="icon has-text-warning">
-                  <i class="fas fa-user-clock"></i>
-                </span>
+                <Icon icon="fa-user-clock" color="warning" />
                 <span>Pending Members ({pendingMembers.length})</span>
               </span>
             </h2>
@@ -826,9 +810,7 @@ if (Astro.request.method === 'POST') {
                       <input type="hidden" name="action" value="approve-member" />
                       <input type="hidden" name="membershipId" value={member.membershipId} />
                       <Button type="submit" color="success" size="small" fullwidth>
-                        <span class="icon">
-                          <i class="fas fa-check"></i>
-                        </span>
+                        <Icon icon="fa-check" />
                         <span>Approve</span>
                       </Button>
                     </form>
@@ -836,9 +818,7 @@ if (Astro.request.method === 'POST') {
                       <input type="hidden" name="action" value="reject-member" />
                       <input type="hidden" name="membershipId" value={member.membershipId} />
                       <Button type="submit" color="danger" size="small" fullwidth>
-                        <span class="icon">
-                          <i class="fas fa-times"></i>
-                        </span>
+                        <Icon icon="fa-times" />
                         <span>Reject</span>
                       </Button>
                     </form>

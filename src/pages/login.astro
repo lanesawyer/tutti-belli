@@ -1,6 +1,7 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import Button from '../components/Button.astro';
+import Icon from '../components/Icon.astro';
 import Notification from '../components/Notification.astro';
 import { db, eq, User } from 'astro:db';
 import { verifyPassword } from '../lib/auth';
@@ -70,9 +71,7 @@ if (Astro.locals.user) {
               placeholder="you@example.com"
               required
             />
-            <span class="icon is-small is-left">
-              <i class="fas fa-envelope"></i>
-            </span>
+            <Icon icon="fa-envelope" size="small" position="left" />
           </div>
         </div>
 
@@ -87,9 +86,7 @@ if (Astro.locals.user) {
               placeholder="••••••••"
               required
             />
-            <span class="icon is-small is-left">
-              <i class="fas fa-lock"></i>
-            </span>
+            <Icon icon="fa-lock" size="small" position="left" />
           </div>
         </div>
 

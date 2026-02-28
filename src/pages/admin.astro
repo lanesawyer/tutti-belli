@@ -2,6 +2,7 @@
 import PageLayout from '../layouts/PageLayout.astro';
 import Table from '../components/Table.astro';
 import Button from '../components/Button.astro';
+import Icon from '../components/Icon.astro';
 import Modal from '../components/Modal.astro';
 import Notification from '../components/Notification.astro';
 import { db, Ensemble, User } from 'astro:db';
@@ -73,7 +74,7 @@ const activeBanner = await getActiveBanner();
   messageType={messageType}
 >
   <Button slot="action" color="primary" id="create-ensemble-btn">
-    <span class="icon"><i class="fas fa-plus"></i></span>
+    <Icon icon="fa-plus" />
     <span>New Ensemble</span>
   </Button>
 
@@ -226,14 +227,14 @@ const activeBanner = await getActiveBanner();
     <div class="field is-grouped mt-4">
       <div class="control">
         <Button type="submit" form="set-banner-form" color="primary">
-          <span class="icon"><i class="fas fa-bullhorn"></i></span>
+          <Icon icon="fa-bullhorn" />
           <span>{activeBanner ? 'Update Banner' : 'Set Banner'}</span>
         </Button>
       </div>
       {activeBanner && (
         <div class="control">
           <Button type="submit" form="clear-banner-form" color="danger" outlined>
-            <span class="icon"><i class="fas fa-times"></i></span>
+            <Icon icon="fa-times" />
             <span>Clear Banner</span>
           </Button>
         </div>
@@ -273,7 +274,7 @@ const activeBanner = await getActiveBanner();
 
       <Fragment slot="footer">
         <Button type="submit" form="create-ensemble-form" color="primary">
-          <span class="icon"><i class="fas fa-plus"></i></span>
+          <Icon icon="fa-plus" />
           <span>Create Ensemble</span>
         </Button>
         <Button type="button" data-modal-close>Cancel</Button>

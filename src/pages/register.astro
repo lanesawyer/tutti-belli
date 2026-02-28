@@ -1,6 +1,7 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import Button from '../components/Button.astro';
+import Icon from '../components/Icon.astro';
 import Notification from '../components/Notification.astro';
 import { actions } from 'astro:actions';
 import { getRedirectUrl } from '../lib/redirect';
@@ -44,9 +45,7 @@ const error = result?.error?.message ?? '';
               placeholder="John Doe"
               required
             />
-            <span class="icon is-small is-left">
-              <i class="fas fa-user"></i>
-            </span>
+            <Icon icon="fa-user" size="small" position="left" />
           </div>
         </div>
 
@@ -61,9 +60,7 @@ const error = result?.error?.message ?? '';
               placeholder="you@example.com"
               required
             />
-            <span class="icon is-small is-left">
-              <i class="fas fa-envelope"></i>
-            </span>
+            <Icon icon="fa-envelope" size="small" position="left" />
           </div>
         </div>
 
@@ -79,9 +76,7 @@ const error = result?.error?.message ?? '';
               minlength="6"
               required
             />
-            <span class="icon is-small is-left">
-              <i class="fas fa-lock"></i>
-            </span>
+            <Icon icon="fa-lock" size="small" position="left" />
           </div>
           <p class="help">Must be at least 6 characters</p>
         </div>

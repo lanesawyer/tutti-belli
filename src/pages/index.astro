@@ -1,6 +1,7 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import Button from '../components/Button.astro';
+import Icon from '../components/Icon.astro';
 import { APP_NAME } from '../lib/config';
 
 const user = Astro.locals.user;
@@ -18,15 +19,11 @@ const user = Astro.locals.user;
       {!user && (
         <div class="buttons mt-4">
           <Button href="/register" color="light" size="large">
-            <span class="icon">
-              <i class="fas fa-user-plus"></i>
-            </span>
+            <Icon icon="fa-user-plus" />
             <span>Sign Up Free</span>
           </Button>
           <Button href="/login" color="primary" size="large" style="outlined">
-            <span class="icon">
-              <i class="fas fa-sign-in-alt"></i>
-            </span>
+            <Icon icon="fa-sign-in-alt" />
             <span>Log In</span>
           </Button>
         </div>
@@ -34,9 +31,7 @@ const user = Astro.locals.user;
       {user && (
         <div class="buttons mt-4">
           <Button href="/ensembles" color="light" size="large">
-            <span class="icon">
-              <i class="fas fa-users"></i>
-            </span>
+            <Icon icon="fa-users" />
             <span>My Ensembles</span>
           </Button>
         </div>
@@ -52,9 +47,7 @@ const user = Astro.locals.user;
           <div class="box">
             <div class="media">
               <div class="media-left">
-                <span class="icon is-large has-text-primary">
-                  <i class="fas fa-2x fa-users"></i>
-                </span>
+                <Icon icon="fa-2x fa-users" size="large" color="primary" />
               </div>
               <div class="media-content">
                 <h3 class="title is-5">Member Management</h3>
@@ -68,9 +61,7 @@ const user = Astro.locals.user;
           <div class="box">
             <div class="media">
               <div class="media-left">
-                <span class="icon is-large has-text-primary">
-                  <i class="fas fa-2x fa-calendar-check"></i>
-                </span>
+                <Icon icon="fa-2x fa-calendar-check" size="large" color="primary" />
               </div>
               <div class="media-content">
                 <h3 class="title is-5">Rehearsal Scheduling</h3>
@@ -84,9 +75,7 @@ const user = Astro.locals.user;
           <div class="box">
             <div class="media">
               <div class="media-left">
-                <span class="icon is-large has-text-primary">
-                  <i class="fas fa-2x fa-music"></i>
-                </span>
+                <Icon icon="fa-2x fa-music" size="large" color="primary" />
               </div>
               <div class="media-content">
                 <h3 class="title is-5">Repertoire Library</h3>
@@ -100,9 +89,7 @@ const user = Astro.locals.user;
           <div class="box">
             <div class="media">
               <div class="media-left">
-                <span class="icon is-large has-text-primary">
-                  <i class="fas fa-2x fa-calendar-alt"></i>
-                </span>
+                <Icon icon="fa-2x fa-calendar-alt" size="large" color="primary" />
               </div>
               <div class="media-content">
                 <h3 class="title is-5">Seasons</h3>
@@ -116,9 +103,7 @@ const user = Astro.locals.user;
           <div class="box">
             <div class="media">
               <div class="media-left">
-                <span class="icon is-large has-text-primary">
-                  <i class="fas fa-2x fa-bullhorn"></i>
-                </span>
+                <Icon icon="fa-2x fa-bullhorn" size="large" color="primary" />
               </div>
               <div class="media-content">
                 <h3 class="title is-5">Announcements</h3>
@@ -132,9 +117,7 @@ const user = Astro.locals.user;
           <div class="box">
             <div class="media">
               <div class="media-left">
-                <span class="icon is-large has-text-primary">
-                  <i class="fas fa-2x fa-users-cog"></i>
-                </span>
+                <Icon icon="fa-2x fa-users-cog" size="large" color="primary" />
               </div>
               <div class="media-content">
                 <h3 class="title is-5">Groups &amp; Sections</h3>
@@ -148,9 +131,7 @@ const user = Astro.locals.user;
           <div class="box">
             <div class="media">
               <div class="media-left">
-                <span class="icon is-large has-text-primary">
-                  <i class="fas fa-2x fa-list"></i>
-                </span>
+                <Icon icon="fa-2x fa-list" size="large" color="primary" />
               </div>
               <div class="media-content">
                 <h3 class="title is-5">Voice Parts</h3>
@@ -164,9 +145,7 @@ const user = Astro.locals.user;
           <div class="box">
             <div class="media">
               <div class="media-left">
-                <span class="icon is-large has-text-primary">
-                  <i class="fas fa-2x fa-moon"></i>
-                </span>
+                <Icon icon="fa-2x fa-moon" size="large" color="primary" />
               </div>
               <div class="media-content">
                 <h3 class="title is-5">Dark Mode</h3>
@@ -193,9 +172,7 @@ const user = Astro.locals.user;
             Tutti Belli is open source software. You're welcome to run your ensemble on the hosted site — or self-host it on your own infrastructure if you prefer to keep full control.
           </p>
           <a href="https://github.com/lanesawyer/tutti-belli" target="_blank" rel="noopener noreferrer" class="button is-dark">
-            <span class="icon">
-              <i class="fab fa-github"></i>
-            </span>
+            <Icon icon="fa-github" variant="fab" />
             <span>View on GitHub</span>
           </a>
         </div>
@@ -218,15 +195,11 @@ const user = Astro.locals.user;
           </p>
           <div class="buttons">
             <a href="https://github.com/lanesawyer/tutti-belli/issues" target="_blank" rel="noopener noreferrer" class="button is-dark">
-              <span class="icon">
-                <i class="fab fa-github"></i>
-              </span>
+              <Icon icon="fa-github" variant="fab" />
               <span>Open an Issue</span>
             </a>
             <a href="mailto:github@lanesawyer.dev" class="button is-primary is-outlined">
-              <span class="icon">
-                <i class="fas fa-envelope"></i>
-              </span>
+              <Icon icon="fa-envelope" />
               <span>Send an Email</span>
             </a>
           </div>
@@ -242,15 +215,11 @@ const user = Astro.locals.user;
         <p class="subtitle is-5">Create an account and start managing your ensemble today.</p>
         <div class="buttons is-centered">
           <Button href="/register" color="primary" size="large">
-            <span class="icon">
-              <i class="fas fa-user-plus"></i>
-            </span>
+            <Icon icon="fa-user-plus" />
             <span>Sign Up Free</span>
           </Button>
           <Button href="/login" color="light" size="large">
-            <span class="icon">
-              <i class="fas fa-sign-in-alt"></i>
-            </span>
+            <Icon icon="fa-sign-in-alt" />
             <span>Log In</span>
           </Button>
         </div>
@@ -264,16 +233,12 @@ const user = Astro.locals.user;
         <h2 class="title is-3">Welcome back, {user.name}!</h2>
         <div class="buttons is-centered">
           <Button href="/ensembles" color="primary" size="large">
-            <span class="icon">
-              <i class="fas fa-users"></i>
-            </span>
+            <Icon icon="fa-users" />
             <span>View My Ensembles</span>
           </Button>
           {user.role === 'admin' && (
             <Button href="/admin" color="info" size="large">
-              <span class="icon">
-                <i class="fas fa-cog"></i>
-              </span>
+              <Icon icon="fa-cog" />
               <span>Admin Panel</span>
             </Button>
           )}

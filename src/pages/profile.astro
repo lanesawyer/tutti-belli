@@ -2,7 +2,9 @@
 import Layout from '../layouts/Layout.astro';
 import Button from '../components/Button.astro';
 import FileInput from '../components/FileInput.astro';
+import Icon from '../components/Icon.astro';
 import Notification from '../components/Notification.astro';
+import Tag from '../components/Tag.astro';
 import { actions } from 'astro:actions';
 import { getMembershipsWithParts } from '../lib/profile';
 
@@ -67,9 +69,9 @@ const { memberships, partsByEnsemble } = await getMembershipsWithParts(user.id);
             <div>
               <p class="title is-4 mb-1">{user.name}</p>
               <div class="tags mb-0">
-                <span class={`tag ${user.role === 'admin' ? 'is-danger' : 'is-info'}`}>
+                <Tag color={user.role === 'admin' ? 'danger' : 'info'}>
                   {user.role === 'admin' ? 'Site Administrator' : 'User'}
-                </span>
+                </Tag>
               </div>
             </div>
           </div>
@@ -125,9 +127,7 @@ const { memberships, partsByEnsemble } = await getMembershipsWithParts(user.id);
             <div class="field">
               <div class="control">
                 <Button type="submit" color="primary">
-                  <span class="icon">
-                    <i class="fas fa-save"></i>
-                  </span>
+                  <Icon icon="fa-save" />
                   <span>Save</span>
                 </Button>
               </div>
@@ -151,9 +151,7 @@ const { memberships, partsByEnsemble } = await getMembershipsWithParts(user.id);
             <details class="mt-3">
               <summary style="cursor: pointer; display: inline-block;">
                 <span class="button is-warning is-outlined is-small">
-                  <span class="icon">
-                    <i class="fas fa-envelope"></i>
-                  </span>
+                  <Icon icon="fa-envelope" />
                   <span>Change Email Address</span>
                 </span>
               </summary>
@@ -172,9 +170,7 @@ const { memberships, partsByEnsemble } = await getMembershipsWithParts(user.id);
                     </div>
                     <div class="control">
                       <Button type="submit" color="warning">
-                        <span class="icon">
-                          <i class="fas fa-paper-plane"></i>
-                        </span>
+                        <Icon icon="fa-paper-plane" />
                         <span>Send Verification</span>
                       </Button>
                     </div>
@@ -195,9 +191,7 @@ const { memberships, partsByEnsemble } = await getMembershipsWithParts(user.id);
             <Notification color="info" light>
               <p>You are not a member of any ensembles yet.</p>
               <Button href="/ensembles" color="primary" class="mt-3">
-                <span class="icon">
-                  <i class="fas fa-plus"></i>
-                </span>
+                <Icon icon="fa-plus" />
                 <span>Join an Ensemble</span>
               </Button>
             </Notification>
@@ -236,9 +230,7 @@ const { memberships, partsByEnsemble } = await getMembershipsWithParts(user.id);
                           </div>
                           <div class="control">
                             <Button type="submit" color="primary">
-                              <span class="icon">
-                                <i class="fas fa-save"></i>
-                              </span>
+                              <Icon icon="fa-save" />
                               <span>Update</span>
                             </Button>
                           </div>
@@ -267,9 +259,7 @@ const { memberships, partsByEnsemble } = await getMembershipsWithParts(user.id);
       {user.role !== 'admin' && (
         <details>
           <summary class="button is-danger is-outlined" style="cursor: pointer;">
-            <span class="icon">
-              <i class="fas fa-trash-alt"></i>
-            </span>
+            <Icon icon="fa-trash-alt" />
             <span>Delete My Account</span>
           </summary>
 
@@ -289,9 +279,7 @@ const { memberships, partsByEnsemble } = await getMembershipsWithParts(user.id);
                 </div>
                 <div class="control">
                   <Button type="submit" color="danger">
-                    <span class="icon">
-                      <i class="fas fa-trash-alt"></i>
-                    </span>
+                    <Icon icon="fa-trash-alt" />
                     <span>Delete Account</span>
                   </Button>
                 </div>
