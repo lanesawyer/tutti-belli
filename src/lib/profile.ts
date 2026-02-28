@@ -13,6 +13,7 @@ import {
   GroupMembership,
   PasswordResetToken,
   EmailChangeToken,
+  TaskCompletion,
 } from 'astro:db';
 import { fileToDataUri, validateImageFile } from './upload';
 import { hashPassword, verifyPassword } from './auth';
@@ -203,6 +204,7 @@ async function deleteUserData(userId: string): Promise<void> {
   await db.delete(PasswordResetToken).where(eq(PasswordResetToken.userId, userId));
   await db.delete(Attendance).where(eq(Attendance.userId, userId));
   await db.delete(SeasonMembership).where(eq(SeasonMembership.userId, userId));
+  await db.delete(TaskCompletion).where(eq(TaskCompletion.userId, userId));
   await db.delete(GroupMembership).where(eq(GroupMembership.userId, userId));
   await db.delete(EnsembleMember).where(eq(EnsembleMember.userId, userId));
   await db.delete(User).where(eq(User.id, userId));

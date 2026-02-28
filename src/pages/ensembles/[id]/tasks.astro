@@ -1,0 +1,374 @@
+---
+import EnsemblePageLayout from '../../../layouts/EnsemblePageLayout.astro';
+import Table from '../../../components/Table.astro';
+import Modal from '../../../components/Modal.astro';
+import Button from '../../../components/Button.astro';
+import Icon from '../../../components/Icon.astro';
+import Tag from '../../../components/Tag.astro';
+import Notification from '../../../components/Notification.astro';
+import { db, eq, and, EnsembleMember, User, Season } from 'astro:db';
+import { actions } from 'astro:actions';
+import { canManageEnsemble } from '../../../lib/permissions';
+import { getEnsembleBySlugOrId } from '../../../lib/ensemble';
+import { getEnsembleUrlId } from '../../../lib/slug';
+import { getEnsembleTasks, getTaskCompletionsForEnsemble } from '../../../lib/tasks';
+
+const user = Astro.locals.user!;
+
+const { id } = Astro.params;
+const ensemble = await getEnsembleBySlugOrId(id!);
+
+if (!ensemble) {
+  return new Response('Ensemble not found', { status: 404 });
+}
+
+const canonicalId = getEnsembleUrlId(ensemble);
+if (Astro.request.method === 'GET' && id !== canonicalId) {
+  return Astro.redirect(Astro.url.pathname.replace(`/ensembles/${id}`, `/ensembles/${canonicalId}`), 301);
+}
+
+const membership = await db
+  .select()
+  .from(EnsembleMember)
+  .where(and(eq(EnsembleMember.ensembleId, ensemble.id), eq(EnsembleMember.userId, user.id)))
+  .get();
+
+const isAdmin = canManageEnsemble(user, membership);
+
+if (!isAdmin) {
+  return new Response('Forbidden', { status: 403 });
+}
+
+// Action results
+const createResult = Astro.getActionResult(actions.tasks.createTask);
+const editResult = Astro.getActionResult(actions.tasks.editTask);
+const deleteResult = Astro.getActionResult(actions.tasks.deleteTask);
+const markCompleteResult = Astro.getActionResult(actions.tasks.markComplete);
+const markIncompleteResult = Astro.getActionResult(actions.tasks.markIncomplete);
+
+let message = '';
+let messageType: 'success' | 'danger' | undefined;
+
+if (createResult) {
+  if (createResult.error) {
+    message = createResult.error.message ?? 'Failed to create task.';
+    messageType = 'danger';
+  } else {
+    message = 'Task created successfully!';
+    messageType = 'success';
+  }
+} else if (editResult) {
+  if (editResult.error) {
+    message = editResult.error.message ?? 'Failed to update task.';
+    messageType = 'danger';
+  } else {
+    message = 'Task updated successfully!';
+    messageType = 'success';
+  }
+} else if (deleteResult) {
+  if (deleteResult.error) {
+    message = deleteResult.error.message ?? 'Failed to delete task.';
+    messageType = 'danger';
+  } else {
+    message = 'Task deleted.';
+    messageType = 'success';
+  }
+} else if (markCompleteResult) {
+  if (markCompleteResult.error) {
+    message = markCompleteResult.error.message ?? 'Failed to mark task complete.';
+    messageType = 'danger';
+  }
+} else if (markIncompleteResult) {
+  if (markIncompleteResult.error) {
+    message = markIncompleteResult.error.message ?? 'Failed to mark task incomplete.';
+    messageType = 'danger';
+  }
+}
+
+// Get active season
+const currentSeason = await db
+  .select()
+  .from(Season)
+  .where(and(eq(Season.ensembleId, ensemble.id), eq(Season.isActive, 1)))
+  .get();
+
+const seasonTasks = await getEnsembleTasks(ensemble.id, currentSeason?.id);
+const allCompletions = await getTaskCompletionsForEnsemble(ensemble.id, currentSeason?.id);
+
+// Build completion map: taskId -> Set<userId>
+const completionsByTask = new Map<string, Set<string>>();
+for (const c of allCompletions) {
+  if (!completionsByTask.has(c.taskId)) completionsByTask.set(c.taskId, new Set());
+  completionsByTask.get(c.taskId)!.add(c.userId);
+}
+
+// Get active members
+const activeMembers = await db
+  .select({ id: User.id, name: User.name, avatarUrl: User.avatarUrl })
+  .from(EnsembleMember)
+  .innerJoin(User, eq(EnsembleMember.userId, User.id))
+  .where(and(eq(EnsembleMember.ensembleId, ensemble.id), eq(EnsembleMember.status, 'active')))
+  .all();
+
+const nextSortOrder = seasonTasks.length > 0 ? Math.max(...seasonTasks.map((t) => t.sortOrder)) + 1 : 0;
+---
+
+<EnsemblePageLayout
+  title={`Tasks - ${ensemble.name}`}
+  ensembleName={ensemble.name}
+  ensembleId={canonicalId}
+  pageTitle="Season Tasks"
+  pageSubtitle={currentSeason ? `Tasks for ${currentSeason.name}` : 'No active season'}
+  message={message}
+  messageType={messageType}
+  isAdmin={isAdmin}
+>
+  {currentSeason && (
+    <Button slot="action" color="primary" id="create-task-btn">
+      <Icon icon="fa-plus" />
+      <span>Create Task</span>
+    </Button>
+  )}
+
+  {!currentSeason ? (
+    <Notification color="warning">
+      <p>There is no active season for this ensemble. <a href={`/ensembles/${canonicalId}/seasons`}>Create or activate a season</a> before adding tasks.</p>
+    </Notification>
+  ) : seasonTasks.length === 0 ? (
+    <Notification color="info" light>
+      No tasks defined for this season yet. Click "Create Task" to add one.
+    </Notification>
+  ) : (
+    <>
+      <Table title="Tasks">
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Description</th>
+            <th>Sort Order</th>
+            <th>Completions</th>
+            <th style="width: 120px;">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {seasonTasks.map((task) => {
+            const completedCount = completionsByTask.get(task.id)?.size ?? 0;
+            return (
+              <tr>
+                <td><strong>{task.title}</strong></td>
+                <td class="has-text-grey is-size-7">{task.description ?? '—'}</td>
+                <td>{task.sortOrder}</td>
+                <td>
+                  <Tag color={completedCount === activeMembers.length && activeMembers.length > 0 ? 'success' : 'info'}>
+                    {completedCount}/{activeMembers.length}
+                  </Tag>
+                </td>
+                <td>
+                  <div class="buttons are-small">
+                    <Button
+                      color="info"
+                      class="edit-task-btn"
+                      data-task-id={task.id}
+                      data-task-title={task.title}
+                      data-task-description={task.description ?? ''}
+                      data-task-sort-order={task.sortOrder}
+                    >
+                      <Icon icon="fa-edit" />
+                    </Button>
+                    <Button
+                      color="danger"
+                      class="delete-task-btn"
+                      data-task-id={task.id}
+                      data-task-title={task.title}
+                    >
+                      <Icon icon="fa-trash" />
+                    </Button>
+                  </div>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </Table>
+
+      <h2 class="title is-5 mt-5">Member Completions</h2>
+      <p class="subtitle is-6 has-text-grey mb-4">Check or uncheck to mark tasks complete for each member.</p>
+
+      {seasonTasks.map((task) => (
+        <div class="box mb-4">
+          <h3 class="title is-6 mb-3">{task.title}</h3>
+          {activeMembers.length === 0 ? (
+            <p class="has-text-grey is-size-7">No active members.</p>
+          ) : (
+            <div class="columns is-multiline">
+              {activeMembers.map((member) => {
+                const isComplete = completionsByTask.get(task.id)?.has(member.id) ?? false;
+                return (
+                  <div class="column is-6-tablet is-4-desktop is-3-widescreen">
+                    <form
+                      method="POST"
+                      action={isComplete ? actions.tasks.markIncomplete : actions.tasks.markComplete}
+                      class="completion-form"
+                      data-task-id={task.id}
+                      data-user-id={member.id}
+                      data-is-complete={isComplete ? 'true' : 'false'}
+                    >
+                      <input type="hidden" name="taskId" value={task.id} />
+                      <input type="hidden" name="userId" value={member.id} />
+                      <button
+                        type="submit"
+                        class={`button is-fullwidth is-small ${isComplete ? 'is-success' : 'is-light'}`}
+                        title={isComplete ? 'Mark incomplete' : 'Mark complete'}
+                      >
+                        {isComplete
+                          ? <Icon icon="fa-check-circle" />
+                          : <Icon icon="fa-circle" variant="far" color="grey-light" />}
+                        <span class="member-name" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                          {member.name}
+                        </span>
+                      </button>
+                    </form>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      ))}
+    </>
+  )}
+
+  <Fragment slot="modals">
+    <!-- Create Task Modal -->
+    <Modal id="create-modal" title="Create Task">
+      <form id="createForm" method="POST" action={actions.tasks.createTask}>
+        <input type="hidden" name="ensembleId" value={ensemble.id} />
+        <input type="hidden" name="seasonId" value={currentSeason?.id ?? ''} />
+
+        <div class="field">
+          <label class="label" for="create-title">Title *</label>
+          <div class="control">
+            <input class="input" type="text" id="create-title" name="title" placeholder="e.g., Sign code of conduct" required />
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="label" for="create-description">Description</label>
+          <div class="control">
+            <textarea class="textarea" id="create-description" name="description" rows="2" placeholder="Optional details about this task"></textarea>
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="label" for="create-sortOrder">Sort Order</label>
+          <div class="control">
+            <input class="input" type="number" id="create-sortOrder" name="sortOrder" value={nextSortOrder} min="0" />
+          </div>
+          <p class="help">Lower numbers appear first.</p>
+        </div>
+      </form>
+
+      <div slot="footer">
+        <Button type="submit" form="createForm" color="primary">Create Task</Button>
+        <Button type="button" data-modal-close>Cancel</Button>
+      </div>
+    </Modal>
+
+    <!-- Edit Task Modal -->
+    <Modal id="edit-modal" title="Edit Task">
+      <form id="editForm" method="POST" action={actions.tasks.editTask}>
+        <input type="hidden" name="ensembleId" value={ensemble.id} />
+        <input type="hidden" name="taskId" id="edit-task-id" />
+
+        <div class="field">
+          <label class="label" for="edit-title">Title *</label>
+          <div class="control">
+            <input class="input" type="text" id="edit-title" name="title" required />
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="label" for="edit-description">Description</label>
+          <div class="control">
+            <textarea class="textarea" id="edit-description" name="description" rows="2"></textarea>
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="label" for="edit-sortOrder">Sort Order</label>
+          <div class="control">
+            <input class="input" type="number" id="edit-sortOrder" name="sortOrder" min="0" />
+          </div>
+          <p class="help">Lower numbers appear first.</p>
+        </div>
+      </form>
+
+      <div slot="footer">
+        <Button type="submit" form="editForm" color="primary">Save Changes</Button>
+        <Button type="button" data-modal-close>Cancel</Button>
+      </div>
+    </Modal>
+
+    <!-- Delete Task Modal -->
+    <Modal id="delete-modal" title="Delete Task">
+      <p>Are you sure you want to delete <strong id="delete-task-title"></strong>?</p>
+      <p class="mt-2 has-text-grey">All member completion records for this task will also be deleted.</p>
+      <form id="deleteForm" method="POST" action={actions.tasks.deleteTask}>
+        <input type="hidden" name="ensembleId" value={ensemble.id} />
+        <input type="hidden" name="taskId" id="delete-task-id" />
+      </form>
+
+      <div slot="footer">
+        <Button type="submit" form="deleteForm" color="danger">Delete</Button>
+        <Button type="button" data-modal-close>Cancel</Button>
+      </div>
+    </Modal>
+
+    <script is:inline>
+      document.addEventListener('astro:page-load', () => {
+        // Create task modal
+        document.getElementById('create-task-btn')?.addEventListener('click', () => {
+          document.getElementById('create-modal')?.classList.add('is-active');
+        });
+
+        // Edit task modal
+        document.querySelectorAll('.edit-task-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            document.getElementById('edit-task-id').value = btn.getAttribute('data-task-id');
+            document.getElementById('edit-title').value = btn.getAttribute('data-task-title');
+            document.getElementById('edit-description').value = btn.getAttribute('data-task-description');
+            document.getElementById('edit-sortOrder').value = btn.getAttribute('data-task-sort-order');
+            document.getElementById('edit-modal')?.classList.add('is-active');
+          });
+        });
+
+        // Delete task modal
+        document.querySelectorAll('.delete-task-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            document.getElementById('delete-task-id').value = btn.getAttribute('data-task-id');
+            document.getElementById('delete-task-title').textContent = btn.getAttribute('data-task-title');
+            document.getElementById('delete-modal')?.classList.add('is-active');
+          });
+        });
+
+        // Completion toggle forms — submit via fetch for instant feedback
+        document.querySelectorAll('.completion-form').forEach(form => {
+          form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = form.querySelector('button[type="submit"]');
+            if (btn) btn.disabled = true;
+
+            const formData = new FormData(form);
+            try {
+              await fetch(form.action, { method: 'POST', body: formData });
+              // Reload to reflect the new state
+              window.location.reload();
+            } catch {
+              if (btn) btn.disabled = false;
+            }
+          });
+        });
+      });
+    </script>
+  </Fragment>
+</EnsemblePageLayout>

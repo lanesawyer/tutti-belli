@@ -13,6 +13,7 @@ import { ensembleAdminTools } from '../../lib/config';
 import { getEnsembleBySlugOrId, getEnsembleAccess } from '../../lib/ensemble';
 import { getEnsembleUrlId } from '../../lib/slug';
 import { formatDuration } from '../../lib/format';
+import { getTasksWithCompletionsForUser } from '../../lib/tasks';
 
 const user = Astro.locals.user!;
 
@@ -208,6 +209,11 @@ const seasonSongs = currentSeason ? await db
   .orderBy(Song.name)
   : [];
 
+// Get tasks for current user in the active season
+const myTasks = (currentSeason && !isPending)
+  ? await getTasksWithCompletionsForUser(ensemble.id, user.id, currentSeason.id)
+  : [];
+
 // Get invite codes (if admin)
 const invites = isAdmin
   ? await db
@@ -360,7 +366,7 @@ if (Astro.request.method === 'POST') {
 
   {!isPending && (
   <div class="columns">
-    <div class={`column ${isAdmin || (!isPending && (ensemble.discordLink || ensembleLinks.length > 0)) ? 'is-9-desktop' : ''}`}>
+    <div class={`column ${isAdmin || (!isPending && (ensemble.discordLink || ensembleLinks.length > 0 || myTasks.length > 0)) ? 'is-9-desktop' : ''}`}>
       <!-- Announcements Section -->
       <DashboardSection
         title="Recent Announcements"
@@ -726,30 +732,55 @@ if (Astro.request.method === 'POST') {
     </div>
 
     <!-- Links Sidebar (non-admin) -->
-    {!isAdmin && !isPending && (ensemble.discordLink || ensembleLinks.length > 0) && (
+    {!isAdmin && !isPending && (ensemble.discordLink || ensembleLinks.length > 0 || myTasks.length > 0) && (
       <div class="column is-3-desktop">
-        <div class="box mb-5">
-          <h2 class="title is-5 mb-4">
-            <span class="icon-text">
-              <Icon icon="fa-link" />
-              <span>Links</span>
-            </span>
-          </h2>
-          <div class="buttons">
-            {ensemble.discordLink && (
-              <Button href={ensemble.discordLink} target="_blank" rel="noopener noreferrer" color="link" fullwidth>
-                <Icon icon="fa-discord" variant="fab" />
-                <span>Discord</span>
-              </Button>
-            )}
-            {ensembleLinks.map((link) => (
-              <Button href={link.url} target="_blank" rel="noopener noreferrer" color="light" fullwidth>
+        {(ensemble.discordLink || ensembleLinks.length > 0) && (
+          <div class="box mb-5">
+            <h2 class="title is-5 mb-4">
+              <span class="icon-text">
                 <Icon icon="fa-link" />
-                <span>{link.label}</span>
-              </Button>
-            ))}
+                <span>Links</span>
+              </span>
+            </h2>
+            <div class="buttons">
+              {ensemble.discordLink && (
+                <Button href={ensemble.discordLink} target="_blank" rel="noopener noreferrer" color="link" fullwidth>
+                  <Icon icon="fa-discord" variant="fab" />
+                  <span>Discord</span>
+                </Button>
+              )}
+              {ensembleLinks.map((link) => (
+                <Button href={link.url} target="_blank" rel="noopener noreferrer" color="light" fullwidth>
+                  <Icon icon="fa-link" />
+                  <span>{link.label}</span>
+                </Button>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
+
+        {myTasks.length > 0 && (
+          <div class="box">
+            <h2 class="title is-5 mb-4">
+              <span class="icon-text">
+                <Icon icon="fa-tasks" />
+                <span>My Tasks</span>
+              </span>
+            </h2>
+            <ul>
+              {myTasks.map((task) => (
+                <li class="mb-2">
+                  <span class="icon-text">
+                    {task.completed
+                      ? <Icon icon="fa-check-circle" color="success" />
+                      : <Icon icon="fa-circle" variant="far" color="grey-light" />}
+                    <span class:list={['ml-1', { 'has-text-grey': task.completed }]}>{task.title}</span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
     )}
 
@@ -778,6 +809,33 @@ if (Astro.request.method === 'POST') {
                 </Button>
               ))}
             </div>
+          </div>
+        )}
+
+        {myTasks.length > 0 && (
+          <div class="box mb-5">
+            <h2 class="title is-5 mb-4">
+              <span class="icon-text">
+                <Icon icon="fa-tasks" />
+                <span>My Tasks</span>
+              </span>
+            </h2>
+            <ul>
+              {myTasks.map((task) => (
+                <li class="mb-2">
+                  <span class="icon-text">
+                    {task.completed
+                      ? <Icon icon="fa-check-circle" color="success" />
+                      : <Icon icon="fa-circle" variant="far" color="grey-light" />}
+                    <span class:list={['ml-1', { 'has-text-grey': task.completed }]}>{task.title}</span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <Button href={`/ensembles/${canonicalId}/tasks`} size="small" color="link" fullwidth class="mt-3">
+              <Icon icon="fa-tasks" />
+              <span>Manage Tasks</span>
+            </Button>
           </div>
         )}
 

@@ -79,6 +79,22 @@ const CREATE_STATEMENTS = [
     "userId" TEXT NOT NULL REFERENCES "User"("id"),
     "joinedAt" TEXT DEFAULT CURRENT_TIMESTAMP
   )`,
+  `CREATE TABLE IF NOT EXISTS "Task" (
+    "id" TEXT PRIMARY KEY,
+    "ensembleId" TEXT NOT NULL REFERENCES "Ensemble"("id"),
+    "seasonId" TEXT REFERENCES "Season"("id"),
+    "title" TEXT NOT NULL,
+    "description" TEXT,
+    "sortOrder" INTEGER DEFAULT 0 NOT NULL,
+    "createdAt" TEXT DEFAULT CURRENT_TIMESTAMP
+  )`,
+  `CREATE TABLE IF NOT EXISTS "TaskCompletion" (
+    "id" TEXT PRIMARY KEY,
+    "taskId" TEXT NOT NULL REFERENCES "Task"("id"),
+    "userId" TEXT NOT NULL REFERENCES "User"("id"),
+    "completedAt" TEXT DEFAULT CURRENT_TIMESTAMP,
+    "completedBy" TEXT NOT NULL REFERENCES "User"("id")
+  )`,
   `CREATE TABLE IF NOT EXISTS "Event" (
     "id" TEXT PRIMARY KEY,
     "ensembleId" TEXT NOT NULL REFERENCES "Ensemble"("id"),
@@ -197,7 +213,8 @@ const CREATE_STATEMENTS = [
 const TABLE_NAMES = [
   'SiteBanner', 'EmailChangeToken', 'PasswordResetToken', 'EventProgram', 'SongFile',
   'SeasonSong', 'SongPart', 'Song', 'GroupMembership', 'Group',
-  'Announcement', 'Attendance', 'Event', 'SeasonMembership', 'EnsembleInvite',
+  'Announcement', 'Attendance', 'Event', 'TaskCompletion', 'Task',
+  'SeasonMembership', 'EnsembleInvite',
   'Season', 'EnsembleLink', 'EnsembleMember', 'Part', 'Ensemble', 'User',
 ];
 

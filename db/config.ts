@@ -236,6 +236,28 @@ const SiteBanner = defineTable({
   }
 });
 
+const Task = defineTable({
+  columns: {
+    id: column.text({ primaryKey: true }),
+    ensembleId: column.text({ references: () => Ensemble.columns.id }),
+    seasonId: column.text({ optional: true, references: () => Season.columns.id }),
+    title: column.text(),
+    description: column.text({ optional: true }),
+    sortOrder: column.number({ default: 0 }),
+    createdAt: column.date({ default: NOW }),
+  }
+});
+
+const TaskCompletion = defineTable({
+  columns: {
+    id: column.text({ primaryKey: true }),
+    taskId: column.text({ references: () => Task.columns.id }),
+    userId: column.text({ references: () => User.columns.id }),
+    completedAt: column.date({ default: NOW }),
+    completedBy: column.text({ references: () => User.columns.id }),
+  }
+});
+
 export default defineDb({
-  tables: { User, Ensemble, EnsembleMember, Part, EnsembleInvite, Season, SeasonMembership, Event, Attendance, Announcement, Group, GroupMembership, Song, SongPart, SeasonSong, SongFile, EventProgram, PasswordResetToken, EmailChangeToken, EnsembleLink, SiteBanner }
+  tables: { User, Ensemble, EnsembleMember, Part, EnsembleInvite, Season, SeasonMembership, Event, Attendance, Announcement, Group, GroupMembership, Song, SongPart, SeasonSong, SongFile, EventProgram, PasswordResetToken, EmailChangeToken, EnsembleLink, SiteBanner, Task, TaskCompletion }
 });
