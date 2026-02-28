@@ -2,7 +2,7 @@
 import Layout from '../layouts/Layout.astro';
 import Button from '../components/Button.astro';
 import Icon from '../components/Icon.astro';
-import { APP_NAME } from '../lib/config';
+import { APP_NAME, APP_SLOGAN } from '../lib/config';
 
 const user = Astro.locals.user;
 ---
@@ -14,7 +14,7 @@ const user = Astro.locals.user;
         Welcome to {APP_NAME}
       </p>
       <p class="subtitle">
-        Organize and manage your musical ensembles with ease
+        {APP_SLOGAN}
       </p>
       {!user && (
         <div class="buttons mt-4">
