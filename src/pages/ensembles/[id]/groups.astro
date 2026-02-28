@@ -6,6 +6,7 @@ import Button from '../../../components/Button.astro';
 import Icon from '../../../components/Icon.astro';
 import Notification from '../../../components/Notification.astro';
 import Tag from '../../../components/Tag.astro';
+import type { Color } from '../../../lib/bulma';
 import { db, eq, and, desc, EnsembleMember, Group, GroupMembership, User } from 'astro:db';
 import { getEnsembleBySlugOrId, getEnsembleAccess } from '../../../lib/ensemble';
 import { getEnsembleUrlId } from '../../../lib/slug';
@@ -177,7 +178,7 @@ const colorOptions = [
           return (
             <tr>
               <td>
-                <Tag color={group.color} class="mr-2">{group.name}</Tag>
+                <Tag color={group.color as Color} class="mr-2">{group.name}</Tag>
               </td>
               <td>{group.description || '-'}</td>
               <td>
