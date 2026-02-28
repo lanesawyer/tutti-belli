@@ -285,4 +285,4 @@ AGPL V3 License. See LICENSE file for details.
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+Contributions are welcome! Please read the [Contributing Guide](CONTRIBUTING.md) to learn how to get set up, what to work on, and how to submit a pull request. By participating in this project, you agree to abide by the [Code of Conduct](CODE_OF_CONDUCT.md).
