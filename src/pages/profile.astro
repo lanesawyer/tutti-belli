@@ -1,6 +1,7 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import Button from '../components/elements/Button.astro';
+import Image from '../components/elements/Image.astro';
 import FileInput from '../components/FileInput.astro';
 import Icon from '../components/elements/Icon.astro';
 import Notification from '../components/elements/Notification.astro';
@@ -58,9 +59,7 @@ const tasksByEnsemble = await getUserTasksAcrossEnsembles(user.id);
           <div class="is-flex is-align-items-center mb-5" style="gap: 1rem;">
             {user.avatarUrl
               ? (
-                <figure class="image is-96x96" style="flex-shrink: 0;">
-                  <img src={user.avatarUrl} alt={user.name} style="object-fit: cover; border-radius: 50%; width: 96px; height: 96px;" />
-                </figure>
+                <Image src={user.avatarUrl} alt={user.name} size="96x96" rounded style="flex-shrink: 0;" imgStyle="object-fit: cover;" />
               )
               : (
                 <span class="icon" style="flex-shrink: 0; width: 96px; height: 96px; font-size: 96px; line-height: 1;">

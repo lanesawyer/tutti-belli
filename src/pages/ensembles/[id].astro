@@ -2,6 +2,7 @@
 import Layout from '../../layouts/Layout.astro';
 import InviteCodeWidget from '../../components/InviteCodeWidget.astro';
 import Button from '../../components/elements/Button.astro';
+import Image from '../../components/elements/Image.astro';
 import Icon from '../../components/elements/Icon.astro';
 import Tag from '../../components/elements/Tag.astro';
 import DashboardSection from '../../components/DashboardSection.astro';
@@ -331,9 +332,7 @@ if (Astro.request.method === 'POST') {
   <!-- Header Section - Full Width -->
   <div class="is-flex is-align-items-flex-start mb-5" style="min-width: 0;">
     {ensemble.imageUrl && (
-      <figure class="image is-96x96 mr-4" style="flex-shrink: 0;">
-        <img src={ensemble.imageUrl} alt={ensemble.name} style="object-fit: cover; border-radius: 8px; width: 96px; height: 96px;" />
-      </figure>
+      <Image src={ensemble.imageUrl} alt={ensemble.name} size="96x96" class="mr-4" style="flex-shrink: 0;" imgStyle="object-fit: cover; border-radius: 8px;" />
     )}
     <div style="min-width: 0;">
       <h1 class="title">{ensemble.name}</h1>
@@ -627,15 +626,15 @@ if (Astro.request.method === 'POST') {
                       <div class="column is-6-tablet is-4-desktop is-3-widescreen">
                         <div class="card">
                           <div class="card-content has-text-centered">
-                            <figure class="image is-96x96 mx-auto mb-3">
-                              {member.avatarUrl ? (
-                                <img src={member.avatarUrl} alt={member.name} style="object-fit: cover; border-radius: 50%;" />
-                              ) : (
+                            {member.avatarUrl ? (
+                              <Image src={member.avatarUrl} alt={member.name} size="96x96" rounded class="mx-auto mb-3" imgStyle="object-fit: cover;" />
+                            ) : (
+                              <figure class="image is-96x96 mx-auto mb-3">
                                 <div style={`width: 96px; height: 96px; border-radius: 50%; background-color: ${getColorFromInitials(getInitials(member.name))}; display: flex; align-items: center; justify-content: center; color: white; font-size: 2rem; font-weight: bold;`}>
                                   {getInitials(member.name)}
                                 </div>
-                              )}
-                            </figure>
+                              </figure>
+                            )}
                             <p class="title is-6 mb-2">{member.name}</p>
                             <p class="subtitle is-7 has-text-grey mb-2">{part.name}</p>
                             {userGroups.has(member.id) && (
@@ -664,15 +663,15 @@ if (Astro.request.method === 'POST') {
                     <div class="column is-6-tablet is-4-desktop is-3-widescreen">
                       <div class="card">
                         <div class="card-content has-text-centered">
-                          <figure class="image is-96x96 mx-auto mb-3">
-                            {member.avatarUrl ? (
-                              <img src={member.avatarUrl} alt={member.name} style="object-fit: cover; border-radius: 50%;" />
-                            ) : (
+                          {member.avatarUrl ? (
+                            <Image src={member.avatarUrl} alt={member.name} size="96x96" rounded class="mx-auto mb-3" imgStyle="object-fit: cover;" />
+                          ) : (
+                            <figure class="image is-96x96 mx-auto mb-3">
                               <div style={`width: 96px; height: 96px; border-radius: 50%; background-color: ${getColorFromInitials(getInitials(member.name))}; display: flex; align-items: center; justify-content: center; color: white; font-size: 2rem; font-weight: bold;`}>
                                 {getInitials(member.name)}
                               </div>
-                            )}
-                          </figure>
+                            </figure>
+                          )}
                           <p class="title is-6 mb-2">{member.name}</p>
                           <p class="subtitle is-7 has-text-grey mb-2">No part assigned</p>
                           {userGroups.has(member.id) && (
@@ -698,15 +697,15 @@ if (Astro.request.method === 'POST') {
               <div class="column is-6-tablet is-4-desktop is-3-widescreen">
                 <div class="card">
                   <div class="card-content has-text-centered">
-                    <figure class="image is-96x96 mx-auto mb-3">
-                      {member.avatarUrl ? (
-                        <img src={member.avatarUrl} alt={member.name} style="object-fit: cover; border-radius: 50%;" />
-                      ) : (
+                    {member.avatarUrl ? (
+                      <Image src={member.avatarUrl} alt={member.name} size="96x96" rounded class="mx-auto mb-3" imgStyle="object-fit: cover;" />
+                    ) : (
+                      <figure class="image is-96x96 mx-auto mb-3">
                         <div style={`width: 96px; height: 96px; border-radius: 50%; background-color: ${getColorFromInitials(getInitials(member.name))}; display: flex; align-items: center; justify-content: center; color: white; font-size: 2rem; font-weight: bold;`}>
                           {getInitials(member.name)}
                         </div>
-                      )}
-                    </figure>
+                      </figure>
+                    )}
                     <p class="title is-6 mb-2">{member.name}</p>
                     {userGroups.has(member.id) && (
                       <div class="tags are-small is-justify-content-center mt-2">
@@ -822,15 +821,15 @@ if (Astro.request.method === 'POST') {
                     <div class="box p-2 mb-2">
                       <div class="media">
                         <div class="media-left">
-                          <figure class="image is-32x32">
-                            {member.avatarUrl ? (
-                              <img src={member.avatarUrl} alt={member.name} style="object-fit: cover; border-radius: 50%;" />
-                            ) : (
+                          {member.avatarUrl ? (
+                            <Image src={member.avatarUrl} alt={member.name} size="32x32" rounded imgStyle="object-fit: cover;" />
+                          ) : (
+                            <figure class="image is-32x32">
                               <div style={`width: 32px; height: 32px; border-radius: 50%; background-color: ${getColorFromInitials(getInitials(member.name))}; display: flex; align-items: center; justify-content: center; color: white; font-size: 0.75rem; font-weight: bold;`}>
                                 {getInitials(member.name)}
                               </div>
-                            )}
-                          </figure>
+                            </figure>
+                          )}
                         </div>
                         <div class="media-content">
                           <p class="is-size-7 has-text-weight-semibold">{member.name}</p>

@@ -7,6 +7,7 @@ import { getInitials, getColorFromInitials } from '../../../lib/avatar';
 import { getEnsembleBySlugOrId, getEnsembleAccess } from '../../../lib/ensemble';
 import { getEnsembleUrlId } from '../../../lib/slug';
 import Button from '../../../components/elements/Button.astro';
+import Image from '../../../components/elements/Image.astro';
 import Icon from '../../../components/elements/Icon.astro';
 import Breadcrumb from '../../../components/Breadcrumb.astro';
 
@@ -171,15 +172,15 @@ if (Astro.request.method === 'POST') {
                       {partMembers.map((member: any) => (
                         <tr>
                           <td>
-                            <figure class="image is-48x48">
-                              {member.avatarUrl ? (
-                                <img src={member.avatarUrl} alt={member.name} style="object-fit: cover; border-radius: 50%;" />
-                              ) : (
+                            {member.avatarUrl ? (
+                              <Image src={member.avatarUrl} alt={member.name} size="48x48" rounded imgStyle="object-fit: cover;" />
+                            ) : (
+                              <figure class="image is-48x48">
                                 <div style={`width: 48px; height: 48px; border-radius: 50%; background-color: ${getColorFromInitials(getInitials(member.name))}; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.25rem; font-weight: bold;`}>
                                   {getInitials(member.name)}
                                 </div>
-                              )}
-                            </figure>
+                              </figure>
+                            )}
                           </td>
                           <td>{member.name}</td>
                           <td>{member.email}</td>
@@ -244,15 +245,15 @@ if (Astro.request.method === 'POST') {
                     {membersWithoutPart.map((member) => (
                       <tr>
                         <td>
-                          <figure class="image is-48x48">
-                            {member.avatarUrl ? (
-                              <img src={member.avatarUrl} alt={member.name} style="object-fit: cover; border-radius: 50%;" />
-                            ) : (
+                          {member.avatarUrl ? (
+                            <Image src={member.avatarUrl} alt={member.name} size="48x48" rounded imgStyle="object-fit: cover;" />
+                          ) : (
+                            <figure class="image is-48x48">
                               <div style={`width: 48px; height: 48px; border-radius: 50%; background-color: ${getColorFromInitials(getInitials(member.name))}; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.25rem; font-weight: bold;`}>
                                 {getInitials(member.name)}
                               </div>
-                            )}
-                          </figure>
+                            </figure>
+                          )}
                         </td>
                         <td>{member.name}</td>
                         <td>{member.email}</td>
@@ -315,15 +316,15 @@ if (Astro.request.method === 'POST') {
               {members.map((member) => (
                 <tr>
                   <td>
-                    <figure class="image is-48x48">
-                      {member.avatarUrl ? (
-                        <img src={member.avatarUrl} alt={member.name} style="object-fit: cover; border-radius: 50%;" />
-                      ) : (
+                    {member.avatarUrl ? (
+                      <Image src={member.avatarUrl} alt={member.name} size="48x48" rounded imgStyle="object-fit: cover;" />
+                    ) : (
+                      <figure class="image is-48x48">
                         <div style={`width: 48px; height: 48px; border-radius: 50%; background-color: ${getColorFromInitials(getInitials(member.name))}; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.25rem; font-weight: bold;`}>
                           {getInitials(member.name)}
                         </div>
-                      )}
-                    </figure>
+                      </figure>
+                    )}
                   </td>
                   <td>{member.name}</td>
                   <td>{member.email}</td>

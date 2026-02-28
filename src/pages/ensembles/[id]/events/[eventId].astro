@@ -1,6 +1,7 @@
 ---
 import Layout from '../../../../layouts/Layout.astro';
 import Button from '../../../../components/elements/Button.astro';
+import Image from '../../../../components/elements/Image.astro';
 import Icon from '../../../../components/elements/Icon.astro';
 import Notification from '../../../../components/elements/Notification.astro';
 import { db, eq, EnsembleMember, Event, Attendance, User } from 'astro:db';
@@ -277,7 +278,7 @@ const programLabel = isPerformance ? 'Set List' : 'Rehearsal Plan';
           <p class="mb-4">Display this QR code for members to scan and check in</p>
 
           <div class="has-text-centered">
-            <img src={qrCodeDataUrl} alt="QR Code for check-in" class="image is-inline-block" />
+            <Image src={qrCodeDataUrl} alt="QR Code for check-in" class="is-inline-block" />
           </div>
 
           <div class="field mt-4">
