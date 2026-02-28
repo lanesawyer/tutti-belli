@@ -2,6 +2,7 @@
 import Layout from '../../layouts/Layout.astro';
 import InviteCodeWidget from '../../components/InviteCodeWidget.astro';
 import Button from '../../components/Button.astro';
+import Tag from '../../components/Tag.astro';
 import DashboardSection from '../../components/DashboardSection.astro';
 import Message from '../../components/Message.astro';
 import Notification from '../../components/Notification.astro';
@@ -483,7 +484,7 @@ if (Astro.request.method === 'POST') {
                 <Message color={isToday ? 'success' : 'primary'}>
                   <a slot="header" href={`/ensembles/${canonicalId}/events/${event.id}`} class="has-text-white">
                     {event.title}
-                    {isToday && <span class="tag is-dark ml-2">Today</span>}
+                    {isToday && <Tag color="dark" class="ml-2">Today</Tag>}
                   </a>
                   <small slot="header" class="has-text-weight-normal">
                     {scheduledDate.toLocaleDateString()} at {scheduledDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · {formatDuration(event.durationMinutes)}
@@ -550,7 +551,7 @@ if (Astro.request.method === 'POST') {
                 <Message color={isToday ? 'success' : 'warning'}>
                   <a slot="header" href={`/ensembles/${canonicalId}/events/${event.id}`} class="has-text-white">
                     {event.title}
-                    {isToday && <span class="tag is-dark ml-2">Today</span>}
+                    {isToday && <Tag color="dark" class="ml-2">Today</Tag>}
                   </a>
                   <small slot="header" class="has-text-weight-normal">
                     {scheduledDate.toLocaleDateString()} at {scheduledDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · {formatDuration(event.durationMinutes)}
@@ -671,9 +672,9 @@ if (Astro.request.method === 'POST') {
                             {userGroups.has(member.id) && (
                               <div class="tags are-small is-justify-content-center mt-2">
                                 {userGroups.get(member.id).map((group: any) => (
-                                  <span class={`tag is-${group.color}`} title={group.description || group.name}>
+                                  <Tag color={group.color} title={group.description || group.name}>
                                     {group.name}
-                                  </span>
+                                  </Tag>
                                 ))}
                               </div>
                             )}

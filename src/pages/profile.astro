@@ -3,6 +3,7 @@ import Layout from '../layouts/Layout.astro';
 import Button from '../components/Button.astro';
 import FileInput from '../components/FileInput.astro';
 import Notification from '../components/Notification.astro';
+import Tag from '../components/Tag.astro';
 import { actions } from 'astro:actions';
 import { getMembershipsWithParts } from '../lib/profile';
 
@@ -67,9 +68,9 @@ const { memberships, partsByEnsemble } = await getMembershipsWithParts(user.id);
             <div>
               <p class="title is-4 mb-1">{user.name}</p>
               <div class="tags mb-0">
-                <span class={`tag ${user.role === 'admin' ? 'is-danger' : 'is-info'}`}>
+                <Tag color={user.role === 'admin' ? 'danger' : 'info'}>
                   {user.role === 'admin' ? 'Site Administrator' : 'User'}
-                </span>
+                </Tag>
               </div>
             </div>
           </div>

@@ -2,6 +2,7 @@
 import PageLayout from '../../layouts/PageLayout.astro';
 import Button from '../../components/Button.astro';
 import Notification from '../../components/Notification.astro';
+import Tag from '../../components/Tag.astro';
 import { db, eq, Ensemble, EnsembleMember } from 'astro:db';
 import { getEnsembleUrlId } from '../../lib/slug';
 
@@ -49,9 +50,9 @@ const userEnsembles = await db
                 <p class="subtitle is-6">{ensemble.description}</p>
               )}
               <div class="tags mt-2">
-                <span class={`tag ${ensemble.role === 'admin' ? 'is-warning' : 'is-info'}`}>
+                <Tag color={ensemble.role === 'admin' ? 'warning' : 'info'}>
                   {ensemble.role === 'admin' ? 'Ensemble Admin' : 'Member'}
-                </span>
+                </Tag>
               </div>
             </div>
             <footer class="card-footer">

@@ -4,6 +4,7 @@ import Table from '../../../components/Table.astro';
 import Modal from '../../../components/Modal.astro';
 import Button from '../../../components/Button.astro';
 import Notification from '../../../components/Notification.astro';
+import Tag from '../../../components/Tag.astro';
 import { db, eq, and, desc, EnsembleMember, Season, SeasonMembership, User, Event } from 'astro:db';
 import { getEnsembleBySlugOrId, getEnsembleAccess } from '../../../lib/ensemble';
 import { getEnsembleUrlId } from '../../../lib/slug';
@@ -205,8 +206,8 @@ const membershipsBySeasonId = seasonMemberships.reduce((acc, m) => {
               <td>{members.length}</td>
               <td>
                 {season.isActive === 1
-                  ? <span class="tag is-success">Active</span>
-                  : <span class="tag is-light">Inactive</span>}
+                  ? <Tag color="success">Active</Tag>
+                  : <Tag color="light">Inactive</Tag>}
               </td>
               {isAdmin && (
                 <td>

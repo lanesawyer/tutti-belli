@@ -4,6 +4,7 @@ import Table from '../../../../components/Table.astro';
 import Modal from '../../../../components/Modal.astro';
 import Button from '../../../../components/Button.astro';
 import Notification from '../../../../components/Notification.astro';
+import Tag from '../../../../components/Tag.astro';
 import { canManageEnsemble } from '../../../../lib/permissions';
 import {
   getSongsPageData,
@@ -112,7 +113,7 @@ const songFilesMap = buildSongFilesMap(ensembleSongIds, songFilesData);
                   <div class="tags are-small">
                     {songParts.map((partId: string) => {
                       const part = parts.find((p) => p.id === partId);
-                      return part ? <span class="tag is-info">{part.name}</span> : null;
+                      return part ? <Tag color="info">{part.name}</Tag> : null;
                     })}
                   </div>
                 ) : '-'}
@@ -122,7 +123,7 @@ const songFilesMap = buildSongFilesMap(ensembleSongIds, songFilesData);
                   <div class="tags are-small">
                     {songSeasons.map((seasonId: string) => {
                       const season = seasons.find((s) => s.id === seasonId);
-                      return season ? <span class="tag is-primary">{season.name}</span> : null;
+                      return season ? <Tag color="primary">{season.name}</Tag> : null;
                     })}
                   </div>
                 ) : '-'}

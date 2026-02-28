@@ -10,6 +10,7 @@ import {
 } from '../../../../lib/songs';
 import { canManageEnsemble } from '../../../../lib/permissions';
 import Button from '../../../../components/Button.astro';
+import Tag from '../../../../components/Tag.astro';
 import FileInput from '../../../../components/FileInput.astro';
 import Notification from '../../../../components/Notification.astro';
 import { getEnsembleUrlId } from '../../../../lib/slug';
@@ -83,7 +84,7 @@ const songSeasons = seasonSongsData.map((ss) => seasons.find((s) => s.id === ss.
           <p class="heading">Parts</p>
           <div class="tags">
             {songParts.map((part) => (
-              <span class="tag is-info">{part!.name}</span>
+              <Tag color="info">{part!.name}</Tag>
             ))}
           </div>
         </div>
@@ -93,7 +94,7 @@ const songSeasons = seasonSongsData.map((ss) => seasons.find((s) => s.id === ss.
           <p class="heading">Seasons</p>
           <div class="tags">
             {songSeasons.map((season) => (
-              <span class="tag is-primary">{season!.name}</span>
+              <Tag color="primary">{season!.name}</Tag>
             ))}
           </div>
         </div>
