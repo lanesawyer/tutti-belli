@@ -323,50 +323,24 @@ if (Astro.request.method === 'POST') {
     </div>
   )}
   <!-- Header Section - Full Width -->
-  <div class="mb-5">
-    <div class="level">
-      <div class="level-left">
-        <div class="level-item" style="align-items: flex-start;">
-          {ensemble.imageUrl && (
-            <figure class="image is-96x96 mr-4" style="flex-shrink: 0;">
-              <img src={ensemble.imageUrl} alt={ensemble.name} style="object-fit: cover; border-radius: 8px; width: 96px; height: 96px;" />
-            </figure>
-          )}
-          <div>
-            <h1 class="title">{ensemble.name}</h1>
-            {ensemble.description && (
-              <p class="subtitle">{ensemble.description}</p>
-            )}
-            {currentSeason && (
-              <p class="subtitle is-6 mt-2">
-                <span class="icon-text">
-                  <Icon icon="fa-calendar-alt" color="info" />
-                  <span><strong>Current Season:</strong> {currentSeason.name}</span>
-                </span>
-              </p>
-            )}
-          </div>
-        </div>
-      </div>
-      {!isPending && (ensemble.discordLink || ensembleLinks.length > 0) && (
-        <div class="level-right">
-          {ensemble.discordLink && (
-            <div class="level-item">
-              <Button href={ensemble.discordLink} target="_blank" rel="noopener noreferrer" color="link" title="Join Discord Server">
-                <Icon icon="fa-discord" variant="fab" />
-                <span>Discord</span>
-              </Button>
-            </div>
-          )}
-          {ensembleLinks.map((link) => (
-            <div class="level-item">
-              <Button href={link.url} target="_blank" rel="noopener noreferrer" color="light">
-                <Icon icon="fa-link" />
-                <span>{link.label}</span>
-              </Button>
-            </div>
-          ))}
-        </div>
+  <div class="is-flex is-align-items-flex-start mb-5" style="min-width: 0;">
+    {ensemble.imageUrl && (
+      <figure class="image is-96x96 mr-4" style="flex-shrink: 0;">
+        <img src={ensemble.imageUrl} alt={ensemble.name} style="object-fit: cover; border-radius: 8px; width: 96px; height: 96px;" />
+      </figure>
+    )}
+    <div style="min-width: 0;">
+      <h1 class="title">{ensemble.name}</h1>
+      {ensemble.description && (
+        <p class="subtitle" style="overflow-wrap: break-word;">{ensemble.description}</p>
+      )}
+      {currentSeason && (
+        <p class="subtitle is-6 mt-2">
+          <span class="icon-text">
+            <Icon icon="fa-calendar-alt" color="info" />
+            <span><strong>Current Season:</strong> {currentSeason.name}</span>
+          </span>
+        </p>
       )}
     </div>
   </div>
@@ -386,7 +360,7 @@ if (Astro.request.method === 'POST') {
 
   {!isPending && (
   <div class="columns">
-    <div class={`column ${isAdmin ? 'is-9-desktop' : ''}`}>
+    <div class={`column ${isAdmin || (!isPending && (ensemble.discordLink || ensembleLinks.length > 0)) ? 'is-9-desktop' : ''}`}>
       <!-- Announcements Section -->
       <DashboardSection
         title="Recent Announcements"
@@ -751,9 +725,62 @@ if (Astro.request.method === 'POST') {
       </Button>
     </div>
 
+    <!-- Links Sidebar (non-admin) -->
+    {!isAdmin && !isPending && (ensemble.discordLink || ensembleLinks.length > 0) && (
+      <div class="column is-3-desktop">
+        <div class="box mb-5">
+          <h2 class="title is-5 mb-4">
+            <span class="icon-text">
+              <Icon icon="fa-link" />
+              <span>Links</span>
+            </span>
+          </h2>
+          <div class="buttons">
+            {ensemble.discordLink && (
+              <Button href={ensemble.discordLink} target="_blank" rel="noopener noreferrer" color="link" fullwidth>
+                <Icon icon="fa-discord" variant="fab" />
+                <span>Discord</span>
+              </Button>
+            )}
+            {ensembleLinks.map((link) => (
+              <Button href={link.url} target="_blank" rel="noopener noreferrer" color="light" fullwidth>
+                <Icon icon="fa-link" />
+                <span>{link.label}</span>
+              </Button>
+            ))}
+          </div>
+        </div>
+      </div>
+    )}
+
     <!-- Admin Sidebar -->
     {isAdmin && (
       <div class="column is-3-desktop">
+        {(ensemble.discordLink || ensembleLinks.length > 0) && (
+          <div class="box mb-5">
+            <h2 class="title is-5 mb-4">
+              <span class="icon-text">
+                <Icon icon="fa-link" />
+                <span>Links</span>
+              </span>
+            </h2>
+            <div class="buttons">
+              {ensemble.discordLink && (
+                <Button href={ensemble.discordLink} target="_blank" rel="noopener noreferrer" color="link" fullwidth>
+                  <Icon icon="fa-discord" variant="fab" />
+                  <span>Discord</span>
+                </Button>
+              )}
+              {ensembleLinks.map((link) => (
+                <Button href={link.url} target="_blank" rel="noopener noreferrer" color="light" fullwidth>
+                  <Icon icon="fa-link" />
+                  <span>{link.label}</span>
+                </Button>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div class="box mb-5">
           <h2 class="title is-5 mb-4">
             <span class="icon-text">

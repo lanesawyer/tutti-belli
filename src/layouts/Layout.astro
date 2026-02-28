@@ -24,7 +24,7 @@ const activeBanner = await getActiveBanner();
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.0/css/bulma.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <script is:inline>
-      const THEME_ICON_CSS = '.theme-icon-dark{display:none}[data-theme="dark"] .theme-icon-light{display:none}[data-theme="dark"] .theme-icon-dark{display:inline}';
+      const THEME_ICON_CSS = '.theme-icon-dark{display:none}[data-theme="dark"] .theme-icon-light{display:none}[data-theme="dark"] .theme-icon-dark{display:inline}.theme-label-dark{display:none}[data-theme="dark"] .theme-label-light{display:none}[data-theme="dark"] .theme-label-dark{display:inline}';
 
       // Inject theme icon styles (must be global, not scoped by Astro)
       (function() {

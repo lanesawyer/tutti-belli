@@ -1,4 +1,5 @@
 export const APP_NAME = 'Tutti Belli';
+export const APP_SLOGAN = 'Organize and manage your musical ensembles with ease';
 
 export type AdminTool = {
   href: (ensembleId: string) => string;
