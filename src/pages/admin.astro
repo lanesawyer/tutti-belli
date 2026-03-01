@@ -4,6 +4,7 @@ import Table from "../components/elements/Table.astro";
 import Button from "../components/elements/Button.astro";
 import Icon from "../components/elements/Icon.astro";
 import TextInput from "../components/forms/TextInput.astro";
+import Select from "../components/forms/Select.astro";
 import Modal from "../components/Modal.astro";
 import Notification from "../components/elements/Notification.astro";
 import { db, Ensemble, User } from "astro:db";
@@ -237,31 +238,17 @@ const activeBanner = await getActiveBanner();
         value={activeBanner?.message ?? ""}
         required
       />
-      <div class="field">
-        <label class="label" for="banner-color">Color</label>
-        <div class="control">
-          <div class="select">
-            <select id="banner-color" name="color">
-              {
-                (
-                  [
-                    "info",
-                    "success",
-                    "warning",
-                    "danger",
-                    "primary",
-                    "link",
-                  ] as const
-                ).map((c) => (
-                  <option value={c} selected={activeBanner?.color === c}>
-                    {c.charAt(0).toUpperCase() + c.slice(1)}
-                  </option>
-                ))
-              }
-            </select>
-          </div>
-        </div>
-      </div>
+      <Select id="banner-color" name="color" label="Color">
+        {
+          (
+            ["info", "success", "warning", "danger", "primary", "link"] as const
+          ).map((c) => (
+            <option value={c} selected={activeBanner?.color === c}>
+              {c.charAt(0).toUpperCase() + c.slice(1)}
+            </option>
+          ))
+        }
+      </Select>
     </form>
     <form
       method="POST"
