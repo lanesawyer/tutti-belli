@@ -1,7 +1,7 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import Button from '../components/elements/Button.astro';
-import Icon from '../components/elements/Icon.astro';
+import TextInput from '../components/elements/TextInput.astro';
 import Notification from '../components/elements/Notification.astro';
 import { actions } from 'astro:actions';
 
@@ -38,52 +38,9 @@ const error = result?.error?.message ?? '';
 
           <form method="POST" action={actions.profile.register}>
             {customRedirect && <input type="hidden" name="redirect" value={customRedirect} />}
-            <div class="field">
-              <label class="label" for="name">Full Name</label>
-              <div class="control has-icons-left">
-                <input
-                  class="input"
-                  type="text"
-                  id="name"
-                  name="name"
-                  placeholder="John Doe"
-                  required
-                />
-                <Icon icon="fa-user" size="small" position="left" />
-              </div>
-            </div>
-
-            <div class="field">
-              <label class="label" for="email">Email</label>
-              <div class="control has-icons-left">
-                <input
-                  class="input"
-                  type="email"
-                  id="email"
-                  name="email"
-                  placeholder="you@example.com"
-                  required
-                />
-                <Icon icon="fa-envelope" size="small" position="left" />
-              </div>
-            </div>
-
-            <div class="field">
-              <label class="label" for="password">Password</label>
-              <div class="control has-icons-left">
-                <input
-                  class="input"
-                  type="password"
-                  id="password"
-                  name="password"
-                  placeholder="••••••••"
-                  minlength="6"
-                  required
-                />
-                <Icon icon="fa-lock" size="small" position="left" />
-              </div>
-              <p class="help">Must be at least 6 characters</p>
-            </div>
+            <TextInput name="name" label="Full Name" placeholder="John Doe" iconLeft="fa-user" required />
+            <TextInput name="email" label="Email" type="email" placeholder="you@example.com" iconLeft="fa-envelope" required />
+            <TextInput name="password" label="Password" type="password" placeholder="••••••••" iconLeft="fa-lock" minlength="6" required help="Must be at least 6 characters" />
 
             <div class="field">
               <div class="control">

@@ -1,6 +1,7 @@
 ---
 import Button from './elements/Button.astro';
 import Icon from './elements/Icon.astro';
+import TextInput from './elements/TextInput.astro';
 import Notification from './elements/Notification.astro';
 
 interface Props {
@@ -42,13 +43,7 @@ const { invites } = Astro.props;
             <div class="is-flex is-flex-direction-column">
               <div class="field has-addons mb-2">
                 <div class="control is-expanded">
-                  <input 
-                    type="text" 
-                    class="input is-small is-family-monospace" 
-                    value={inviteUrl} 
-                    readonly 
-                    id={`invite-${invite.id}`}
-                  />
+                  <TextInput name={`invite-url-${invite.id}`} id={`invite-${invite.id}`} type="text" value={inviteUrl} class="is-family-monospace" size="small" readonly standalone />
                 </div>
                 <div class="control">
                   <Button

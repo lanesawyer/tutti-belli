@@ -2,6 +2,7 @@
 import Layout from '../../layouts/Layout.astro';
 import Button from '../../components/elements/Button.astro';
 import Icon from '../../components/elements/Icon.astro';
+import TextInput from '../../components/elements/TextInput.astro';
 import Notification from '../../components/elements/Notification.astro';
 import { db, eq, and, EnsembleInvite, EnsembleMember, Ensemble } from 'astro:db';
 import { APP_NAME } from '../../lib/config';
@@ -147,24 +148,7 @@ if (Astro.request.method === 'POST') {
         </div>
       ) : (
       <form method="POST">
-        <div class="field">
-          <label class="label" for="code">Invite Code</label>
-          <div class="control has-icons-left">
-            <input
-              class="input is-large"
-              type="text"
-              id="code"
-              name="code"
-              value={codeParam || ''}
-              placeholder="ABCD1234"
-              style="text-transform: uppercase;"
-              required
-              autofocus
-            />
-            <Icon icon="fa-ticket" position="left" />
-          </div>
-          <p class="help">Enter the 8-character code provided by your ensemble admin</p>
-        </div>
+        <TextInput name="code" label="Invite Code" value={codeParam || ''} placeholder="ABCD1234" size="large" iconLeft="fa-ticket" style="text-transform: uppercase;" required autofocus help="Enter the 8-character code provided by your ensemble admin" />
 
         {ensemble?.codeOfConduct && (
           <div class="box mt-5">

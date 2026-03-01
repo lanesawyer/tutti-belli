@@ -11,6 +11,7 @@ import {
 import { canManageEnsemble } from '../../../../lib/permissions';
 import Button from '../../../../components/elements/Button.astro';
 import Icon from '../../../../components/elements/Icon.astro';
+import TextInput from '../../../../components/elements/TextInput.astro';
 import Tag from '../../../../components/elements/Tag.astro';
 import FileInput from '../../../../components/FileInput.astro';
 import Notification from '../../../../components/elements/Notification.astro';
@@ -263,20 +264,10 @@ const songSeasons = seasonSongsData.map((ss) => seasons.find((s) => s.id === ss.
             </div>
           </div>
           <div class="column is-full" id="url-input-field" style="display:none;">
-            <div class="field">
-              <label class="label" for="fileUrl">URL *</label>
-              <div class="control">
-                <input class="input" type="url" id="fileUrl" name="fileUrl" placeholder="https://www.youtube.com/watch?v=..." />
-              </div>
-            </div>
+            <TextInput name="fileUrl" id="fileUrl" label="URL *" type="url" placeholder="https://www.youtube.com/watch?v=..." />
           </div>
           <div class="column">
-            <div class="field">
-              <label class="label" for="fileName">Display Name *</label>
-              <div class="control">
-                <input class="input" type="text" id="fileName" name="fileName" placeholder="e.g. Soprano Sheet Music" required />
-              </div>
-            </div>
+            <TextInput name="fileName" id="fileName" label="Display Name *" placeholder="e.g. Soprano Sheet Music" required />
           </div>
           <div class="column is-narrow">
             <div class="field">

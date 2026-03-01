@@ -3,6 +3,7 @@ import Layout from '../../../../layouts/Layout.astro';
 import Button from '../../../../components/elements/Button.astro';
 import Image from '../../../../components/elements/Image.astro';
 import Icon from '../../../../components/elements/Icon.astro';
+import TextInput from '../../../../components/elements/TextInput.astro';
 import Tag from '../../../../components/elements/Tag.astro';
 import Notification from '../../../../components/elements/Notification.astro';
 import { db, eq, Event, Group } from 'astro:db';
@@ -279,13 +280,7 @@ const programLabel = isPerformance ? 'Set List' : 'Rehearsal Plan';
           <div class="field mt-4">
             <label class="label">Check-in URL</label>
             <div class="control">
-              <input
-                class="input is-family-monospace"
-                type="text"
-                value={checkInUrl}
-                readonly
-                onclick="this.select()"
-              />
+              <TextInput name="checkInUrl" type="text" value={checkInUrl} class="is-family-monospace" readonly onclick="this.select()" standalone />
             </div>
             <p class="help">Members can scan the QR code or visit this URL to check in</p>
           </div>
@@ -354,7 +349,7 @@ const programLabel = isPerformance ? 'Set List' : 'Rehearsal Plan';
               {absentMembers.map((member) => (
                 <div class="field is-grouped mb-2">
                   <div class="control is-expanded">
-                    <input class="input is-static" type="text" value={member.name} readonly />
+                    <TextInput name="_member-display" type="text" value={member.name} static readonly standalone />
                   </div>
                   <div class="control">
                     <form method="POST" action={actions.events.addAttendance} style="display: inline;">
@@ -506,19 +501,7 @@ const programLabel = isPerformance ? 'Set List' : 'Rehearsal Plan';
             <input type="hidden" name="ensembleId" value={ensemble.id} />
             <input type="hidden" name="eventId" value={event.id} />
 
-            <div class="field">
-              <label class="label" for="edit-title">Title</label>
-              <div class="control">
-                <input
-                  class="input"
-                  type="text"
-                  id="edit-title"
-                  name="title"
-                  value={event.title}
-                  required
-                />
-              </div>
-            </div>
+            <TextInput name="title" id="edit-title" label="Title" value={event.title} required />
 
             <div class="field">
               <label class="label" for="edit-description">Description</label>
@@ -534,66 +517,17 @@ const programLabel = isPerformance ? 'Set List' : 'Rehearsal Plan';
 
             <div class="columns">
               <div class="column is-4">
-                <div class="field">
-                  <label class="label" for="edit-date">Date</label>
-                  <div class="control">
-                    <input
-                      class="input"
-                      type="date"
-                      id="edit-date"
-                      name="date"
-                      value={dateValue}
-                      required
-                    />
-                  </div>
-                </div>
+                <TextInput name="date" id="edit-date" label="Date" type="date" value={dateValue} required />
               </div>
               <div class="column is-4">
-                <div class="field">
-                  <label class="label" for="edit-time">Time</label>
-                  <div class="control">
-                    <input
-                      class="input"
-                      type="time"
-                      id="edit-time"
-                      name="time"
-                      value={timeValue}
-                      required
-                    />
-                  </div>
-                </div>
+                <TextInput name="time" id="edit-time" label="Time" type="time" value={timeValue} required />
               </div>
               <div class="column is-4">
-                <div class="field">
-                  <label class="label" for="edit-duration">Duration (min)</label>
-                  <div class="control">
-                    <input
-                      class="input"
-                      type="number"
-                      id="edit-duration"
-                      name="durationMinutes"
-                      value={event.durationMinutes}
-                      min="15"
-                      max="480"
-                      required
-                    />
-                  </div>
-                </div>
+                <TextInput name="durationMinutes" id="edit-duration" label="Duration (min)" type="number" value={event.durationMinutes} min="15" max="480" required />
               </div>
             </div>
 
-            <div class="field">
-              <label class="label" for="edit-location">Location</label>
-              <div class="control">
-                <input
-                  class="input"
-                  type="text"
-                  id="edit-location"
-                  name="location"
-                  value={event.location || ''}
-                />
-              </div>
-            </div>
+            <TextInput name="location" id="edit-location" label="Location" value={event.location || ''} />
 
             {groups.length > 0 && (
               <div class="field">
