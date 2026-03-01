@@ -148,7 +148,7 @@ export async function createEvent(params: {
   time: string;
   location?: string;
   durationMinutes: number;
-  category: 'rehearsal' | 'performance';
+  category: 'rehearsal' | 'performance' | 'social' | 'sectional';
   groupId?: string;
 }) {
   const { ensembleId, title, description, date, time, location, durationMinutes, category, groupId } = params;
