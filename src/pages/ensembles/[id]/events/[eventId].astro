@@ -3,14 +3,15 @@ import Layout from '../../../../layouts/Layout.astro';
 import Button from '../../../../components/elements/Button.astro';
 import Image from '../../../../components/elements/Image.astro';
 import Icon from '../../../../components/elements/Icon.astro';
+import Tag from '../../../../components/elements/Tag.astro';
 import Notification from '../../../../components/elements/Notification.astro';
-import { db, eq, EnsembleMember, Event, Attendance, User } from 'astro:db';
+import { db, eq, Event, Group } from 'astro:db';
 import { actions } from 'astro:actions';
 import QRCode from 'qrcode';
 import { ensembleAdminTools } from '../../../../lib/config';
 import { getEnsembleBySlugOrId, getEnsembleAccess } from '../../../../lib/ensemble';
 import { getEnsembleUrlId } from '../../../../lib/slug';
-import { getEventProgramData } from '../../../../lib/events';
+import { getEventProgramData, getEventPageData } from '../../../../lib/events';
 import { formatDuration } from '../../../../lib/format';
 
 const user = Astro.locals.user!;
@@ -72,29 +73,16 @@ else if (editResult?.error) message = editResult.error.message || 'Failed to upd
 else if (updateNotesResult && !updateNotesResult.error) message = 'Notes updated.';
 else if (updateNotesResult?.error) message = updateNotesResult.error.message || 'Failed to update notes.';
 
-// Get attendance records
-const attendanceRecords = await db
-  .select({
-    id: Attendance.id,
-    userId: User.id,
-    userName: User.name,
-    checkedInAt: Attendance.checkedInAt,
-    checkedInMethod: Attendance.checkedInMethod,
-  })
-  .from(Attendance)
-  .innerJoin(User, eq(Attendance.userId, User.id))
-  .where(eq(Attendance.eventId, eventId));
+// Get attendance records, member list (scoped to group if set), and group metadata
+const { attendanceRecords, allMembers, group } = await getEventPageData(ensemble.id, eventId);
 
-// Get all members for admin to mark attendance
-const allMembers = await db
-  .select({
-    id: User.id,
-    name: User.name,
-    email: User.email,
-  })
-  .from(EnsembleMember)
-  .innerJoin(User, eq(EnsembleMember.userId, User.id))
-  .where(eq(EnsembleMember.ensembleId, ensemble.id));
+// Fetch groups for the edit modal selector
+const groups = await db
+  .select({ id: Group.id, name: Group.name, color: Group.color })
+  .from(Group)
+  .where(eq(Group.ensembleId, ensemble.id))
+  .orderBy(Group.name)
+  .all();
 
 const attendedUserIds = new Set(attendanceRecords.map(a => a.userId));
 const absentMembers = allMembers.filter(m => !attendedUserIds.has(m.id));
@@ -119,6 +107,10 @@ const timeValue = scheduledDate.toTimeString().slice(0, 5);
 const { programSongs, availableSeasonSongs } = await getEventProgramData(eventId, event.seasonId);
 
 const isPerformance = event.category === 'performance';
+const isSocial = event.category === 'social';
+const isSectional = event.category === 'sectional';
+const categoryLabel = isPerformance ? 'Performance' : isSocial ? 'Social' : isSectional ? 'Sectional' : 'Rehearsal';
+const categoryTagClass = isPerformance ? 'is-warning' : isSocial ? 'is-success' : isSectional ? 'is-info' : 'is-primary';
 const programLabel = isPerformance ? 'Set List' : 'Rehearsal Plan';
 ---
 
@@ -151,9 +143,12 @@ const programLabel = isPerformance ? 'Set List' : 'Rehearsal Plan';
         <div>
           <h1 class="title">
             {event.title}
-            <span class={`tag ml-2 ${isPerformance ? 'is-warning' : 'is-primary'}`}>
-              {isPerformance ? 'Performance' : 'Rehearsal'}
+            <span class={`tag ml-2 ${categoryTagClass}`}>
+              {categoryLabel}
             </span>
+            {group && (
+              <Tag color={group.color as any} class="ml-2">{group.name}</Tag>
+            )}
           </h1>
           <p class="subtitle">
             <span class="icon-text">
@@ -301,7 +296,10 @@ const programLabel = isPerformance ? 'Set List' : 'Rehearsal Plan';
     {isAdmin && (
       <div class="column">
         <div class="box">
-          <h2 class="title is-4">Attendance ({attendanceRecords.length} / {allMembers.length})</h2>
+          <h2 class="title is-4">
+            Attendance ({attendanceRecords.length} / {allMembers.length})
+            {group && <Tag color={group.color as any} size="small" class="ml-2">{group.name}</Tag>}
+          </h2>
 
           {attendanceRecords.length > 0 ? (
             <table class="table is-fullwidth is-striped">
@@ -380,7 +378,7 @@ const programLabel = isPerformance ? 'Set List' : 'Rehearsal Plan';
   <div class="box mt-2">
     <h2 class="title is-4">
       <span class="icon-text">
-        <Icon icon="fa-music" color={isPerformance ? 'warning' : 'primary'} />
+        <Icon icon="fa-music" color={isPerformance ? 'warning' : isSocial ? 'success' : isSectional ? 'info' : 'primary'} />
         <span>{programLabel}</span>
       </span>
     </h2>
@@ -596,6 +594,23 @@ const programLabel = isPerformance ? 'Set List' : 'Rehearsal Plan';
                 />
               </div>
             </div>
+
+            {groups.length > 0 && (
+              <div class="field">
+                <label class="label" for="edit-groupId">Group (optional)</label>
+                <div class="control">
+                  <div class="select is-fullwidth">
+                    <select id="edit-groupId" name="groupId">
+                      <option value="">— All Members —</option>
+                      {groups.map(g => (
+                        <option value={g.id} selected={event.groupId === g.id}>{g.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <p class="help">Restrict attendance tracking to this group's members.</p>
+              </div>
+            )}
           </section>
           <footer class="modal-card-foot">
             <Button color="primary" type="submit">Save Changes</Button>

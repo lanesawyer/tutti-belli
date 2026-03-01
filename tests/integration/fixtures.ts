@@ -2,7 +2,7 @@
  * Test data factory helpers for integration tests.
  * Each function inserts a row and returns the created record.
  */
-import { db, User, Ensemble, EnsembleMember, MemberPart, Season, Event, Part, Song, SeasonSong, EventProgram, Task, TaskCompletion, eq } from 'astro:db';
+import { db, User, Ensemble, EnsembleMember, MemberPart, Season, Event, Part, Song, SeasonSong, EventProgram, Task, TaskCompletion, Group, GroupMembership, eq } from 'astro:db';
 import { hashPassword } from '../../src/lib/auth.ts';
 
 export async function createUser(overrides: {
@@ -100,6 +100,7 @@ export async function createEvent(
     checkInCode?: string;
     category?: 'rehearsal' | 'performance';
     durationMinutes?: number;
+    groupId?: string;
   } = {}
 ) {
   const id = overrides.id ?? crypto.randomUUID();
@@ -112,8 +113,33 @@ export async function createEvent(
     scheduledAt: overrides.scheduledAt ?? new Date(),
     durationMinutes: overrides.durationMinutes ?? 90,
     checkInCode: overrides.checkInCode ?? `CODE${id.slice(0, 6).toUpperCase()}`,
+    groupId: overrides.groupId,
   });
   return db.select().from(Event).where(eq(Event.id, id)).get() as Promise<typeof Event.$inferSelect>;
+}
+
+export async function createGroup(
+  ensembleId: string,
+  overrides: { id?: string; name?: string; color?: string } = {}
+) {
+  const id = overrides.id ?? crypto.randomUUID();
+  await db.insert(Group).values({
+    id,
+    ensembleId,
+    name: overrides.name ?? 'Test Group',
+    color: overrides.color ?? 'info',
+  });
+  return db.select().from(Group).where(eq(Group.id, id)).get() as Promise<typeof Group.$inferSelect>;
+}
+
+export async function createGroupMembership(
+  groupId: string,
+  userId: string,
+  overrides: { id?: string } = {}
+) {
+  const id = overrides.id ?? crypto.randomUUID();
+  await db.insert(GroupMembership).values({ id, groupId, userId });
+  return db.select().from(GroupMembership).where(eq(GroupMembership.id, id)).get() as Promise<typeof GroupMembership.$inferSelect>;
 }
 
 export async function createSong(

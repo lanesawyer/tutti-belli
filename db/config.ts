@@ -94,13 +94,14 @@ const Event = defineTable({
     id: column.text({ primaryKey: true }),
     ensembleId: column.text({ references: () => Ensemble.columns.id }),
     seasonId: column.text({ references: () => Season.columns.id }),
-    category: column.text({ enum: ['rehearsal', 'performance'], default: 'rehearsal' }),
+    category: column.text({ enum: ['rehearsal', 'performance', 'social', 'sectional'], default: 'rehearsal' }),
     title: column.text(),
     description: column.text({ optional: true }),
     scheduledAt: column.date(),
     durationMinutes: column.number({ default: 90 }),
     location: column.text({ optional: true }),
     checkInCode: column.text({ unique: true }),
+    groupId: column.text({ optional: true, references: () => Group.columns.id }),
     createdAt: column.date({ default: NOW }),
   }
 });
