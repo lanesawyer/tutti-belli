@@ -1,6 +1,7 @@
 ---
 import Layout from "../../layouts/Layout.astro";
 import InviteCodeWidget from "../../components/InviteCodeWidget.astro";
+import MemberCard from "../../components/MemberCard.astro";
 import Button from "../../components/elements/Button.astro";
 import Image from "../../components/elements/Image.astro";
 import Icon from "../../components/elements/Icon.astro";
@@ -754,54 +755,19 @@ if (Astro.request.method === "POST") {
               <div data-tab-panel="all">
                 <div class="columns is-multiline">
                   {members.map((member) => {
-                    const partNames = (
+                    const parts = (
                       memberPartIdsByMembership.get(member.membershipId) ?? []
                     )
                       .map((pid) => allParts.find((p) => p.id === pid)?.name)
-                      .filter(Boolean)
-                      .join(", ");
+                      .filter((n): n is string => Boolean(n));
                     return (
                       <div class="column is-6-tablet is-4-desktop is-3-widescreen">
-                        <div class="card">
-                          <div class="card-content has-text-centered">
-                            {member.avatarUrl ? (
-                              <Image
-                                src={member.avatarUrl}
-                                alt={member.name}
-                                size="96x96"
-                                rounded
-                                class="mx-auto mb-3"
-                                imgStyle="object-fit: cover;"
-                              />
-                            ) : (
-                              <figure class="image is-96x96 mx-auto mb-3">
-                                <div
-                                  style={`width: 96px; height: 96px; border-radius: 50%; background-color: ${getColorFromInitials(getInitials(member.name))}; display: flex; align-items: center; justify-content: center; color: white; font-size: 2rem; font-weight: bold;`}
-                                >
-                                  {getInitials(member.name)}
-                                </div>
-                              </figure>
-                            )}
-                            <p class="title is-6 mb-2">{member.name}</p>
-                            {partNames && (
-                              <p class="subtitle is-7 has-text-grey mb-2">
-                                {partNames}
-                              </p>
-                            )}
-                            {userGroups.has(member.id) && (
-                              <div class="tags are-small is-justify-content-center mt-2">
-                                {userGroups.get(member.id).map((group: any) => (
-                                  <Tag
-                                    color={group.color}
-                                    title={group.description || group.name}
-                                  >
-                                    {group.name}
-                                  </Tag>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        </div>
+                        <MemberCard
+                          name={member.name}
+                          avatarUrl={member.avatarUrl}
+                          parts={parts}
+                          groups={userGroups.get(member.id)}
+                        />
                       </div>
                     );
                   })}
@@ -819,43 +785,11 @@ if (Astro.request.method === "POST") {
                     <div class="columns is-multiline">
                       {partMembers.map((member) => (
                         <div class="column is-6-tablet is-4-desktop is-3-widescreen">
-                          <div class="card">
-                            <div class="card-content has-text-centered">
-                              {member.avatarUrl ? (
-                                <Image
-                                  src={member.avatarUrl}
-                                  alt={member.name}
-                                  size="96x96"
-                                  rounded
-                                  class="mx-auto mb-3"
-                                  imgStyle="object-fit: cover;"
-                                />
-                              ) : (
-                                <figure class="image is-96x96 mx-auto mb-3">
-                                  <div
-                                    style={`width: 96px; height: 96px; border-radius: 50%; background-color: ${getColorFromInitials(getInitials(member.name))}; display: flex; align-items: center; justify-content: center; color: white; font-size: 2rem; font-weight: bold;`}
-                                  >
-                                    {getInitials(member.name)}
-                                  </div>
-                                </figure>
-                              )}
-                              <p class="title is-6 mb-2">{member.name}</p>
-                              {userGroups.has(member.id) && (
-                                <div class="tags are-small is-justify-content-center mt-2">
-                                  {userGroups
-                                    .get(member.id)
-                                    .map((group: any) => (
-                                      <Tag
-                                        color={group.color}
-                                        title={group.description || group.name}
-                                      >
-                                        {group.name}
-                                      </Tag>
-                                    ))}
-                                </div>
-                              )}
-                            </div>
-                          </div>
+                          <MemberCard
+                            name={member.name}
+                            avatarUrl={member.avatarUrl}
+                            groups={userGroups.get(member.id)}
+                          />
                         </div>
                       ))}
                     </div>
@@ -868,41 +802,11 @@ if (Astro.request.method === "POST") {
                   <div class="columns is-multiline">
                     {noPartMembers.map((member) => (
                       <div class="column is-6-tablet is-4-desktop is-3-widescreen">
-                        <div class="card">
-                          <div class="card-content has-text-centered">
-                            {member.avatarUrl ? (
-                              <Image
-                                src={member.avatarUrl}
-                                alt={member.name}
-                                size="96x96"
-                                rounded
-                                class="mx-auto mb-3"
-                                imgStyle="object-fit: cover;"
-                              />
-                            ) : (
-                              <figure class="image is-96x96 mx-auto mb-3">
-                                <div
-                                  style={`width: 96px; height: 96px; border-radius: 50%; background-color: ${getColorFromInitials(getInitials(member.name))}; display: flex; align-items: center; justify-content: center; color: white; font-size: 2rem; font-weight: bold;`}
-                                >
-                                  {getInitials(member.name)}
-                                </div>
-                              </figure>
-                            )}
-                            <p class="title is-6 mb-2">{member.name}</p>
-                            {userGroups.has(member.id) && (
-                              <div class="tags are-small is-justify-content-center mt-2">
-                                {userGroups.get(member.id).map((group: any) => (
-                                  <Tag
-                                    color={group.color}
-                                    title={group.description || group.name}
-                                  >
-                                    {group.name}
-                                  </Tag>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        </div>
+                        <MemberCard
+                          name={member.name}
+                          avatarUrl={member.avatarUrl}
+                          groups={userGroups.get(member.id)}
+                        />
                       </div>
                     ))}
                   </div>
