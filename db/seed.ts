@@ -14,6 +14,7 @@ export default async function seed() {
       passwordHash: passwordHash,
       name: 'Site Administrator',
       role: 'admin',
+      emailVerifiedAt: new Date(),
     },
   ]);
 
@@ -21,7 +22,7 @@ export default async function seed() {
   // Password: test123
   const testUserId = crypto.randomUUID();
   const testPasswordHash = await bcrypt.hash('test123', 10);
-  
+
   await db.insert(User).values([
     {
       id: testUserId,
@@ -29,6 +30,7 @@ export default async function seed() {
       passwordHash: testPasswordHash,
       name: 'Test User',
       role: 'user',
+      emailVerifiedAt: new Date(),
     },
   ]);
 
@@ -36,7 +38,7 @@ export default async function seed() {
   // Password: ensadmin123
   const ensembleAdminId = crypto.randomUUID();
   const ensembleAdminPasswordHash = await bcrypt.hash('ensadmin123', 10);
-  
+
   await db.insert(User).values([
     {
       id: ensembleAdminId,
@@ -44,6 +46,7 @@ export default async function seed() {
       passwordHash: ensembleAdminPasswordHash,
       name: 'Ensemble Admin User',
       role: 'ensemble_admin',
+      emailVerifiedAt: new Date(),
     },
   ]);
 

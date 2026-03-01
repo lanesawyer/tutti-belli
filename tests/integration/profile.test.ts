@@ -1,11 +1,11 @@
 import { describe, it, expect, vi } from 'vitest';
-import { registerUser, updateName, updatePhone, deleteAccount } from '../../src/lib/profile.ts';
-import { db, User, EnsembleMember, eq } from 'astro:db';
+import { registerUser, resendVerificationEmail, updateName, updatePhone, deleteAccount } from '../../src/lib/profile.ts';
+import { db, User, EnsembleMember, EmailVerificationToken, eq, isNull } from 'astro:db';
 import { createUser, createEnsemble, createMembership } from './fixtures.ts';
 
 // Mock email module — we don't want to call the real Resend API in tests
 vi.mock('../../src/lib/email.ts', () => ({
-  sendWelcomeEmail: vi.fn().mockResolvedValue({ success: true }),
+  sendEmailVerificationEmail: vi.fn().mockResolvedValue({ success: true }),
   sendEmailChangeVerificationEmail: vi.fn().mockResolvedValue({ success: true }),
   sendPasswordResetEmail: vi.fn().mockResolvedValue({ success: true }),
   sendAnnouncementEmail: vi.fn().mockResolvedValue({ success: true }),
@@ -42,6 +42,102 @@ describe('registerUser', () => {
     await expect(
       registerUser({ name: 'Second', email: 'dup@test.com', password: 'pass2' })
     ).rejects.toThrow('already exists');
+  });
+
+  it('creates an email verification token for the new user', async () => {
+    const { userId } = await registerUser({
+      name: 'Carol White',
+      email: 'carol@test.com',
+      password: 'password123',
+    });
+    const token = await db
+      .select()
+      .from(EmailVerificationToken)
+      .where(eq(EmailVerificationToken.userId, userId))
+      .get();
+    expect(token).not.toBeNull();
+    expect(token!.usedAt).toBeNull();
+    expect(token!.expiresAt.getTime()).toBeGreaterThan(Date.now());
+  });
+
+  it('leaves the new user unverified (emailVerifiedAt is null)', async () => {
+    const { userId } = await registerUser({
+      name: 'Dan Brown',
+      email: 'dan@test.com',
+      password: 'password123',
+    });
+    const user = await db.select().from(User).where(eq(User.id, userId)).get();
+    expect(user!.emailVerifiedAt).toBeNull();
+  });
+});
+
+describe('resendVerificationEmail', () => {
+  it('creates a new verification token for an unverified user', async () => {
+    const { userId } = await registerUser({
+      name: 'Eve Green',
+      email: 'eve@test.com',
+      password: 'password123',
+    });
+
+    // Mark the original token as used to simulate an expired/used token
+    await db
+      .update(EmailVerificationToken)
+      .set({ usedAt: new Date() })
+      .where(eq(EmailVerificationToken.userId, userId));
+
+    await resendVerificationEmail('eve@test.com');
+
+    const tokens = await db
+      .select()
+      .from(EmailVerificationToken)
+      .where(eq(EmailVerificationToken.userId, userId))
+      .all();
+    const activeToken = tokens.find(t => t.usedAt === null);
+    expect(activeToken).toBeDefined();
+  });
+
+  it('invalidates the previous pending token when resending', async () => {
+    const { userId } = await registerUser({
+      name: 'Frank Black',
+      email: 'frank@test.com',
+      password: 'password123',
+    });
+
+    await resendVerificationEmail('frank@test.com');
+
+    const tokens = await db
+      .select()
+      .from(EmailVerificationToken)
+      .where(eq(EmailVerificationToken.userId, userId))
+      .all();
+    // Only the newest token should be active (usedAt = null)
+    const activeTokens = tokens.filter(t => t.usedAt === null);
+    expect(activeTokens).toHaveLength(1);
+  });
+
+  it('does nothing silently for an unknown email', async () => {
+    await expect(
+      resendVerificationEmail('nobody@test.com')
+    ).resolves.toBeUndefined();
+  });
+
+  it('does nothing silently for an already-verified user', async () => {
+    const user = await createUser();
+    await db
+      .update(User)
+      .set({ emailVerifiedAt: new Date() })
+      .where(eq(User.id, user!.id));
+
+    await expect(
+      resendVerificationEmail(user!.email)
+    ).resolves.toBeUndefined();
+
+    const tokens = await db
+      .select()
+      .from(EmailVerificationToken)
+      .where(eq(EmailVerificationToken.userId, user!.id))
+      .all();
+    expect(tokens).toHaveLength(0);
   });
 });
 

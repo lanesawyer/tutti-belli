@@ -85,7 +85,7 @@ The integration project uses `singleThread: true`. This is required because `fil
 **`src/lib/email.ts`** — Always mock in integration tests that call profile/email functions:
 ```ts
 vi.mock('../../src/lib/email.ts', () => ({
-  sendWelcomeEmail: vi.fn().mockResolvedValue({ success: true }),
+  sendEmailVerificationEmail: vi.fn().mockResolvedValue({ success: true }),
   sendEmailChangeVerificationEmail: vi.fn().mockResolvedValue({ success: true }),
   // ...
 }));

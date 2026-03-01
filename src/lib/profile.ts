@@ -13,11 +13,12 @@ import {
   GroupMembership,
   PasswordResetToken,
   EmailChangeToken,
+  EmailVerificationToken,
   TaskCompletion,
 } from 'astro:db';
 import { fileToDataUri, validateImageFile } from './upload';
 import { hashPassword, verifyPassword } from './auth';
-import { sendEmailChangeVerificationEmail, sendWelcomeEmail } from './email';
+import { sendEmailChangeVerificationEmail, sendEmailVerificationEmail } from './email';
 
 export async function registerUser(params: {
   name: string;
@@ -34,8 +35,17 @@ export async function registerUser(params: {
 
   await db.insert(User).values({ id: userId, email, passwordHash, name, role: 'user' });
 
+  const token = crypto.randomUUID();
+  const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
+  await db.insert(EmailVerificationToken).values({
+    id: crypto.randomUUID(),
+    userId,
+    token,
+    expiresAt,
+  });
+
   // Fire-and-forget: don't block registration if email fails
-  sendWelcomeEmail(email, name).catch(() => {});
+  sendEmailVerificationEmail(email, name, token).catch(() => {});
 
   return { userId };
 }
@@ -199,7 +209,31 @@ export async function initiateEmailChange(
   return { type: 'redirect', url: '/profile?emailChangePending=1' };
 }
 
+export async function resendVerificationEmail(email: string): Promise<void> {
+  const user = await db.select().from(User).where(eq(User.email, email)).get();
+  if (!user || user.emailVerifiedAt) return; // silent: prevent enumeration
+
+  // Invalidate any existing pending tokens
+  const now = new Date();
+  await db
+    .update(EmailVerificationToken)
+    .set({ usedAt: now })
+    .where(and(eq(EmailVerificationToken.userId, user.id), isNull(EmailVerificationToken.usedAt)));
+
+  const token = crypto.randomUUID();
+  const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
+  await db.insert(EmailVerificationToken).values({
+    id: crypto.randomUUID(),
+    userId: user.id,
+    token,
+    expiresAt,
+  });
+
+  sendEmailVerificationEmail(email, user.name, token).catch(() => {});
+}
+
 async function deleteUserData(userId: string): Promise<void> {
+  await db.delete(EmailVerificationToken).where(eq(EmailVerificationToken.userId, userId));
   await db.delete(EmailChangeToken).where(eq(EmailChangeToken.userId, userId));
   await db.delete(PasswordResetToken).where(eq(PasswordResetToken.userId, userId));
   await db.delete(Attendance).where(eq(Attendance.userId, userId));

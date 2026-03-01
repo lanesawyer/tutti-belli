@@ -1,0 +1,70 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Button from '../components/elements/Button.astro';
+import Icon from '../components/elements/Icon.astro';
+import Notification from '../components/elements/Notification.astro';
+import { resendVerificationEmail } from '../lib/profile';
+
+const prefillEmail = Astro.url.searchParams.get('email') ?? '';
+let sent = false;
+
+if (Astro.request.method === 'POST') {
+  const formData = await Astro.request.formData();
+  const email = formData.get('email')?.toString().trim().toLowerCase() ?? '';
+  if (email) {
+    await resendVerificationEmail(email);
+  }
+  sent = true;
+}
+---
+
+<Layout title="Resend Verification Email">
+  <div class="columns is-centered">
+    <div class="column is-5-tablet is-4-desktop">
+      <h1 class="title">Resend Verification Email</h1>
+
+      {sent ? (
+        <Notification color="success" light>
+          <p>If an unverified account exists for that email, we've sent a new verification link. Please check your inbox.</p>
+          <p class="mt-3">
+            <Button href="/login" color="primary">Back to Login</Button>
+          </p>
+        </Notification>
+      ) : (
+        <>
+          <p class="mb-4">Enter your email address and we'll resend the verification link.</p>
+
+          <form method="POST">
+            <div class="field">
+              <label class="label" for="email">Email</label>
+              <div class="control has-icons-left">
+                <input
+                  class="input"
+                  type="email"
+                  id="email"
+                  name="email"
+                  placeholder="you@example.com"
+                  value={prefillEmail}
+                  required
+                />
+                <Icon icon="fa-envelope" size="small" position="left" />
+              </div>
+            </div>
+
+            <div class="field">
+              <div class="control">
+                <Button color="primary" fullwidth type="submit">
+                  Resend Verification Email
+                </Button>
+              </div>
+            </div>
+          </form>
+
+          <div class="has-text-centered mt-4">
+            <p><a href="/login">Back to login</a></p>
+          </div>
+        </>
+      )}
+    </div>
+  </div>
+</Layout>
