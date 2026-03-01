@@ -13,11 +13,21 @@ const { items } = Astro.props;
 
 <nav class="breadcrumb" aria-label="breadcrumbs">
   <ul>
-    {items.map((item, i) => {
-      const isLast = i === items.length - 1;
-      return isLast
-        ? <li class="is-active"><a href="#" aria-current="page">{item.label}</a></li>
-        : <li><a href={item.href}>{item.label}</a></li>;
-    })}
+    {
+      items.map((item, i) => {
+        const isLast = i === items.length - 1;
+        return isLast ? (
+          <li class="is-active">
+            <a href="#" aria-current="page">
+              {item.label}
+            </a>
+          </li>
+        ) : (
+          <li>
+            <a href={item.href}>{item.label}</a>
+          </li>
+        );
+      })
+    }
   </ul>
 </nav>

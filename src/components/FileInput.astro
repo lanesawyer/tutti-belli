@@ -8,8 +8,8 @@ type Props = {
   help?: string;
   ctaLabel?: string;
   placeholder?: string;
-  color?: 'primary' | 'info' | 'warning' | 'danger' | 'success';
-  size?: 'small' | 'medium' | 'large';
+  color?: "primary" | "info" | "warning" | "danger" | "success";
+  size?: "small" | "medium" | "large";
   fullwidth?: boolean;
   boxed?: boolean;
   class?: string;
@@ -22,8 +22,8 @@ const {
   accept,
   required,
   help,
-  ctaLabel = 'Choose a file…',
-  placeholder = 'No file selected',
+  ctaLabel = "Choose a file…",
+  placeholder = "No file selected",
   color,
   size,
   fullwidth = true,
@@ -35,17 +35,26 @@ const inputId = id ?? name;
 const nameId = `${inputId}-name`;
 
 const fileClasses = [
-  'file',
-  'has-name',
-  fullwidth && 'is-fullwidth',
-  boxed && 'is-boxed',
+  "file",
+  "has-name",
+  fullwidth && "is-fullwidth",
+  boxed && "is-boxed",
   color && `is-${color}`,
   size && `is-${size}`,
   className,
-].filter(Boolean).join(' ');
+]
+  .filter(Boolean)
+  .join(" ");
 ---
 
-{label && <label class="label" for={inputId}>{label}{required && ' *'}</label>}
+{
+  label && (
+    <label class="label" for={inputId}>
+      {label}
+      {required && " *"}
+    </label>
+  )
+}
 <div class="control">
   <div class={fileClasses}>
     <label class="file-label">
@@ -73,14 +82,16 @@ const fileClasses = [
 {help && <p class="help">{help}</p>}
 
 <script>
-  document.addEventListener('astro:page-load', () => {
-    document.querySelectorAll<HTMLInputElement>('.file-input[data-filename-target]').forEach((input) => {
-      const targetId = input.dataset.filenameTarget!;
-      const nameEl = document.getElementById(targetId);
-      if (!nameEl) return;
-      input.addEventListener('change', () => {
-        nameEl.textContent = input.files?.[0]?.name ?? 'No file selected';
+  document.addEventListener("astro:page-load", () => {
+    document
+      .querySelectorAll<HTMLInputElement>(".file-input[data-filename-target]")
+      .forEach((input) => {
+        const targetId = input.dataset.filenameTarget!;
+        const nameEl = document.getElementById(targetId);
+        if (!nameEl) return;
+        input.addEventListener("change", () => {
+          nameEl.textContent = input.files?.[0]?.name ?? "No file selected";
+        });
       });
-    });
   });
 </script>

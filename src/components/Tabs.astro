@@ -15,7 +15,7 @@
  *   class    — extra classes on the outer <div>
  */
 
-import Tag from './elements/Tag.astro';
+import Tag from "./elements/Tag.astro";
 
 interface Tab {
   id: string;
@@ -25,31 +25,35 @@ interface Tab {
 
 interface Props {
   tabs: Tab[];
-  size?: 'small' | 'medium' | 'large';
+  size?: "small" | "medium" | "large";
   boxed?: boolean;
   class?: string;
 }
 
 const { tabs, size, boxed, class: className } = Astro.props;
 
-const navClasses = ['tabs', size && `is-${size}`, boxed && 'is-boxed']
+const navClasses = ["tabs", size && `is-${size}`, boxed && "is-boxed"]
   .filter(Boolean)
-  .join(' ');
+  .join(" ");
 ---
 
 <div class={className}>
   <div class={navClasses} data-tabs-nav>
     <ul>
-      {tabs.map((tab, i) => (
-        <li class={i === 0 ? 'is-active' : ''} data-tab-id={tab.id}>
-          <a>
-            {tab.label}
-            {tab.count !== undefined && (
-              <Tag rounded class="ml-2">{tab.count}</Tag>
-            )}
-          </a>
-        </li>
-      ))}
+      {
+        tabs.map((tab, i) => (
+          <li class={i === 0 ? "is-active" : ""} data-tab-id={tab.id}>
+            <a>
+              {tab.label}
+              {tab.count !== undefined && (
+                <Tag rounded class="ml-2">
+                  {tab.count}
+                </Tag>
+              )}
+            </a>
+          </li>
+        ))
+      }
     </ul>
   </div>
 
@@ -57,17 +61,19 @@ const navClasses = ['tabs', size && `is-${size}`, boxed && 'is-boxed']
 </div>
 
 <script>
-  document.addEventListener('astro:page-load', () => {
-    document.querySelectorAll<HTMLElement>('[data-tabs-nav]').forEach((nav) => {
-      const container = nav.closest<HTMLElement>('[data-tabs-nav]')?.parentElement;
+  document.addEventListener("astro:page-load", () => {
+    document.querySelectorAll<HTMLElement>("[data-tabs-nav]").forEach((nav) => {
+      const container =
+        nav.closest<HTMLElement>("[data-tabs-nav]")?.parentElement;
       if (!container) return;
 
-      const items = nav.querySelectorAll<HTMLElement>('li[data-tab-id]');
-      const panels = container.querySelectorAll<HTMLElement>('[data-tab-panel]');
+      const items = nav.querySelectorAll<HTMLElement>("li[data-tab-id]");
+      const panels =
+        container.querySelectorAll<HTMLElement>("[data-tab-panel]");
 
       function activate(id: string) {
         items.forEach((li) => {
-          li.classList.toggle('is-active', li.dataset.tabId === id);
+          li.classList.toggle("is-active", li.dataset.tabId === id);
         });
         panels.forEach((panel) => {
           panel.hidden = panel.dataset.tabPanel !== id;
@@ -79,7 +85,7 @@ const navClasses = ['tabs', size && `is-${size}`, boxed && 'is-boxed']
       if (firstId) activate(firstId);
 
       items.forEach((li) => {
-        li.querySelector('a')?.addEventListener('click', () => {
+        li.querySelector("a")?.addEventListener("click", () => {
           const id = li.dataset.tabId;
           if (id) activate(id);
         });

@@ -1,5 +1,5 @@
 ---
-import Button from './elements/Button.astro';
+import Button from "./elements/Button.astro";
 
 interface Props {
   id: string;
@@ -29,10 +29,13 @@ const { id, title } = Astro.props;
 
 <script>
   // Runs once (Astro deduplicates module scripts). Handles all modals globally.
-  document.addEventListener('click', (e) => {
+  document.addEventListener("click", (e) => {
     const target = e.target as HTMLElement;
-    if (target.hasAttribute('data-modal-close') || target.classList.contains('modal-background')) {
-      target.closest('.modal')?.classList.remove('is-active');
+    if (
+      target.hasAttribute("data-modal-close") ||
+      target.classList.contains("modal-background")
+    ) {
+      target.closest(".modal")?.classList.remove("is-active");
     }
   });
 </script>

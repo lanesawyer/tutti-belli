@@ -1,8 +1,8 @@
 ---
-import Layout from '../layouts/Layout.astro';
-import Button from '../components/elements/Button.astro';
-import Icon from '../components/elements/Icon.astro';
-import { APP_NAME, APP_SLOGAN } from '../lib/config';
+import Layout from "../layouts/Layout.astro";
+import Button from "../components/elements/Button.astro";
+import Icon from "../components/elements/Icon.astro";
+import { APP_NAME, APP_SLOGAN } from "../lib/config";
 
 const user = Astro.locals.user;
 ---
@@ -16,32 +16,38 @@ const user = Astro.locals.user;
       <p class="subtitle">
         {APP_SLOGAN}
       </p>
-      {!user && (
-        <div class="buttons mt-4">
-          <Button href="/register" color="light" size="large">
-            <Icon icon="fa-user-plus" />
-            <span>Sign Up Free</span>
-          </Button>
-          <Button href="/login" color="primary" size="large" style="outlined">
-            <Icon icon="fa-sign-in-alt" />
-            <span>Log In</span>
-          </Button>
-        </div>
-      )}
-      {user && (
-        <div class="buttons mt-4">
-          <Button href="/ensembles" color="light" size="large">
-            <Icon icon="fa-users" />
-            <span>My Ensembles</span>
-          </Button>
-        </div>
-      )}
+      {
+        !user && (
+          <div class="buttons mt-4">
+            <Button href="/register" color="light" size="large">
+              <Icon icon="fa-user-plus" />
+              <span>Sign Up Free</span>
+            </Button>
+            <Button href="/login" color="primary" size="large" style="outlined">
+              <Icon icon="fa-sign-in-alt" />
+              <span>Log In</span>
+            </Button>
+          </div>
+        )
+      }
+      {
+        user && (
+          <div class="buttons mt-4">
+            <Button href="/ensembles" color="light" size="large">
+              <Icon icon="fa-users" />
+              <span>My Ensembles</span>
+            </Button>
+          </div>
+        )
+      }
     </div>
   </section>
 
   <section class="section">
     <div class="container">
-      <h2 class="title is-3 has-text-centered mb-6">Everything your ensemble needs</h2>
+      <h2 class="title is-3 has-text-centered mb-6">
+        Everything your ensemble needs
+      </h2>
       <div class="columns is-multiline">
         <div class="column is-half">
           <div class="box">
@@ -51,7 +57,10 @@ const user = Astro.locals.user;
               </div>
               <div class="media-content">
                 <h3 class="title is-5">Member Management</h3>
-                <p>Invite members via unique codes, assign roles, and manage membership status. Track who's active across seasons.</p>
+                <p>
+                  Invite members via unique codes, assign roles, and manage
+                  membership status. Track who's active across seasons.
+                </p>
               </div>
             </div>
           </div>
@@ -61,11 +70,18 @@ const user = Astro.locals.user;
           <div class="box">
             <div class="media">
               <div class="media-left">
-                <Icon icon="fa-2x fa-calendar-check" size="large" color="primary" />
+                <Icon
+                  icon="fa-2x fa-calendar-check"
+                  size="large"
+                  color="primary"
+                />
               </div>
               <div class="media-content">
                 <h3 class="title is-5">Rehearsal Scheduling</h3>
-                <p>Schedule rehearsals and events, track attendance for each session, and keep your ensemble on track.</p>
+                <p>
+                  Schedule rehearsals and events, track attendance for each
+                  session, and keep your ensemble on track.
+                </p>
               </div>
             </div>
           </div>
@@ -79,7 +95,10 @@ const user = Astro.locals.user;
               </div>
               <div class="media-content">
                 <h3 class="title is-5">Repertoire Library</h3>
-                <p>Build a library of songs and assign them to voice parts. Organize repertoire by season so your music is always at hand.</p>
+                <p>
+                  Build a library of songs and assign them to voice parts.
+                  Organize repertoire by season so your music is always at hand.
+                </p>
               </div>
             </div>
           </div>
@@ -89,11 +108,18 @@ const user = Astro.locals.user;
           <div class="box">
             <div class="media">
               <div class="media-left">
-                <Icon icon="fa-2x fa-calendar-alt" size="large" color="primary" />
+                <Icon
+                  icon="fa-2x fa-calendar-alt"
+                  size="large"
+                  color="primary"
+                />
               </div>
               <div class="media-content">
                 <h3 class="title is-5">Seasons</h3>
-                <p>Organize your ensemble's activities into seasons. Manage seasonal memberships and tie repertoire to each season.</p>
+                <p>
+                  Organize your ensemble's activities into seasons. Manage
+                  seasonal memberships and tie repertoire to each season.
+                </p>
               </div>
             </div>
           </div>
@@ -107,7 +133,10 @@ const user = Astro.locals.user;
               </div>
               <div class="media-content">
                 <h3 class="title is-5">Announcements</h3>
-                <p>Post announcements to keep all your members informed about upcoming events, changes, and important news.</p>
+                <p>
+                  Post announcements to keep all your members informed about
+                  upcoming events, changes, and important news.
+                </p>
               </div>
             </div>
           </div>
@@ -121,7 +150,10 @@ const user = Astro.locals.user;
               </div>
               <div class="media-content">
                 <h3 class="title is-5">Groups &amp; Sections</h3>
-                <p>Create custom sub-groups within your ensemble — sections, committees, or any arbitrary grouping you need.</p>
+                <p>
+                  Create custom sub-groups within your ensemble — sections,
+                  committees, or any arbitrary grouping you need.
+                </p>
               </div>
             </div>
           </div>
@@ -135,7 +167,10 @@ const user = Astro.locals.user;
               </div>
               <div class="media-content">
                 <h3 class="title is-5">Voice Parts</h3>
-                <p>Define custom voice parts or instrument sections for your ensemble and assign members and songs accordingly.</p>
+                <p>
+                  Define custom voice parts or instrument sections for your
+                  ensemble and assign members and songs accordingly.
+                </p>
               </div>
             </div>
           </div>
@@ -149,7 +184,10 @@ const user = Astro.locals.user;
               </div>
               <div class="media-content">
                 <h3 class="title is-5">Dark Mode</h3>
-                <p>A polished interface with full dark mode support — easy on the eyes during late-night rehearsal prep.</p>
+                <p>
+                  A polished interface with full dark mode support — easy on the
+                  eyes during late-night rehearsal prep.
+                </p>
               </div>
             </div>
           </div>
@@ -169,9 +207,16 @@ const user = Astro.locals.user;
         <div class="column">
           <h2 class="title is-3">Free &amp; open source</h2>
           <p class="subtitle is-5">
-            Tutti Belli is open source software. You're welcome to run your ensemble on the hosted site — or self-host it on your own infrastructure if you prefer to keep full control.
+            Tutti Belli is open source software. You're welcome to run your
+            ensemble on the hosted site — or self-host it on your own
+            infrastructure if you prefer to keep full control.
           </p>
-          <a href="https://github.com/lanesawyer/tutti-belli" target="_blank" rel="noopener noreferrer" class="button is-dark">
+          <a
+            href="https://github.com/lanesawyer/tutti-belli"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="button is-dark"
+          >
             <Icon icon="fa-github" variant="fab" />
             <span>View on GitHub</span>
           </a>
@@ -191,14 +236,23 @@ const user = Astro.locals.user;
         <div class="column">
           <h2 class="title is-3">Get in touch</h2>
           <p class="subtitle is-5">
-            Have a feature request, found a bug, or want to get involved? Open an issue on GitHub or send an email.
+            Have a feature request, found a bug, or want to get involved? Open
+            an issue on GitHub or send an email.
           </p>
           <div class="buttons">
-            <a href="https://github.com/lanesawyer/tutti-belli/issues" target="_blank" rel="noopener noreferrer" class="button is-dark">
+            <a
+              href="https://github.com/lanesawyer/tutti-belli/issues"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="button is-dark"
+            >
               <Icon icon="fa-github" variant="fab" />
               <span>Open an Issue</span>
             </a>
-            <a href="mailto:github@lanesawyer.dev" class="button is-primary is-outlined">
+            <a
+              href="mailto:github@lanesawyer.dev"
+              class="button is-primary is-outlined"
+            >
               <Icon icon="fa-envelope" />
               <span>Send an Email</span>
             </a>
@@ -208,42 +262,48 @@ const user = Astro.locals.user;
     </div>
   </section>
 
-  {!user && (
-    <section class="section">
-      <div class="content has-text-centered">
-        <h2 class="title is-3">Ready to get organized?</h2>
-        <p class="subtitle is-5">Create an account and start managing your ensemble today.</p>
-        <div class="buttons is-centered">
-          <Button href="/register" color="primary" size="large">
-            <Icon icon="fa-user-plus" />
-            <span>Sign Up Free</span>
-          </Button>
-          <Button href="/login" color="light" size="large">
-            <Icon icon="fa-sign-in-alt" />
-            <span>Log In</span>
-          </Button>
-        </div>
-      </div>
-    </section>
-  )}
-
-  {user && (
-    <section class="section">
-      <div class="content has-text-centered">
-        <h2 class="title is-3">Welcome back, {user.name}!</h2>
-        <div class="buttons is-centered">
-          <Button href="/ensembles" color="primary" size="large">
-            <Icon icon="fa-users" />
-            <span>View My Ensembles</span>
-          </Button>
-          {user.role === 'admin' && (
-            <Button href="/admin" color="info" size="large">
-              <Icon icon="fa-cog" />
-              <span>Admin Panel</span>
+  {
+    !user && (
+      <section class="section">
+        <div class="content has-text-centered">
+          <h2 class="title is-3">Ready to get organized?</h2>
+          <p class="subtitle is-5">
+            Create an account and start managing your ensemble today.
+          </p>
+          <div class="buttons is-centered">
+            <Button href="/register" color="primary" size="large">
+              <Icon icon="fa-user-plus" />
+              <span>Sign Up Free</span>
             </Button>
-          )}
+            <Button href="/login" color="light" size="large">
+              <Icon icon="fa-sign-in-alt" />
+              <span>Log In</span>
+            </Button>
+          </div>
         </div>
-      </div>
-    </section>
-  )}
+      </section>
+    )
+  }
+
+  {
+    user && (
+      <section class="section">
+        <div class="content has-text-centered">
+          <h2 class="title is-3">Welcome back, {user.name}!</h2>
+          <div class="buttons is-centered">
+            <Button href="/ensembles" color="primary" size="large">
+              <Icon icon="fa-users" />
+              <span>View My Ensembles</span>
+            </Button>
+            {user.role === "admin" && (
+              <Button href="/admin" color="info" size="large">
+                <Icon icon="fa-cog" />
+                <span>Admin Panel</span>
+              </Button>
+            )}
+          </div>
+        </div>
+      </section>
+    )
+  }
 </Layout>

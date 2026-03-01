@@ -1,5 +1,5 @@
 ---
-import EnsemblePageLayout from '../../../../layouts/EnsemblePageLayout.astro';
+import EnsemblePageLayout from "../../../../layouts/EnsemblePageLayout.astro";
 import {
   getSongDetailData,
   getMembership,
@@ -7,29 +7,40 @@ import {
   categoryLabel,
   categoryTagClass,
   getYouTubeId,
-} from '../../../../lib/songs';
-import { canManageEnsemble } from '../../../../lib/permissions';
-import Button from '../../../../components/elements/Button.astro';
-import Icon from '../../../../components/elements/Icon.astro';
-import TextInput from '../../../../components/elements/TextInput.astro';
-import Tag from '../../../../components/elements/Tag.astro';
-import FileInput from '../../../../components/FileInput.astro';
-import Notification from '../../../../components/elements/Notification.astro';
-import { getEnsembleUrlId } from '../../../../lib/slug';
-import { actions } from 'astro:actions';
+} from "../../../../lib/songs";
+import { canManageEnsemble } from "../../../../lib/permissions";
+import Button from "../../../../components/elements/Button.astro";
+import Icon from "../../../../components/elements/Icon.astro";
+import TextInput from "../../../../components/elements/TextInput.astro";
+import Tag from "../../../../components/elements/Tag.astro";
+import FileInput from "../../../../components/FileInput.astro";
+import Notification from "../../../../components/elements/Notification.astro";
+import { getEnsembleUrlId } from "../../../../lib/slug";
+import { actions } from "astro:actions";
 
 const user = Astro.locals.user!;
 const { id, songId } = Astro.params;
 
-const { ensemble, song, parts, seasons, songPartsData, seasonSongsData, songFiles } =
-  await getSongDetailData(id!, songId!);
+const {
+  ensemble,
+  song,
+  parts,
+  seasons,
+  songPartsData,
+  seasonSongsData,
+  songFiles,
+} = await getSongDetailData(id!, songId!);
 
-if (!ensemble) return new Response('Ensemble not found', { status: 404 });
-if (!song || song.ensembleId !== ensemble.id) return new Response('Song not found', { status: 404 });
+if (!ensemble) return new Response("Ensemble not found", { status: 404 });
+if (!song || song.ensembleId !== ensemble.id)
+  return new Response("Song not found", { status: 404 });
 
 const canonicalId = getEnsembleUrlId(ensemble);
 if (id !== canonicalId) {
-  return Astro.redirect(Astro.url.pathname.replace(`/ensembles/${id}`, `/ensembles/${canonicalId}`), 301);
+  return Astro.redirect(
+    Astro.url.pathname.replace(`/ensembles/${id}`, `/ensembles/${canonicalId}`),
+    301,
+  );
 }
 
 const membership = await getMembership(ensemble.id, user.id);
@@ -41,10 +52,14 @@ if (deleteFileResult && !deleteFileResult.error) {
   return Astro.redirect(`/ensembles/${canonicalId}/songs/${songId}`);
 }
 
-const fileError = Astro.url.searchParams.get('uploadError') ?? undefined;
+const fileError = Astro.url.searchParams.get("uploadError") ?? undefined;
 
-const songParts = songPartsData.map((sp) => parts.find((p) => p.id === sp.partId)).filter(Boolean);
-const songSeasons = seasonSongsData.map((ss) => seasons.find((s) => s.id === ss.seasonId)).filter(Boolean);
+const songParts = songPartsData
+  .map((sp) => parts.find((p) => p.id === sp.partId))
+  .filter(Boolean);
+const songSeasons = seasonSongsData
+  .map((ss) => seasons.find((s) => s.id === ss.seasonId))
+  .filter(Boolean);
 ---
 
 <EnsemblePageLayout
@@ -52,26 +67,32 @@ const songSeasons = seasonSongsData.map((ss) => seasons.find((s) => s.id === ss.
   ensembleName={ensemble.name}
   ensembleId={canonicalId}
   pageTitle={song.name}
-  extraBreadcrumbs={[['Songs', `/ensembles/${canonicalId}/songs`]]}
+  extraBreadcrumbs={[["Songs", `/ensembles/${canonicalId}/songs`]]}
   isAdmin={isAdmin}
 >
-  {isAdmin && (
-    <Button slot="action" href={`/ensembles/${canonicalId}/songs`}>
-      <Icon icon="fa-arrow-left" />
-      <span>Back to Songs</span>
-    </Button>
-  )}
+  {
+    isAdmin && (
+      <Button slot="action" href={`/ensembles/${canonicalId}/songs`}>
+        <Icon icon="fa-arrow-left" />
+        <span>Back to Songs</span>
+      </Button>
+    )
+  }
 
   <!-- Song details -->
   <div class="box mb-5">
     <div class="columns is-multiline">
       <div class="column is-half">
         <p class="heading">Composer</p>
-        <p class="is-size-5">{song.composer || <span class="has-text-grey">—</span>}</p>
+        <p class="is-size-5">
+          {song.composer || <span class="has-text-grey">—</span>}
+        </p>
       </div>
       <div class="column is-half">
         <p class="heading">Arranger</p>
-        <p class="is-size-5">{song.arranger || <span class="has-text-grey">—</span>}</p>
+        <p class="is-size-5">
+          {song.arranger || <span class="has-text-grey">—</span>}
+        </p>
       </div>
       <div class="column is-half">
         <p class="heading">Runtime</p>
@@ -81,26 +102,30 @@ const songSeasons = seasonSongsData.map((ss) => seasons.find((s) => s.id === ss.
         <p class="heading">Added</p>
         <p class="is-size-5">{new Date(song.createdAt).toLocaleDateString()}</p>
       </div>
-      {songParts.length > 0 && (
-        <div class="column is-half">
-          <p class="heading">Parts</p>
-          <div class="tags">
-            {songParts.map((part) => (
-              <Tag color="info">{part!.name}</Tag>
-            ))}
+      {
+        songParts.length > 0 && (
+          <div class="column is-half">
+            <p class="heading">Parts</p>
+            <div class="tags">
+              {songParts.map((part) => (
+                <Tag color="info">{part!.name}</Tag>
+              ))}
+            </div>
           </div>
-        </div>
-      )}
-      {songSeasons.length > 0 && (
-        <div class="column is-half">
-          <p class="heading">Seasons</p>
-          <div class="tags">
-            {songSeasons.map((season) => (
-              <Tag color="primary">{season!.name}</Tag>
-            ))}
+        )
+      }
+      {
+        songSeasons.length > 0 && (
+          <div class="column is-half">
+            <p class="heading">Seasons</p>
+            <div class="tags">
+              {songSeasons.map((season) => (
+                <Tag color="primary">{season!.name}</Tag>
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        )
+      }
     </div>
   </div>
 
@@ -112,243 +137,349 @@ const songSeasons = seasonSongsData.map((ss) => seasons.find((s) => s.id === ss.
     </span>
   </h2>
 
-  {songFiles.length === 0 ? (
-    <Notification color="info" light>No resources attached to this song yet.</Notification>
-  ) : (
-    <div class="box mb-5">
-      {songFiles.map((file) => {
-        const isLink = (file.category as string) === 'link';
-        const isAudio = !isLink && file.url.match(/\.(mp3)$/i);
-        const isPdf = !isLink && file.url.match(/\.(pdf)$/i);
-        const youtubeId = isLink ? getYouTubeId(file.url) : null;
-        return (
-          <div class="mb-4">
-            <div class="is-flex is-align-items-center" style="gap: 0.75rem;">
-              <span class={`tag ${categoryTagClass(file.category)} is-normal`} style="flex-shrink:0; min-width: 7rem; justify-content: center;">
-                {categoryLabel(file.category)}
-              </span>
-              {isLink ? (
-                <a
-                  href={file.url}
-                  class="has-text-weight-medium"
-                  style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  {file.name}
-                </a>
-              ) : (
+  {
+    songFiles.length === 0 ? (
+      <Notification color="info" light>
+        No resources attached to this song yet.
+      </Notification>
+    ) : (
+      <div class="box mb-5">
+        {songFiles.map((file) => {
+          const isLink = (file.category as string) === "link";
+          const isAudio = !isLink && file.url.match(/\.(mp3)$/i);
+          const isPdf = !isLink && file.url.match(/\.(pdf)$/i);
+          const youtubeId = isLink ? getYouTubeId(file.url) : null;
+          return (
+            <div class="mb-4">
+              <div class="is-flex is-align-items-center" style="gap: 0.75rem;">
                 <span
-                  class="has-text-weight-medium"
-                  style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"
+                  class={`tag ${categoryTagClass(file.category)} is-normal`}
+                  style="flex-shrink:0; min-width: 7rem; justify-content: center;"
                 >
-                  {file.name}
+                  {categoryLabel(file.category)}
                 </span>
-              )}
-              <span class="has-text-grey is-size-7" style="flex-shrink:0; white-space:nowrap;">
-                {file.uploaderName} &middot; {new Date(file.uploadedAt).toLocaleDateString()}
-              </span>
-              {isLink ? (
-                <Button
-                  href={file.url}
-                  color="info"
-                  size="small"
-                  light
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  title="Open link"
+                {isLink ? (
+                  <a
+                    href={file.url}
+                    class="has-text-weight-medium"
+                    style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {file.name}
+                  </a>
+                ) : (
+                  <span
+                    class="has-text-weight-medium"
+                    style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"
+                  >
+                    {file.name}
+                  </span>
+                )}
+                <span
+                  class="has-text-grey is-size-7"
+                  style="flex-shrink:0; white-space:nowrap;"
                 >
-                  <Icon icon="fa-external-link-alt" size="small" />
-                </Button>
-              ) : (
-                <Button
-                  href={`/files/${file.id}`}
-                  size="small"
-                  title="Download"
-                >
-                  <Icon icon="fa-download" size="small" />
-                </Button>
-              )}
-              {isAdmin && (
-                <form method="POST" action={actions.songs.deleteFile} style="flex-shrink:0;" onsubmit="return confirm('Delete this resource?');">
-                  <input type="hidden" name="ensembleId" value={ensemble.id} />
-                  <input type="hidden" name="fileId" value={file.id} />
-                  <Button type="submit" color="danger" size="small">
-                    <Icon icon="fa-trash" size="small" />
+                  {file.uploaderName} &middot;{" "}
+                  {new Date(file.uploadedAt).toLocaleDateString()}
+                </span>
+                {isLink ? (
+                  <Button
+                    href={file.url}
+                    color="info"
+                    size="small"
+                    light
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="Open link"
+                  >
+                    <Icon icon="fa-external-link-alt" size="small" />
                   </Button>
-                </form>
+                ) : (
+                  <Button
+                    href={`/files/${file.id}`}
+                    size="small"
+                    title="Download"
+                  >
+                    <Icon icon="fa-download" size="small" />
+                  </Button>
+                )}
+                {isAdmin && (
+                  <form
+                    method="POST"
+                    action={actions.songs.deleteFile}
+                    style="flex-shrink:0;"
+                    onsubmit="return confirm('Delete this resource?');"
+                  >
+                    <input
+                      type="hidden"
+                      name="ensembleId"
+                      value={ensemble.id}
+                    />
+                    <input type="hidden" name="fileId" value={file.id} />
+                    <Button type="submit" color="danger" size="small">
+                      <Icon icon="fa-trash" size="small" />
+                    </Button>
+                  </form>
+                )}
+              </div>
+              {isAudio && (
+                <audio
+                  controls
+                  class="mt-2"
+                  style="width: 100%;"
+                  src={`/files/${file.id}?inline`}
+                />
+              )}
+              {isPdf && (
+                <details class="mt-2">
+                  <summary
+                    class="is-clickable has-text-grey is-size-7"
+                    style="list-style: none; display: flex; align-items: center; gap: 0.3rem; width: fit-content;"
+                  >
+                    <span
+                      class="pdf-arrow"
+                      style="display: inline-block; transition: transform 0.15s;"
+                    >
+                      ▶
+                    </span>
+                    <span>Show PDF</span>
+                  </summary>
+                  <embed
+                    src={`/files/${file.id}?inline`}
+                    type="application/pdf"
+                    class="mt-2"
+                    style="width: 100%; height: 600px;"
+                  />
+                </details>
+              )}
+              {youtubeId && (
+                <details class="mt-2">
+                  <summary
+                    class="is-clickable has-text-grey is-size-7"
+                    style="list-style: none; display: flex; align-items: center; gap: 0.3rem; width: fit-content;"
+                  >
+                    <span
+                      class="pdf-arrow"
+                      style="display: inline-block; transition: transform 0.15s;"
+                    >
+                      ▶
+                    </span>
+                    <span>Show Video</span>
+                  </summary>
+                  <div
+                    class="mt-2"
+                    style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden;"
+                  >
+                    <iframe
+                      src={`https://www.youtube.com/embed/${youtubeId}`}
+                      title={file.name}
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowfullscreen
+                      style="border: 0; position: absolute; top: 0; left: 0; width: 100%; height: 100%;"
+                    />
+                  </div>
+                </details>
               )}
             </div>
-            {isAudio && (
-              <audio
-                controls
-                class="mt-2"
-                style="width: 100%;"
-                src={`/files/${file.id}?inline`}
-              />
-            )}
-            {isPdf && (
-              <details class="mt-2">
-                <summary class="is-clickable has-text-grey is-size-7" style="list-style: none; display: flex; align-items: center; gap: 0.3rem; width: fit-content;">
-                  <span class="pdf-arrow" style="display: inline-block; transition: transform 0.15s;">▶</span>
-                  <span>Show PDF</span>
-                </summary>
-                <embed
-                  src={`/files/${file.id}?inline`}
-                  type="application/pdf"
-                  class="mt-2"
-                  style="width: 100%; height: 600px;"
-                />
-              </details>
-            )}
-            {youtubeId && (
-              <details class="mt-2">
-                <summary class="is-clickable has-text-grey is-size-7" style="list-style: none; display: flex; align-items: center; gap: 0.3rem; width: fit-content;">
-                  <span class="pdf-arrow" style="display: inline-block; transition: transform 0.15s;">▶</span>
-                  <span>Show Video</span>
-                </summary>
-                <div class="mt-2" style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden;">
-                  <iframe
-                    src={`https://www.youtube.com/embed/${youtubeId}`}
-                    title={file.name}
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowfullscreen
-                    style="border: 0; position: absolute; top: 0; left: 0; width: 100%; height: 100%;"
-                  />
-                </div>
-              </details>
-            )}
-          </div>
-        );
-      })}
-    </div>
-  )}
+          );
+        })}
+      </div>
+    )
+  }
 
-  {isAdmin && (
-    <div class="box">
-      <h3 class="title is-5">Upload Resource</h3>
-      {fileError && (
-        <Notification color="danger" light class="mb-4">{fileError}</Notification>
-      )}
-      <form method="POST" action={`/ensembles/${canonicalId}/songs/${songId}/upload`} enctype="multipart/form-data">
-        <input type="hidden" name="ensembleId" value={ensemble.id} />
-        <input type="hidden" name="songId" value={songId} />
+  {
+    isAdmin && (
+      <div class="box">
+        <h3 class="title is-5">Upload Resource</h3>
+        {fileError && (
+          <Notification color="danger" light class="mb-4">
+            {fileError}
+          </Notification>
+        )}
+        <form
+          method="POST"
+          action={`/ensembles/${canonicalId}/songs/${songId}/upload`}
+          enctype="multipart/form-data"
+        >
+          <input type="hidden" name="ensembleId" value={ensemble.id} />
+          <input type="hidden" name="songId" value={songId} />
 
-        <div class="field">
-          <label class="label">Type *</label>
-          <div class="control">
-            <div class="buttons has-addons">
-              <label class="button is-selected is-success" id="btn-sheet_music">
-                <input type="radio" name="category" value="sheet_music" checked hidden /> Sheet Music
-              </label>
-              <label class="button" id="btn-rehearsal_track">
-                <input type="radio" name="category" value="rehearsal_track" hidden /> Rehearsal Track
-              </label>
-              <label class="button" id="btn-link">
-                <input type="radio" name="category" value="link" hidden /> Link
-              </label>
-            </div>
-          </div>
-        </div>
-
-        <div class="columns is-multiline mt-2">
-          <div class="column is-full" id="file-input-field">
-            <div class="field">
-              <FileInput
-                name="file"
-                id="file"
-                label="File *"
-                accept=".pdf,.mp3,application/pdf,audio/mpeg"
-                help="PDF or MP3, max 50 MB"
-              />
-            </div>
-          </div>
-          <div class="column is-full" id="url-input-field" style="display:none;">
-            <TextInput name="fileUrl" id="fileUrl" label="URL *" type="url" placeholder="https://www.youtube.com/watch?v=..." />
-          </div>
-          <div class="column">
-            <TextInput name="fileName" id="fileName" label="Display Name *" placeholder="e.g. Soprano Sheet Music" required />
-          </div>
-          <div class="column is-narrow">
-            <div class="field">
-              <label class="label">&nbsp;</label>
-              <div class="control">
-                <Button type="submit" color="primary">
-                  <Icon icon="fa-upload" />
-                  <span>Upload</span>
-                </Button>
+          <div class="field">
+            <label class="label">Type *</label>
+            <div class="control">
+              <div class="buttons has-addons">
+                <label
+                  class="button is-selected is-success"
+                  id="btn-sheet_music"
+                >
+                  <input
+                    type="radio"
+                    name="category"
+                    value="sheet_music"
+                    checked
+                    hidden
+                  />{" "}
+                  Sheet Music
+                </label>
+                <label class="button" id="btn-rehearsal_track">
+                  <input
+                    type="radio"
+                    name="category"
+                    value="rehearsal_track"
+                    hidden
+                  />{" "}
+                  Rehearsal Track
+                </label>
+                <label class="button" id="btn-link">
+                  <input type="radio" name="category" value="link" hidden />{" "}
+                  Link
+                </label>
               </div>
             </div>
           </div>
-        </div>
-      </form>
-    </div>
-  )}
+
+          <div class="columns is-multiline mt-2">
+            <div class="column is-full" id="file-input-field">
+              <div class="field">
+                <FileInput
+                  name="file"
+                  id="file"
+                  label="File *"
+                  accept=".pdf,.mp3,application/pdf,audio/mpeg"
+                  help="PDF or MP3, max 50 MB"
+                />
+              </div>
+            </div>
+            <div
+              class="column is-full"
+              id="url-input-field"
+              style="display:none;"
+            >
+              <TextInput
+                name="fileUrl"
+                id="fileUrl"
+                label="URL *"
+                type="url"
+                placeholder="https://www.youtube.com/watch?v=..."
+              />
+            </div>
+            <div class="column">
+              <TextInput
+                name="fileName"
+                id="fileName"
+                label="Display Name *"
+                placeholder="e.g. Soprano Sheet Music"
+                required
+              />
+            </div>
+            <div class="column is-narrow">
+              <div class="field">
+                <label class="label">&nbsp;</label>
+                <div class="control">
+                  <Button type="submit" color="primary">
+                    <Icon icon="fa-upload" />
+                    <span>Upload</span>
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+    )
+  }
 
   <script>
-    document.addEventListener('astro:page-load', () => {
-      const fileInput = document.getElementById('file') as HTMLInputElement | null;
-      const nameInput = document.getElementById('fileName') as HTMLInputElement | null;
-      const fileField = document.getElementById('file-input-field') as HTMLElement | null;
-      const urlField = document.getElementById('url-input-field') as HTMLElement | null;
-      const radios = document.querySelectorAll<HTMLInputElement>('input[name="category"]');
+    document.addEventListener("astro:page-load", () => {
+      const fileInput = document.getElementById(
+        "file",
+      ) as HTMLInputElement | null;
+      const nameInput = document.getElementById(
+        "fileName",
+      ) as HTMLInputElement | null;
+      const fileField = document.getElementById(
+        "file-input-field",
+      ) as HTMLElement | null;
+      const urlField = document.getElementById(
+        "url-input-field",
+      ) as HTMLElement | null;
+      const radios = document.querySelectorAll<HTMLInputElement>(
+        'input[name="category"]',
+      );
 
       const categoryColors: Record<string, string> = {
-        sheet_music: 'is-success',
-        rehearsal_track: 'is-warning',
-        link: 'is-info',
+        sheet_music: "is-success",
+        rehearsal_track: "is-warning",
+        link: "is-info",
       };
 
       function onCategoryChange() {
-        const selected = (document.querySelector('input[name="category"]:checked') as HTMLInputElement | null)?.value;
-        const isLink = selected === 'link';
-        if (fileField) fileField.style.display = isLink ? 'none' : '';
-        if (urlField) urlField.style.display = isLink ? '' : 'none';
+        const selected = (
+          document.querySelector(
+            'input[name="category"]:checked',
+          ) as HTMLInputElement | null
+        )?.value;
+        const isLink = selected === "link";
+        if (fileField) fileField.style.display = isLink ? "none" : "";
+        if (urlField) urlField.style.display = isLink ? "" : "none";
         if (fileInput) fileInput.required = !isLink;
-        const urlInput = document.getElementById('fileUrl') as HTMLInputElement | null;
+        const urlInput = document.getElementById(
+          "fileUrl",
+        ) as HTMLInputElement | null;
         if (urlInput) urlInput.required = isLink;
 
         radios.forEach((r) => {
           const btn = document.getElementById(`btn-${r.value}`);
           if (!btn) return;
-          const color = categoryColors[r.value] ?? 'is-light';
-          btn.classList.remove('is-selected', 'is-success', 'is-warning', 'is-info', 'is-light');
-          if (r.value === selected) btn.classList.add('is-selected', color);
+          const color = categoryColors[r.value] ?? "is-light";
+          btn.classList.remove(
+            "is-selected",
+            "is-success",
+            "is-warning",
+            "is-info",
+            "is-light",
+          );
+          if (r.value === selected) btn.classList.add("is-selected", color);
         });
       }
 
-      radios.forEach((r) => r.addEventListener('change', onCategoryChange));
+      radios.forEach((r) => r.addEventListener("change", onCategoryChange));
       onCategoryChange();
 
       if (fileInput && nameInput) {
-        fileInput.addEventListener('change', () => {
+        fileInput.addEventListener("change", () => {
           const file = fileInput.files?.[0];
           if (file && !nameInput.value) {
-            nameInput.value = file.name.replace(/\.[^.]+$/, '').replace(/[_-]/g, ' ');
+            nameInput.value = file.name
+              .replace(/\.[^.]+$/, "")
+              .replace(/[_-]/g, " ");
           }
         });
       }
 
-      document.querySelectorAll('details').forEach((details) => {
-        const arrow = details.querySelector('.pdf-arrow') as HTMLElement | null;
+      document.querySelectorAll("details").forEach((details) => {
+        const arrow = details.querySelector(".pdf-arrow") as HTMLElement | null;
         if (!arrow) return;
-        details.addEventListener('toggle', () => {
-          arrow.style.transform = details.open ? 'rotate(90deg)' : '';
+        details.addEventListener("toggle", () => {
+          arrow.style.transform = details.open ? "rotate(90deg)" : "";
         });
       });
 
       // Re-load audio elements after client-side navigation — the browser may
       // leave them in a broken/empty state when the DOM is swapped.
-      document.querySelectorAll('audio').forEach((audio) => {
+      document.querySelectorAll("audio").forEach((audio) => {
         audio.load();
       });
     });
   </script>
 
-  {!isAdmin && (
-    <Button href={`/ensembles/${canonicalId}/songs`}>
-      <Icon icon="fa-arrow-left" />
-      <span>Back to Songs</span>
-    </Button>
-  )}
+  {
+    !isAdmin && (
+      <Button href={`/ensembles/${canonicalId}/songs`}>
+        <Icon icon="fa-arrow-left" />
+        <span>Back to Songs</span>
+      </Button>
+    )
+  }
 </EnsemblePageLayout>

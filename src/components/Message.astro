@@ -1,7 +1,14 @@
 ---
 type Props = {
-  color?: 'dark' | 'link' | 'primary' | 'info' | 'success' | 'warning' | 'danger';
-  size?: 'small' | 'medium' | 'large';
+  color?:
+    | "dark"
+    | "link"
+    | "primary"
+    | "info"
+    | "success"
+    | "warning"
+    | "danger";
+  size?: "small" | "medium" | "large";
   style?: string;
   class?: string;
 };
@@ -9,19 +16,23 @@ type Props = {
 const { color, size, style, class: className } = Astro.props;
 
 const classes = [
-  'message',
+  "message",
   color && `is-${color}`,
   size && `is-${size}`,
   className,
-].filter(Boolean).join(' ');
+]
+  .filter(Boolean)
+  .join(" ");
 ---
 
 <article class={classes} style={style}>
-  {Astro.slots.has('header') && (
-    <div class="message-header">
-      <slot name="header" />
-    </div>
-  )}
+  {
+    Astro.slots.has("header") && (
+      <div class="message-header">
+        <slot name="header" />
+      </div>
+    )
+  }
   <div class="message-body">
     <slot />
   </div>

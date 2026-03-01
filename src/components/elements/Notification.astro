@@ -1,6 +1,6 @@
 ---
 type Props = {
-  color?: 'link' | 'primary' | 'info' | 'success' | 'warning' | 'danger';
+  color?: "link" | "primary" | "info" | "success" | "warning" | "danger";
   light?: boolean;
   dismissible?: boolean;
   class?: string;
@@ -9,14 +9,20 @@ type Props = {
 const { color, light, dismissible, class: className } = Astro.props;
 
 const classes = [
-  'notification',
+  "notification",
   color && `is-${color}`,
-  light && 'is-light',
+  light && "is-light",
   className,
-].filter(Boolean).join(' ');
+]
+  .filter(Boolean)
+  .join(" ");
 ---
 
 <div class={classes}>
-  {dismissible && <button class="delete" onclick="this.parentElement.remove()"></button>}
+  {
+    dismissible && (
+      <button class="delete" onclick="this.parentElement.remove()" />
+    )
+  }
   <slot />
 </div>

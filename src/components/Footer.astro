@@ -1,48 +1,61 @@
 ---
-import { APP_NAME, APP_SLOGAN } from '../lib/config';
-import Icon from './elements/Icon.astro';
-import { version } from '../../package.json';
+import { APP_NAME, APP_SLOGAN } from "../lib/config";
+import Icon from "./elements/Icon.astro";
+import { version } from "../../package.json";
 
 const year = new Date().getFullYear();
 ---
 
 <footer class="footer">
   <div class="container">
-  <div class="columns">
-    <div class="column content">
-      <p><strong>{APP_NAME}</strong></p>
-      <p>{APP_SLOGAN}.</p>
-      <p class="is-size-7 has-text-grey">v{version}</p>
-      <p class="is-size-7 has-text-grey">
-        &copy; {year} {APP_NAME}. Licensed under the <a href="https://github.com/lanesawyer/tutti-belli/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">GNU AGPL v3</a>.
-      </p>
+    <div class="columns">
+      <div class="column content">
+        <p><strong>{APP_NAME}</strong></p>
+        <p>{APP_SLOGAN}.</p>
+        <p class="is-size-7 has-text-grey">v{version}</p>
+        <p class="is-size-7 has-text-grey">
+          &copy; {year}
+          {APP_NAME}. Licensed under the <a
+            href="https://github.com/lanesawyer/tutti-belli/blob/main/LICENSE"
+            target="_blank"
+            rel="noopener noreferrer">GNU AGPL v3</a
+          >.
+        </p>
+      </div>
+      <div class="column content">
+        <p>
+          <a
+            href="https://github.com/lanesawyer/tutti-belli"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <span class="icon-text">
+              <Icon icon="fa-github" variant="fab" />
+              <span>Open source on GitHub</span>
+            </span>
+          </a>
+        </p>
+        <p>
+          <a
+            href="https://github.com/lanesawyer/tutti-belli/issues"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <span class="icon-text">
+              <Icon icon="fa-bug" />
+              <span>Open an issue</span>
+            </span>
+          </a>
+        </p>
+        <p>
+          <a href="mailto:github@lanesawyer.dev">
+            <span class="icon-text">
+              <Icon icon="fa-envelope" />
+              <span>github@lanesawyer.dev</span>
+            </span>
+          </a>
+        </p>
+      </div>
     </div>
-    <div class="column content">
-      <p>
-        <a href="https://github.com/lanesawyer/tutti-belli" target="_blank" rel="noopener noreferrer">
-          <span class="icon-text">
-            <Icon icon="fa-github" variant="fab" />
-            <span>Open source on GitHub</span>
-          </span>
-        </a>
-      </p>
-      <p>
-        <a href="https://github.com/lanesawyer/tutti-belli/issues" target="_blank" rel="noopener noreferrer">
-          <span class="icon-text">
-            <Icon icon="fa-bug" />
-            <span>Open an issue</span>
-          </span>
-        </a>
-      </p>
-      <p>
-        <a href="mailto:github@lanesawyer.dev">
-          <span class="icon-text">
-            <Icon icon="fa-envelope" />
-            <span>github@lanesawyer.dev</span>
-          </span>
-        </a>
-      </p>
-    </div>
-  </div>
   </div>
 </footer>

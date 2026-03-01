@@ -1,13 +1,13 @@
 ---
-import Layout from './Layout.astro';
-import Notification from '../components/elements/Notification.astro';
+import Layout from "./Layout.astro";
+import Notification from "../components/elements/Notification.astro";
 
 interface Props {
   title: string;
   pageTitle: string;
   pageSubtitle?: string;
   message?: string;
-  messageType?: 'link' | 'primary' | 'info' | 'success' | 'warning' | 'danger';
+  messageType?: "link" | "primary" | "info" | "success" | "warning" | "danger";
 }
 
 const {
@@ -15,7 +15,7 @@ const {
   pageTitle,
   pageSubtitle,
   message,
-  messageType = 'success',
+  messageType = "success",
 } = Astro.props;
 ---
 
@@ -40,11 +40,13 @@ const {
     </div>
   </div>
 
-  {message && (
-    <Notification color={messageType} light class="mb-4">
-      {message}
-    </Notification>
-  )}
+  {
+    message && (
+      <Notification color={messageType} light class="mb-4">
+        {message}
+      </Notification>
+    )
+  }
 
   <slot />
   <slot name="modals" />

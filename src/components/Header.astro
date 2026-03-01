@@ -1,8 +1,8 @@
 ---
-import { APP_NAME } from '../lib/config';
-import Button from './elements/Button.astro';
-import Icon from './elements/Icon.astro';
-import Tag from './elements/Tag.astro';
+import { APP_NAME } from "../lib/config";
+import Button from "./elements/Button.astro";
+import Icon from "./elements/Icon.astro";
+import Tag from "./elements/Tag.astro";
 const user = Astro.locals.user;
 ---
 
@@ -13,7 +13,13 @@ const user = Astro.locals.user;
         <strong>🎵 {APP_NAME}</strong>
         <Tag color="warning" light class="ml-2">Alpha</Tag>
       </a>
-      <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false" data-target="navbarMenu">
+      <a
+        role="button"
+        class="navbar-burger"
+        aria-label="menu"
+        aria-expanded="false"
+        data-target="navbarMenu"
+      >
         <span aria-hidden="true"></span>
         <span aria-hidden="true"></span>
         <span aria-hidden="true"></span>
@@ -22,16 +28,24 @@ const user = Astro.locals.user;
 
     <div id="navbarMenu" class="navbar-menu">
       <div class="navbar-start">
-        {user && (
-          <a class="navbar-item" href="/ensembles">My Ensembles</a>
-        )}
+        {
+          user && (
+            <a class="navbar-item" href="/ensembles">
+              My Ensembles
+            </a>
+          )
+        }
         <slot name="navbar-start" />
       </div>
 
       <div class="navbar-end">
-        {user?.role === 'admin' && (
-          <a class="navbar-item" href="/admin">Admin Panel</a>
-        )}
+        {
+          user?.role === "admin" && (
+            <a class="navbar-item" href="/admin">
+              Admin Panel
+            </a>
+          )
+        }
         <button class="navbar-item theme-toggle" title="Toggle dark mode">
           <span class="theme-icon-wrapper">
             <Icon icon="fa-moon theme-icon-light" />
@@ -42,29 +56,33 @@ const user = Astro.locals.user;
             <span class="theme-label-dark">Light mode</span>
           </span>
         </button>
-        {user ? (
-          <div class="navbar-item has-dropdown is-hoverable">
-            <a class="navbar-link">
-              {user.name}
-            </a>
-            <div class="navbar-dropdown is-right">
-              <a class="navbar-item" href="/profile">Profile</a>
-              <hr class="navbar-divider">
-              <a class="navbar-item" href="/logout">Logout</a>
+        {
+          user ? (
+            <div class="navbar-item has-dropdown is-hoverable">
+              <a class="navbar-link">{user.name}</a>
+              <div class="navbar-dropdown is-right">
+                <a class="navbar-item" href="/profile">
+                  Profile
+                </a>
+                <hr class="navbar-divider" />
+                <a class="navbar-item" href="/logout">
+                  Logout
+                </a>
+              </div>
             </div>
-          </div>
-        ) : (
-          <div class="navbar-item">
-            <div class="buttons">
-              <Button href="/register" color="primary">
-                <strong>Sign up</strong>
-              </Button>
-              <Button href="/login" color="light">
-                Log in
-              </Button>
+          ) : (
+            <div class="navbar-item">
+              <div class="buttons">
+                <Button href="/register" color="primary">
+                  <strong>Sign up</strong>
+                </Button>
+                <Button href="/login" color="light">
+                  Log in
+                </Button>
+              </div>
             </div>
-          </div>
-        )}
+          )
+        }
       </div>
     </div>
   </div>
@@ -104,41 +122,44 @@ const user = Astro.locals.user;
   .theme-toggle-label {
     font-size: 1rem;
   }
-
 </style>
 
 <script>
-  document.addEventListener('astro:page-load', () => {
+  document.addEventListener("astro:page-load", () => {
     // Mobile menu toggle
-    const $navbarBurgers = Array.prototype.slice.call(document.querySelectorAll('.navbar-burger'), 0);
-    $navbarBurgers.forEach(el => {
-      el.addEventListener('click', () => {
+    const $navbarBurgers = Array.prototype.slice.call(
+      document.querySelectorAll(".navbar-burger"),
+      0,
+    );
+    $navbarBurgers.forEach((el) => {
+      el.addEventListener("click", () => {
         const target = el.dataset.target;
         const $target = document.getElementById(target);
-        el.classList.toggle('is-active');
-        $target?.classList.toggle('is-active');
+        el.classList.toggle("is-active");
+        $target?.classList.toggle("is-active");
       });
     });
 
     // Theme toggle
     const html = document.documentElement;
 
-    document.querySelectorAll('.theme-toggle').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const currentTheme = html.getAttribute('data-theme') || 'light';
-        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-        html.setAttribute('data-theme', newTheme);
-        localStorage.setItem('theme', newTheme);
+    document.querySelectorAll(".theme-toggle").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const currentTheme = html.getAttribute("data-theme") || "light";
+        const newTheme = currentTheme === "dark" ? "light" : "dark";
+        html.setAttribute("data-theme", newTheme);
+        localStorage.setItem("theme", newTheme);
       });
     });
 
     // Listen for system theme changes
-    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
-      if (!localStorage.getItem('theme')) {
-        const newTheme = e.matches ? 'dark' : 'light';
-        html.setAttribute('data-theme', newTheme);
-      }
-    });
+    window
+      .matchMedia("(prefers-color-scheme: dark)")
+      .addEventListener("change", (e) => {
+        if (!localStorage.getItem("theme")) {
+          const newTheme = e.matches ? "dark" : "light";
+          html.setAttribute("data-theme", newTheme);
+        }
+      });
   });
-
 </script>

@@ -1,20 +1,20 @@
 ---
-import Layout from '../layouts/Layout.astro';
-import Button from '../components/elements/Button.astro';
-import TextInput from '../components/elements/TextInput.astro';
-import Notification from '../components/elements/Notification.astro';
-import { actions } from 'astro:actions';
+import Layout from "../layouts/Layout.astro";
+import Button from "../components/elements/Button.astro";
+import TextInput from "../components/elements/TextInput.astro";
+import Notification from "../components/elements/Notification.astro";
+import { actions } from "astro:actions";
 
 // Redirect if already logged in
 if (Astro.locals.user) {
-  return Astro.redirect('/dashboard');
+  return Astro.redirect("/dashboard");
 }
 
-const customRedirect = Astro.url.searchParams.get('redirect');
+const customRedirect = Astro.url.searchParams.get("redirect");
 
 const result = Astro.getActionResult(actions.profile.register);
 const registeredEmail = result && !result.error ? result.data.email : null;
-const error = result?.error?.message ?? '';
+const error = result?.error?.message ?? "";
 ---
 
 <Layout title="Sign Up">
@@ -22,40 +22,80 @@ const error = result?.error?.message ?? '';
     <div class="column is-5-tablet is-4-desktop">
       <h1 class="title">Sign Up</h1>
 
-      {registeredEmail ? (
-        <Notification color="success" light>
-          <p><strong>Check your inbox!</strong></p>
-          <p class="mt-2">We sent a verification link to <strong>{registeredEmail}</strong>. Click the link to activate your account.</p>
-          <p class="mt-2 is-size-7">Didn't get it? <a href={`/resend-verification?email=${encodeURIComponent(registeredEmail)}`}>Resend verification email</a></p>
-        </Notification>
-      ) : (
-        <>
-          {error && (
-            <Notification color="danger" light>
-              {error}
-            </Notification>
-          )}
+      {
+        registeredEmail ? (
+          <Notification color="success" light>
+            <p>
+              <strong>Check your inbox!</strong>
+            </p>
+            <p class="mt-2">
+              We sent a verification link to <strong>{registeredEmail}</strong>.
+              Click the link to activate your account.
+            </p>
+            <p class="mt-2 is-size-7">
+              Didn't get it?{" "}
+              <a
+                href={`/resend-verification?email=${encodeURIComponent(registeredEmail)}`}
+              >
+                Resend verification email
+              </a>
+            </p>
+          </Notification>
+        ) : (
+          <>
+            {error && (
+              <Notification color="danger" light>
+                {error}
+              </Notification>
+            )}
 
-          <form method="POST" action={actions.profile.register}>
-            {customRedirect && <input type="hidden" name="redirect" value={customRedirect} />}
-            <TextInput name="name" label="Full Name" placeholder="John Doe" iconLeft="fa-user" required />
-            <TextInput name="email" label="Email" type="email" placeholder="you@example.com" iconLeft="fa-envelope" required />
-            <TextInput name="password" label="Password" type="password" placeholder="••••••••" iconLeft="fa-lock" minlength="6" required help="Must be at least 6 characters" />
+            <form method="POST" action={actions.profile.register}>
+              {customRedirect && (
+                <input type="hidden" name="redirect" value={customRedirect} />
+              )}
+              <TextInput
+                name="name"
+                label="Full Name"
+                placeholder="John Doe"
+                iconLeft="fa-user"
+                required
+              />
+              <TextInput
+                name="email"
+                label="Email"
+                type="email"
+                placeholder="you@example.com"
+                iconLeft="fa-envelope"
+                required
+              />
+              <TextInput
+                name="password"
+                label="Password"
+                type="password"
+                placeholder="••••••••"
+                iconLeft="fa-lock"
+                minlength="6"
+                required
+                help="Must be at least 6 characters"
+              />
 
-            <div class="field">
-              <div class="control">
-                <Button color="primary" fullwidth type="submit">
-                  Sign Up
-                </Button>
+              <div class="field">
+                <div class="control">
+                  <Button color="primary" fullwidth type="submit">
+                    Sign Up
+                  </Button>
+                </div>
               </div>
-            </div>
-          </form>
+            </form>
 
-          <div class="has-text-centered mt-4">
-            <p>Already have an account? <a href="/login">Log in</a></p>
-          </div>
-        </>
-      )}
+            <div class="has-text-centered mt-4">
+              <p>
+                Already have an account? <a href="/login">Log in</a>
+              </p>
+            </div>
+          </>
+        )
+      }
     </div>
   </div>
 </Layout>

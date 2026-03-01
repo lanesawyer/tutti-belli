@@ -1,39 +1,45 @@
 ---
-import Layout from '../../../../layouts/Layout.astro';
-import Button from '../../../../components/elements/Button.astro';
-import Image from '../../../../components/elements/Image.astro';
-import Icon from '../../../../components/elements/Icon.astro';
-import TextInput from '../../../../components/elements/TextInput.astro';
-import Tag from '../../../../components/elements/Tag.astro';
-import Notification from '../../../../components/elements/Notification.astro';
-import { db, eq, Event, Group } from 'astro:db';
-import { actions } from 'astro:actions';
-import QRCode from 'qrcode';
-import { ensembleAdminTools } from '../../../../lib/config';
-import { getEnsembleBySlugOrId, getEnsembleAccess } from '../../../../lib/ensemble';
-import { getEnsembleUrlId } from '../../../../lib/slug';
-import { getEventProgramData, getEventPageData } from '../../../../lib/events';
-import { formatDuration } from '../../../../lib/format';
+import Layout from "../../../../layouts/Layout.astro";
+import Button from "../../../../components/elements/Button.astro";
+import Image from "../../../../components/elements/Image.astro";
+import Icon from "../../../../components/elements/Icon.astro";
+import TextInput from "../../../../components/elements/TextInput.astro";
+import Tag from "../../../../components/elements/Tag.astro";
+import Notification from "../../../../components/elements/Notification.astro";
+import { db, eq, Event, Group } from "astro:db";
+import { actions } from "astro:actions";
+import QRCode from "qrcode";
+import { ensembleAdminTools } from "../../../../lib/config";
+import {
+  getEnsembleBySlugOrId,
+  getEnsembleAccess,
+} from "../../../../lib/ensemble";
+import { getEnsembleUrlId } from "../../../../lib/slug";
+import { getEventProgramData, getEventPageData } from "../../../../lib/events";
+import { formatDuration } from "../../../../lib/format";
 
 const user = Astro.locals.user!;
 
 const { id, eventId } = Astro.params;
 if (!id || !eventId) {
-  return Astro.redirect('/ensembles');
+  return Astro.redirect("/ensembles");
 }
 
 const ensemble = await getEnsembleBySlugOrId(id);
 if (!ensemble) {
-  return Astro.redirect('/ensembles');
+  return Astro.redirect("/ensembles");
 }
 
 const canonicalId = getEnsembleUrlId(ensemble);
-if (Astro.request.method === 'GET' && id !== canonicalId) {
-  return Astro.redirect(Astro.url.pathname.replace(`/ensembles/${id}`, `/ensembles/${canonicalId}`), 301);
+if (Astro.request.method === "GET" && id !== canonicalId) {
+  return Astro.redirect(
+    Astro.url.pathname.replace(`/ensembles/${id}`, `/ensembles/${canonicalId}`),
+    301,
+  );
 }
 
 const access = await getEnsembleAccess(user, ensemble.id);
-if (!access) return Astro.redirect('/ensembles');
+if (!access) return Astro.redirect("/ensembles");
 const { isAdmin } = access;
 
 // Get event details
@@ -45,8 +51,12 @@ if (!event) {
 // Calculate check-in window
 const now = new Date();
 const scheduledTime = new Date(event.scheduledAt);
-const checkInStartTime = new Date(scheduledTime.getTime() - (ensemble.checkInStartMinutes * 60 * 1000));
-const checkInEndTime = new Date(scheduledTime.getTime() + (ensemble.checkInEndMinutes * 60 * 1000));
+const checkInStartTime = new Date(
+  scheduledTime.getTime() - ensemble.checkInStartMinutes * 60 * 1000,
+);
+const checkInEndTime = new Date(
+  scheduledTime.getTime() + ensemble.checkInEndMinutes * 60 * 1000,
+);
 
 const canCheckIn = now >= checkInStartTime && now <= checkInEndTime;
 const isTooEarly = now < checkInStartTime;
@@ -55,27 +65,44 @@ const isTooLate = now > checkInEndTime;
 // Re-fetch event after a potential edit so the page reflects the latest values
 const editResult = Astro.getActionResult(actions.events.edit);
 if (editResult && !editResult.error) {
-  const [updatedEvent] = await db.select().from(Event).where(eq(Event.id, eventId));
+  const [updatedEvent] = await db
+    .select()
+    .from(Event)
+    .where(eq(Event.id, eventId));
   if (updatedEvent) Object.assign(event, updatedEvent);
 }
 
 const checkInResult = Astro.getActionResult(actions.events.checkIn);
 const addAttendanceResult = Astro.getActionResult(actions.events.addAttendance);
-const removeAttendanceResult = Astro.getActionResult(actions.events.removeAttendance);
-const updateNotesResult = Astro.getActionResult(actions.events.updateProgramSongNotes);
+const removeAttendanceResult = Astro.getActionResult(
+  actions.events.removeAttendance,
+);
+const updateNotesResult = Astro.getActionResult(
+  actions.events.updateProgramSongNotes,
+);
 
-let message = '';
-if (checkInResult?.error) message = checkInResult.error.message || 'Check-in failed.';
-else if (checkInResult) message = 'Successfully checked in!';
-else if (addAttendanceResult && !addAttendanceResult.error) message = 'Member marked as present.';
-else if (removeAttendanceResult && !removeAttendanceResult.error) message = 'Attendance removed.';
-else if (editResult && !editResult.error) message = 'Event updated successfully!';
-else if (editResult?.error) message = editResult.error.message || 'Failed to update event.';
-else if (updateNotesResult && !updateNotesResult.error) message = 'Notes updated.';
-else if (updateNotesResult?.error) message = updateNotesResult.error.message || 'Failed to update notes.';
+let message = "";
+if (checkInResult?.error)
+  message = checkInResult.error.message || "Check-in failed.";
+else if (checkInResult) message = "Successfully checked in!";
+else if (addAttendanceResult && !addAttendanceResult.error)
+  message = "Member marked as present.";
+else if (removeAttendanceResult && !removeAttendanceResult.error)
+  message = "Attendance removed.";
+else if (editResult && !editResult.error)
+  message = "Event updated successfully!";
+else if (editResult?.error)
+  message = editResult.error.message || "Failed to update event.";
+else if (updateNotesResult && !updateNotesResult.error)
+  message = "Notes updated.";
+else if (updateNotesResult?.error)
+  message = updateNotesResult.error.message || "Failed to update notes.";
 
 // Get attendance records, member list (scoped to group if set), and group metadata
-const { attendanceRecords, allMembers, group } = await getEventPageData(ensemble.id, eventId);
+const { attendanceRecords, allMembers, group } = await getEventPageData(
+  ensemble.id,
+  eventId,
+);
 
 // Fetch groups for the edit modal selector
 const groups = await db
@@ -85,8 +112,8 @@ const groups = await db
   .orderBy(Group.name)
   .all();
 
-const attendedUserIds = new Set(attendanceRecords.map(a => a.userId));
-const absentMembers = allMembers.filter(m => !attendedUserIds.has(m.id));
+const attendedUserIds = new Set(attendanceRecords.map((a) => a.userId));
+const absentMembers = allMembers.filter((m) => !attendedUserIds.has(m.id));
 
 // Generate QR code for check-in
 const checkInUrl = `${Astro.url.origin}/checkin/${event.checkInCode}`;
@@ -96,47 +123,72 @@ const qrCodeDataUrl = await QRCode.toDataURL(checkInUrl, {
 });
 
 const scheduledDate = new Date(event.scheduledAt);
-const endTime = new Date(scheduledDate.getTime() + (event.durationMinutes * 60 * 1000));
+const endTime = new Date(
+  scheduledDate.getTime() + event.durationMinutes * 60 * 1000,
+);
 const isPast = endTime < new Date();
 const isUserCheckedIn = attendedUserIds.has(user.id);
 
 // Prepare date/time for form inputs
-const dateValue = scheduledDate.toISOString().split('T')[0];
+const dateValue = scheduledDate.toISOString().split("T")[0];
 const timeValue = scheduledDate.toTimeString().slice(0, 5);
 
 // Fetch program data for all event types (rehearsal + performance)
-const { programSongs, availableSeasonSongs } = await getEventProgramData(eventId, event.seasonId);
+const { programSongs, availableSeasonSongs } = await getEventProgramData(
+  eventId,
+  event.seasonId,
+);
 
-const isPerformance = event.category === 'performance';
-const isSocial = event.category === 'social';
-const isSectional = event.category === 'sectional';
-const categoryLabel = isPerformance ? 'Performance' : isSocial ? 'Social' : isSectional ? 'Sectional' : 'Rehearsal';
-const categoryTagClass = isPerformance ? 'is-warning' : isSocial ? 'is-success' : isSectional ? 'is-info' : 'is-primary';
-const programLabel = isPerformance ? 'Set List' : 'Rehearsal Plan';
+const isPerformance = event.category === "performance";
+const isSocial = event.category === "social";
+const isSectional = event.category === "sectional";
+const categoryLabel = isPerformance
+  ? "Performance"
+  : isSocial
+    ? "Social"
+    : isSectional
+      ? "Sectional"
+      : "Rehearsal";
+const categoryTagClass = isPerformance
+  ? "is-warning"
+  : isSocial
+    ? "is-success"
+    : isSectional
+      ? "is-info"
+      : "is-primary";
+const programLabel = isPerformance ? "Set List" : "Rehearsal Plan";
 ---
 
 <Layout title={`${event.title} - ${ensemble.name}`}>
-  {isAdmin && (
-    <div class="navbar-item has-dropdown is-hoverable" slot="navbar-start">
-      <a class="navbar-link">{ensemble.name}</a>
-      <div class="navbar-dropdown">
-        <a class={`navbar-item${Astro.url.pathname === `/ensembles/${canonicalId}` ? ' is-active' : ''}`} href={`/ensembles/${canonicalId}`}>
-          <Icon icon="fa-home" size="small" class="mr-1" />
-          Dashboard
-        </a>
-        <hr class="navbar-divider" />
-        {ensembleAdminTools.map((tool) => {
-          const href = tool.href(canonicalId);
-          return (
-            <a class={`navbar-item${Astro.url.pathname.startsWith(href) ? ' is-active' : ''}`} href={href}>
-              <Icon icon={tool.icon} size="small" class="mr-1" />
-              {tool.label}
-            </a>
-          );
-        })}
+  {
+    isAdmin && (
+      <div class="navbar-item has-dropdown is-hoverable" slot="navbar-start">
+        <a class="navbar-link">{ensemble.name}</a>
+        <div class="navbar-dropdown">
+          <a
+            class={`navbar-item${Astro.url.pathname === `/ensembles/${canonicalId}` ? " is-active" : ""}`}
+            href={`/ensembles/${canonicalId}`}
+          >
+            <Icon icon="fa-home" size="small" class="mr-1" />
+            Dashboard
+          </a>
+          <hr class="navbar-divider" />
+          {ensembleAdminTools.map((tool) => {
+            const href = tool.href(canonicalId);
+            return (
+              <a
+                class={`navbar-item${Astro.url.pathname.startsWith(href) ? " is-active" : ""}`}
+                href={href}
+              >
+                <Icon icon={tool.icon} size="small" class="mr-1" />
+                {tool.label}
+              </a>
+            );
+          })}
+        </div>
       </div>
-    </div>
-  )}
+    )
+  }
 
   <div class="level mb-5">
     <div class="level-left">
@@ -147,9 +199,13 @@ const programLabel = isPerformance ? 'Set List' : 'Rehearsal Plan';
             <span class={`tag ml-2 ${categoryTagClass}`}>
               {categoryLabel}
             </span>
-            {group && (
-              <Tag color={group.color as any} class="ml-2">{group.name}</Tag>
-            )}
+            {
+              group && (
+                <Tag color={group.color as any} class="ml-2">
+                  {group.name}
+                </Tag>
+              )
+            }
           </h1>
           <p class="subtitle">
             <span class="icon-text">
@@ -158,18 +214,27 @@ const programLabel = isPerformance ? 'Set List' : 'Rehearsal Plan';
             </span>
             <span class="ml-3 icon-text">
               <Icon icon="fa-clock" />
-              <span>{scheduledDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+              <span
+                >{
+                  scheduledDate.toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })
+                }</span
+              >
             </span>
             <span class="ml-3 icon-text">
               <Icon icon="fa-hourglass-half" />
               <span>{formatDuration(event.durationMinutes)}</span>
             </span>
-            {event.location && (
-              <span class="ml-3 icon-text">
-                <Icon icon="fa-map-marker-alt" />
-                <span>{event.location}</span>
-              </span>
-            )}
+            {
+              event.location && (
+                <span class="ml-3 icon-text">
+                  <Icon icon="fa-map-marker-alt" />
+                  <span>{event.location}</span>
+                </span>
+              )
+            }
           </p>
         </div>
       </div>
@@ -177,12 +242,14 @@ const programLabel = isPerformance ? 'Set List' : 'Rehearsal Plan';
     <div class="level-right">
       <div class="level-item">
         <div class="buttons">
-          {isAdmin && (
-            <Button color="warning" id="edit-event-btn">
-              <Icon icon="fa-edit" />
-              <span>Edit Event</span>
-            </Button>
-          )}
+          {
+            isAdmin && (
+              <Button color="warning" id="edit-event-btn">
+                <Icon icon="fa-edit" />
+                <span>Edit Event</span>
+              </Button>
+            )
+          }
           <Button href={`/ensembles/${canonicalId}/events`}>
             <Icon icon="fa-arrow-left" />
             <span>Back to Events</span>
@@ -192,441 +259,653 @@ const programLabel = isPerformance ? 'Set List' : 'Rehearsal Plan';
     </div>
   </div>
 
-  {message && (
-    <Notification color="success" light>
-      {message}
-    </Notification>
-  )}
+  {
+    message && (
+      <Notification color="success" light>
+        {message}
+      </Notification>
+    )
+  }
 
-  {event.description && (
-    <div class="box">
-      <p class="content">{event.description}</p>
-    </div>
-  )}
+  {
+    event.description && (
+      <div class="box">
+        <p class="content">{event.description}</p>
+      </div>
+    )
+  }
 
   <div class="columns">
     <div class="column">
       <div class="box">
         <h2 class="title is-4">Check-In</h2>
 
-        {!isPast && (
-          <Notification color="info" light class="mb-4">
-            <p class="has-text-weight-semibold">Check-in Window:</p>
-            <p>Opens {ensemble.checkInStartMinutes} minutes before event</p>
-            <p>Closes {ensemble.checkInEndMinutes} minutes after event start</p>
-          </Notification>
-        )}
+        {
+          !isPast && (
+            <Notification color="info" light class="mb-4">
+              <p class="has-text-weight-semibold">Check-in Window:</p>
+              <p>Opens {ensemble.checkInStartMinutes} minutes before event</p>
+              <p>
+                Closes {ensemble.checkInEndMinutes} minutes after event start
+              </p>
+            </Notification>
+          )
+        }
 
-        {!isPast && !isUserCheckedIn && canCheckIn && (
-          <form method="POST" action={actions.events.checkIn}>
-            <input type="hidden" name="ensembleId" value={ensemble.id} />
-            <input type="hidden" name="eventId" value={event.id} />
-            <Button type="submit" color="primary" size="large" fullwidth>
-              <Icon icon="fa-check" />
-              <span>Check In Now</span>
-            </Button>
-          </form>
-        )}
+        {
+          !isPast && !isUserCheckedIn && canCheckIn && (
+            <form method="POST" action={actions.events.checkIn}>
+              <input type="hidden" name="ensembleId" value={ensemble.id} />
+              <input type="hidden" name="eventId" value={event.id} />
+              <Button type="submit" color="primary" size="large" fullwidth>
+                <Icon icon="fa-check" />
+                <span>Check In Now</span>
+              </Button>
+            </form>
+          )
+        }
 
-        {!isPast && !isUserCheckedIn && !canCheckIn && !isAdmin && (
-          <div>
-            <Button type="button" size="large" fullwidth disabled>
-              <Icon icon="fa-lock" />
-              <span>Check-in {isTooEarly ? 'Not Yet Available' : 'Closed'}</span>
-            </Button>
-            <p class="help mt-2 has-text-centered">
-              {isTooEarly && `Check-in opens ${ensemble.checkInStartMinutes} minutes before event`}
-              {isTooLate && `Check-in closed ${ensemble.checkInEndMinutes} minutes after event start`}
-            </p>
-          </div>
-        )}
+        {
+          !isPast && !isUserCheckedIn && !canCheckIn && !isAdmin && (
+            <div>
+              <Button type="button" size="large" fullwidth disabled>
+                <Icon icon="fa-lock" />
+                <span>
+                  Check-in {isTooEarly ? "Not Yet Available" : "Closed"}
+                </span>
+              </Button>
+              <p class="help mt-2 has-text-centered">
+                {isTooEarly &&
+                  `Check-in opens ${ensemble.checkInStartMinutes} minutes before event`}
+                {isTooLate &&
+                  `Check-in closed ${ensemble.checkInEndMinutes} minutes after event start`}
+              </p>
+            </div>
+          )
+        }
 
-        {!isPast && !isUserCheckedIn && !canCheckIn && isAdmin && (
-          <form method="POST" action={actions.events.checkIn}>
-            <input type="hidden" name="ensembleId" value={ensemble.id} />
-            <input type="hidden" name="eventId" value={event.id} />
-            <Button type="submit" color="warning" size="large" fullwidth>
-              <Icon icon="fa-user-shield" />
-              <span>Admin Check-In (Bypasses Time Window)</span>
-            </Button>
-          </form>
-        )}
+        {
+          !isPast && !isUserCheckedIn && !canCheckIn && isAdmin && (
+            <form method="POST" action={actions.events.checkIn}>
+              <input type="hidden" name="ensembleId" value={ensemble.id} />
+              <input type="hidden" name="eventId" value={event.id} />
+              <Button type="submit" color="warning" size="large" fullwidth>
+                <Icon icon="fa-user-shield" />
+                <span>Admin Check-In (Bypasses Time Window)</span>
+              </Button>
+            </form>
+          )
+        }
 
-        {!isPast && isUserCheckedIn && (
-          <Notification color="success">
-            <p class="has-text-centered">
-              <Icon icon="fa-check-circle fa-2x" size="large" />
-            </p>
-            <p class="has-text-centered has-text-weight-bold">You're checked in!</p>
-          </Notification>
-        )}
+        {
+          !isPast && isUserCheckedIn && (
+            <Notification color="success">
+              <p class="has-text-centered">
+                <Icon icon="fa-check-circle fa-2x" size="large" />
+              </p>
+              <p class="has-text-centered has-text-weight-bold">
+                You're checked in!
+              </p>
+            </Notification>
+          )
+        }
 
-        {isPast && !isUserCheckedIn && (
-          <Notification color="warning">
-            This event has passed and you did not check in.
-          </Notification>
-        )}
+        {
+          isPast && !isUserCheckedIn && (
+            <Notification color="warning">
+              This event has passed and you did not check in.
+            </Notification>
+          )
+        }
       </div>
 
-      {isAdmin && (
-        <div class="box">
-          <h2 class="title is-4">QR Code Check-In</h2>
-          <p class="mb-4">Display this QR code for members to scan and check in</p>
+      {
+        isAdmin && (
+          <div class="box">
+            <h2 class="title is-4">QR Code Check-In</h2>
+            <p class="mb-4">
+              Display this QR code for members to scan and check in
+            </p>
 
-          <div class="has-text-centered">
-            <Image src={qrCodeDataUrl} alt="QR Code for check-in" class="is-inline-block" />
-          </div>
-
-          <div class="field mt-4">
-            <label class="label">Check-in URL</label>
-            <div class="control">
-              <TextInput name="checkInUrl" type="text" value={checkInUrl} class="is-family-monospace" readonly onclick="this.select()" standalone />
+            <div class="has-text-centered">
+              <Image
+                src={qrCodeDataUrl}
+                alt="QR Code for check-in"
+                class="is-inline-block"
+              />
             </div>
-            <p class="help">Members can scan the QR code or visit this URL to check in</p>
+
+            <div class="field mt-4">
+              <label class="label">Check-in URL</label>
+              <div class="control">
+                <TextInput
+                  name="checkInUrl"
+                  type="text"
+                  value={checkInUrl}
+                  class="is-family-monospace"
+                  readonly
+                  onclick="this.select()"
+                  standalone
+                />
+              </div>
+              <p class="help">
+                Members can scan the QR code or visit this URL to check in
+              </p>
+            </div>
           </div>
-        </div>
-      )}
+        )
+      }
     </div>
 
-    {isAdmin && (
-      <div class="column">
-        <div class="box">
-          <h2 class="title is-4">
-            Attendance ({attendanceRecords.length} / {allMembers.length})
-            {group && <Tag color={group.color as any} size="small" class="ml-2">{group.name}</Tag>}
-          </h2>
+    {
+      isAdmin && (
+        <div class="column">
+          <div class="box">
+            <h2 class="title is-4">
+              Attendance ({attendanceRecords.length} / {allMembers.length})
+              {group && (
+                <Tag color={group.color as any} size="small" class="ml-2">
+                  {group.name}
+                </Tag>
+              )}
+            </h2>
 
-          {attendanceRecords.length > 0 ? (
-            <table class="table is-fullwidth is-striped">
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Checked In</th>
-                  <th>Method</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {attendanceRecords.map((record) => (
+            {attendanceRecords.length > 0 ? (
+              <table class="table is-fullwidth is-striped">
+                <thead>
                   <tr>
-                    <td>{record.userName}</td>
-                    <td>{new Date(record.checkedInAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
-                    <td>
-                      <span class={`tag is-small ${
-                        record.checkedInMethod === 'qr' ? 'is-success' :
-                        record.checkedInMethod === 'manual' ? 'is-info' :
-                        'is-warning'
-                      }`}>
-                        {record.checkedInMethod === 'qr' ? 'QR Scan' :
-                         record.checkedInMethod === 'manual' ? 'Manual' :
-                         'Admin'}
-                      </span>
-                    </td>
-                    <td>
-                      <form method="POST" action={actions.events.removeAttendance} style="display: inline;">
-                        <input type="hidden" name="ensembleId" value={ensemble.id} />
-                        <input type="hidden" name="attendanceId" value={record.id} />
-                        <Button type="submit" color="danger" size="small">
-                          Remove
+                    <th>Name</th>
+                    <th>Checked In</th>
+                    <th>Method</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {attendanceRecords.map((record) => (
+                    <tr>
+                      <td>{record.userName}</td>
+                      <td>
+                        {new Date(record.checkedInAt).toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </td>
+                      <td>
+                        <span
+                          class={`tag is-small ${
+                            record.checkedInMethod === "qr"
+                              ? "is-success"
+                              : record.checkedInMethod === "manual"
+                                ? "is-info"
+                                : "is-warning"
+                          }`}
+                        >
+                          {record.checkedInMethod === "qr"
+                            ? "QR Scan"
+                            : record.checkedInMethod === "manual"
+                              ? "Manual"
+                              : "Admin"}
+                        </span>
+                      </td>
+                      <td>
+                        <form
+                          method="POST"
+                          action={actions.events.removeAttendance}
+                          style="display: inline;"
+                        >
+                          <input
+                            type="hidden"
+                            name="ensembleId"
+                            value={ensemble.id}
+                          />
+                          <input
+                            type="hidden"
+                            name="attendanceId"
+                            value={record.id}
+                          />
+                          <Button type="submit" color="danger" size="small">
+                            Remove
+                          </Button>
+                        </form>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <Notification color="info" light>
+                No one has checked in yet.
+              </Notification>
+            )}
+
+            {absentMembers.length > 0 && (
+              <>
+                <hr />
+                <h3 class="title is-5 mt-4">Mark Attendance</h3>
+                <p class="mb-3">Members who haven't checked in:</p>
+                {absentMembers.map((member) => (
+                  <div class="field is-grouped mb-2">
+                    <div class="control is-expanded">
+                      <TextInput
+                        name="_member-display"
+                        type="text"
+                        value={member.name}
+                        static
+                        readonly
+                        standalone
+                      />
+                    </div>
+                    <div class="control">
+                      <form
+                        method="POST"
+                        action={actions.events.addAttendance}
+                        style="display: inline;"
+                      >
+                        <input
+                          type="hidden"
+                          name="ensembleId"
+                          value={ensemble.id}
+                        />
+                        <input type="hidden" name="eventId" value={event.id} />
+                        <input type="hidden" name="userId" value={member.id} />
+                        <Button type="submit" color="success">
+                          Mark Present
                         </Button>
                       </form>
-                    </td>
-                  </tr>
+                    </div>
+                  </div>
                 ))}
-              </tbody>
-            </table>
-          ) : (
-            <Notification color="info" light>
-              No one has checked in yet.
-            </Notification>
-          )}
-
-          {absentMembers.length > 0 && (
-            <>
-              <hr />
-              <h3 class="title is-5 mt-4">Mark Attendance</h3>
-              <p class="mb-3">Members who haven't checked in:</p>
-              {absentMembers.map((member) => (
-                <div class="field is-grouped mb-2">
-                  <div class="control is-expanded">
-                    <TextInput name="_member-display" type="text" value={member.name} static readonly standalone />
-                  </div>
-                  <div class="control">
-                    <form method="POST" action={actions.events.addAttendance} style="display: inline;">
-                      <input type="hidden" name="ensembleId" value={ensemble.id} />
-                      <input type="hidden" name="eventId" value={event.id} />
-                      <input type="hidden" name="userId" value={member.id} />
-                      <Button type="submit" color="success">
-                        Mark Present
-                      </Button>
-                    </form>
-                  </div>
-                </div>
-              ))}
-            </>
-          )}
+              </>
+            )}
+          </div>
         </div>
-      </div>
-    )}
+      )
+    }
   </div>
 
   <div class="box mt-2">
     <h2 class="title is-4">
       <span class="icon-text">
-        <Icon icon="fa-music" color={isPerformance ? 'warning' : isSocial ? 'success' : isSectional ? 'info' : 'primary'} />
+        <Icon
+          icon="fa-music"
+          color={isPerformance
+            ? "warning"
+            : isSocial
+              ? "success"
+              : isSectional
+                ? "info"
+                : "primary"}
+        />
         <span>{programLabel}</span>
       </span>
     </h2>
 
-    {programSongs.length === 0 ? (
-      <Notification color="info" light>No songs added yet.</Notification>
-    ) : (
-      <table class="table is-fullwidth is-striped">
-        <thead>
-          <tr>
-            <th style="width: 40px;">#</th>
-            <th>Song</th>
-            <th>Composer</th>
-            <th>Notes</th>
-            {isAdmin && <th style="width: 80px;"></th>}
-          </tr>
-        </thead>
-        <tbody>
-          {programSongs.map((song, i) => (
+    {
+      programSongs.length === 0 ? (
+        <Notification color="info" light>
+          No songs added yet.
+        </Notification>
+      ) : (
+        <table class="table is-fullwidth is-striped">
+          <thead>
             <tr>
-              <td class="has-text-grey">{i + 1}</td>
-              <td><strong>{song.name}</strong></td>
-              <td class="has-text-grey">{song.composer ?? '—'}</td>
-              <td>
-                {isAdmin ? (
-                  <span class="is-flex is-align-items-center" style="gap: 0.4rem;">
-                    <span class="has-text-grey is-size-7">
-                      {song.notes ? song.notes : <em class="has-text-grey-light">No notes</em>}
-                    </span>
-                    <button
-                      type="button"
-                      class="button is-small edit-notes-btn"
-                      title="Edit notes"
-                      data-entry-id={song.entryId}
-                      data-notes={song.notes ?? ''}
-                    >
-                      <Icon icon="fa-pencil" size="small" />
-                    </button>
-                  </span>
-                ) : (
-                  <span class="has-text-grey is-size-7">{song.notes ?? '—'}</span>
-                )}
-              </td>
-              {isAdmin && (
-                <td>
-                  <form method="POST" action={actions.events.removeProgramSong} style="display: inline;">
-                    <input type="hidden" name="ensembleId" value={ensemble.id} />
-                    <input type="hidden" name="programEntryId" value={song.entryId} />
-                    <Button type="submit" color="danger" size="small">
-                      <Icon icon="fa-times" size="small" />
-                    </Button>
-                  </form>
-                </td>
-              )}
+              <th style="width: 40px;">#</th>
+              <th>Song</th>
+              <th>Composer</th>
+              <th>Notes</th>
+              {isAdmin && <th style="width: 80px;" />}
             </tr>
-          ))}
-        </tbody>
-      </table>
-    )}
+          </thead>
+          <tbody>
+            {programSongs.map((song, i) => (
+              <tr>
+                <td class="has-text-grey">{i + 1}</td>
+                <td>
+                  <strong>{song.name}</strong>
+                </td>
+                <td class="has-text-grey">{song.composer ?? "—"}</td>
+                <td>
+                  {isAdmin ? (
+                    <span
+                      class="is-flex is-align-items-center"
+                      style="gap: 0.4rem;"
+                    >
+                      <span class="has-text-grey is-size-7">
+                        {song.notes ? (
+                          song.notes
+                        ) : (
+                          <em class="has-text-grey-light">No notes</em>
+                        )}
+                      </span>
+                      <button
+                        type="button"
+                        class="button is-small edit-notes-btn"
+                        title="Edit notes"
+                        data-entry-id={song.entryId}
+                        data-notes={song.notes ?? ""}
+                      >
+                        <Icon icon="fa-pencil" size="small" />
+                      </button>
+                    </span>
+                  ) : (
+                    <span class="has-text-grey is-size-7">
+                      {song.notes ?? "—"}
+                    </span>
+                  )}
+                </td>
+                {isAdmin && (
+                  <td>
+                    <form
+                      method="POST"
+                      action={actions.events.removeProgramSong}
+                      style="display: inline;"
+                    >
+                      <input
+                        type="hidden"
+                        name="ensembleId"
+                        value={ensemble.id}
+                      />
+                      <input
+                        type="hidden"
+                        name="programEntryId"
+                        value={song.entryId}
+                      />
+                      <Button type="submit" color="danger" size="small">
+                        <Icon icon="fa-times" size="small" />
+                      </Button>
+                    </form>
+                  </td>
+                )}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )
+    }
 
-    {isAdmin && availableSeasonSongs.length > 0 && (
-      <form method="POST" action={actions.events.addProgramSong} class="mt-4">
-        <input type="hidden" name="ensembleId" value={ensemble.id} />
-        <input type="hidden" name="eventId" value={event.id} />
+    {
+      isAdmin && availableSeasonSongs.length > 0 && (
+        <form method="POST" action={actions.events.addProgramSong} class="mt-4">
+          <input type="hidden" name="ensembleId" value={ensemble.id} />
+          <input type="hidden" name="eventId" value={event.id} />
 
-        <div class="field">
-          <label class="label is-small">Song</label>
-          <div class="control">
-            <div class="select is-fullwidth">
-              <select name="songId">
-                {availableSeasonSongs.map(s => (
-                  <option value={s.id}>
-                    {s.name}{s.composer ? ` — ${s.composer}` : ''}
-                  </option>
-                ))}
-              </select>
+          <div class="field">
+            <label class="label is-small">Song</label>
+            <div class="control">
+              <div class="select is-fullwidth">
+                <select name="songId">
+                  {availableSeasonSongs.map((s) => (
+                    <option value={s.id}>
+                      {s.name}
+                      {s.composer ? ` — ${s.composer}` : ""}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div class="field">
-          <label class="label is-small">Notes (optional)</label>
-          <div class="control">
-            <textarea
-              class="textarea is-small"
-              name="notes"
-              rows="2"
-              placeholder="Rehearsal focus, cues, timing notes..."
-            ></textarea>
+          <div class="field">
+            <label class="label is-small">Notes (optional)</label>
+            <div class="control">
+              <textarea
+                class="textarea is-small"
+                name="notes"
+                rows="2"
+                placeholder="Rehearsal focus, cues, timing notes..."
+              />
+            </div>
           </div>
-        </div>
 
-        <div class="field">
-          <div class="control">
-            <Button type="submit" color="primary">
-              <Icon icon="fa-plus" />
-              <span>Add to {programLabel}</span>
-            </Button>
+          <div class="field">
+            <div class="control">
+              <Button type="submit" color="primary">
+                <Icon icon="fa-plus" />
+                <span>Add to {programLabel}</span>
+              </Button>
+            </div>
           </div>
-        </div>
 
-        <p class="help">Only songs from the current season's repertoire can be added.</p>
-      </form>
-    )}
+          <p class="help">
+            Only songs from the current season's repertoire can be added.
+          </p>
+        </form>
+      )
+    }
 
-    {isAdmin && availableSeasonSongs.length === 0 && (
-      <p class="is-size-7 has-text-grey mt-3">
-        No more songs available from the current season's repertoire.
-        <a href={`/ensembles/${canonicalId}/songs`}> Add songs to the season</a> to see them here.
-      </p>
-    )}
+    {
+      isAdmin && availableSeasonSongs.length === 0 && (
+        <p class="is-size-7 has-text-grey mt-3">
+          No more songs available from the current season's repertoire.
+          <a href={`/ensembles/${canonicalId}/songs`}>
+            {" "}
+            Add songs to the season
+          </a>{" "}
+          to see them here.
+        </p>
+      )
+    }
   </div>
 
   <!-- Edit Event Modal -->
-  {isAdmin && (
-    <div class="modal" id="edit-modal">
-      <div class="modal-background"></div>
-      <div class="modal-card">
-        <header class="modal-card-head">
-          <p class="modal-card-title">Edit Event</p>
-          <button class="delete" aria-label="close" id="close-edit-modal"></button>
-        </header>
-        <form method="POST" action={actions.events.edit}>
-          <section class="modal-card-body">
-            <input type="hidden" name="ensembleId" value={ensemble.id} />
-            <input type="hidden" name="eventId" value={event.id} />
+  {
+    isAdmin && (
+      <div class="modal" id="edit-modal">
+        <div class="modal-background" />
+        <div class="modal-card">
+          <header class="modal-card-head">
+            <p class="modal-card-title">Edit Event</p>
+            <button class="delete" aria-label="close" id="close-edit-modal" />
+          </header>
+          <form method="POST" action={actions.events.edit}>
+            <section class="modal-card-body">
+              <input type="hidden" name="ensembleId" value={ensemble.id} />
+              <input type="hidden" name="eventId" value={event.id} />
 
-            <TextInput name="title" id="edit-title" label="Title" value={event.title} required />
+              <TextInput
+                name="title"
+                id="edit-title"
+                label="Title"
+                value={event.title}
+                required
+              />
 
-            <div class="field">
-              <label class="label" for="edit-description">Description</label>
-              <div class="control">
-                <textarea
-                  class="textarea"
-                  id="edit-description"
-                  name="description"
-                  rows="3"
-                >{event.description || ''}</textarea>
-              </div>
-            </div>
-
-            <div class="columns">
-              <div class="column is-4">
-                <TextInput name="date" id="edit-date" label="Date" type="date" value={dateValue} required />
-              </div>
-              <div class="column is-4">
-                <TextInput name="time" id="edit-time" label="Time" type="time" value={timeValue} required />
-              </div>
-              <div class="column is-4">
-                <TextInput name="durationMinutes" id="edit-duration" label="Duration (min)" type="number" value={event.durationMinutes} min="15" max="480" required />
-              </div>
-            </div>
-
-            <TextInput name="location" id="edit-location" label="Location" value={event.location || ''} />
-
-            {groups.length > 0 && (
               <div class="field">
-                <label class="label" for="edit-groupId">Group (optional)</label>
+                <label class="label" for="edit-description">
+                  Description
+                </label>
                 <div class="control">
-                  <div class="select is-fullwidth">
-                    <select id="edit-groupId" name="groupId">
-                      <option value="">— All Members —</option>
-                      {groups.map(g => (
-                        <option value={g.id} selected={event.groupId === g.id}>{g.name}</option>
-                      ))}
-                    </select>
-                  </div>
+                  <textarea
+                    class="textarea"
+                    id="edit-description"
+                    name="description"
+                    rows="3"
+                  >
+                    {event.description || ""}
+                  </textarea>
                 </div>
-                <p class="help">Restrict attendance tracking to this group's members.</p>
               </div>
-            )}
-          </section>
-          <footer class="modal-card-foot">
-            <Button color="primary" type="submit">Save Changes</Button>
-            <Button type="button" id="cancel-edit">Cancel</Button>
-          </footer>
-        </form>
+
+              <div class="columns">
+                <div class="column is-4">
+                  <TextInput
+                    name="date"
+                    id="edit-date"
+                    label="Date"
+                    type="date"
+                    value={dateValue}
+                    required
+                  />
+                </div>
+                <div class="column is-4">
+                  <TextInput
+                    name="time"
+                    id="edit-time"
+                    label="Time"
+                    type="time"
+                    value={timeValue}
+                    required
+                  />
+                </div>
+                <div class="column is-4">
+                  <TextInput
+                    name="durationMinutes"
+                    id="edit-duration"
+                    label="Duration (min)"
+                    type="number"
+                    value={event.durationMinutes}
+                    min="15"
+                    max="480"
+                    required
+                  />
+                </div>
+              </div>
+
+              <TextInput
+                name="location"
+                id="edit-location"
+                label="Location"
+                value={event.location || ""}
+              />
+
+              {groups.length > 0 && (
+                <div class="field">
+                  <label class="label" for="edit-groupId">
+                    Group (optional)
+                  </label>
+                  <div class="control">
+                    <div class="select is-fullwidth">
+                      <select id="edit-groupId" name="groupId">
+                        <option value="">— All Members —</option>
+                        {groups.map((g) => (
+                          <option
+                            value={g.id}
+                            selected={event.groupId === g.id}
+                          >
+                            {g.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  <p class="help">
+                    Restrict attendance tracking to this group's members.
+                  </p>
+                </div>
+              )}
+            </section>
+            <footer class="modal-card-foot">
+              <Button color="primary" type="submit">
+                Save Changes
+              </Button>
+              <Button type="button" id="cancel-edit">
+                Cancel
+              </Button>
+            </footer>
+          </form>
+        </div>
       </div>
-    </div>
-  )}
+    )
+  }
 
   <!-- Edit Notes Modal -->
-  {isAdmin && (
-    <div class="modal" id="edit-notes-modal">
-      <div class="modal-background"></div>
-      <div class="modal-card">
-        <header class="modal-card-head">
-          <p class="modal-card-title">Edit Notes</p>
-          <button class="delete" aria-label="close" data-close-notes-modal></button>
-        </header>
-        <form id="edit-notes-form" method="POST" action={actions.events.updateProgramSongNotes}>
-          <section class="modal-card-body">
-            <input type="hidden" name="ensembleId" value={ensemble.id} />
-            <input type="hidden" name="programEntryId" id="edit-notes-entry-id" />
-            <div class="field">
-              <label class="label" for="edit-notes-text">Notes</label>
-              <div class="control">
-                <textarea
-                  class="textarea"
-                  id="edit-notes-text"
-                  name="notes"
-                  rows="4"
-                  placeholder="Rehearsal focus, cues, timing notes..."
-                ></textarea>
+  {
+    isAdmin && (
+      <div class="modal" id="edit-notes-modal">
+        <div class="modal-background" />
+        <div class="modal-card">
+          <header class="modal-card-head">
+            <p class="modal-card-title">Edit Notes</p>
+            <button class="delete" aria-label="close" data-close-notes-modal />
+          </header>
+          <form
+            id="edit-notes-form"
+            method="POST"
+            action={actions.events.updateProgramSongNotes}
+          >
+            <section class="modal-card-body">
+              <input type="hidden" name="ensembleId" value={ensemble.id} />
+              <input
+                type="hidden"
+                name="programEntryId"
+                id="edit-notes-entry-id"
+              />
+              <div class="field">
+                <label class="label" for="edit-notes-text">
+                  Notes
+                </label>
+                <div class="control">
+                  <textarea
+                    class="textarea"
+                    id="edit-notes-text"
+                    name="notes"
+                    rows="4"
+                    placeholder="Rehearsal focus, cues, timing notes..."
+                  />
+                </div>
+                <p class="help">Leave blank to clear notes for this song.</p>
               </div>
-              <p class="help">Leave blank to clear notes for this song.</p>
-            </div>
-          </section>
-          <footer class="modal-card-foot">
-            <Button type="submit" color="primary">Save Notes</Button>
-            <Button type="button" data-close-notes-modal>Cancel</Button>
-          </footer>
-        </form>
+            </section>
+            <footer class="modal-card-foot">
+              <Button type="submit" color="primary">
+                Save Notes
+              </Button>
+              <Button type="button" data-close-notes-modal>
+                Cancel
+              </Button>
+            </footer>
+          </form>
+        </div>
       </div>
-    </div>
-  )}
+    )
+  }
 
   <script>
-    document.addEventListener('astro:page-load', () => {
-      const editModal = document.getElementById('edit-modal');
-      const editBtn = document.getElementById('edit-event-btn');
-      const closeEditModal = document.getElementById('close-edit-modal');
-      const cancelEdit = document.getElementById('cancel-edit');
+    document.addEventListener("astro:page-load", () => {
+      const editModal = document.getElementById("edit-modal");
+      const editBtn = document.getElementById("edit-event-btn");
+      const closeEditModal = document.getElementById("close-edit-modal");
+      const cancelEdit = document.getElementById("cancel-edit");
 
-      const openEditModal = () => editModal?.classList.add('is-active');
-      const closeModal = () => editModal?.classList.remove('is-active');
+      const openEditModal = () => editModal?.classList.add("is-active");
+      const closeModal = () => editModal?.classList.remove("is-active");
 
-      editBtn?.addEventListener('click', openEditModal);
-      closeEditModal?.addEventListener('click', closeModal);
-      cancelEdit?.addEventListener('click', closeModal);
-      editModal?.querySelector('.modal-background')?.addEventListener('click', closeModal);
+      editBtn?.addEventListener("click", openEditModal);
+      closeEditModal?.addEventListener("click", closeModal);
+      cancelEdit?.addEventListener("click", closeModal);
+      editModal
+        ?.querySelector(".modal-background")
+        ?.addEventListener("click", closeModal);
 
       // Notes modal
-      const notesModal = document.getElementById('edit-notes-modal');
+      const notesModal = document.getElementById("edit-notes-modal");
       if (notesModal) {
-        const entryIdInput = document.getElementById('edit-notes-entry-id') as HTMLInputElement | null;
-        const notesTextarea = document.getElementById('edit-notes-text') as HTMLTextAreaElement | null;
+        const entryIdInput = document.getElementById(
+          "edit-notes-entry-id",
+        ) as HTMLInputElement | null;
+        const notesTextarea = document.getElementById(
+          "edit-notes-text",
+        ) as HTMLTextAreaElement | null;
 
-        const closeNotesModal = () => notesModal.classList.remove('is-active');
+        const closeNotesModal = () => notesModal.classList.remove("is-active");
 
-        document.querySelectorAll('.edit-notes-btn').forEach((btn) => {
-          btn.addEventListener('click', () => {
+        document.querySelectorAll(".edit-notes-btn").forEach((btn) => {
+          btn.addEventListener("click", () => {
             const el = btn as HTMLElement;
-            if (entryIdInput) entryIdInput.value = el.dataset.entryId ?? '';
-            if (notesTextarea) notesTextarea.value = el.dataset.notes ?? '';
-            notesModal.classList.add('is-active');
+            if (entryIdInput) entryIdInput.value = el.dataset.entryId ?? "";
+            if (notesTextarea) notesTextarea.value = el.dataset.notes ?? "";
+            notesModal.classList.add("is-active");
           });
         });
 
-        notesModal.querySelector('.modal-background')?.addEventListener('click', closeNotesModal);
-        notesModal.querySelectorAll('[data-close-notes-modal]').forEach(btn => {
-          btn.addEventListener('click', closeNotesModal);
-        });
+        notesModal
+          .querySelector(".modal-background")
+          ?.addEventListener("click", closeNotesModal);
+        notesModal
+          .querySelectorAll("[data-close-notes-modal]")
+          .forEach((btn) => {
+            btn.addEventListener("click", closeNotesModal);
+          });
       }
     });
   </script>

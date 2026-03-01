@@ -1,77 +1,95 @@
 ---
-import EnsemblePageLayout from '../../../../layouts/EnsemblePageLayout.astro';
-import Table from '../../../../components/elements/Table.astro';
-import Modal from '../../../../components/Modal.astro';
-import Button from '../../../../components/elements/Button.astro';
-import Icon from '../../../../components/elements/Icon.astro';
-import TextInput from '../../../../components/elements/TextInput.astro';
-import Tag from '../../../../components/elements/Tag.astro';
-import Notification from '../../../../components/elements/Notification.astro';
-import { actions } from 'astro:actions';
-import { getEnsembleBySlugOrId, getEnsembleAccess } from '../../../../lib/ensemble';
-import { getEnsembleUrlId } from '../../../../lib/slug';
-import { formatDuration } from '../../../../lib/format';
-import { getEventsPageData } from '../../../../lib/events';
+import EnsemblePageLayout from "../../../../layouts/EnsemblePageLayout.astro";
+import Table from "../../../../components/elements/Table.astro";
+import Modal from "../../../../components/Modal.astro";
+import Button from "../../../../components/elements/Button.astro";
+import Icon from "../../../../components/elements/Icon.astro";
+import TextInput from "../../../../components/elements/TextInput.astro";
+import Tag from "../../../../components/elements/Tag.astro";
+import Notification from "../../../../components/elements/Notification.astro";
+import { actions } from "astro:actions";
+import {
+  getEnsembleBySlugOrId,
+  getEnsembleAccess,
+} from "../../../../lib/ensemble";
+import { getEnsembleUrlId } from "../../../../lib/slug";
+import { formatDuration } from "../../../../lib/format";
+import { getEventsPageData } from "../../../../lib/events";
 
 const user = Astro.locals.user!;
 
 const { id } = Astro.params;
 const ensemble = await getEnsembleBySlugOrId(id!);
 if (!ensemble) {
-  return Astro.redirect('/ensembles');
+  return Astro.redirect("/ensembles");
 }
 
 const canonicalId = getEnsembleUrlId(ensemble);
-if (Astro.request.method === 'GET' && id !== canonicalId) {
-  return Astro.redirect(Astro.url.pathname.replace(`/ensembles/${id}`, `/ensembles/${canonicalId}`), 301);
+if (Astro.request.method === "GET" && id !== canonicalId) {
+  return Astro.redirect(
+    Astro.url.pathname.replace(`/ensembles/${id}`, `/ensembles/${canonicalId}`),
+    301,
+  );
 }
 
 const access = await getEnsembleAccess(user, ensemble.id);
-if (!access) return Astro.redirect('/ensembles');
+if (!access) return Astro.redirect("/ensembles");
 const { isAdmin } = access;
 
 const createResult = Astro.getActionResult(actions.events.create);
 const deleteResult = Astro.getActionResult(actions.events.delete);
 
-let message = '';
-let messageType: 'success' | 'danger' | undefined;
+let message = "";
+let messageType: "success" | "danger" | undefined;
 
 if (createResult) {
   if (createResult.error) {
-    message = createResult.error.message || 'Failed to create event.';
-    messageType = 'danger';
+    message = createResult.error.message || "Failed to create event.";
+    messageType = "danger";
   } else {
-    message = 'Event created successfully!';
-    messageType = 'success';
+    message = "Event created successfully!";
+    messageType = "success";
   }
 } else if (deleteResult) {
   if (deleteResult.error) {
-    message = deleteResult.error.message || 'Failed to delete event.';
-    messageType = 'danger';
+    message = deleteResult.error.message || "Failed to delete event.";
+    messageType = "danger";
   } else {
-    message = 'Event deleted successfully!';
-    messageType = 'success';
+    message = "Event deleted successfully!";
+    messageType = "success";
   }
 }
 
-const { activeSeason, events: allEvents, groups } = await getEventsPageData(ensemble.id);
+const {
+  activeSeason,
+  events: allEvents,
+  groups,
+} = await getEventsPageData(ensemble.id);
 
 function categoryTag(category: string) {
   switch (category) {
-    case 'performance': return { label: 'Performance', color: 'is-warning' };
-    case 'social':      return { label: 'Social',       color: 'is-success' };
-    case 'sectional':   return { label: 'Sectional',    color: 'is-info' };
-    default:            return { label: 'Rehearsal',    color: 'is-primary' };
+    case "performance":
+      return { label: "Performance", color: "is-warning" };
+    case "social":
+      return { label: "Social", color: "is-success" };
+    case "sectional":
+      return { label: "Sectional", color: "is-info" };
+    default:
+      return { label: "Rehearsal", color: "is-primary" };
   }
 }
 
 const now = new Date();
-const upcomingEvents = allEvents.filter(e => {
-  const endTime = new Date(new Date(e.scheduledAt).getTime() + e.durationMinutes * 60 * 1000);
+const upcomingEvents = allEvents.filter((e) => {
+  const endTime = new Date(
+    new Date(e.scheduledAt).getTime() + e.durationMinutes * 60 * 1000,
+  );
   return endTime > now;
 });
-const pastEvents = allEvents.filter(e => {
-  const endTime = new Date(new Date(e.scheduledAt).getTime() + e.durationMinutes * 60 * 1000);
+const pastEvents = allEvents.filter((e) => {
+  const endTime = new Date(
+    new Date(e.scheduledAt).getTime() + e.durationMinutes * 60 * 1000,
+  );
   return endTime <= now;
 });
 ---
@@ -85,236 +103,327 @@ const pastEvents = allEvents.filter(e => {
   messageType={messageType}
   isAdmin={isAdmin}
 >
-  {isAdmin && (
-    <Button slot="action" color="primary" id="create-event-btn">
-      <Icon icon="fa-plus" />
-      <span>Schedule Event</span>
-    </Button>
-  )}
+  {
+    isAdmin && (
+      <Button slot="action" color="primary" id="create-event-btn">
+        <Icon icon="fa-plus" />
+        <span>Schedule Event</span>
+      </Button>
+    )
+  }
 
-  {allEvents.length === 0 ? (
-    <Notification color="info" light>
-      No events scheduled yet.
-      {!activeSeason && isAdmin && (
-        <span> You need an <a href={`/ensembles/${canonicalId}/seasons`}>active season</a> before scheduling events.</span>
-      )}
-    </Notification>
-  ) : (
-    <>
-      {upcomingEvents.length > 0 && (
-        <div class="mb-5">
-          <h2 class="title is-5 mb-3">Upcoming</h2>
-          <Table>
-            <thead>
-              <tr>
-                <th>Title</th>
-                <th>Type</th>
-                <th>Group</th>
-                <th>Date</th>
-                <th>Time</th>
-                <th>Location</th>
-                <th>Duration</th>
-                <th style="width: 160px;">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {upcomingEvents.map((event) => {
-                const scheduledDate = new Date(event.scheduledAt);
-                return (
-                  <tr>
-                    <td><strong>{event.title}</strong></td>
-                    <td>
-                      {(() => { const ct = categoryTag(event.category); return (
-                        <span class={`tag ${ct.color}`}>{ct.label}</span>
-                      ); })()}
-                    </td>
-                    <td>
-                      {event.groupName
-                        ? <Tag color={event.groupColor as any} size="small">{event.groupName}</Tag>
-                        : <span class="has-text-grey-light">—</span>
-                      }
-                    </td>
-                    <td>{scheduledDate.toLocaleDateString()}</td>
-                    <td>{scheduledDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
-                    <td>{event.location || '-'}</td>
-                    <td>{formatDuration(event.durationMinutes)}</td>
-                    <td>
-                      <div class="buttons are-small">
-                        <Button href={`/ensembles/${canonicalId}/events/${event.id}`} color="info">
-                          View
-                        </Button>
-                        {isAdmin && (
-                          <Button
-                            color="danger"
-                            class="delete-event-btn"
-                            data-event-id={event.id}
-                          >
-                            <Icon icon="fa-trash" />
-                          </Button>
+  {
+    allEvents.length === 0 ? (
+      <Notification color="info" light>
+        No events scheduled yet.
+        {!activeSeason && isAdmin && (
+          <span>
+            {" "}
+            You need an{" "}
+            <a href={`/ensembles/${canonicalId}/seasons`}>active season</a>{" "}
+            before scheduling events.
+          </span>
+        )}
+      </Notification>
+    ) : (
+      <>
+        {upcomingEvents.length > 0 && (
+          <div class="mb-5">
+            <h2 class="title is-5 mb-3">Upcoming</h2>
+            <Table>
+              <thead>
+                <tr>
+                  <th>Title</th>
+                  <th>Type</th>
+                  <th>Group</th>
+                  <th>Date</th>
+                  <th>Time</th>
+                  <th>Location</th>
+                  <th>Duration</th>
+                  <th style="width: 160px;">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {upcomingEvents.map((event) => {
+                  const scheduledDate = new Date(event.scheduledAt);
+                  return (
+                    <tr>
+                      <td>
+                        <strong>{event.title}</strong>
+                      </td>
+                      <td>
+                        {(() => {
+                          const ct = categoryTag(event.category);
+                          return (
+                            <span class={`tag ${ct.color}`}>{ct.label}</span>
+                          );
+                        })()}
+                      </td>
+                      <td>
+                        {event.groupName ? (
+                          <Tag color={event.groupColor as any} size="small">
+                            {event.groupName}
+                          </Tag>
+                        ) : (
+                          <span class="has-text-grey-light">—</span>
                         )}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </Table>
-        </div>
-      )}
-
-      {pastEvents.length > 0 && (
-        <div>
-          <h2 class="title is-5 mb-3">Past</h2>
-          <Table>
-            <thead>
-              <tr>
-                <th>Title</th>
-                <th>Type</th>
-                <th>Group</th>
-                <th>Date</th>
-                <th>Time</th>
-                <th>Location</th>
-                <th style="width: 100px;">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {pastEvents.map((event) => {
-                const scheduledDate = new Date(event.scheduledAt);
-                return (
-                  <tr>
-                    <td>{event.title}</td>
-                    <td>
-                      {(() => { const ct = categoryTag(event.category); return (
-                        <span class={`tag is-light ${ct.color}`}>{ct.label}</span>
-                      ); })()}
-                    </td>
-                    <td>
-                      {event.groupName
-                        ? <Tag color={event.groupColor as any} size="small" light>{event.groupName}</Tag>
-                        : <span class="has-text-grey-light">—</span>
-                      }
-                    </td>
-                    <td>{scheduledDate.toLocaleDateString()}</td>
-                    <td>{scheduledDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
-                    <td>{event.location || '-'}</td>
-                    <td>
-                      <Button href={`/ensembles/${canonicalId}/events/${event.id}`} size="small">
-                        {isAdmin ? 'Attendance' : 'Details'}
-                      </Button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </Table>
-        </div>
-      )}
-    </>
-  )}
-
-  <Fragment slot="modals">
-<!-- Create Event Modal -->
-{isAdmin && (
-  <Modal id="create-modal" title="Schedule Event">
-    <form id="createForm" method="POST" action={actions.events.create}>
-      <input type="hidden" name="ensembleId" value={ensemble.id} />
-
-      <div class="columns">
-        <div class="column">
-          <TextInput name="title" label="Title *" placeholder="Weekly Rehearsal" required />
-        </div>
-        <div class="column is-narrow">
-          <div class="field">
-            <label class="label" for="category">Type *</label>
-            <div class="control">
-              <div class="select">
-                <select id="category" name="category">
-                  <option value="rehearsal">Rehearsal</option>
-                  <option value="performance">Performance</option>
-                  <option value="social">Social</option>
-                  <option value="sectional">Sectional</option>
-                </select>
-              </div>
-            </div>
-          </div>
-        </div>
-        {groups.length > 0 && (
-          <div class="column is-narrow">
-            <div class="field">
-              <label class="label" for="groupId">Group</label>
-              <div class="control">
-                <div class="select">
-                  <select id="groupId" name="groupId">
-                    <option value="">— All Members —</option>
-                    {groups.map(g => (
-                      <option value={g.id}>{g.name}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            </div>
+                      </td>
+                      <td>{scheduledDate.toLocaleDateString()}</td>
+                      <td>
+                        {scheduledDate.toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </td>
+                      <td>{event.location || "-"}</td>
+                      <td>{formatDuration(event.durationMinutes)}</td>
+                      <td>
+                        <div class="buttons are-small">
+                          <Button
+                            href={`/ensembles/${canonicalId}/events/${event.id}`}
+                            color="info"
+                          >
+                            View
+                          </Button>
+                          {isAdmin && (
+                            <Button
+                              color="danger"
+                              class="delete-event-btn"
+                              data-event-id={event.id}
+                            >
+                              <Icon icon="fa-trash" />
+                            </Button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </Table>
           </div>
         )}
-      </div>
 
-      <TextInput name="location" label="Location" placeholder="Music Hall, Room 101" />
+        {pastEvents.length > 0 && (
+          <div>
+            <h2 class="title is-5 mb-3">Past</h2>
+            <Table>
+              <thead>
+                <tr>
+                  <th>Title</th>
+                  <th>Type</th>
+                  <th>Group</th>
+                  <th>Date</th>
+                  <th>Time</th>
+                  <th>Location</th>
+                  <th style="width: 100px;">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pastEvents.map((event) => {
+                  const scheduledDate = new Date(event.scheduledAt);
+                  return (
+                    <tr>
+                      <td>{event.title}</td>
+                      <td>
+                        {(() => {
+                          const ct = categoryTag(event.category);
+                          return (
+                            <span class={`tag is-light ${ct.color}`}>
+                              {ct.label}
+                            </span>
+                          );
+                        })()}
+                      </td>
+                      <td>
+                        {event.groupName ? (
+                          <Tag
+                            color={event.groupColor as any}
+                            size="small"
+                            light
+                          >
+                            {event.groupName}
+                          </Tag>
+                        ) : (
+                          <span class="has-text-grey-light">—</span>
+                        )}
+                      </td>
+                      <td>{scheduledDate.toLocaleDateString()}</td>
+                      <td>
+                        {scheduledDate.toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </td>
+                      <td>{event.location || "-"}</td>
+                      <td>
+                        <Button
+                          href={`/ensembles/${canonicalId}/events/${event.id}`}
+                          size="small"
+                        >
+                          {isAdmin ? "Attendance" : "Details"}
+                        </Button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </Table>
+          </div>
+        )}
+      </>
+    )
+  }
 
-      <div class="columns">
-        <div class="column">
-          <TextInput name="date" label="Date *" type="date" required />
-        </div>
-        <div class="column">
-          <TextInput name="time" label="Time *" type="time" required />
-        </div>
-        <div class="column">
-          <TextInput name="durationMinutes" label="Duration (min)" type="number" value="90" min="15" max="480" />
-        </div>
-      </div>
+  <Fragment slot="modals">
+    <!-- Create Event Modal -->
+    {
+      isAdmin && (
+        <Modal id="create-modal" title="Schedule Event">
+          <form id="createForm" method="POST" action={actions.events.create}>
+            <input type="hidden" name="ensembleId" value={ensemble.id} />
 
-      <div class="field">
-        <label class="label" for="description">Description</label>
-        <div class="control">
-          <textarea class="textarea" id="description" name="description" placeholder="Optional notes about this event" rows="3"></textarea>
-        </div>
-      </div>
-    </form>
+            <div class="columns">
+              <div class="column">
+                <TextInput
+                  name="title"
+                  label="Title *"
+                  placeholder="Weekly Rehearsal"
+                  required
+                />
+              </div>
+              <div class="column is-narrow">
+                <div class="field">
+                  <label class="label" for="category">
+                    Type *
+                  </label>
+                  <div class="control">
+                    <div class="select">
+                      <select id="category" name="category">
+                        <option value="rehearsal">Rehearsal</option>
+                        <option value="performance">Performance</option>
+                        <option value="social">Social</option>
+                        <option value="sectional">Sectional</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              {groups.length > 0 && (
+                <div class="column is-narrow">
+                  <div class="field">
+                    <label class="label" for="groupId">
+                      Group
+                    </label>
+                    <div class="control">
+                      <div class="select">
+                        <select id="groupId" name="groupId">
+                          <option value="">— All Members —</option>
+                          {groups.map((g) => (
+                            <option value={g.id}>{g.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
 
-    <div slot="footer">
-      <Button type="submit" form="createForm" color="primary">Schedule</Button>
-      <Button type="button" data-modal-close>Cancel</Button>
-    </div>
-  </Modal>
-)}
+            <TextInput
+              name="location"
+              label="Location"
+              placeholder="Music Hall, Room 101"
+            />
 
-<!-- Delete Confirmation Modal -->
-{isAdmin && (
-  <Modal id="delete-modal" title="Delete Event">
-    <p>Are you sure you want to delete this event? This action cannot be undone.</p>
-    <form id="deleteForm" method="POST" action={actions.events.delete}>
-      <input type="hidden" name="ensembleId" value={ensemble.id} />
-      <input type="hidden" name="eventId" id="deleteEventId" />
-    </form>
+            <div class="columns">
+              <div class="column">
+                <TextInput name="date" label="Date *" type="date" required />
+              </div>
+              <div class="column">
+                <TextInput name="time" label="Time *" type="time" required />
+              </div>
+              <div class="column">
+                <TextInput
+                  name="durationMinutes"
+                  label="Duration (min)"
+                  type="number"
+                  value="90"
+                  min="15"
+                  max="480"
+                />
+              </div>
+            </div>
 
-    <div slot="footer">
-      <Button type="submit" form="deleteForm" color="danger">Delete</Button>
-      <Button type="button" data-modal-close>Cancel</Button>
-    </div>
-  </Modal>
-)}
+            <div class="field">
+              <label class="label" for="description">
+                Description
+              </label>
+              <div class="control">
+                <textarea
+                  class="textarea"
+                  id="description"
+                  name="description"
+                  placeholder="Optional notes about this event"
+                  rows="3"
+                />
+              </div>
+            </div>
+          </form>
 
-<script is:inline>
-  document.addEventListener('astro:page-load', () => {
-    document.getElementById('create-event-btn')?.addEventListener('click', () => {
-      document.getElementById('create-modal')?.classList.add('is-active');
-    });
+          <div slot="footer">
+            <Button type="submit" form="createForm" color="primary">
+              Schedule
+            </Button>
+            <Button type="button" data-modal-close>
+              Cancel
+            </Button>
+          </div>
+        </Modal>
+      )
+    }
 
-    document.querySelectorAll('.delete-event-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.getElementById('deleteEventId').value = btn.getAttribute('data-event-id');
-        document.getElementById('delete-modal')?.classList.add('is-active');
+    <!-- Delete Confirmation Modal -->
+    {
+      isAdmin && (
+        <Modal id="delete-modal" title="Delete Event">
+          <p>
+            Are you sure you want to delete this event? This action cannot be
+            undone.
+          </p>
+          <form id="deleteForm" method="POST" action={actions.events.delete}>
+            <input type="hidden" name="ensembleId" value={ensemble.id} />
+            <input type="hidden" name="eventId" id="deleteEventId" />
+          </form>
+
+          <div slot="footer">
+            <Button type="submit" form="deleteForm" color="danger">
+              Delete
+            </Button>
+            <Button type="button" data-modal-close>
+              Cancel
+            </Button>
+          </div>
+        </Modal>
+      )
+    }
+
+    <script is:inline>
+      document.addEventListener("astro:page-load", () => {
+        document
+          .getElementById("create-event-btn")
+          ?.addEventListener("click", () => {
+            document.getElementById("create-modal")?.classList.add("is-active");
+          });
+
+        document.querySelectorAll(".delete-event-btn").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            document.getElementById("deleteEventId").value =
+              btn.getAttribute("data-event-id");
+            document.getElementById("delete-modal")?.classList.add("is-active");
+          });
+        });
       });
-    });
-  });
-</script>
+    </script>
   </Fragment>
 </EnsemblePageLayout>

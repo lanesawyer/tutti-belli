@@ -1,16 +1,16 @@
 ---
-import Layout from '../layouts/Layout.astro';
-import Button from '../components/elements/Button.astro';
-import Notification from '../components/elements/Notification.astro';
-import { db, eq, and, gt, isNull, User, EmailChangeToken } from 'astro:db';
+import Layout from "../layouts/Layout.astro";
+import Button from "../components/elements/Button.astro";
+import Notification from "../components/elements/Notification.astro";
+import { db, eq, and, gt, isNull, User, EmailChangeToken } from "astro:db";
 
-const token = Astro.url.searchParams.get('token');
-let error = '';
+const token = Astro.url.searchParams.get("token");
+let error = "";
 let success = false;
-let newEmailDisplay = '';
+let newEmailDisplay = "";
 
 if (!token) {
-  error = 'Invalid verification link.';
+  error = "Invalid verification link.";
 } else {
   const now = new Date();
 
@@ -22,11 +22,12 @@ if (!token) {
         eq(EmailChangeToken.token, token),
         gt(EmailChangeToken.expiresAt, now),
         isNull(EmailChangeToken.usedAt),
-      )
+      ),
     );
 
   if (!changeToken) {
-    error = 'This email verification link is invalid or has expired. Please request a new one from your profile.';
+    error =
+      "This email verification link is invalid or has expired. Please request a new one from your profile.";
   } else {
     const [conflict] = await db
       .select({ id: User.id })
@@ -39,7 +40,8 @@ if (!token) {
         .set({ usedAt: new Date() })
         .where(eq(EmailChangeToken.id, changeToken.id));
 
-      error = 'That email address has since been taken by another account. Please go back to your profile and request a new email change.';
+      error =
+        "That email address has since been taken by another account. Please go back to your profile and request a new email change.";
     } else {
       await db
         .update(User)
@@ -64,27 +66,38 @@ if (!token) {
       <div class="column is-5-tablet is-4-desktop">
         <h1 class="title">Email Change Verification</h1>
 
-        {error && (
-          <Notification color="danger" light>
-            <p>{error}</p>
-            <p class="mt-3">
-              <Button href="/profile" color="light">Back to Profile</Button>
-            </p>
-          </Notification>
-        )}
+        {
+          error && (
+            <Notification color="danger" light>
+              <p>{error}</p>
+              <p class="mt-3">
+                <Button href="/profile" color="light">
+                  Back to Profile
+                </Button>
+              </p>
+            </Notification>
+          )
+        }
 
-        {success && (
-          <Notification color="success" light>
-            <p><strong>Email address updated!</strong></p>
-            <p class="mt-2">
-              Your email has been changed to <strong>{newEmailDisplay}</strong>.
-              Please use this address to log in going forward.
-            </p>
-            <p class="mt-3">
-              <Button href="/profile" color="primary">Go to Profile</Button>
-            </p>
-          </Notification>
-        )}
+        {
+          success && (
+            <Notification color="success" light>
+              <p>
+                <strong>Email address updated!</strong>
+              </p>
+              <p class="mt-2">
+                Your email has been changed to{" "}
+                <strong>{newEmailDisplay}</strong>. Please use this address to
+                log in going forward.
+              </p>
+              <p class="mt-3">
+                <Button href="/profile" color="primary">
+                  Go to Profile
+                </Button>
+              </p>
+            </Notification>
+          )
+        }
       </div>
     </div>
   </section>

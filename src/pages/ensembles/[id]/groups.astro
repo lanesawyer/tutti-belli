@@ -1,16 +1,28 @@
 ---
-import EnsemblePageLayout from '../../../layouts/EnsemblePageLayout.astro';
-import Table from '../../../components/elements/Table.astro';
-import Modal from '../../../components/Modal.astro';
-import Button from '../../../components/elements/Button.astro';
-import Icon from '../../../components/elements/Icon.astro';
-import TextInput from '../../../components/elements/TextInput.astro';
-import Notification from '../../../components/elements/Notification.astro';
-import Tag from '../../../components/elements/Tag.astro';
-import type { Color } from '../../../lib/bulma';
-import { db, eq, and, desc, EnsembleMember, Group, GroupMembership, User } from 'astro:db';
-import { getEnsembleBySlugOrId, getEnsembleAccess } from '../../../lib/ensemble';
-import { getEnsembleUrlId } from '../../../lib/slug';
+import EnsemblePageLayout from "../../../layouts/EnsemblePageLayout.astro";
+import Table from "../../../components/elements/Table.astro";
+import Modal from "../../../components/Modal.astro";
+import Button from "../../../components/elements/Button.astro";
+import Icon from "../../../components/elements/Icon.astro";
+import TextInput from "../../../components/elements/TextInput.astro";
+import Notification from "../../../components/elements/Notification.astro";
+import Tag from "../../../components/elements/Tag.astro";
+import type { Color } from "../../../lib/bulma";
+import {
+  db,
+  eq,
+  and,
+  desc,
+  EnsembleMember,
+  Group,
+  GroupMembership,
+  User,
+} from "astro:db";
+import {
+  getEnsembleBySlugOrId,
+  getEnsembleAccess,
+} from "../../../lib/ensemble";
+import { getEnsembleUrlId } from "../../../lib/slug";
 
 const user = Astro.locals.user!;
 
@@ -18,38 +30,42 @@ const { id } = Astro.params;
 const ensemble = await getEnsembleBySlugOrId(id!);
 
 if (!ensemble) {
-  return new Response('Ensemble not found', { status: 404 });
+  return new Response("Ensemble not found", { status: 404 });
 }
 
 const canonicalId = getEnsembleUrlId(ensemble);
-if (Astro.request.method === 'GET' && id !== canonicalId) {
-  return Astro.redirect(Astro.url.pathname.replace(`/ensembles/${id}`, `/ensembles/${canonicalId}`), 301);
+if (Astro.request.method === "GET" && id !== canonicalId) {
+  return Astro.redirect(
+    Astro.url.pathname.replace(`/ensembles/${id}`, `/ensembles/${canonicalId}`),
+    301,
+  );
 }
 
 const access = await getEnsembleAccess(user, ensemble.id);
-if (!access) return new Response('Unauthorized - Not a member', { status: 403 });
+if (!access)
+  return new Response("Unauthorized - Not a member", { status: 403 });
 const { isAdmin } = access;
 
-let message = '';
-let messageType: 'success' | 'danger' | undefined;
+let message = "";
+let messageType: "success" | "danger" | undefined;
 
 // Handle form submission
-if (Astro.request.method === 'POST') {
+if (Astro.request.method === "POST") {
   if (!isAdmin) {
-    return new Response('Unauthorized', { status: 403 });
+    return new Response("Unauthorized", { status: 403 });
   }
 
   const formData = await Astro.request.formData();
-  const action = formData.get('action')?.toString();
+  const action = formData.get("action")?.toString();
 
-  if (action === 'create') {
-    const name = formData.get('name')?.toString();
-    const description = formData.get('description')?.toString();
-    const color = formData.get('color')?.toString() || 'info';
+  if (action === "create") {
+    const name = formData.get("name")?.toString();
+    const description = formData.get("description")?.toString();
+    const color = formData.get("color")?.toString() || "info";
 
     if (!name || !name.trim()) {
-      message = 'Group name is required';
-      messageType = 'danger';
+      message = "Group name is required";
+      messageType = "danger";
     } else {
       await db.insert(Group).values({
         id: crypto.randomUUID(),
@@ -58,43 +74,56 @@ if (Astro.request.method === 'POST') {
         description: description?.trim() || null,
         color,
       });
-      message = 'Group created successfully!';
-      messageType = 'success';
+      message = "Group created successfully!";
+      messageType = "success";
     }
-  } else if (action === 'edit') {
-    const groupId = formData.get('groupId')?.toString();
-    const name = formData.get('name')?.toString();
-    const description = formData.get('description')?.toString();
-    const color = formData.get('color')?.toString() || 'info';
+  } else if (action === "edit") {
+    const groupId = formData.get("groupId")?.toString();
+    const name = formData.get("name")?.toString();
+    const description = formData.get("description")?.toString();
+    const color = formData.get("color")?.toString() || "info";
 
     if (groupId && name && name.trim()) {
       await db
         .update(Group)
-        .set({ name: name.trim(), description: description?.trim() || null, color })
+        .set({
+          name: name.trim(),
+          description: description?.trim() || null,
+          color,
+        })
         .where(eq(Group.id, groupId));
-      message = 'Group updated successfully!';
-      messageType = 'success';
+      message = "Group updated successfully!";
+      messageType = "success";
     }
-  } else if (action === 'delete') {
-    const groupId = formData.get('groupId')?.toString();
+  } else if (action === "delete") {
+    const groupId = formData.get("groupId")?.toString();
     if (groupId) {
-      await db.delete(GroupMembership).where(eq(GroupMembership.groupId, groupId));
+      await db
+        .delete(GroupMembership)
+        .where(eq(GroupMembership.groupId, groupId));
       await db.delete(Group).where(eq(Group.id, groupId));
-      message = 'Group deleted successfully!';
-      messageType = 'success';
+      message = "Group deleted successfully!";
+      messageType = "success";
     }
-  } else if (action === 'toggle-member') {
-    const groupId = formData.get('groupId')?.toString();
-    const userId = formData.get('userId')?.toString();
+  } else if (action === "toggle-member") {
+    const groupId = formData.get("groupId")?.toString();
+    const userId = formData.get("userId")?.toString();
 
     if (groupId && userId) {
       const [existing] = await db
         .select()
         .from(GroupMembership)
-        .where(and(eq(GroupMembership.groupId, groupId), eq(GroupMembership.userId, userId)));
+        .where(
+          and(
+            eq(GroupMembership.groupId, groupId),
+            eq(GroupMembership.userId, userId),
+          ),
+        );
 
       if (existing) {
-        await db.delete(GroupMembership).where(eq(GroupMembership.id, existing.id));
+        await db
+          .delete(GroupMembership)
+          .where(eq(GroupMembership.id, existing.id));
       } else {
         await db.insert(GroupMembership).values({
           id: crypto.randomUUID(),
@@ -122,23 +151,30 @@ const allMembers = await db
 
 // Get group memberships
 const groupMemberships = await db
-  .select({ groupId: GroupMembership.groupId, userId: GroupMembership.userId, userName: User.name })
+  .select({
+    groupId: GroupMembership.groupId,
+    userId: GroupMembership.userId,
+    userName: User.name,
+  })
   .from(GroupMembership)
   .innerJoin(User, eq(GroupMembership.userId, User.id));
 
-const membershipsByGroupId = groupMemberships.reduce((acc, m) => {
-  if (!acc[m.groupId]) acc[m.groupId] = [];
-  acc[m.groupId].push(m);
-  return acc;
-}, {} as Record<string, typeof groupMemberships>);
+const membershipsByGroupId = groupMemberships.reduce(
+  (acc, m) => {
+    if (!acc[m.groupId]) acc[m.groupId] = [];
+    acc[m.groupId].push(m);
+    return acc;
+  },
+  {} as Record<string, typeof groupMemberships>,
+);
 
 const colorOptions = [
-  { value: 'primary', label: 'Primary (Turquoise)' },
-  { value: 'link', label: 'Link (Blue)' },
-  { value: 'info', label: 'Info (Cyan)' },
-  { value: 'success', label: 'Success (Green)' },
-  { value: 'warning', label: 'Warning (Yellow)' },
-  { value: 'danger', label: 'Danger (Red)' },
+  { value: "primary", label: "Primary (Turquoise)" },
+  { value: "link", label: "Link (Blue)" },
+  { value: "info", label: "Info (Cyan)" },
+  { value: "success", label: "Success (Green)" },
+  { value: "warning", label: "Warning (Yellow)" },
+  { value: "danger", label: "Danger (Red)" },
 ];
 ---
 
@@ -152,252 +188,341 @@ const colorOptions = [
   messageType={messageType}
   isAdmin={isAdmin}
 >
-  {isAdmin && (
-    <Button slot="action" color="primary" id="create-group-btn">
-      <Icon icon="fa-plus" />
-      <span>Create Group</span>
-    </Button>
-  )}
+  {
+    isAdmin && (
+      <Button slot="action" color="primary" id="create-group-btn">
+        <Icon icon="fa-plus" />
+        <span>Create Group</span>
+      </Button>
+    )
+  }
 
-  {groups.length === 0 ? (
-    <Notification color="info" light>
-      No groups yet. {isAdmin && 'Create one to organize your members!'}
-    </Notification>
-  ) : (
-    <Table>
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Description</th>
-          <th>Members</th>
-          {isAdmin && <th style="width: 160px;">Actions</th>}
-        </tr>
-      </thead>
-      <tbody>
-        {groups.map((group) => {
-          const members = membershipsByGroupId[group.id] || [];
-          return (
-            <tr>
-              <td>
-                <Tag color={group.color as Color} class="mr-2">{group.name}</Tag>
-              </td>
-              <td>{group.description || '-'}</td>
-              <td>
-                {members.length > 0 ? (
-                  <div class="tags are-small">
-                    {members.map(m => <Tag>{m.userName}</Tag>)}
-                  </div>
-                ) : (
-                  <span class="has-text-grey-light is-italic">None</span>
-                )}
-              </td>
-              {isAdmin && (
+  {
+    groups.length === 0 ? (
+      <Notification color="info" light>
+        No groups yet. {isAdmin && "Create one to organize your members!"}
+      </Notification>
+    ) : (
+      <Table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Description</th>
+            <th>Members</th>
+            {isAdmin && <th style="width: 160px;">Actions</th>}
+          </tr>
+        </thead>
+        <tbody>
+          {groups.map((group) => {
+            const members = membershipsByGroupId[group.id] || [];
+            return (
+              <tr>
                 <td>
-                  <div class="buttons are-small">
-                    <Button
-                      color="info"
-                      class="manage-members-btn"
-                      data-group-id={group.id}
-                    >
-                      <Icon icon="fa-users" />
-                    </Button>
-                    <Button
-                      color="warning"
-                      class="edit-group-btn"
-                      data-group-id={group.id}
-                      data-group-name={group.name}
-                      data-group-description={group.description || ''}
-                      data-group-color={group.color}
-                    >
-                      <Icon icon="fa-edit" />
-                    </Button>
-                    <Button
-                      color="danger"
-                      class="delete-group-btn"
-                      data-group-id={group.id}
-                    >
-                      <Icon icon="fa-trash" />
-                    </Button>
-                  </div>
+                  <Tag color={group.color as Color} class="mr-2">
+                    {group.name}
+                  </Tag>
                 </td>
-              )}
-            </tr>
-          );
-        })}
-      </tbody>
-    </Table>
-  )}
+                <td>{group.description || "-"}</td>
+                <td>
+                  {members.length > 0 ? (
+                    <div class="tags are-small">
+                      {members.map((m) => (
+                        <Tag>{m.userName}</Tag>
+                      ))}
+                    </div>
+                  ) : (
+                    <span class="has-text-grey-light is-italic">None</span>
+                  )}
+                </td>
+                {isAdmin && (
+                  <td>
+                    <div class="buttons are-small">
+                      <Button
+                        color="info"
+                        class="manage-members-btn"
+                        data-group-id={group.id}
+                      >
+                        <Icon icon="fa-users" />
+                      </Button>
+                      <Button
+                        color="warning"
+                        class="edit-group-btn"
+                        data-group-id={group.id}
+                        data-group-name={group.name}
+                        data-group-description={group.description || ""}
+                        data-group-color={group.color}
+                      >
+                        <Icon icon="fa-edit" />
+                      </Button>
+                      <Button
+                        color="danger"
+                        class="delete-group-btn"
+                        data-group-id={group.id}
+                      >
+                        <Icon icon="fa-trash" />
+                      </Button>
+                    </div>
+                  </td>
+                )}
+              </tr>
+            );
+          })}
+        </tbody>
+      </Table>
+    )
+  }
 
   <Fragment slot="modals">
-<!-- Create Group Modal -->
-{isAdmin && (
-  <Modal id="create-modal" title="Create Group">
-    <form id="createForm" method="POST">
-      <input type="hidden" name="action" value="create" />
+    <!-- Create Group Modal -->
+    {
+      isAdmin && (
+        <Modal id="create-modal" title="Create Group">
+          <form id="createForm" method="POST">
+            <input type="hidden" name="action" value="create" />
 
-      <TextInput name="name" id="create-name" label="Group Name *" placeholder="e.g., Section Leaders, Board Members" required />
+            <TextInput
+              name="name"
+              id="create-name"
+              label="Group Name *"
+              placeholder="e.g., Section Leaders, Board Members"
+              required
+            />
 
-      <div class="field">
-        <label class="label" for="create-description">Description</label>
-        <div class="control">
-          <textarea class="textarea" id="create-description" name="description" placeholder="Optional description of the group's purpose" rows="3"></textarea>
-        </div>
-      </div>
+            <div class="field">
+              <label class="label" for="create-description">
+                Description
+              </label>
+              <div class="control">
+                <textarea
+                  class="textarea"
+                  id="create-description"
+                  name="description"
+                  placeholder="Optional description of the group's purpose"
+                  rows="3"
+                />
+              </div>
+            </div>
 
-      <div class="field">
-        <label class="label" for="create-color">Badge Color</label>
-        <div class="control">
-          <div class="select is-fullwidth">
-            <select id="create-color" name="color">
-              {colorOptions.map(option => (
-                <option value={option.value} selected={option.value === 'info'}>{option.label}</option>
-              ))}
-            </select>
+            <div class="field">
+              <label class="label" for="create-color">
+                Badge Color
+              </label>
+              <div class="control">
+                <div class="select is-fullwidth">
+                  <select id="create-color" name="color">
+                    {colorOptions.map((option) => (
+                      <option
+                        value={option.value}
+                        selected={option.value === "info"}
+                      >
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+          </form>
+
+          <div slot="footer">
+            <Button type="submit" form="createForm" color="primary">
+              Create Group
+            </Button>
+            <Button type="button" data-modal-close>
+              Cancel
+            </Button>
           </div>
-        </div>
-      </div>
-    </form>
+        </Modal>
+      )
+    }
 
-    <div slot="footer">
-      <Button type="submit" form="createForm" color="primary">Create Group</Button>
-      <Button type="button" data-modal-close>Cancel</Button>
-    </div>
-  </Modal>
-)}
+    <!-- Edit Group Modal -->
+    {
+      isAdmin && (
+        <Modal id="edit-modal" title="Edit Group">
+          <form id="editForm" method="POST">
+            <input type="hidden" name="action" value="edit" />
+            <input type="hidden" name="groupId" id="edit-groupId" />
 
-<!-- Edit Group Modal -->
-{isAdmin && (
-  <Modal id="edit-modal" title="Edit Group">
-    <form id="editForm" method="POST">
-      <input type="hidden" name="action" value="edit" />
-      <input type="hidden" name="groupId" id="edit-groupId" />
+            <TextInput
+              name="name"
+              id="edit-name"
+              label="Group Name *"
+              required
+            />
 
-      <TextInput name="name" id="edit-name" label="Group Name *" required />
+            <div class="field">
+              <label class="label" for="edit-description">
+                Description
+              </label>
+              <div class="control">
+                <textarea
+                  class="textarea"
+                  id="edit-description"
+                  name="description"
+                  rows="3"
+                />
+              </div>
+            </div>
 
-      <div class="field">
-        <label class="label" for="edit-description">Description</label>
-        <div class="control">
-          <textarea class="textarea" id="edit-description" name="description" rows="3"></textarea>
-        </div>
-      </div>
+            <div class="field">
+              <label class="label" for="edit-color">
+                Badge Color
+              </label>
+              <div class="control">
+                <div class="select is-fullwidth">
+                  <select id="edit-color" name="color">
+                    {colorOptions.map((option) => (
+                      <option value={option.value}>{option.label}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+          </form>
 
-      <div class="field">
-        <label class="label" for="edit-color">Badge Color</label>
-        <div class="control">
-          <div class="select is-fullwidth">
-            <select id="edit-color" name="color">
-              {colorOptions.map(option => (
-                <option value={option.value}>{option.label}</option>
-              ))}
-            </select>
+          <div slot="footer">
+            <Button type="submit" form="editForm" color="primary">
+              Save Changes
+            </Button>
+            <Button type="button" data-modal-close>
+              Cancel
+            </Button>
           </div>
-        </div>
-      </div>
-    </form>
+        </Modal>
+      )
+    }
 
-    <div slot="footer">
-      <Button type="submit" form="editForm" color="primary">Save Changes</Button>
-      <Button type="button" data-modal-close>Cancel</Button>
-    </div>
-  </Modal>
-)}
+    <!-- Manage Members Modal -->
+    {
+      isAdmin && (
+        <Modal id="members-modal" title="Manage Group Members">
+          <input type="hidden" id="members-groupId" />
+          <p class="mb-3">Select which members belong to this group:</p>
+          {allMembers.map((member) => (
+            <div class="field">
+              <div class="control">
+                <label class="checkbox">
+                  <input
+                    type="checkbox"
+                    class="member-checkbox"
+                    data-user-id={member.id}
+                  />
+                  {member.name}
+                </label>
+              </div>
+            </div>
+          ))}
 
-<!-- Manage Members Modal -->
-{isAdmin && (
-  <Modal id="members-modal" title="Manage Group Members">
-    <input type="hidden" id="members-groupId" />
-    <p class="mb-3">Select which members belong to this group:</p>
-    {allMembers.map((member) => (
-      <div class="field">
-        <div class="control">
-          <label class="checkbox">
-            <input type="checkbox" class="member-checkbox" data-user-id={member.id} />
-            {member.name}
-          </label>
-        </div>
-      </div>
-    ))}
+          <div slot="footer">
+            <Button type="button" id="close-members-btn">
+              Done
+            </Button>
+          </div>
+        </Modal>
+      )
+    }
 
-    <div slot="footer">
-      <Button type="button" id="close-members-btn">Done</Button>
-    </div>
-  </Modal>
-)}
+    <!-- Delete Confirmation Modal -->
+    {
+      isAdmin && (
+        <Modal id="delete-modal" title="Delete Group">
+          <p>
+            Are you sure you want to delete this group? This action cannot be
+            undone.
+          </p>
+          <form id="deleteForm" method="POST">
+            <input type="hidden" name="action" value="delete" />
+            <input type="hidden" name="groupId" id="delete-groupId" />
+          </form>
 
-<!-- Delete Confirmation Modal -->
-{isAdmin && (
-  <Modal id="delete-modal" title="Delete Group">
-    <p>Are you sure you want to delete this group? This action cannot be undone.</p>
-    <form id="deleteForm" method="POST">
-      <input type="hidden" name="action" value="delete" />
-      <input type="hidden" name="groupId" id="delete-groupId" />
-    </form>
+          <div slot="footer">
+            <Button type="submit" form="deleteForm" color="danger">
+              Delete Group
+            </Button>
+            <Button type="button" data-modal-close>
+              Cancel
+            </Button>
+          </div>
+        </Modal>
+      )
+    }
 
-    <div slot="footer">
-      <Button type="submit" form="deleteForm" color="danger">Delete Group</Button>
-      <Button type="button" data-modal-close>Cancel</Button>
-    </div>
-  </Modal>
-)}
+    <script is:inline define:vars={{ membershipsByGroupId }}>
+      document.addEventListener("astro:page-load", () => {
+        document
+          .getElementById("create-group-btn")
+          ?.addEventListener("click", () => {
+            document.getElementById("create-modal")?.classList.add("is-active");
+          });
 
-<script is:inline define:vars={{ membershipsByGroupId }}>
-  document.addEventListener('astro:page-load', () => {
-    document.getElementById('create-group-btn')?.addEventListener('click', () => {
-      document.getElementById('create-modal')?.classList.add('is-active');
-    });
-
-    document.querySelectorAll('.edit-group-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.getElementById('edit-groupId').value = btn.getAttribute('data-group-id');
-        document.getElementById('edit-name').value = btn.getAttribute('data-group-name');
-        document.getElementById('edit-description').value = btn.getAttribute('data-group-description');
-        document.getElementById('edit-color').value = btn.getAttribute('data-group-color');
-        document.getElementById('edit-modal')?.classList.add('is-active');
-      });
-    });
-
-    document.querySelectorAll('.manage-members-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const groupId = btn.getAttribute('data-group-id');
-        document.getElementById('members-groupId').value = groupId;
-
-        const groupMembers = membershipsByGroupId[groupId] || [];
-        const memberUserIds = new Set(groupMembers.map(m => m.userId));
-
-        document.querySelectorAll('.member-checkbox').forEach(checkbox => {
-          checkbox.checked = memberUserIds.has(checkbox.getAttribute('data-user-id'));
+        document.querySelectorAll(".edit-group-btn").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            document.getElementById("edit-groupId").value =
+              btn.getAttribute("data-group-id");
+            document.getElementById("edit-name").value =
+              btn.getAttribute("data-group-name");
+            document.getElementById("edit-description").value =
+              btn.getAttribute("data-group-description");
+            document.getElementById("edit-color").value =
+              btn.getAttribute("data-group-color");
+            document.getElementById("edit-modal")?.classList.add("is-active");
+          });
         });
 
-        document.getElementById('members-modal')?.classList.add('is-active');
+        document.querySelectorAll(".manage-members-btn").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const groupId = btn.getAttribute("data-group-id");
+            document.getElementById("members-groupId").value = groupId;
+
+            const groupMembers = membershipsByGroupId[groupId] || [];
+            const memberUserIds = new Set(groupMembers.map((m) => m.userId));
+
+            document
+              .querySelectorAll(".member-checkbox")
+              .forEach((checkbox) => {
+                checkbox.checked = memberUserIds.has(
+                  checkbox.getAttribute("data-user-id"),
+                );
+              });
+
+            document
+              .getElementById("members-modal")
+              ?.classList.add("is-active");
+          });
+        });
+
+        document.querySelectorAll(".member-checkbox").forEach((checkbox) => {
+          checkbox.addEventListener("change", async () => {
+            const groupId = document.getElementById("members-groupId").value;
+            const userId = checkbox.getAttribute("data-user-id");
+
+            const formData = new FormData();
+            formData.append("action", "toggle-member");
+            formData.append("groupId", groupId);
+            formData.append("userId", userId);
+
+            await fetch("", { method: "POST", body: formData });
+          });
+        });
+
+        document
+          .getElementById("close-members-btn")
+          ?.addEventListener("click", () => {
+            document
+              .getElementById("members-modal")
+              ?.classList.remove("is-active");
+            window.location.reload();
+          });
+
+        document.querySelectorAll(".delete-group-btn").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            document.getElementById("delete-groupId").value =
+              btn.getAttribute("data-group-id");
+            document.getElementById("delete-modal")?.classList.add("is-active");
+          });
+        });
       });
-    });
-
-    document.querySelectorAll('.member-checkbox').forEach(checkbox => {
-      checkbox.addEventListener('change', async () => {
-        const groupId = document.getElementById('members-groupId').value;
-        const userId = checkbox.getAttribute('data-user-id');
-
-        const formData = new FormData();
-        formData.append('action', 'toggle-member');
-        formData.append('groupId', groupId);
-        formData.append('userId', userId);
-
-        await fetch('', { method: 'POST', body: formData });
-      });
-    });
-
-    document.getElementById('close-members-btn')?.addEventListener('click', () => {
-      document.getElementById('members-modal')?.classList.remove('is-active');
-      window.location.reload();
-    });
-
-    document.querySelectorAll('.delete-group-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.getElementById('delete-groupId').value = btn.getAttribute('data-group-id');
-        document.getElementById('delete-modal')?.classList.add('is-active');
-      });
-    });
-  });
-</script>
+    </script>
   </Fragment>
 </EnsemblePageLayout>

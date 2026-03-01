@@ -1,9 +1,9 @@
 ---
-import { deleteSession } from '../lib/session';
+import { deleteSession } from "../lib/session";
 
 deleteSession();
 
-Astro.cookies.delete('session', { path: '/' });
+Astro.cookies.delete("session", { path: "/" });
 
-return Astro.redirect('/');
+return Astro.redirect("/");
 ---
