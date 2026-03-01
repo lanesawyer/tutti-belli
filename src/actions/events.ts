@@ -26,14 +26,15 @@ export const events = {
       time: z.string().min(1, 'Time is required.'),
       location: z.string().optional(),
       durationMinutes: z.coerce.number().int().min(15).max(480).default(90),
-      category: z.enum(['rehearsal', 'performance']).default('rehearsal'),
+      category: z.enum(['rehearsal', 'performance', 'social', 'sectional']).default('rehearsal'),
+      groupId: z.string().optional(),
     }),
     handler: async (input, context) => {
       const user = context.locals.user;
       if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
       await assertEnsembleAdmin(input.ensembleId, user);
       try {
-        await createEvent(input);
+        await createEvent({ ...input, groupId: input.groupId || undefined });
       } catch (e) {
         throw new ActionError({ code: 'BAD_REQUEST', message: (e as Error).message });
       }
@@ -65,12 +66,13 @@ export const events = {
       time: z.string().min(1, 'Time is required.'),
       location: z.string().optional(),
       durationMinutes: z.coerce.number().int().min(15).max(480).default(90),
+      groupId: z.string().optional(),
     }),
     handler: async ({ ensembleId, ...params }, context) => {
       const user = context.locals.user;
       if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
       await assertEnsembleAdmin(ensembleId, user);
-      await editEvent(params);
+      await editEvent({ ...params, groupId: params.groupId || null });
     },
   }),
 

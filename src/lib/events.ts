@@ -1,4 +1,4 @@
-import { db, eq, and, Ensemble, Event, EventProgram, Attendance, Season, User, EnsembleMember, Song, SeasonSong } from 'astro:db';
+import { db, eq, and, Ensemble, Event, EventProgram, Attendance, Season, User, EnsembleMember, Song, SeasonSong, Group, GroupMembership } from 'astro:db';
 
 // ─── Queries ────────────────────────────────────────────────────────────────
 
@@ -7,7 +7,7 @@ export async function getEvent(eventId: string) {
 }
 
 export async function getEventPageData(ensembleId: string, eventId: string) {
-  const [event, ensembleData, attendanceRecords, allMembers] = await Promise.all([
+  const [event, ensembleData, attendanceRecords] = await Promise.all([
     db.select().from(Event).where(eq(Event.id, eventId)).get(),
     db.select().from(Ensemble).where(eq(Ensemble.id, ensembleId)).get(),
     db
@@ -22,15 +22,49 @@ export async function getEventPageData(ensembleId: string, eventId: string) {
       .innerJoin(User, eq(Attendance.userId, User.id))
       .where(eq(Attendance.eventId, eventId))
       .all(),
-    db
+  ]);
+
+  let group: { id: string; name: string; color: string } | null = null;
+  let allMembers: { id: string; name: string; email: string }[];
+
+  if (event?.groupId) {
+    const [groupRow, groupMembers] = await Promise.all([
+      db.select({ id: Group.id, name: Group.name, color: Group.color })
+        .from(Group)
+        .where(eq(Group.id, event.groupId))
+        .get(),
+      db.select({ id: User.id, name: User.name, email: User.email })
+        .from(GroupMembership)
+        .innerJoin(User, eq(GroupMembership.userId, User.id))
+        .innerJoin(EnsembleMember, and(
+          eq(EnsembleMember.userId, User.id),
+          eq(EnsembleMember.ensembleId, ensembleId),
+        ))
+        .where(eq(GroupMembership.groupId, event.groupId))
+        .all(),
+    ]);
+    if (groupRow) {
+      group = groupRow;
+      allMembers = groupMembers;
+    } else {
+      // Group was deleted — fall back to all ensemble members
+      allMembers = await db
+        .select({ id: User.id, name: User.name, email: User.email })
+        .from(EnsembleMember)
+        .innerJoin(User, eq(EnsembleMember.userId, User.id))
+        .where(eq(EnsembleMember.ensembleId, ensembleId))
+        .all();
+    }
+  } else {
+    allMembers = await db
       .select({ id: User.id, name: User.name, email: User.email })
       .from(EnsembleMember)
       .innerJoin(User, eq(EnsembleMember.userId, User.id))
       .where(eq(EnsembleMember.ensembleId, ensembleId))
-      .all(),
-  ]);
+      .all();
+  }
 
-  return { event: event ?? null, ensembleData: ensembleData ?? null, attendanceRecords, allMembers };
+  return { event: event ?? null, ensembleData: ensembleData ?? null, attendanceRecords, allMembers, group };
 }
 
 export async function getEventProgramData(eventId: string, seasonId: string) {
@@ -65,21 +99,43 @@ export async function getEventProgramData(eventId: string, seasonId: string) {
 }
 
 export async function getEventsPageData(ensembleId: string) {
-  const [activeSeason, events] = await Promise.all([
+  const [activeSeason, events, groups] = await Promise.all([
     db
       .select()
       .from(Season)
       .where(and(eq(Season.ensembleId, ensembleId), eq(Season.isActive, 1)))
       .get(),
     db
-      .select()
+      .select({
+        id: Event.id,
+        ensembleId: Event.ensembleId,
+        seasonId: Event.seasonId,
+        category: Event.category,
+        title: Event.title,
+        description: Event.description,
+        scheduledAt: Event.scheduledAt,
+        durationMinutes: Event.durationMinutes,
+        location: Event.location,
+        checkInCode: Event.checkInCode,
+        groupId: Event.groupId,
+        groupName: Group.name,
+        groupColor: Group.color,
+        createdAt: Event.createdAt,
+      })
       .from(Event)
+      .leftJoin(Group, eq(Event.groupId, Group.id))
       .where(eq(Event.ensembleId, ensembleId))
       .orderBy(Event.scheduledAt)
       .all(),
+    db
+      .select({ id: Group.id, name: Group.name, color: Group.color })
+      .from(Group)
+      .where(eq(Group.ensembleId, ensembleId))
+      .orderBy(Group.name)
+      .all(),
   ]);
 
-  return { activeSeason: activeSeason ?? null, events };
+  return { activeSeason: activeSeason ?? null, events, groups };
 }
 
 // ─── Mutations ──────────────────────────────────────────────────────────────
@@ -93,8 +149,9 @@ export async function createEvent(params: {
   location?: string;
   durationMinutes: number;
   category: 'rehearsal' | 'performance';
+  groupId?: string;
 }) {
-  const { ensembleId, title, description, date, time, location, durationMinutes, category } = params;
+  const { ensembleId, title, description, date, time, location, durationMinutes, category, groupId } = params;
 
   const activeSeason = await db
     .select()
@@ -120,6 +177,7 @@ export async function createEvent(params: {
     durationMinutes,
     location: location || '',
     checkInCode,
+    groupId: groupId || null,
   });
 }
 
@@ -135,8 +193,9 @@ export async function editEvent(params: {
   time: string;
   location?: string;
   durationMinutes: number;
+  groupId?: string | null;
 }) {
-  const { eventId, title, description, date, time, location, durationMinutes } = params;
+  const { eventId, title, description, date, time, location, durationMinutes, groupId } = params;
   const scheduledAt = new Date(`${date}T${time}`);
 
   await db.update(Event)
@@ -146,6 +205,7 @@ export async function editEvent(params: {
       scheduledAt,
       durationMinutes,
       location: location?.trim() || '',
+      groupId: groupId || null,
     })
     .where(eq(Event.id, eventId));
 }

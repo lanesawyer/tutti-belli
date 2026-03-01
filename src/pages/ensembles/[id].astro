@@ -176,22 +176,18 @@ const allEvents = await db
   .orderBy(Event.scheduledAt);
 
 const now = new Date();
-const upcomingRehearsals = allEvents
+const userGroupIds = new Set((userGroups.get(user.id) ?? []).map((g: { id: string }) => g.id));
+const upcomingEvents = allEvents
   .filter(e => {
     const endTime = new Date(new Date(e.scheduledAt).getTime() + (e.durationMinutes * 60 * 1000));
-    return endTime > now && e.category === 'rehearsal';
+    const isUpcoming = endTime > now;
+    const canSee = !e.groupId || userGroupIds.has(e.groupId) || isAdmin;
+    return isUpcoming && canSee;
   })
-  .slice(0, 5);
-
-const upcomingPerformances = allEvents
-  .filter(e => {
-    const endTime = new Date(new Date(e.scheduledAt).getTime() + (e.durationMinutes * 60 * 1000));
-    return endTime > now && e.category === 'performance';
-  })
-  .slice(0, 5);
+  .slice(0, 10);
 
 // Fetch program songs for all upcoming events in one batch query
-const allUpcomingIds = [...upcomingRehearsals, ...upcomingPerformances].map(e => e.id);
+const allUpcomingIds = upcomingEvents.map(e => e.id);
 const upcomingProgramRows = allUpcomingIds.length > 0
   ? await db
       .select({
@@ -448,15 +444,15 @@ if (Astro.request.method === 'POST') {
         )}
       </DashboardSection>
 
-      <!-- Upcoming Rehearsals Section -->
+      <!-- Upcoming Events Section -->
       <DashboardSection
-        title="Upcoming Rehearsals"
+        title="Upcoming Events"
         viewAllHref={`/ensembles/${canonicalId}/events`}
         viewAllColor="is-primary"
       >
-        {upcomingRehearsals.length === 0 ? (
+        {upcomingEvents.length === 0 ? (
           <Notification color="info" light>
-            <p class="has-text-centered">No upcoming rehearsals.</p>
+            <p class="has-text-centered">No upcoming events.</p>
             {isAdmin && (
               <p class="has-text-centered mt-2">
                 <Button href={`/ensembles/${canonicalId}/events`} color="primary" size="small">
@@ -467,81 +463,19 @@ if (Astro.request.method === 'POST') {
           </Notification>
         ) : (
           <div class="content">
-            {upcomingRehearsals.map((event) => {
+            {upcomingEvents.map((event) => {
               const scheduledDate = new Date(event.scheduledAt);
               const isToday = scheduledDate.toDateString() === new Date().toDateString();
+              const catColor = event.category === 'performance' ? 'warning' : event.category === 'social' ? 'success' : event.category === 'sectional' ? 'info' : 'primary';
+              const catLabel = event.category === 'performance' ? 'Performance' : event.category === 'social' ? 'Social' : event.category === 'sectional' ? 'Sectional' : 'Rehearsal';
 
               return (
-                <Message color={isToday ? 'success' : 'primary'}>
-                  <a slot="header" href={`/ensembles/${canonicalId}/events/${event.id}`} class="has-text-white">
-                    {event.title}
-                    {isToday && <Tag color="dark" class="ml-2">Today</Tag>}
-                  </a>
-                  <small slot="header" class="has-text-weight-normal">
-                    {scheduledDate.toLocaleDateString()} at {scheduledDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · {formatDuration(event.durationMinutes)}
-                  </small>
-                  {event.location && (
-                    <p class="mb-2">
-                      <span class="icon-text">
-                        <Icon icon="fa-map-marker-alt" />
-                        <span>{event.location}</span>
-                      </span>
-                    </p>
-                  )}
-                  {event.description && (
-                    <p style="white-space: pre-wrap;">{event.description}</p>
-                  )}
-                  {(() => {
-                    const songs = programByEventId.get(event.id) ?? [];
-                    if (songs.length === 0) return null;
-                    return (
-                      <ul class="mt-2 mb-1">
-                        {songs.map(s => (
-                          <li>
-                            <span class="has-text-weight-semibold">{s.songName}</span>
-                            {s.composer && <span class="has-text-grey is-size-7"> — {s.composer}</span>}
-                            {s.notes && <span class="is-size-7"> · {s.notes}</span>}
-                          </li>
-                        ))}
-                      </ul>
-                    );
-                  })()}
-                </Message>
-              );
-            })}
-          </div>
-        )}
-      </DashboardSection>
-
-      <!-- Upcoming Performances Section -->
-      <DashboardSection
-        title="Upcoming Performances"
-        viewAllHref={`/ensembles/${canonicalId}/events`}
-        viewAllColor="is-warning"
-      >
-        {upcomingPerformances.length === 0 ? (
-          <Notification color="info" light>
-            <p class="has-text-centered">No upcoming performances.</p>
-            {isAdmin && (
-              <p class="has-text-centered mt-2">
-                <Button href={`/ensembles/${canonicalId}/events`} color="warning" size="small">
-                  Schedule Performance
-                </Button>
-              </p>
-            )}
-          </Notification>
-        ) : (
-          <div class="content">
-            {upcomingPerformances.map((event) => {
-              const scheduledDate = new Date(event.scheduledAt);
-              const isToday = scheduledDate.toDateString() === new Date().toDateString();
-
-              return (
-                <Message color={isToday ? 'success' : 'warning'}>
-                  <a slot="header" href={`/ensembles/${canonicalId}/events/${event.id}`} class="has-text-white">
-                    {event.title}
-                    {isToday && <Tag color="dark" class="ml-2">Today</Tag>}
-                  </a>
+                <Message color={isToday ? 'success' : catColor}>
+                  <div slot="header">
+                    <a href={`/ensembles/${canonicalId}/events/${event.id}`} class="has-text-white">{event.title}</a>
+                    {isToday && <Tag class="ml-2">Today</Tag>}
+                    <Tag class="ml-2">{catLabel}</Tag>
+                  </div>
                   <small slot="header" class="has-text-weight-normal">
                     {scheduledDate.toLocaleDateString()} at {scheduledDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · {formatDuration(event.durationMinutes)}
                   </small>

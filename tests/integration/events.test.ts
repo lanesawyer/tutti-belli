@@ -9,16 +9,20 @@ import {
   addProgramSong,
   removeProgramSong,
   updateProgramSongNotes,
+  getEventPageData,
 } from '../../src/lib/events.ts';
-import { db, Attendance, Event, EventProgram, eq, and } from 'astro:db';
+import { db, Attendance, Event, EventProgram, GroupMembership, eq, and } from 'astro:db';
 import {
   createUser,
   createEnsemble,
+  createMembership,
   createSeason,
   createEvent,
   createSong,
   createSeasonSong,
   createEventProgramEntry,
+  createGroup,
+  createGroupMembership,
 } from './fixtures.ts';
 
 afterEach(() => {
@@ -412,5 +416,90 @@ describe('removeProgramSong', () => {
 
     const row = await db.select().from(EventProgram).where(eq(EventProgram.id, entry!.id)).get();
     expect(row).toBeUndefined();
+  });
+});
+
+describe('getEventPageData — group scoping', () => {
+  it('returns all ensemble members when event has no group', async () => {
+    const admin = await createUser({ role: 'admin' });
+    const ensemble = await createEnsemble(admin!.id);
+    const member1 = await createUser();
+    const member2 = await createUser();
+    await createMembership(ensemble!.id, admin!.id);
+    await createMembership(ensemble!.id, member1!.id);
+    await createMembership(ensemble!.id, member2!.id);
+    const season = await createSeason(ensemble!.id);
+    const event = await createEvent(ensemble!.id, season!.id); // no groupId
+
+    const { allMembers, group } = await getEventPageData(ensemble!.id, event!.id);
+
+    expect(allMembers).toHaveLength(3);
+    expect(group).toBeNull();
+  });
+
+  it('returns only group members when event has a groupId', async () => {
+    const admin = await createUser({ role: 'admin' });
+    const ensemble = await createEnsemble(admin!.id);
+    const member1 = await createUser();
+    const member2 = await createUser();
+    const outsider = await createUser();
+    await createMembership(ensemble!.id, admin!.id);
+    await createMembership(ensemble!.id, member1!.id);
+    await createMembership(ensemble!.id, member2!.id);
+    await createMembership(ensemble!.id, outsider!.id);
+    const grp = await createGroup(ensemble!.id, { name: 'Board', color: 'warning' });
+    await createGroupMembership(grp!.id, admin!.id);
+    await createGroupMembership(grp!.id, member1!.id);
+    // member2 and outsider are NOT in the group
+    const season = await createSeason(ensemble!.id);
+    const event = await createEvent(ensemble!.id, season!.id, { groupId: grp!.id });
+
+    const { allMembers, group } = await getEventPageData(ensemble!.id, event!.id);
+
+    expect(allMembers).toHaveLength(2);
+    expect(allMembers.map(m => m.id)).toContain(admin!.id);
+    expect(allMembers.map(m => m.id)).toContain(member1!.id);
+    expect(group).not.toBeNull();
+    expect(group!.name).toBe('Board');
+  });
+
+  it('excludes group members who are not ensemble members', async () => {
+    const admin = await createUser({ role: 'admin' });
+    const ensemble = await createEnsemble(admin!.id);
+    await createMembership(ensemble!.id, admin!.id);
+    const nonMember = await createUser(); // in group but NOT in ensemble
+    const grp = await createGroup(ensemble!.id);
+    await createGroupMembership(grp!.id, admin!.id);
+    await createGroupMembership(grp!.id, nonMember!.id);
+    const season = await createSeason(ensemble!.id);
+    const event = await createEvent(ensemble!.id, season!.id, { groupId: grp!.id });
+
+    const { allMembers } = await getEventPageData(ensemble!.id, event!.id);
+
+    expect(allMembers).toHaveLength(1);
+    expect(allMembers[0].id).toBe(admin!.id);
+  });
+
+  it('falls back to all ensemble members when referenced group was deleted', async () => {
+    const admin = await createUser({ role: 'admin' });
+    const ensemble = await createEnsemble(admin!.id);
+    const member = await createUser();
+    await createMembership(ensemble!.id, admin!.id);
+    await createMembership(ensemble!.id, member!.id);
+    const grp = await createGroup(ensemble!.id);
+    const season = await createSeason(ensemble!.id);
+    const event = await createEvent(ensemble!.id, season!.id, { groupId: grp!.id });
+
+    // Simulate a deleted group by: clearing the FK on the event, deleting the group,
+    // then restoring a dangling groupId via a raw PRAGMA-disabled update.
+    // Simpler approach: just clear FK enforcement, set to a deleted id, re-enable.
+    await db.run('PRAGMA foreign_keys = OFF');
+    await db.update(Event).set({ groupId: 'deleted-group-id' }).where(eq(Event.id, event!.id));
+    await db.run('PRAGMA foreign_keys = ON');
+
+    const { allMembers, group } = await getEventPageData(ensemble!.id, event!.id);
+
+    expect(group).toBeNull();
+    expect(allMembers).toHaveLength(2);
   });
 });

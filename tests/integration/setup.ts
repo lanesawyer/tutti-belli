@@ -100,6 +100,20 @@ const CREATE_STATEMENTS = [
     "completedAt" TEXT DEFAULT CURRENT_TIMESTAMP,
     "completedBy" TEXT NOT NULL REFERENCES "User"("id")
   )`,
+  `CREATE TABLE IF NOT EXISTS "Group" (
+    "id" TEXT PRIMARY KEY,
+    "ensembleId" TEXT NOT NULL REFERENCES "Ensemble"("id"),
+    "name" TEXT NOT NULL,
+    "description" TEXT,
+    "color" TEXT DEFAULT 'info' NOT NULL,
+    "createdAt" TEXT DEFAULT CURRENT_TIMESTAMP
+  )`,
+  `CREATE TABLE IF NOT EXISTS "GroupMembership" (
+    "id" TEXT PRIMARY KEY,
+    "groupId" TEXT NOT NULL REFERENCES "Group"("id"),
+    "userId" TEXT NOT NULL REFERENCES "User"("id"),
+    "addedAt" TEXT DEFAULT CURRENT_TIMESTAMP
+  )`,
   `CREATE TABLE IF NOT EXISTS "Event" (
     "id" TEXT PRIMARY KEY,
     "ensembleId" TEXT NOT NULL REFERENCES "Ensemble"("id"),
@@ -111,6 +125,7 @@ const CREATE_STATEMENTS = [
     "durationMinutes" INTEGER DEFAULT 90 NOT NULL,
     "location" TEXT,
     "checkInCode" TEXT UNIQUE NOT NULL,
+    "groupId" TEXT REFERENCES "Group"("id"),
     "createdAt" TEXT DEFAULT CURRENT_TIMESTAMP
   )`,
   `CREATE TABLE IF NOT EXISTS "Attendance" (
@@ -128,20 +143,6 @@ const CREATE_STATEMENTS = [
     "createdBy" TEXT NOT NULL REFERENCES "User"("id"),
     "createdAt" TEXT DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TEXT DEFAULT CURRENT_TIMESTAMP
-  )`,
-  `CREATE TABLE IF NOT EXISTS "Group" (
-    "id" TEXT PRIMARY KEY,
-    "ensembleId" TEXT NOT NULL REFERENCES "Ensemble"("id"),
-    "name" TEXT NOT NULL,
-    "description" TEXT,
-    "color" TEXT DEFAULT 'info' NOT NULL,
-    "createdAt" TEXT DEFAULT CURRENT_TIMESTAMP
-  )`,
-  `CREATE TABLE IF NOT EXISTS "GroupMembership" (
-    "id" TEXT PRIMARY KEY,
-    "groupId" TEXT NOT NULL REFERENCES "Group"("id"),
-    "userId" TEXT NOT NULL REFERENCES "User"("id"),
-    "addedAt" TEXT DEFAULT CURRENT_TIMESTAMP
   )`,
   `CREATE TABLE IF NOT EXISTS "Song" (
     "id" TEXT PRIMARY KEY,
