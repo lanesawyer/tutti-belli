@@ -24,6 +24,7 @@ const CREATE_STATEMENTS = [
     "avatarUrl" TEXT,
     "phone" TEXT,
     "role" TEXT DEFAULT 'user' NOT NULL,
+    "emailVerifiedAt" TEXT,
     "createdAt" TEXT DEFAULT CURRENT_TIMESTAMP
   )`,
   `CREATE TABLE IF NOT EXISTS "Ensemble" (
@@ -200,6 +201,14 @@ const CREATE_STATEMENTS = [
     "usedAt" TEXT,
     "createdAt" TEXT DEFAULT CURRENT_TIMESTAMP
   )`,
+  `CREATE TABLE IF NOT EXISTS "EmailVerificationToken" (
+    "id" TEXT PRIMARY KEY,
+    "userId" TEXT NOT NULL REFERENCES "User"("id"),
+    "token" TEXT UNIQUE NOT NULL,
+    "expiresAt" TEXT NOT NULL,
+    "usedAt" TEXT,
+    "createdAt" TEXT DEFAULT CURRENT_TIMESTAMP
+  )`,
   `CREATE TABLE IF NOT EXISTS "SiteBanner" (
     "id" TEXT PRIMARY KEY,
     "message" TEXT NOT NULL,
@@ -211,7 +220,7 @@ const CREATE_STATEMENTS = [
 ];
 
 const TABLE_NAMES = [
-  'SiteBanner', 'EmailChangeToken', 'PasswordResetToken', 'EventProgram', 'SongFile',
+  'SiteBanner', 'EmailVerificationToken', 'EmailChangeToken', 'PasswordResetToken', 'EventProgram', 'SongFile',
   'SeasonSong', 'SongPart', 'Song', 'GroupMembership', 'Group',
   'Announcement', 'Attendance', 'Event', 'TaskCompletion', 'Task',
   'SeasonMembership', 'EnsembleInvite',

@@ -4,20 +4,16 @@ import Button from '../components/elements/Button.astro';
 import Icon from '../components/elements/Icon.astro';
 import Notification from '../components/elements/Notification.astro';
 import { actions } from 'astro:actions';
-import { getRedirectUrl } from '../lib/redirect';
-
-const customRedirect = Astro.url.searchParams.get('redirect');
 
 // Redirect if already logged in
 if (Astro.locals.user) {
-  return Astro.redirect(await getRedirectUrl(Astro.locals.user.id, customRedirect));
+  return Astro.redirect('/dashboard');
 }
+
+const customRedirect = Astro.url.searchParams.get('redirect');
 
 const result = Astro.getActionResult(actions.profile.register);
-if (result && !result.error) {
-  return Astro.redirect(await getRedirectUrl(result.data.userId, customRedirect));
-}
-
+const registeredEmail = result && !result.error ? result.data.email : null;
 const error = result?.error?.message ?? '';
 ---
 
@@ -26,73 +22,83 @@ const error = result?.error?.message ?? '';
     <div class="column is-5-tablet is-4-desktop">
       <h1 class="title">Sign Up</h1>
 
-      {error && (
-        <Notification color="danger" light>
-          {error}
+      {registeredEmail ? (
+        <Notification color="success" light>
+          <p><strong>Check your inbox!</strong></p>
+          <p class="mt-2">We sent a verification link to <strong>{registeredEmail}</strong>. Click the link to activate your account.</p>
+          <p class="mt-2 is-size-7">Didn't get it? <a href={`/resend-verification?email=${encodeURIComponent(registeredEmail)}`}>Resend verification email</a></p>
         </Notification>
+      ) : (
+        <>
+          {error && (
+            <Notification color="danger" light>
+              {error}
+            </Notification>
+          )}
+
+          <form method="POST" action={actions.profile.register}>
+            {customRedirect && <input type="hidden" name="redirect" value={customRedirect} />}
+            <div class="field">
+              <label class="label" for="name">Full Name</label>
+              <div class="control has-icons-left">
+                <input
+                  class="input"
+                  type="text"
+                  id="name"
+                  name="name"
+                  placeholder="John Doe"
+                  required
+                />
+                <Icon icon="fa-user" size="small" position="left" />
+              </div>
+            </div>
+
+            <div class="field">
+              <label class="label" for="email">Email</label>
+              <div class="control has-icons-left">
+                <input
+                  class="input"
+                  type="email"
+                  id="email"
+                  name="email"
+                  placeholder="you@example.com"
+                  required
+                />
+                <Icon icon="fa-envelope" size="small" position="left" />
+              </div>
+            </div>
+
+            <div class="field">
+              <label class="label" for="password">Password</label>
+              <div class="control has-icons-left">
+                <input
+                  class="input"
+                  type="password"
+                  id="password"
+                  name="password"
+                  placeholder="••••••••"
+                  minlength="6"
+                  required
+                />
+                <Icon icon="fa-lock" size="small" position="left" />
+              </div>
+              <p class="help">Must be at least 6 characters</p>
+            </div>
+
+            <div class="field">
+              <div class="control">
+                <Button color="primary" fullwidth type="submit">
+                  Sign Up
+                </Button>
+              </div>
+            </div>
+          </form>
+
+          <div class="has-text-centered mt-4">
+            <p>Already have an account? <a href="/login">Log in</a></p>
+          </div>
+        </>
       )}
-
-      <form method="POST" action={actions.profile.register}>
-        {customRedirect && <input type="hidden" name="redirect" value={customRedirect} />}
-        <div class="field">
-          <label class="label" for="name">Full Name</label>
-          <div class="control has-icons-left">
-            <input
-              class="input"
-              type="text"
-              id="name"
-              name="name"
-              placeholder="John Doe"
-              required
-            />
-            <Icon icon="fa-user" size="small" position="left" />
-          </div>
-        </div>
-
-        <div class="field">
-          <label class="label" for="email">Email</label>
-          <div class="control has-icons-left">
-            <input
-              class="input"
-              type="email"
-              id="email"
-              name="email"
-              placeholder="you@example.com"
-              required
-            />
-            <Icon icon="fa-envelope" size="small" position="left" />
-          </div>
-        </div>
-
-        <div class="field">
-          <label class="label" for="password">Password</label>
-          <div class="control has-icons-left">
-            <input
-              class="input"
-              type="password"
-              id="password"
-              name="password"
-              placeholder="••••••••"
-              minlength="6"
-              required
-            />
-            <Icon icon="fa-lock" size="small" position="left" />
-          </div>
-          <p class="help">Must be at least 6 characters</p>
-        </div>
-
-        <div class="field">
-          <div class="control">
-            <Button color="primary" fullwidth type="submit">
-              Sign Up
-            </Button>
-          </div>
-        </div>
-      </form>
-
-      <div class="has-text-centered mt-4">
-        <p>Already have an account? <a href="/login">Log in</a></p>
-      </div>
     </div>
   </div>
 </Layout>

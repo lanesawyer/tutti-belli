@@ -9,7 +9,6 @@ import {
   deleteAccount,
   initiateEmailChange,
 } from '../lib/profile';
-import { createSession } from '../lib/session';
 
 export const profile = {
   register: defineAction({
@@ -19,22 +18,13 @@ export const profile = {
       email: z.string().email('Invalid email address.'),
       password: z.string().min(6, 'Password must be at least 6 characters.'),
     }),
-    handler: async ({ name, email, password }, context) => {
-      let userId: string;
+    handler: async ({ name, email, password }) => {
       try {
-        ({ userId } = await registerUser({ name, email, password }));
+        await registerUser({ name, email, password });
       } catch (e) {
         throw new ActionError({ code: 'CONFLICT', message: (e as Error).message });
       }
-      const sessionToken = createSession(userId);
-      context.cookies.set('session', sessionToken, {
-        path: '/',
-        httpOnly: true,
-        secure: import.meta.env.PROD,
-        sameSite: 'lax',
-        maxAge: 60 * 60 * 24 * 30,
-      });
-      return { userId };
+      return { email };
     },
   }),
 

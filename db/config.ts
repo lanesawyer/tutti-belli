@@ -6,6 +6,7 @@ const User = defineTable({
     email: column.text({ unique: true }),
     passwordHash: column.text(),
     name: column.text(),    avatarUrl: column.text({ optional: true }),    phone: column.text({ optional: true }),    role: column.text({ enum: ['admin', 'ensemble_admin', 'user'], default: 'user' }),
+    emailVerifiedAt: column.date({ optional: true }),
     createdAt: column.date({ default: NOW }),
   }
 });
@@ -225,6 +226,17 @@ const EmailChangeToken = defineTable({
   }
 });
 
+const EmailVerificationToken = defineTable({
+  columns: {
+    id: column.text({ primaryKey: true }),
+    userId: column.text({ references: () => User.columns.id }),
+    token: column.text({ unique: true }),
+    expiresAt: column.date(),
+    usedAt: column.date({ optional: true }),
+    createdAt: column.date({ default: NOW }),
+  }
+});
+
 const SiteBanner = defineTable({
   columns: {
     id: column.text({ primaryKey: true }),
@@ -259,5 +271,5 @@ const TaskCompletion = defineTable({
 });
 
 export default defineDb({
-  tables: { User, Ensemble, EnsembleMember, Part, EnsembleInvite, Season, SeasonMembership, Event, Attendance, Announcement, Group, GroupMembership, Song, SongPart, SeasonSong, SongFile, EventProgram, PasswordResetToken, EmailChangeToken, EnsembleLink, SiteBanner, Task, TaskCompletion }
+  tables: { User, Ensemble, EnsembleMember, Part, EnsembleInvite, Season, SeasonMembership, Event, Attendance, Announcement, Group, GroupMembership, Song, SongPart, SeasonSong, SongFile, EventProgram, PasswordResetToken, EmailChangeToken, EmailVerificationToken, EnsembleLink, SiteBanner, Task, TaskCompletion }
 });

@@ -110,6 +110,20 @@ Three tiers — write tests at the appropriate level for new code:
 - **Integration** (`tests/integration/`) — `src/lib/` functions that query the DB. Use Vitest with the real LibSQL test DB (mocked via `tests/integration/__mocks__/astro-db.ts`). Use fixture helpers from `tests/integration/fixtures.ts` to create test data. Mock storage the same way as unit tests.
 - **E2E** (`tests/e2e/`) — Full browser flows via Playwright. Use the `chromium-admin` project (admin auth state) for admin-gated pages. Navigate to ensemble sub-pages by constructing the URL from `page.url()` rather than clicking navbar dropdown links (they are hidden until hovered in Bulma). Submit buttons that use `form="formId"` to associate with a form outside their DOM parent must be located with `button[type="submit"][form="formId"]`.
 
+#### Firefox-specific E2E gotchas
+
+Two recurring issues affect the `firefox-admin` (and `firefox-user`) projects:
+
+1. **`NS_BINDING_ABORTED` on `page.goto()`** — Firefox aborts a navigation if `page.goto()` is called while `ClientRouter` is still processing the previous page transition. Fix: always `await` a visible result on the current page (e.g. `await expect(page.locator('.notification')).toBeVisible()`) before calling `page.goto()` to navigate away.
+
+2. **Stale emails cause duplicate-registration errors** — E2E tests run against the live dev SQLite database, so emails registered in one run persist across runs and across parallel workers. Any test that registers a new account must use a unique email per run. Use a helper like:
+   ```ts
+   function uniqueEmail(label: string, workerIndex: number): string {
+     return `e2e-${label}-${workerIndex}-${Date.now()}@example.com`;
+   }
+   ```
+   and pass `workerInfo.workerIndex` from the test's second argument (`async ({ page }, workerInfo)`). Never hardcode a registration email in a test that writes to the DB.
+
 ### When to Write Tests
 
 - **New `src/lib/` function**: add a unit test; add an integration test if it touches the DB.

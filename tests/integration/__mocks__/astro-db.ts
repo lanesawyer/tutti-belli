@@ -54,6 +54,7 @@ export const SongFile = asDrizzleTable('SongFile', tables.SongFile);
 export const EventProgram = asDrizzleTable('EventProgram', tables.EventProgram);
 export const PasswordResetToken = asDrizzleTable('PasswordResetToken', tables.PasswordResetToken);
 export const EmailChangeToken = asDrizzleTable('EmailChangeToken', tables.EmailChangeToken);
+export const EmailVerificationToken = asDrizzleTable('EmailVerificationToken', tables.EmailVerificationToken);
 export const EnsembleLink = asDrizzleTable('EnsembleLink', tables.EnsembleLink);
 export const SiteBanner = asDrizzleTable('SiteBanner', tables.SiteBanner);
 export const Task = asDrizzleTable('Task', tables.Task);

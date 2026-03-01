@@ -9,7 +9,9 @@ const PUBLIC_ROUTES = [
   '/forgot-password',
   '/reset-password',
   '/invite/join',
+  '/verify-email',
   '/verify-email-change',
+  '/resend-verification',
 ];
 
 // Check if a path matches any public route
