@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
-import { registerUser, resendVerificationEmail, updateName, updatePhone, deleteAccount } from '../../src/lib/profile.ts';
-import { db, User, EnsembleMember, EmailVerificationToken, eq, isNull } from 'astro:db';
-import { createUser, createEnsemble, createMembership } from './fixtures.ts';
+import { registerUser, resendVerificationEmail, updateName, updatePhone, deleteAccount, updateParts } from '../../src/lib/profile.ts';
+import { db, User, EnsembleMember, MemberPart, EmailVerificationToken, eq } from 'astro:db';
+import { createUser, createEnsemble, createMembership, createPart, createMemberPart } from './fixtures.ts';
 
 // Mock email module — we don't want to call the real Resend API in tests
 vi.mock('../../src/lib/email.ts', () => ({
@@ -224,7 +224,9 @@ describe('deleteAccount', () => {
     const user = await createUser({ password: 'my-password' });
     const adminUser = await createUser({ role: 'admin' });
     const ensemble = await createEnsemble(adminUser!.id);
-    await createMembership(ensemble!.id, user!.id);
+    const membership = await createMembership(ensemble!.id, user!.id);
+    const part = await createPart(ensemble!.id, { name: 'Tenor' });
+    await createMemberPart(membership!.id, part!.id);
 
     const result = await deleteAccount(user!.id, 'user', 'my-password');
     expect(result.type).toBe('redirect');
@@ -238,5 +240,68 @@ describe('deleteAccount', () => {
       .where(eq(EnsembleMember.userId, user!.id))
       .all();
     expect(memberships).toHaveLength(0);
+
+    const memberParts = await db
+      .select()
+      .from(MemberPart)
+      .where(eq(MemberPart.membershipId, membership!.id))
+      .all();
+    expect(memberParts).toHaveLength(0);
+  });
+});
+
+describe('updateParts', () => {
+  it('inserts MemberPart rows for each provided partId', async () => {
+    const admin = await createUser({ role: 'admin' });
+    const ensemble = await createEnsemble(admin!.id);
+    const user = await createUser();
+    const membership = await createMembership(ensemble!.id, user!.id);
+    const part1 = await createPart(ensemble!.id, { name: 'Soprano' });
+    const part2 = await createPart(ensemble!.id, { name: 'Piano' });
+
+    await updateParts(membership!.id, [part1!.id, part2!.id]);
+
+    const rows = await db.select().from(MemberPart).where(eq(MemberPart.membershipId, membership!.id)).all();
+    expect(rows).toHaveLength(2);
+  });
+
+  it('replaces existing parts when called again', async () => {
+    const admin = await createUser({ role: 'admin' });
+    const ensemble = await createEnsemble(admin!.id);
+    const user = await createUser();
+    const membership = await createMembership(ensemble!.id, user!.id);
+    const part1 = await createPart(ensemble!.id, { name: 'Soprano' });
+    const part2 = await createPart(ensemble!.id, { name: 'Alto' });
+
+    await updateParts(membership!.id, [part1!.id]);
+    await updateParts(membership!.id, [part2!.id]);
+
+    const rows = await db.select().from(MemberPart).where(eq(MemberPart.membershipId, membership!.id)).all();
+    expect(rows).toHaveLength(1);
+    expect(rows[0].partId).toBe(part2!.id);
+  });
+
+  it('removes all parts when called with an empty array', async () => {
+    const admin = await createUser({ role: 'admin' });
+    const ensemble = await createEnsemble(admin!.id);
+    const user = await createUser();
+    const membership = await createMembership(ensemble!.id, user!.id);
+    const part = await createPart(ensemble!.id, { name: 'Bass' });
+
+    await updateParts(membership!.id, [part!.id]);
+    await updateParts(membership!.id, []);
+
+    const rows = await db.select().from(MemberPart).where(eq(MemberPart.membershipId, membership!.id)).all();
+    expect(rows).toHaveLength(0);
+  });
+
+  it('returns a redirect result on success', async () => {
+    const admin = await createUser({ role: 'admin' });
+    const ensemble = await createEnsemble(admin!.id);
+    const user = await createUser();
+    const membership = await createMembership(ensemble!.id, user!.id);
+
+    const result = await updateParts(membership!.id, []);
+    expect(result).toEqual({ type: 'redirect', url: '/profile' });
   });
 });

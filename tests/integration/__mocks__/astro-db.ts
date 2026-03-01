@@ -39,6 +39,7 @@ export const User = asDrizzleTable('User', tables.User);
 export const Ensemble = asDrizzleTable('Ensemble', tables.Ensemble);
 export const EnsembleMember = asDrizzleTable('EnsembleMember', tables.EnsembleMember);
 export const Part = asDrizzleTable('Part', tables.Part);
+export const MemberPart = asDrizzleTable('MemberPart', tables.MemberPart);
 export const EnsembleInvite = asDrizzleTable('EnsembleInvite', tables.EnsembleInvite);
 export const Season = asDrizzleTable('Season', tables.Season);
 export const SeasonMembership = asDrizzleTable('SeasonMembership', tables.SeasonMembership);

@@ -1,0 +1,89 @@
+---
+/**
+ * Bulma tabs component with client-side panel switching.
+ *
+ * Usage:
+ *   <Tabs tabs={[{ id: 'all', label: 'All' }, { id: 'soprano', label: 'Soprano' }]}>
+ *     <div data-tab-panel="all">…</div>
+ *     <div data-tab-panel="soprano">…</div>
+ *   </Tabs>
+ *
+ * Props:
+ *   tabs     — ordered list of { id, label, count? }
+ *   size     — Bulma size modifier: 'small' | 'medium' | 'large'
+ *   boxed    — adds is-boxed style
+ *   class    — extra classes on the outer <div>
+ */
+
+import Tag from './elements/Tag.astro';
+
+interface Tab {
+  id: string;
+  label: string;
+  count?: number;
+}
+
+interface Props {
+  tabs: Tab[];
+  size?: 'small' | 'medium' | 'large';
+  boxed?: boolean;
+  class?: string;
+}
+
+const { tabs, size, boxed, class: className } = Astro.props;
+
+const navClasses = ['tabs', size && `is-${size}`, boxed && 'is-boxed']
+  .filter(Boolean)
+  .join(' ');
+---
+
+<div class={className}>
+  <div class={navClasses} data-tabs-nav>
+    <ul>
+      {tabs.map((tab, i) => (
+        <li class={i === 0 ? 'is-active' : ''} data-tab-id={tab.id}>
+          <a>
+            {tab.label}
+            {tab.count !== undefined && (
+              <Tag rounded class="ml-2">{tab.count}</Tag>
+            )}
+          </a>
+        </li>
+      ))}
+    </ul>
+  </div>
+
+  <slot />
+</div>
+
+<script>
+  document.addEventListener('astro:page-load', () => {
+    document.querySelectorAll<HTMLElement>('[data-tabs-nav]').forEach((nav) => {
+      const container = nav.closest<HTMLElement>('[data-tabs-nav]')?.parentElement;
+      if (!container) return;
+
+      const items = nav.querySelectorAll<HTMLElement>('li[data-tab-id]');
+      const panels = container.querySelectorAll<HTMLElement>('[data-tab-panel]');
+
+      function activate(id: string) {
+        items.forEach((li) => {
+          li.classList.toggle('is-active', li.dataset.tabId === id);
+        });
+        panels.forEach((panel) => {
+          panel.hidden = panel.dataset.tabPanel !== id;
+        });
+      }
+
+      // Set initial state
+      const firstId = items[0]?.dataset.tabId;
+      if (firstId) activate(firstId);
+
+      items.forEach((li) => {
+        li.querySelector('a')?.addEventListener('click', () => {
+          const id = li.dataset.tabId;
+          if (id) activate(id);
+        });
+      });
+    });
+  });
+</script>

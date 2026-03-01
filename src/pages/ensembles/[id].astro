@@ -6,9 +6,10 @@ import Image from '../../components/elements/Image.astro';
 import Icon from '../../components/elements/Icon.astro';
 import Tag from '../../components/elements/Tag.astro';
 import DashboardSection from '../../components/DashboardSection.astro';
+import Tabs from '../../components/Tabs.astro';
 import Message from '../../components/Message.astro';
 import Notification from '../../components/elements/Notification.astro';
-import { db, eq, and, desc, inArray, EnsembleMember, User, EnsembleInvite, Part, Announcement, Group, GroupMembership, Event, EventProgram, Season, SeasonMembership, SeasonSong, Song, EnsembleLink } from 'astro:db';
+import { db, eq, and, desc, inArray, EnsembleMember, User, EnsembleInvite, Part, MemberPart, Announcement, Group, GroupMembership, Event, EventProgram, Season, SeasonMembership, SeasonSong, Song, EnsembleLink } from 'astro:db';
 import { getInitials, getColorFromInitials } from '../../lib/avatar';
 import { ensembleAdminTools } from '../../lib/config';
 import { getEnsembleBySlugOrId, getEnsembleAccess } from '../../lib/ensemble';
@@ -47,7 +48,7 @@ const [currentSeason] = await db
     eq(Season.isActive, 1)
   ));
 
-// Get all active members with their parts
+// Get all active members
 const membersData = await db
   .select({
     id: User.id,
@@ -58,7 +59,6 @@ const membersData = await db
     status: EnsembleMember.status,
     joinedAt: EnsembleMember.joinedAt,
     membershipId: EnsembleMember.id,
-    partId: EnsembleMember.partId,
   })
   .from(EnsembleMember)
   .innerJoin(User, eq(EnsembleMember.userId, User.id))
@@ -89,23 +89,42 @@ const allParts = await db
 // Sort parts by sortOrder
 allParts.sort((a, b) => a.sortOrder - b.sortOrder);
 
-// Group members by part
-const membersByPart = new Map();
-const membersWithoutPart = [];
+// Fetch MemberPart rows for these memberships
+const membershipIds = membersData.map((m) => m.membershipId);
+const memberPartRows = membershipIds.length > 0
+  ? await db.select().from(MemberPart).where(inArray(MemberPart.membershipId, membershipIds)).all()
+  : [];
 
-for (const member of membersData) {
-  if (member.partId) {
-    if (!membersByPart.has(member.partId)) {
-      membersByPart.set(member.partId, []);
-    }
-    membersByPart.get(member.partId).push(member);
-  } else {
-    membersWithoutPart.push(member);
+// Build a map: membershipId → partId[]
+const memberPartIdsByMembership = new Map<string, string[]>();
+for (const mp of memberPartRows) {
+  if (!memberPartIdsByMembership.has(mp.membershipId)) {
+    memberPartIdsByMembership.set(mp.membershipId, []);
   }
+  memberPartIdsByMembership.get(mp.membershipId)!.push(mp.partId);
 }
 
-// For backwards compatibility, keep members array
+// Keep members array for the count display
 const members = membersData;
+
+// Parts that have at least one member assigned (for tab filtering)
+const partsWithMembers = allParts.filter((p) =>
+  memberPartRows.some((mp) => mp.partId === p.id)
+);
+
+// Members with no part assigned
+const noPartMembers = members.filter((m) => !memberPartIdsByMembership.has(m.membershipId));
+
+// Build tab list for the members section
+const memberTabs = [
+  { id: 'all', label: 'All', count: members.length },
+  ...partsWithMembers.map((p) => ({
+    id: p.id,
+    label: p.name,
+    count: memberPartRows.filter((mp) => mp.partId === p.id).length,
+  })),
+  ...(noPartMembers.length > 0 ? [{ id: 'none', label: 'No Part', count: noPartMembers.length }] : []),
+];
 
 // Get all groups for this ensemble
 const groups = await db
@@ -605,24 +624,60 @@ if (Astro.request.method === 'POST') {
       )}
 
       <DashboardSection
-        title={`Members (${members.length})`}
+        title="Members"
         viewAllHref={isAdmin ? `/ensembles/${canonicalId}/members` : undefined}
         viewAllLabel="View All"
         viewAllColor="is-warning"
         class="mb-0"
       >
-        
-        {allParts.length > 0 ? (
-          <>
-            {allParts.map((part) => {
-              const partMembers = membersByPart.get(part.id) || [];
-              if (partMembers.length === 0) return null;
-              
+        <Tabs tabs={memberTabs}>
+            <div data-tab-panel="all">
+              <div class="columns is-multiline">
+                {members.map((member) => {
+                  const partNames = (memberPartIdsByMembership.get(member.membershipId) ?? [])
+                    .map((pid) => allParts.find((p) => p.id === pid)?.name)
+                    .filter(Boolean)
+                    .join(', ');
+                  return (
+                    <div class="column is-6-tablet is-4-desktop is-3-widescreen">
+                      <div class="card">
+                        <div class="card-content has-text-centered">
+                          {member.avatarUrl ? (
+                            <Image src={member.avatarUrl} alt={member.name} size="96x96" rounded class="mx-auto mb-3" imgStyle="object-fit: cover;" />
+                          ) : (
+                            <figure class="image is-96x96 mx-auto mb-3">
+                              <div style={`width: 96px; height: 96px; border-radius: 50%; background-color: ${getColorFromInitials(getInitials(member.name))}; display: flex; align-items: center; justify-content: center; color: white; font-size: 2rem; font-weight: bold;`}>
+                                {getInitials(member.name)}
+                              </div>
+                            </figure>
+                          )}
+                          <p class="title is-6 mb-2">{member.name}</p>
+                          {partNames && <p class="subtitle is-7 has-text-grey mb-2">{partNames}</p>}
+                          {userGroups.has(member.id) && (
+                            <div class="tags are-small is-justify-content-center mt-2">
+                              {userGroups.get(member.id).map((group: any) => (
+                                <Tag color={group.color} title={group.description || group.name}>
+                                  {group.name}
+                                </Tag>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {partsWithMembers.map((part) => {
+              const partMembers = members.filter((m) =>
+                memberPartIdsByMembership.get(m.membershipId)?.includes(part.id)
+              );
               return (
-                <div class="mb-5">
-                  <h3 class="title is-5 has-text-primary mb-3">{part.name} ({partMembers.length})</h3>
+                <div data-tab-panel={part.id}>
                   <div class="columns is-multiline">
-                    {partMembers.map((member: any) => (
+                    {partMembers.map((member) => (
                       <div class="column is-6-tablet is-4-desktop is-3-widescreen">
                         <div class="card">
                           <div class="card-content has-text-centered">
@@ -636,7 +691,6 @@ if (Astro.request.method === 'POST') {
                               </figure>
                             )}
                             <p class="title is-6 mb-2">{member.name}</p>
-                            <p class="subtitle is-7 has-text-grey mb-2">{part.name}</p>
                             {userGroups.has(member.id) && (
                               <div class="tags are-small is-justify-content-center mt-2">
                                 {userGroups.get(member.id).map((group: any) => (
@@ -655,11 +709,10 @@ if (Astro.request.method === 'POST') {
               );
             })}
 
-            {membersWithoutPart.length > 0 && (
-              <div class="mb-5">
-                <h3 class="title is-5 has-text-grey mb-3">No Part Assigned ({membersWithoutPart.length})</h3>
+            {noPartMembers.length > 0 && (
+              <div data-tab-panel="none">
                 <div class="columns is-multiline">
-                  {membersWithoutPart.map((member) => (
+                  {noPartMembers.map((member) => (
                     <div class="column is-6-tablet is-4-desktop is-3-widescreen">
                       <div class="card">
                         <div class="card-content has-text-centered">
@@ -673,13 +726,12 @@ if (Astro.request.method === 'POST') {
                             </figure>
                           )}
                           <p class="title is-6 mb-2">{member.name}</p>
-                          <p class="subtitle is-7 has-text-grey mb-2">No part assigned</p>
                           {userGroups.has(member.id) && (
                             <div class="tags are-small is-justify-content-center mt-2">
                               {userGroups.get(member.id).map((group: any) => (
-                                <span class={`tag is-${group.color}`} title={group.description || group.name}>
+                                <Tag color={group.color} title={group.description || group.name}>
                                   {group.name}
-                                </span>
+                                </Tag>
                               ))}
                             </div>
                           )}
@@ -690,38 +742,7 @@ if (Astro.request.method === 'POST') {
                 </div>
               </div>
             )}
-          </>
-        ) : (
-          <div class="columns is-multiline">
-            {members.map((member) => (
-              <div class="column is-6-tablet is-4-desktop is-3-widescreen">
-                <div class="card">
-                  <div class="card-content has-text-centered">
-                    {member.avatarUrl ? (
-                      <Image src={member.avatarUrl} alt={member.name} size="96x96" rounded class="mx-auto mb-3" imgStyle="object-fit: cover;" />
-                    ) : (
-                      <figure class="image is-96x96 mx-auto mb-3">
-                        <div style={`width: 96px; height: 96px; border-radius: 50%; background-color: ${getColorFromInitials(getInitials(member.name))}; display: flex; align-items: center; justify-content: center; color: white; font-size: 2rem; font-weight: bold;`}>
-                          {getInitials(member.name)}
-                        </div>
-                      </figure>
-                    )}
-                    <p class="title is-6 mb-2">{member.name}</p>
-                    {userGroups.has(member.id) && (
-                      <div class="tags are-small is-justify-content-center mt-2">
-                        {userGroups.get(member.id).map((group: any) => (
-                          <span class={`tag is-${group.color}`} title={group.description || group.name}>
-                            {group.name}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+          </Tabs>
       </DashboardSection>
 
       <Button href="/ensembles">

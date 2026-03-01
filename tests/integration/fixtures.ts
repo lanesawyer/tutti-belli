@@ -2,7 +2,7 @@
  * Test data factory helpers for integration tests.
  * Each function inserts a row and returns the created record.
  */
-import { db, User, Ensemble, EnsembleMember, Season, Event, Part, Song, SeasonSong, EventProgram, Task, TaskCompletion, eq } from 'astro:db';
+import { db, User, Ensemble, EnsembleMember, MemberPart, Season, Event, Part, Song, SeasonSong, EventProgram, Task, TaskCompletion, eq } from 'astro:db';
 import { hashPassword } from '../../src/lib/auth.ts';
 
 export async function createUser(overrides: {
@@ -170,6 +170,16 @@ export async function createTask(
     sortOrder: overrides.sortOrder ?? 0,
   });
   return db.select().from(Task).where(eq(Task.id, id)).get() as Promise<typeof Task.$inferSelect>;
+}
+
+export async function createMemberPart(
+  membershipId: string,
+  partId: string,
+  overrides: { id?: string } = {}
+) {
+  const id = overrides.id ?? crypto.randomUUID();
+  await db.insert(MemberPart).values({ id, membershipId, partId });
+  return db.select().from(MemberPart).where(eq(MemberPart.id, id)).get() as Promise<typeof MemberPart.$inferSelect>;
 }
 
 export async function createTaskCompletion(

@@ -5,7 +5,7 @@ import {
   updateName,
   updatePhone,
   updateAvatar,
-  updatePart,
+  updateParts,
   deleteAccount,
   initiateEmailChange,
 } from '../lib/profile';
@@ -110,16 +110,16 @@ export const profile = {
     },
   }),
 
-  updatePart: defineAction({
+  updateParts: defineAction({
     accept: 'form',
     input: z.object({
       membershipId: z.string(),
-      partId: z.string().nullable(),
+      partIds: z.string().array().optional().default([]),
     }),
-    handler: async ({ membershipId, partId }, context) => {
+    handler: async ({ membershipId, partIds }, context) => {
       const user = context.locals.user;
       if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
-      const result = await updatePart(membershipId, partId ?? undefined);
+      const result = await updateParts(membershipId, partIds);
       if (result?.type === 'error') {
         throw new ActionError({ code: 'BAD_REQUEST', message: result.message });
       }
