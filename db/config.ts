@@ -34,7 +34,6 @@ const EnsembleMember = defineTable({
     userId: column.text({ references: () => User.columns.id }),
     role: column.text({ default: 'member' }), // 'admin', 'member'
     status: column.text({ default: 'pending' }), // 'pending', 'active'
-    partId: column.text({ optional: true, references: () => Part.columns.id }),
     agreedToCodeOfConductAt: column.date({ optional: true }),
     joinedAt: column.date({ default: NOW }),
   }
@@ -47,6 +46,14 @@ const Part = defineTable({
     name: column.text(),
     sortOrder: column.number({ default: 0 }),
     createdAt: column.date({ default: NOW }),
+  }
+});
+
+const MemberPart = defineTable({
+  columns: {
+    id: column.text({ primaryKey: true }),
+    membershipId: column.text({ references: () => EnsembleMember.columns.id }),
+    partId: column.text({ references: () => Part.columns.id }),
   }
 });
 
@@ -271,5 +278,5 @@ const TaskCompletion = defineTable({
 });
 
 export default defineDb({
-  tables: { User, Ensemble, EnsembleMember, Part, EnsembleInvite, Season, SeasonMembership, Event, Attendance, Announcement, Group, GroupMembership, Song, SongPart, SeasonSong, SongFile, EventProgram, PasswordResetToken, EmailChangeToken, EmailVerificationToken, EnsembleLink, SiteBanner, Task, TaskCompletion }
+  tables: { User, Ensemble, EnsembleMember, Part, MemberPart, EnsembleInvite, Season, SeasonMembership, Event, Attendance, Announcement, Group, GroupMembership, Song, SongPart, SeasonSong, SongFile, EventProgram, PasswordResetToken, EmailChangeToken, EmailVerificationToken, EnsembleLink, SiteBanner, Task, TaskCompletion }
 });

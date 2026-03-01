@@ -15,7 +15,7 @@ const user = Astro.locals.user!;
 const updateNameResult = Astro.getActionResult(actions.profile.updateName);
 const updatePhoneResult = Astro.getActionResult(actions.profile.updatePhone);
 const updateInfoResult = Astro.getActionResult(actions.profile.updateInfo);
-const updatePartResult = Astro.getActionResult(actions.profile.updatePart);
+const updatePartsResult = Astro.getActionResult(actions.profile.updateParts);
 const changeEmailResult = Astro.getActionResult(actions.profile.changeEmail);
 const deleteAccountResult = Astro.getActionResult(actions.profile.deleteAccount);
 
@@ -23,29 +23,36 @@ if (deleteAccountResult && !deleteAccountResult.error) {
   return Astro.redirect('/');
 }
 
-if (updateNameResult && !updateNameResult.error) return Astro.redirect('/profile');
-if (updatePhoneResult && !updatePhoneResult.error) return Astro.redirect('/profile');
-if (updateInfoResult && !updateInfoResult.error) return Astro.redirect('/profile');
-if (updatePartResult && !updatePartResult.error) return Astro.redirect('/profile');
+if (updateNameResult && !updateNameResult.error) return Astro.redirect('/profile?saved=1');
+if (updatePhoneResult && !updatePhoneResult.error) return Astro.redirect('/profile?saved=1');
+if (updateInfoResult && !updateInfoResult.error) return Astro.redirect('/profile?saved=1');
+if (updatePartsResult && !updatePartsResult.error) return Astro.redirect('/profile?saved=1');
 if (changeEmailResult && !changeEmailResult.error) return Astro.redirect('/profile?emailChangePending=1');
 
 const errorResult =
   updateNameResult?.error ||
   updatePhoneResult?.error ||
   updateInfoResult?.error ||
-  updatePartResult?.error ||
+  updatePartsResult?.error ||
   changeEmailResult?.error ||
   deleteAccountResult?.error;
 
 const emailChangePending = Astro.url.searchParams.get('emailChangePending') === '1';
+const saved = Astro.url.searchParams.get('saved') === '1';
 
-const { memberships, partsByEnsemble } = await getMembershipsWithParts(user.id);
+const { memberships, partsByEnsemble, partsByMembership } = await getMembershipsWithParts(user.id);
 const tasksByEnsemble = await getUserTasksAcrossEnsembles(user.id);
 ---
 
 <Layout title="Profile">
   <div class="container">
     <h1 class="title">My Profile</h1>
+
+    {saved && (
+      <Notification color="success">
+        Changes saved successfully.
+      </Notification>
+    )}
 
     {errorResult && (
       <Notification color="danger">
@@ -186,7 +193,7 @@ const tasksByEnsemble = await getUserTasksAcrossEnsembles(user.id);
       <div class="column is-half">
         <div class="box">
           <h2 class="title is-4">My Parts</h2>
-          <p class="subtitle is-6">Select your part for each ensemble</p>
+          <p class="subtitle is-6">Select your part(s) for each ensemble</p>
 
           {memberships.length === 0 ? (
             <Notification color="info" light>
@@ -210,25 +217,27 @@ const tasksByEnsemble = await getUserTasksAcrossEnsembles(user.id);
                         <p class="is-size-7">No parts defined for this ensemble yet. Contact an ensemble admin to add parts.</p>
                       </Notification>
                     ) : (
-                      <form method="POST" action={actions.profile.updatePart}>
+                      <form method="POST" action={actions.profile.updateParts}>
                         <input type="hidden" name="membershipId" value={membership.membershipId} />
 
-                        <div class="field has-addons">
-                          <div class="control is-expanded">
-                            <div class="select is-fullwidth">
-                              <select name="partId">
-                                <option value="">-- No Part --</option>
-                                {parts.map((part: any) => (
-                                  <option
-                                    value={part.id}
-                                    selected={part.id === membership.partId}
-                                  >
-                                    {part.name}
-                                  </option>
-                                ))}
-                              </select>
-                            </div>
-                          </div>
+                        <div class="field">
+                          {parts.map((part) => {
+                            const currentParts = partsByMembership.get(membership.membershipId) ?? [];
+                            return (
+                              <label class="checkbox" style="display: block; margin-bottom: 0.5rem;">
+                                <input
+                                  type="checkbox"
+                                  name="partIds"
+                                  value={part.id}
+                                  checked={currentParts.some((p) => p.id === part.id)}
+                                />
+                                {' '}{part.name}
+                              </label>
+                            );
+                          })}
+                        </div>
+
+                        <div class="field">
                           <div class="control">
                             <Button type="submit" color="primary">
                               <Icon icon="fa-save" />

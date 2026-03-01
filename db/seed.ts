@@ -1,4 +1,4 @@
-import { db, User, Ensemble, EnsembleMember, Part, EnsembleInvite, Season, SeasonMembership, Event, EventProgram, Announcement, Group, GroupMembership, Song, SongPart, SeasonSong } from 'astro:db';
+import { db, User, Ensemble, EnsembleMember, Part, MemberPart, EnsembleInvite, Season, SeasonMembership, Event, EventProgram, Announcement, Group, GroupMembership, Song, SongPart, SeasonSong } from 'astro:db';
 import bcrypt from 'bcryptjs';
 
 export default async function seed() {
@@ -136,39 +136,47 @@ Thank you for being part of our musical community!`,
   ]);
 
   // Add admin as ensemble admin
+  const adminMembershipId = crypto.randomUUID();
   await db.insert(EnsembleMember).values([
     {
-      id: crypto.randomUUID(),
+      id: adminMembershipId,
       ensembleId: ensembleId,
       userId: adminId,
       role: 'admin',
       status: 'active',
-      partId: tenorId,
     },
   ]);
 
   // Add ensemble admin user as ensemble admin
+  const ensAdminMembershipId = crypto.randomUUID();
   await db.insert(EnsembleMember).values([
     {
-      id: crypto.randomUUID(),
+      id: ensAdminMembershipId,
       ensembleId: ensembleId,
       userId: ensembleAdminId,
       role: 'admin',
       status: 'active',
-      partId: sopranoId,
     },
   ]);
 
   // Add test user as member
+  const testMembershipId = crypto.randomUUID();
   await db.insert(EnsembleMember).values([
     {
-      id: crypto.randomUUID(),
+      id: testMembershipId,
       ensembleId: ensembleId,
       userId: testUserId,
       role: 'member',
       status: 'active',
-      partId: bassId,
     },
+  ]);
+
+  // Assign parts via MemberPart (admin gets two parts to demonstrate multi-part)
+  await db.insert(MemberPart).values([
+    { id: crypto.randomUUID(), membershipId: adminMembershipId, partId: tenorId },
+    { id: crypto.randomUUID(), membershipId: adminMembershipId, partId: baritoneId },
+    { id: crypto.randomUUID(), membershipId: ensAdminMembershipId, partId: sopranoId },
+    { id: crypto.randomUUID(), membershipId: testMembershipId, partId: bassId },
   ]);
 
   // Create an invite code

@@ -1,6 +1,6 @@
 import { defineAction, ActionError } from 'astro:actions';
 import { z } from 'astro/zod';
-import { db, eq, and, EnsembleMember, Part } from 'astro:db';
+import { db, eq, Part, MemberPart } from 'astro:db';
 import { assertEnsembleAdmin } from './utils';
 
 export const parts = {
@@ -58,8 +58,8 @@ export const parts = {
 
       const membersWithPart = await db
         .select()
-        .from(EnsembleMember)
-        .where(and(eq(EnsembleMember.ensembleId, ensembleId), eq(EnsembleMember.partId, partId)))
+        .from(MemberPart)
+        .where(eq(MemberPart.partId, partId))
         .all();
 
       if (membersWithPart.length > 0) {

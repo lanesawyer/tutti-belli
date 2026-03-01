@@ -4,10 +4,12 @@ import {
   and,
   gt,
   isNull,
+  inArray,
   User,
   Ensemble,
   EnsembleMember,
   Part,
+  MemberPart,
   Attendance,
   SeasonMembership,
   GroupMembership,
@@ -60,16 +62,34 @@ export async function getMembershipsWithParts(userId: string) {
       ensembleId: Ensemble.id,
       ensembleName: Ensemble.name,
       membershipId: EnsembleMember.id,
-      partId: EnsembleMember.partId,
     })
     .from(EnsembleMember)
     .innerJoin(Ensemble, eq(EnsembleMember.ensembleId, Ensemble.id))
     .where(eq(EnsembleMember.userId, userId))
     .all();
 
+  const membershipIds = memberships.map((m) => m.membershipId);
   const ensembleIds = memberships.map((m) => m.ensembleId);
   const allParts =
     ensembleIds.length > 0 ? await db.select().from(Part).all() : [];
+
+  const memberPartRows =
+    membershipIds.length > 0
+      ? await db.select().from(MemberPart).where(inArray(MemberPart.membershipId, membershipIds)).all()
+      : [];
+
+  const partsByMembership = new Map<string, (typeof allParts)[number][]>();
+  for (const mp of memberPartRows) {
+    const part = allParts.find((p) => p.id === mp.partId);
+    if (!part) continue;
+    if (!partsByMembership.has(mp.membershipId)) {
+      partsByMembership.set(mp.membershipId, []);
+    }
+    partsByMembership.get(mp.membershipId)!.push(part);
+  }
+  for (const parts of partsByMembership.values()) {
+    parts.sort((a, b) => a.sortOrder - b.sortOrder);
+  }
 
   const partsByEnsemble = new Map<string, (typeof allParts)[number][]>();
   for (const part of allParts) {
@@ -84,7 +104,7 @@ export async function getMembershipsWithParts(userId: string) {
     parts.sort((a, b) => a.sortOrder - b.sortOrder);
   }
 
-  return { memberships, partsByEnsemble };
+  return { memberships, partsByEnsemble, partsByMembership };
 }
 
 export async function updateName(
@@ -134,15 +154,18 @@ export async function updateAvatar(
   return { type: 'redirect', url: '/profile' };
 }
 
-export async function updatePart(
+export async function updateParts(
   membershipId: string | undefined,
-  partId: string | undefined
+  partIds: string[]
 ): Promise<ActionResult | null> {
   if (!membershipId) return null;
-  await db
-    .update(EnsembleMember)
-    .set({ partId: partId || null })
-    .where(eq(EnsembleMember.id, membershipId));
+  await db.delete(MemberPart).where(eq(MemberPart.membershipId, membershipId));
+  const uniquePartIds = [...new Set(partIds)];
+  if (uniquePartIds.length > 0) {
+    await db.insert(MemberPart).values(
+      uniquePartIds.map((partId) => ({ id: crypto.randomUUID(), membershipId, partId }))
+    );
+  }
   return { type: 'redirect', url: '/profile' };
 }
 
@@ -233,6 +256,15 @@ export async function resendVerificationEmail(email: string): Promise<void> {
 }
 
 async function deleteUserData(userId: string): Promise<void> {
+  const memberships = await db
+    .select({ id: EnsembleMember.id })
+    .from(EnsembleMember)
+    .where(eq(EnsembleMember.userId, userId))
+    .all();
+  const membershipIds = memberships.map((m) => m.id);
+  if (membershipIds.length > 0) {
+    await db.delete(MemberPart).where(inArray(MemberPart.membershipId, membershipIds));
+  }
   await db.delete(EmailVerificationToken).where(eq(EmailVerificationToken.userId, userId));
   await db.delete(EmailChangeToken).where(eq(EmailChangeToken.userId, userId));
   await db.delete(PasswordResetToken).where(eq(PasswordResetToken.userId, userId));

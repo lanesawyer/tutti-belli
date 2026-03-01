@@ -53,9 +53,13 @@ const CREATE_STATEMENTS = [
     "userId" TEXT NOT NULL REFERENCES "User"("id"),
     "role" TEXT DEFAULT 'member' NOT NULL,
     "status" TEXT DEFAULT 'pending' NOT NULL,
-    "partId" TEXT REFERENCES "Part"("id"),
     "agreedToCodeOfConductAt" TEXT,
     "joinedAt" TEXT DEFAULT CURRENT_TIMESTAMP
+  )`,
+  `CREATE TABLE IF NOT EXISTS "MemberPart" (
+    "id" TEXT PRIMARY KEY,
+    "membershipId" TEXT NOT NULL REFERENCES "EnsembleMember"("id"),
+    "partId" TEXT NOT NULL REFERENCES "Part"("id")
   )`,
   `CREATE TABLE IF NOT EXISTS "EnsembleInvite" (
     "id" TEXT PRIMARY KEY,
@@ -224,7 +228,7 @@ const TABLE_NAMES = [
   'SeasonSong', 'SongPart', 'Song', 'GroupMembership', 'Group',
   'Announcement', 'Attendance', 'Event', 'TaskCompletion', 'Task',
   'SeasonMembership', 'EnsembleInvite',
-  'Season', 'EnsembleLink', 'EnsembleMember', 'Part', 'Ensemble', 'User',
+  'Season', 'EnsembleLink', 'MemberPart', 'EnsembleMember', 'Part', 'Ensemble', 'User',
 ];
 
 async function recreateSchema() {
