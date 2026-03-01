@@ -9,6 +9,7 @@ import { generateSlug, getEnsembleUrlId } from '../../../lib/slug';
 import Button from '../../../components/elements/Button.astro';
 import Image from '../../../components/elements/Image.astro';
 import Icon from '../../../components/elements/Icon.astro';
+import TextInput from '../../../components/elements/TextInput.astro';
 import Breadcrumb from '../../../components/Breadcrumb.astro';
 import FileInput from '../../../components/FileInput.astro';
 
@@ -205,31 +206,11 @@ if (Astro.request.method === 'POST') {
         <div class="column is-two-thirds">
           <div class="box">
             <form method="POST" enctype="multipart/form-data">
-              <div class="field">
-                <label class="label" for="name">Ensemble Name</label>
-                <div class="control">
-                  <input
-                    class="input"
-                    type="text"
-                    id="name"
-                    name="name"
-                    value={ensemble.name}
-                    required
-                  />
-                </div>
-              </div>
-
+              <TextInput name="name" label="Ensemble Name" value={ensemble.name} required />
               <div class="field">
                 <label class="label" for="slug">URL Slug</label>
                 <div class="control">
-                  <input
-                    class="input"
-                    type="text"
-                    id="slug"
-                    name="slug"
-                    value={ensemble.slug || ''}
-                    placeholder="my-ensemble-name"
-                  />
+                  <TextInput name="slug" id="slug" value={ensemble.slug || ''} placeholder="my-ensemble-name" standalone />
                 </div>
                 <p class="help">
                   Used in URLs: <code>/ensembles/{ensemble.slug || ensemble.id}</code>.
@@ -250,21 +231,7 @@ if (Astro.request.method === 'POST') {
                 </div>
               </div>
 
-              <div class="field">
-                <label class="label" for="discordLink">Discord Link</label>
-                <div class="control has-icons-left">
-                  <input
-                    class="input"
-                    type="url"
-                    id="discordLink"
-                    name="discordLink"
-                    value={ensemble.discordLink || ''}
-                    placeholder="https://discord.gg/..."
-                  />
-                  <Icon icon="fa-discord" variant="fab" size="small" position="left" />
-                </div>
-                <p class="help">Optional Discord server invite link for this ensemble</p>
-              </div>
+              <TextInput name="discordLink" label="Discord Link" type="url" value={ensemble.discordLink || ''} placeholder="https://discord.gg/..." iconLeft="fa-discord" iconLeftVariant="fab" help="Optional Discord server invite link for this ensemble" />
 
               <div class="field">
                 <label class="label">Links</label>
@@ -275,7 +242,7 @@ if (Astro.request.method === 'POST') {
                     {ensembleLinks.map((link) => (
                       <div class="field has-addons mb-2">
                         <div class="control is-expanded">
-                          <input class="input is-static" type="text" readonly value={`${link.label} — ${link.url}`} />
+                          <TextInput name="_link-display" type="text" value={`${link.label} — ${link.url}`} static readonly standalone />
                         </div>
                         <div class="control">
                           <Button type="submit" form={`delete-link-${link.id}`} color="danger" light title="Remove link">
@@ -289,10 +256,10 @@ if (Astro.request.method === 'POST') {
 
                 <div class="field is-grouped">
                   <div class="control" style="flex: 0 0 10rem;">
-                    <input class="input" type="text" form="add-link-form" name="label" placeholder="Label" maxlength="50" />
+                    <TextInput name="label" type="text" form="add-link-form" placeholder="Label" maxlength="50" standalone />
                   </div>
                   <div class="control is-expanded">
-                    <input class="input" type="url" form="add-link-form" name="url" placeholder="https://..." />
+                    <TextInput name="url" type="url" form="add-link-form" placeholder="https://..." standalone />
                   </div>
                   <div class="control">
                     <Button type="submit" form="add-link-form" color="link" light>
@@ -344,40 +311,10 @@ if (Astro.request.method === 'POST') {
 
                 <div class="columns">
                   <div class="column is-6">
-                    <div class="field">
-                      <label class="label" for="checkInStartMinutes">Check-in opens (minutes before)</label>
-                      <div class="control">
-                        <input
-                          class="input"
-                          type="number"
-                          id="checkInStartMinutes"
-                          name="checkInStartMinutes"
-                          value={ensemble.checkInStartMinutes}
-                          min="0"
-                          max="180"
-                          required
-                        />
-                      </div>
-                      <p class="help">Default: 30 minutes before rehearsal</p>
-                    </div>
+                    <TextInput name="checkInStartMinutes" label="Check-in opens (minutes before)" type="number" value={ensemble.checkInStartMinutes} min="0" max="180" required help="Default: 30 minutes before rehearsal" />
                   </div>
                   <div class="column is-6">
-                    <div class="field">
-                      <label class="label" for="checkInEndMinutes">Check-in closes (minutes after start)</label>
-                      <div class="control">
-                        <input
-                          class="input"
-                          type="number"
-                          id="checkInEndMinutes"
-                          name="checkInEndMinutes"
-                          value={ensemble.checkInEndMinutes}
-                          min="0"
-                          max="180"
-                          required
-                        />
-                      </div>
-                      <p class="help">Default: 15 minutes after rehearsal starts</p>
-                    </div>
+                    <TextInput name="checkInEndMinutes" label="Check-in closes (minutes after start)" type="number" value={ensemble.checkInEndMinutes} min="0" max="180" required help="Default: 15 minutes after rehearsal starts" />
                   </div>
                 </div>
               </div>

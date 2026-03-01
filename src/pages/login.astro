@@ -1,7 +1,7 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import Button from '../components/elements/Button.astro';
-import Icon from '../components/elements/Icon.astro';
+import TextInput from '../components/elements/TextInput.astro';
 import Notification from '../components/elements/Notification.astro';
 import { db, eq, User } from 'astro:db';
 import { verifyPassword } from '../lib/auth';
@@ -72,35 +72,8 @@ if (Astro.locals.user) {
       )}
 
       <form method="POST">
-        <div class="field">
-          <label class="label" for="email">Email</label>
-          <div class="control has-icons-left">
-            <input
-              class="input"
-              type="email"
-              id="email"
-              name="email"
-              placeholder="you@example.com"
-              required
-            />
-            <Icon icon="fa-envelope" size="small" position="left" />
-          </div>
-        </div>
-
-        <div class="field">
-          <label class="label" for="password">Password</label>
-          <div class="control has-icons-left">
-            <input
-              class="input"
-              type="password"
-              id="password"
-              name="password"
-              placeholder="••••••••"
-              required
-            />
-            <Icon icon="fa-lock" size="small" position="left" />
-          </div>
-        </div>
+        <TextInput name="email" label="Email" type="email" placeholder="you@example.com" iconLeft="fa-envelope" required />
+        <TextInput name="password" label="Password" type="password" placeholder="••••••••" iconLeft="fa-lock" required />
 
         <div class="field">
           <div class="control">

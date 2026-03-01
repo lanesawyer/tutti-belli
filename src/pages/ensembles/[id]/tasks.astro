@@ -4,6 +4,7 @@ import Table from '../../../components/elements/Table.astro';
 import Modal from '../../../components/Modal.astro';
 import Button from '../../../components/elements/Button.astro';
 import Icon from '../../../components/elements/Icon.astro';
+import TextInput from '../../../components/elements/TextInput.astro';
 import Tag from '../../../components/elements/Tag.astro';
 import Notification from '../../../components/elements/Notification.astro';
 import { db, eq, and, EnsembleMember, User, Season } from 'astro:db';
@@ -245,12 +246,7 @@ const nextSortOrder = seasonTasks.length > 0 ? Math.max(...seasonTasks.map((t) =
         <input type="hidden" name="ensembleId" value={ensemble.id} />
         <input type="hidden" name="seasonId" value={currentSeason?.id ?? ''} />
 
-        <div class="field">
-          <label class="label" for="create-title">Title *</label>
-          <div class="control">
-            <input class="input" type="text" id="create-title" name="title" placeholder="e.g., Sign code of conduct" required />
-          </div>
-        </div>
+        <TextInput name="title" id="create-title" label="Title *" placeholder="e.g., Sign code of conduct" required />
 
         <div class="field">
           <label class="label" for="create-description">Description</label>
@@ -259,13 +255,7 @@ const nextSortOrder = seasonTasks.length > 0 ? Math.max(...seasonTasks.map((t) =
           </div>
         </div>
 
-        <div class="field">
-          <label class="label" for="create-sortOrder">Sort Order</label>
-          <div class="control">
-            <input class="input" type="number" id="create-sortOrder" name="sortOrder" value={nextSortOrder} min="0" />
-          </div>
-          <p class="help">Lower numbers appear first.</p>
-        </div>
+        <TextInput name="sortOrder" id="create-sortOrder" label="Sort Order" type="number" value={nextSortOrder} min="0" help="Lower numbers appear first." />
       </form>
 
       <div slot="footer">
@@ -280,12 +270,7 @@ const nextSortOrder = seasonTasks.length > 0 ? Math.max(...seasonTasks.map((t) =
         <input type="hidden" name="ensembleId" value={ensemble.id} />
         <input type="hidden" name="taskId" id="edit-task-id" />
 
-        <div class="field">
-          <label class="label" for="edit-title">Title *</label>
-          <div class="control">
-            <input class="input" type="text" id="edit-title" name="title" required />
-          </div>
-        </div>
+        <TextInput name="title" id="edit-title" label="Title *" required />
 
         <div class="field">
           <label class="label" for="edit-description">Description</label>
@@ -294,13 +279,7 @@ const nextSortOrder = seasonTasks.length > 0 ? Math.max(...seasonTasks.map((t) =
           </div>
         </div>
 
-        <div class="field">
-          <label class="label" for="edit-sortOrder">Sort Order</label>
-          <div class="control">
-            <input class="input" type="number" id="edit-sortOrder" name="sortOrder" min="0" />
-          </div>
-          <p class="help">Lower numbers appear first.</p>
-        </div>
+        <TextInput name="sortOrder" id="edit-sortOrder" label="Sort Order" type="number" min="0" help="Lower numbers appear first." />
       </form>
 
       <div slot="footer">

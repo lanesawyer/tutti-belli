@@ -4,6 +4,7 @@ import Table from '../../../../components/elements/Table.astro';
 import Modal from '../../../../components/Modal.astro';
 import Button from '../../../../components/elements/Button.astro';
 import Icon from '../../../../components/elements/Icon.astro';
+import TextInput from '../../../../components/elements/TextInput.astro';
 import Notification from '../../../../components/elements/Notification.astro';
 import Tag from '../../../../components/elements/Tag.astro';
 import { canManageEnsemble } from '../../../../lib/permissions';
@@ -169,38 +170,21 @@ const songFilesMap = buildSongFilesMap(ensembleSongIds, songFilesData);
   <form id="addForm" method="POST" action={actions.songs.add}>
     <input type="hidden" name="ensembleId" value={ensemble.id} />
 
-    <div class="field">
-      <label class="label" for="name">Song Name *</label>
-      <div class="control">
-        <input class="input" type="text" id="name" name="name" placeholder="Song name" required />
-      </div>
-    </div>
-
-    <div class="field">
-      <label class="label" for="composer">Composer</label>
-      <div class="control">
-        <input class="input" type="text" id="composer" name="composer" placeholder="Composer name" />
-      </div>
-    </div>
-
-    <div class="field">
-      <label class="label" for="arranger">Arranger</label>
-      <div class="control">
-        <input class="input" type="text" id="arranger" name="arranger" placeholder="Arranger name" />
-      </div>
-    </div>
+    <TextInput name="name" label="Song Name *" placeholder="Song name" required />
+    <TextInput name="composer" label="Composer" placeholder="Composer name" />
+    <TextInput name="arranger" label="Arranger" placeholder="Arranger name" />
 
     <div class="field">
       <label class="label">Runtime</label>
       <div class="field has-addons">
         <div class="control">
-          <input class="input" type="number" name="runTimeMinutes" placeholder="Min" min="0" style="width: 80px;" />
+          <TextInput name="runTimeMinutes" type="number" placeholder="Min" min="0" style="width: 80px;" standalone />
         </div>
         <div class="control">
           <span class="button is-static">:</span>
         </div>
         <div class="control">
-          <input class="input" type="number" name="runTimeSeconds" placeholder="Sec" min="0" max="59" style="width: 80px;" />
+          <TextInput name="runTimeSeconds" type="number" placeholder="Sec" min="0" max="59" style="width: 80px;" standalone />
         </div>
       </div>
       <p class="help">Leave blank if unknown</p>
@@ -260,20 +244,8 @@ const songFilesMap = buildSongFilesMap(ensembleSongIds, songFilesData);
         <input type="hidden" name="ensembleId" value={ensemble.id} />
         <input type="hidden" name="songId" id="addFileSongId" />
 
-        <div class="field">
-          <label class="label is-small" for="fileName">Display Name *</label>
-          <div class="control">
-            <input class="input is-small" type="text" id="fileName" name="fileName" placeholder="e.g. Soprano Sheet Music" required />
-          </div>
-        </div>
-
-        <div class="field">
-          <label class="label is-small" for="fileUrl">File URL *</label>
-          <div class="control">
-            <input class="input is-small" type="url" id="fileUrl" name="fileUrl" placeholder="https://..." required />
-          </div>
-          <p class="help">Paste the download URL for this file</p>
-        </div>
+        <TextInput name="fileName" id="fileName" label="Display Name *" placeholder="e.g. Soprano Sheet Music" size="small" required />
+        <TextInput name="fileUrl" id="fileUrl" label="File URL *" type="url" placeholder="https://..." size="small" required help="Paste the download URL for this file" />
 
         <div class="field">
           <label class="label is-small" for="category">Category</label>
@@ -316,38 +288,21 @@ const songFilesMap = buildSongFilesMap(ensembleSongIds, songFilesData);
     <input type="hidden" name="ensembleId" value={ensemble.id} />
     <input type="hidden" name="songId" id="editSongId" />
 
-    <div class="field">
-      <label class="label" for="editName">Song Name *</label>
-      <div class="control">
-        <input class="input" type="text" id="editName" name="name" required />
-      </div>
-    </div>
-
-    <div class="field">
-      <label class="label" for="editComposer">Composer</label>
-      <div class="control">
-        <input class="input" type="text" id="editComposer" name="composer" />
-      </div>
-    </div>
-
-    <div class="field">
-      <label class="label" for="editArranger">Arranger</label>
-      <div class="control">
-        <input class="input" type="text" id="editArranger" name="arranger" />
-      </div>
-    </div>
+    <TextInput name="name" id="editName" label="Song Name *" required />
+    <TextInput name="composer" id="editComposer" label="Composer" />
+    <TextInput name="arranger" id="editArranger" label="Arranger" />
 
     <div class="field">
       <label class="label">Runtime</label>
       <div class="field has-addons">
         <div class="control">
-          <input class="input" type="number" name="runTimeMinutes" id="editRunTimeMinutes" placeholder="Min" min="0" style="width: 80px;" />
+          <TextInput name="runTimeMinutes" id="editRunTimeMinutes" type="number" placeholder="Min" min="0" style="width: 80px;" standalone />
         </div>
         <div class="control">
           <span class="button is-static">:</span>
         </div>
         <div class="control">
-          <input class="input" type="number" name="runTimeSeconds" id="editRunTimeSeconds" placeholder="Sec" min="0" max="59" style="width: 80px;" />
+          <TextInput name="runTimeSeconds" id="editRunTimeSeconds" type="number" placeholder="Sec" min="0" max="59" style="width: 80px;" standalone />
         </div>
       </div>
     </div>

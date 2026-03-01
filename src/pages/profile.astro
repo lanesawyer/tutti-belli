@@ -4,6 +4,7 @@ import Button from '../components/elements/Button.astro';
 import Image from '../components/elements/Image.astro';
 import FileInput from '../components/FileInput.astro';
 import Icon from '../components/elements/Icon.astro';
+import TextInput from '../components/elements/TextInput.astro';
 import Notification from '../components/elements/Notification.astro';
 import Tag from '../components/elements/Tag.astro';
 import { actions } from 'astro:actions';
@@ -85,35 +86,8 @@ const tasksByEnsemble = await getUserTasksAcrossEnsembles(user.id);
           </div>
 
           <form method="POST" enctype="multipart/form-data" action={actions.profile.updateInfo}>
-            <div class="field">
-              <label class="label" for="name">Name</label>
-              <div class="control">
-                <input
-                  class="input"
-                  type="text"
-                  id="name"
-                  name="name"
-                  value={user.name}
-                  required
-                />
-              </div>
-            </div>
-
-            <div class="field">
-              <label class="label" for="phone">Phone Number</label>
-              <div class="control">
-                <input
-                  class="input"
-                  type="tel"
-                  id="phone"
-                  name="phone"
-                  value={user.phone ?? ''}
-                  placeholder="333-333-3333"
-                  pattern="[0-9]{3}-[0-9]{3}-[0-9]{4}"
-                  title="###-###-####"
-                />
-              </div>
-            </div>
+            <TextInput name="name" label="Name" value={user.name} required />
+            <TextInput name="phone" label="Phone Number" type="tel" value={user.phone ?? ''} placeholder="333-333-3333" pattern="[0-9]{3}-[0-9]{3}-[0-9]{4}" title="###-###-####" />
 
             <div class="field">
               <label class="label">Profile Picture</label>
@@ -147,7 +121,7 @@ const tasksByEnsemble = await getUserTasksAcrossEnsembles(user.id);
           <div class="field">
             <label class="label">Email</label>
             <div class="control">
-              <input class="input" type="text" value={user.email} disabled />
+              <TextInput name="email" type="email" value={user.email} disabled standalone />
             </div>
 
             {emailChangePending && (
@@ -168,13 +142,7 @@ const tasksByEnsemble = await getUserTasksAcrossEnsembles(user.id);
                 <form method="POST" action={actions.profile.changeEmail}>
                   <div class="field has-addons">
                     <div class="control is-expanded">
-                      <input
-                        class="input"
-                        type="email"
-                        name="newEmail"
-                        placeholder="new@example.com"
-                        required
-                      />
+                      <TextInput name="newEmail" type="email" placeholder="new@example.com" required standalone />
                     </div>
                     <div class="control">
                       <Button type="submit" color="warning">
@@ -309,14 +277,7 @@ const tasksByEnsemble = await getUserTasksAcrossEnsembles(user.id);
             <form method="POST" action={actions.profile.deleteAccount}>
               <div class="field has-addons">
                 <div class="control is-expanded">
-                  <input
-                    class="input is-danger"
-                    type="password"
-                    name="password"
-                    placeholder="Your current password"
-                    required
-                    autocomplete="current-password"
-                  />
+                  <TextInput name="password" type="password" placeholder="Your current password" color="danger" required autocomplete="current-password" standalone />
                 </div>
                 <div class="control">
                   <Button type="submit" color="danger">
