@@ -1,35 +1,50 @@
 ---
-import Layout from '../../../layouts/Layout.astro';
-import Table from '../../../components/elements/Table.astro';
-import { db, eq, and, inArray, EnsembleMember, User, Part, MemberPart } from 'astro:db';
-import { ensembleAdminTools } from '../../../lib/config';
-import { getInitials, getColorFromInitials } from '../../../lib/avatar';
-import { getEnsembleBySlugOrId, getEnsembleAccess } from '../../../lib/ensemble';
-import { getEnsembleUrlId } from '../../../lib/slug';
-import Button from '../../../components/elements/Button.astro';
-import Image from '../../../components/elements/Image.astro';
-import Icon from '../../../components/elements/Icon.astro';
-import Breadcrumb from '../../../components/Breadcrumb.astro';
+import Layout from "../../../layouts/Layout.astro";
+import Table from "../../../components/elements/Table.astro";
+import {
+  db,
+  eq,
+  and,
+  inArray,
+  EnsembleMember,
+  User,
+  Part,
+  MemberPart,
+} from "astro:db";
+import { ensembleAdminTools } from "../../../lib/config";
+import { getInitials, getColorFromInitials } from "../../../lib/avatar";
+import {
+  getEnsembleBySlugOrId,
+  getEnsembleAccess,
+} from "../../../lib/ensemble";
+import { getEnsembleUrlId } from "../../../lib/slug";
+import Button from "../../../components/elements/Button.astro";
+import Image from "../../../components/elements/Image.astro";
+import Icon from "../../../components/elements/Icon.astro";
+import Breadcrumb from "../../../components/Breadcrumb.astro";
 
 const user = Astro.locals.user!;
 
 const { id } = Astro.params;
 const ensemble = await getEnsembleBySlugOrId(id!);
 if (!ensemble) {
-  return Astro.redirect('/ensembles');
+  return Astro.redirect("/ensembles");
 }
 
 const canonicalId = getEnsembleUrlId(ensemble);
-if (Astro.request.method === 'GET' && id !== canonicalId) {
-  return Astro.redirect(Astro.url.pathname.replace(`/ensembles/${id}`, `/ensembles/${canonicalId}`), 301);
+if (Astro.request.method === "GET" && id !== canonicalId) {
+  return Astro.redirect(
+    Astro.url.pathname.replace(`/ensembles/${id}`, `/ensembles/${canonicalId}`),
+    301,
+  );
 }
 
 const access = await getEnsembleAccess(user, ensemble.id);
-if (!access) return Astro.redirect('/ensembles');
+if (!access) return Astro.redirect("/ensembles");
 const { isAdmin } = access;
 
 if (!isAdmin) {
-  return new Response('Unauthorized', { status: 403 });
+  return new Response("Unauthorized", { status: 403 });
 }
 
 // Get all active members
@@ -46,7 +61,12 @@ const membersData = await db
   })
   .from(EnsembleMember)
   .innerJoin(User, eq(EnsembleMember.userId, User.id))
-  .where(and(eq(EnsembleMember.ensembleId, ensemble.id), eq(EnsembleMember.status, 'active')));
+  .where(
+    and(
+      eq(EnsembleMember.ensembleId, ensemble.id),
+      eq(EnsembleMember.status, "active"),
+    ),
+  );
 
 // Get all parts for this ensemble
 const allParts = await db
@@ -60,9 +80,14 @@ allParts.sort((a, b) => a.sortOrder - b.sortOrder);
 
 // Fetch MemberPart rows for these memberships
 const membershipIds = membersData.map((m) => m.membershipId);
-const memberPartRows = membershipIds.length > 0
-  ? await db.select().from(MemberPart).where(inArray(MemberPart.membershipId, membershipIds)).all()
-  : [];
+const memberPartRows =
+  membershipIds.length > 0
+    ? await db
+        .select()
+        .from(MemberPart)
+        .where(inArray(MemberPart.membershipId, membershipIds))
+        .all()
+    : [];
 
 // Group members by part (a multi-part member appears in each of their sections)
 const membersByPart = new Map<string, typeof membersData>();
@@ -78,29 +103,31 @@ for (const mp of memberPartRows) {
   membersByPart.get(mp.partId)!.push(member);
 }
 
-const membersWithoutPart = membersData.filter((m) => !membersWithPartIds.has(m.membershipId));
+const membersWithoutPart = membersData.filter(
+  (m) => !membersWithPartIds.has(m.membershipId),
+);
 
 const members = membersData;
 
 // Handle member actions
-if (Astro.request.method === 'POST') {
+if (Astro.request.method === "POST") {
   const formData = await Astro.request.formData();
-  const action = formData.get('action')?.toString();
-  const membershipId = formData.get('membershipId')?.toString();
+  const action = formData.get("action")?.toString();
+  const membershipId = formData.get("membershipId")?.toString();
 
-  if (action === 'remove' && membershipId) {
+  if (action === "remove" && membershipId) {
     await db.delete(EnsembleMember).where(eq(EnsembleMember.id, membershipId));
     return Astro.redirect(`/ensembles/${canonicalId}/members`);
-  } else if (action === 'promote' && membershipId) {
+  } else if (action === "promote" && membershipId) {
     await db
       .update(EnsembleMember)
-      .set({ role: 'admin' })
+      .set({ role: "admin" })
       .where(eq(EnsembleMember.id, membershipId));
     return Astro.redirect(`/ensembles/${canonicalId}/members`);
-  } else if (action === 'demote' && membershipId) {
+  } else if (action === "demote" && membershipId) {
     await db
       .update(EnsembleMember)
-      .set({ role: 'member' })
+      .set({ role: "member" })
       .where(eq(EnsembleMember.id, membershipId));
     return Astro.redirect(`/ensembles/${canonicalId}/members`);
   }
@@ -111,29 +138,39 @@ if (Astro.request.method === 'POST') {
   <div class="navbar-item has-dropdown is-hoverable" slot="navbar-start">
     <a class="navbar-link">{ensemble.name}</a>
     <div class="navbar-dropdown">
-      <a class={`navbar-item${Astro.url.pathname === `/ensembles/${canonicalId}` ? ' is-active' : ''}`} href={`/ensembles/${canonicalId}`}>
+      <a
+        class={`navbar-item${Astro.url.pathname === `/ensembles/${canonicalId}` ? " is-active" : ""}`}
+        href={`/ensembles/${canonicalId}`}
+      >
         <Icon icon="fa-home" size="small" class="mr-1" />
         Dashboard
       </a>
       <hr class="navbar-divider" />
-      {ensembleAdminTools.map((tool) => {
-        const href = tool.href(canonicalId);
-        return (
-          <a class={`navbar-item${Astro.url.pathname.startsWith(href) ? ' is-active' : ''}`} href={href}>
-            <Icon icon={tool.icon} size="small" class="mr-1" />
-            {tool.label}
-          </a>
-        );
-      })}
+      {
+        ensembleAdminTools.map((tool) => {
+          const href = tool.href(canonicalId);
+          return (
+            <a
+              class={`navbar-item${Astro.url.pathname.startsWith(href) ? " is-active" : ""}`}
+              href={href}
+            >
+              <Icon icon={tool.icon} size="small" class="mr-1" />
+              {tool.label}
+            </a>
+          );
+        })
+      }
     </div>
   </div>
   <section class="section">
     <div class="container">
-      <Breadcrumb items={[
-        { label: 'Ensembles', href: '/ensembles' },
-        { label: ensemble.name, href: `/ensembles/${canonicalId}` },
-        { label: 'Manage Members' },
-      ]} />
+      <Breadcrumb
+        items={[
+          { label: "Ensembles", href: "/ensembles" },
+          { label: ensemble.name, href: `/ensembles/${canonicalId}` },
+          { label: "Manage Members" },
+        ]}
+      />
 
       <div class="level mb-5">
         <div class="level-left">
@@ -155,18 +192,151 @@ if (Astro.request.method === 'POST') {
       </div>
 
       <div class="box">
-        {allParts.length > 0 ? (
-          <>
-            {allParts.map((part) => {
-              const partMembers = membersByPart.get(part.id) || [];
-              if (partMembers.length === 0) return null;
-              
-              return (
+        {
+          allParts.length > 0 ? (
+            <>
+              {allParts.map((part) => {
+                const partMembers = membersByPart.get(part.id) || [];
+                if (partMembers.length === 0) return null;
+
+                return (
+                  <div class="mb-5">
+                    <Table
+                      title={`${part.name} (${partMembers.length})`}
+                      className="has-text-primary"
+                    >
+                      <thead>
+                        <tr>
+                          <th style="width: 60px;" />
+                          <th>Name</th>
+                          <th>Email</th>
+                          <th>Role</th>
+                          <th>Joined</th>
+                          <th>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {partMembers.map((member: any) => (
+                          <tr>
+                            <td>
+                              {member.avatarUrl ? (
+                                <Image
+                                  src={member.avatarUrl}
+                                  alt={member.name}
+                                  size="48x48"
+                                  rounded
+                                  imgStyle="object-fit: cover;"
+                                />
+                              ) : (
+                                <figure class="image is-48x48">
+                                  <div
+                                    style={`width: 48px; height: 48px; border-radius: 50%; background-color: ${getColorFromInitials(getInitials(member.name))}; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.25rem; font-weight: bold;`}
+                                  >
+                                    {getInitials(member.name)}
+                                  </div>
+                                </figure>
+                              )}
+                            </td>
+                            <td>{member.name}</td>
+                            <td>{member.email}</td>
+                            <td>
+                              <span
+                                class={`tag ${member.role === "admin" ? "is-warning" : "is-info"}`}
+                              >
+                                {member.role === "admin" ? "Admin" : "Member"}
+                              </span>
+                            </td>
+                            <td>
+                              {new Date(member.joinedAt).toLocaleDateString()}
+                            </td>
+                            {member.id !== user.id && (
+                              <td>
+                                <div class="buttons are-small">
+                                  {member.role === "member" ? (
+                                    <form
+                                      method="POST"
+                                      style="display: inline;"
+                                    >
+                                      <input
+                                        type="hidden"
+                                        name="action"
+                                        value="promote"
+                                      />
+                                      <input
+                                        type="hidden"
+                                        name="membershipId"
+                                        value={member.membershipId}
+                                      />
+                                      <Button
+                                        type="submit"
+                                        color="warning"
+                                        size="small"
+                                      >
+                                        Make Admin
+                                      </Button>
+                                    </form>
+                                  ) : (
+                                    <form
+                                      method="POST"
+                                      style="display: inline;"
+                                    >
+                                      <input
+                                        type="hidden"
+                                        name="action"
+                                        value="demote"
+                                      />
+                                      <input
+                                        type="hidden"
+                                        name="membershipId"
+                                        value={member.membershipId}
+                                      />
+                                      <Button
+                                        type="submit"
+                                        color="info"
+                                        size="small"
+                                      >
+                                        Remove Admin
+                                      </Button>
+                                    </form>
+                                  )}
+                                  <form method="POST" style="display: inline;">
+                                    <input
+                                      type="hidden"
+                                      name="action"
+                                      value="remove"
+                                    />
+                                    <input
+                                      type="hidden"
+                                      name="membershipId"
+                                      value={member.membershipId}
+                                    />
+                                    <Button
+                                      type="submit"
+                                      color="danger"
+                                      size="small"
+                                    >
+                                      Remove
+                                    </Button>
+                                  </form>
+                                </div>
+                              </td>
+                            )}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </Table>
+                  </div>
+                );
+              })}
+
+              {membersWithoutPart.length > 0 && (
                 <div class="mb-5">
-                  <Table title={`${part.name} (${partMembers.length})`} className="has-text-primary">
+                  <Table
+                    title={`No Part Assigned (${membersWithoutPart.length})`}
+                  >
                     <thead>
                       <tr>
-                        <th style="width: 60px;"></th>
+                        <th style="width: 60px;" />
                         <th>Name</th>
                         <th>Email</th>
                         <th>Role</th>
@@ -175,14 +345,22 @@ if (Astro.request.method === 'POST') {
                       </tr>
                     </thead>
                     <tbody>
-                      {partMembers.map((member: any) => (
+                      {membersWithoutPart.map((member) => (
                         <tr>
                           <td>
                             {member.avatarUrl ? (
-                              <Image src={member.avatarUrl} alt={member.name} size="48x48" rounded imgStyle="object-fit: cover;" />
+                              <Image
+                                src={member.avatarUrl}
+                                alt={member.name}
+                                size="48x48"
+                                rounded
+                                imgStyle="object-fit: cover;"
+                              />
                             ) : (
                               <figure class="image is-48x48">
-                                <div style={`width: 48px; height: 48px; border-radius: 50%; background-color: ${getColorFromInitials(getInitials(member.name))}; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.25rem; font-weight: bold;`}>
+                                <div
+                                  style={`width: 48px; height: 48px; border-radius: 50%; background-color: ${getColorFromInitials(getInitials(member.name))}; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.25rem; font-weight: bold;`}
+                                >
                                   {getInitials(member.name)}
                                 </div>
                               </figure>
@@ -191,35 +369,75 @@ if (Astro.request.method === 'POST') {
                           <td>{member.name}</td>
                           <td>{member.email}</td>
                           <td>
-                            <span class={`tag ${member.role === 'admin' ? 'is-warning' : 'is-info'}`}>
-                              {member.role === 'admin' ? 'Admin' : 'Member'}
+                            <span
+                              class={`tag ${member.role === "admin" ? "is-warning" : "is-info"}`}
+                            >
+                              {member.role === "admin" ? "Admin" : "Member"}
                             </span>
                           </td>
-                          <td>{new Date(member.joinedAt).toLocaleDateString()}</td>
+                          <td>
+                            {new Date(member.joinedAt).toLocaleDateString()}
+                          </td>
                           {member.id !== user.id && (
                             <td>
                               <div class="buttons are-small">
-                                {member.role === 'member' ? (
+                                {member.role === "member" ? (
                                   <form method="POST" style="display: inline;">
-                                    <input type="hidden" name="action" value="promote" />
-                                    <input type="hidden" name="membershipId" value={member.membershipId} />
-                                    <Button type="submit" color="warning" size="small">
+                                    <input
+                                      type="hidden"
+                                      name="action"
+                                      value="promote"
+                                    />
+                                    <input
+                                      type="hidden"
+                                      name="membershipId"
+                                      value={member.membershipId}
+                                    />
+                                    <Button
+                                      type="submit"
+                                      color="warning"
+                                      size="small"
+                                    >
                                       Make Admin
                                     </Button>
                                   </form>
                                 ) : (
                                   <form method="POST" style="display: inline;">
-                                    <input type="hidden" name="action" value="demote" />
-                                    <input type="hidden" name="membershipId" value={member.membershipId} />
-                                    <Button type="submit" color="info" size="small">
+                                    <input
+                                      type="hidden"
+                                      name="action"
+                                      value="demote"
+                                    />
+                                    <input
+                                      type="hidden"
+                                      name="membershipId"
+                                      value={member.membershipId}
+                                    />
+                                    <Button
+                                      type="submit"
+                                      color="info"
+                                      size="small"
+                                    >
                                       Remove Admin
                                     </Button>
                                   </form>
                                 )}
                                 <form method="POST" style="display: inline;">
-                                  <input type="hidden" name="action" value="remove" />
-                                  <input type="hidden" name="membershipId" value={member.membershipId} />
-                                  <Button type="submit" color="danger" size="small">
+                                  <input
+                                    type="hidden"
+                                    name="action"
+                                    value="remove"
+                                  />
+                                  <input
+                                    type="hidden"
+                                    name="membershipId"
+                                    value={member.membershipId}
+                                  />
+                                  <Button
+                                    type="submit"
+                                    color="danger"
+                                    size="small"
+                                  >
                                     Remove
                                   </Button>
                                 </form>
@@ -231,150 +449,112 @@ if (Astro.request.method === 'POST') {
                     </tbody>
                   </Table>
                 </div>
-              );
-            })}
-
-            {membersWithoutPart.length > 0 && (
-              <div class="mb-5">
-                <Table title={`No Part Assigned (${membersWithoutPart.length})`}>
-                  <thead>
-                    <tr>
-                      <th style="width: 60px;"></th>
-                      <th>Name</th>
-                      <th>Email</th>
-                      <th>Role</th>
-                      <th>Joined</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {membersWithoutPart.map((member) => (
-                      <tr>
-                        <td>
-                          {member.avatarUrl ? (
-                            <Image src={member.avatarUrl} alt={member.name} size="48x48" rounded imgStyle="object-fit: cover;" />
-                          ) : (
-                            <figure class="image is-48x48">
-                              <div style={`width: 48px; height: 48px; border-radius: 50%; background-color: ${getColorFromInitials(getInitials(member.name))}; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.25rem; font-weight: bold;`}>
-                                {getInitials(member.name)}
-                              </div>
-                            </figure>
-                          )}
-                        </td>
-                        <td>{member.name}</td>
-                        <td>{member.email}</td>
-                        <td>
-                          <span class={`tag ${member.role === 'admin' ? 'is-warning' : 'is-info'}`}>
-                            {member.role === 'admin' ? 'Admin' : 'Member'}
-                          </span>
-                        </td>
-                        <td>{new Date(member.joinedAt).toLocaleDateString()}</td>
-                        {member.id !== user.id && (
-                          <td>
-                            <div class="buttons are-small">
-                              {member.role === 'member' ? (
-                                <form method="POST" style="display: inline;">
-                                  <input type="hidden" name="action" value="promote" />
-                                  <input type="hidden" name="membershipId" value={member.membershipId} />
-                                  <Button type="submit" color="warning" size="small">
-                                    Make Admin
-                                  </Button>
-                                </form>
-                              ) : (
-                                <form method="POST" style="display: inline;">
-                                  <input type="hidden" name="action" value="demote" />
-                                  <input type="hidden" name="membershipId" value={member.membershipId} />
-                                  <Button type="submit" color="info" size="small">
-                                    Remove Admin
-                                  </Button>
-                                </form>
-                              )}
-                              <form method="POST" style="display: inline;">
-                                <input type="hidden" name="action" value="remove" />
-                                <input type="hidden" name="membershipId" value={member.membershipId} />
-                                <Button type="submit" color="danger" size="small">
-                                  Remove
-                                </Button>
-                              </form>
-                            </div>
-                          </td>
-                        )}
-                      </tr>
-                    ))}
-                  </tbody>
-                </Table>
-              </div>
-            )}
-          </>
-        ) : (
-          <Table>
-            <thead>
-              <tr>
-                <th style="width: 60px;"></th>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Role</th>
-                <th>Joined</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {members.map((member) => (
+              )}
+            </>
+          ) : (
+            <Table>
+              <thead>
                 <tr>
-                  <td>
-                    {member.avatarUrl ? (
-                      <Image src={member.avatarUrl} alt={member.name} size="48x48" rounded imgStyle="object-fit: cover;" />
-                    ) : (
-                      <figure class="image is-48x48">
-                        <div style={`width: 48px; height: 48px; border-radius: 50%; background-color: ${getColorFromInitials(getInitials(member.name))}; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.25rem; font-weight: bold;`}>
-                          {getInitials(member.name)}
-                        </div>
-                      </figure>
-                    )}
-                  </td>
-                  <td>{member.name}</td>
-                  <td>{member.email}</td>
-                  <td>
-                    <span class={`tag ${member.role === 'admin' ? 'is-warning' : 'is-info'}`}>
-                      {member.role === 'admin' ? 'Admin' : 'Member'}
-                    </span>
-                  </td>
-                  <td>{new Date(member.joinedAt).toLocaleDateString()}</td>
-                  {member.id !== user.id && (
-                    <td>
-                      <div class="buttons are-small">
-                        {member.role === 'member' ? (
-                          <form method="POST" style="display: inline;">
-                            <input type="hidden" name="action" value="promote" />
-                            <input type="hidden" name="membershipId" value={member.membershipId} />
-                            <Button type="submit" color="warning" size="small">
-                              Make Admin
-                            </Button>
-                          </form>
-                        ) : (
-                          <form method="POST" style="display: inline;">
-                            <input type="hidden" name="action" value="demote" />
-                            <input type="hidden" name="membershipId" value={member.membershipId} />
-                            <Button type="submit" color="info" size="small">
-                              Remove Admin
-                            </Button>
-                          </form>
-                        )}
-                        <form method="POST" style="display: inline;">
-                          <input type="hidden" name="action" value="remove" />
-                          <input type="hidden" name="membershipId" value={member.membershipId} />
-                          <Button type="submit" color="danger" size="small">
-                            Remove
-                          </Button>
-                        </form>
-                      </div>
-                    </td>
-                  )}
+                  <th style="width: 60px;" />
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Role</th>
+                  <th>Joined</th>
+                  <th>Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </Table>
-        )}
+              </thead>
+              <tbody>
+                {members.map((member) => (
+                  <tr>
+                    <td>
+                      {member.avatarUrl ? (
+                        <Image
+                          src={member.avatarUrl}
+                          alt={member.name}
+                          size="48x48"
+                          rounded
+                          imgStyle="object-fit: cover;"
+                        />
+                      ) : (
+                        <figure class="image is-48x48">
+                          <div
+                            style={`width: 48px; height: 48px; border-radius: 50%; background-color: ${getColorFromInitials(getInitials(member.name))}; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.25rem; font-weight: bold;`}
+                          >
+                            {getInitials(member.name)}
+                          </div>
+                        </figure>
+                      )}
+                    </td>
+                    <td>{member.name}</td>
+                    <td>{member.email}</td>
+                    <td>
+                      <span
+                        class={`tag ${member.role === "admin" ? "is-warning" : "is-info"}`}
+                      >
+                        {member.role === "admin" ? "Admin" : "Member"}
+                      </span>
+                    </td>
+                    <td>{new Date(member.joinedAt).toLocaleDateString()}</td>
+                    {member.id !== user.id && (
+                      <td>
+                        <div class="buttons are-small">
+                          {member.role === "member" ? (
+                            <form method="POST" style="display: inline;">
+                              <input
+                                type="hidden"
+                                name="action"
+                                value="promote"
+                              />
+                              <input
+                                type="hidden"
+                                name="membershipId"
+                                value={member.membershipId}
+                              />
+                              <Button
+                                type="submit"
+                                color="warning"
+                                size="small"
+                              >
+                                Make Admin
+                              </Button>
+                            </form>
+                          ) : (
+                            <form method="POST" style="display: inline;">
+                              <input
+                                type="hidden"
+                                name="action"
+                                value="demote"
+                              />
+                              <input
+                                type="hidden"
+                                name="membershipId"
+                                value={member.membershipId}
+                              />
+                              <Button type="submit" color="info" size="small">
+                                Remove Admin
+                              </Button>
+                            </form>
+                          )}
+                          <form method="POST" style="display: inline;">
+                            <input type="hidden" name="action" value="remove" />
+                            <input
+                              type="hidden"
+                              name="membershipId"
+                              value={member.membershipId}
+                            />
+                            <Button type="submit" color="danger" size="small">
+                              Remove
+                            </Button>
+                          </form>
+                        </div>
+                      </td>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+          )
+        }
       </div>
     </div>
   </section>

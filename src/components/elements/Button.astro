@@ -1,7 +1,15 @@
 ---
 type SharedProps = {
-  color?: 'primary' | 'danger' | 'warning' | 'info' | 'success' | 'link' | 'light' | 'white';
-  size?: 'small' | 'large';
+  color?:
+    | "primary"
+    | "danger"
+    | "warning"
+    | "info"
+    | "success"
+    | "link"
+    | "light"
+    | "white";
+  size?: "small" | "large";
   fullwidth?: boolean;
   outlined?: boolean;
   light?: boolean;
@@ -23,7 +31,7 @@ type LinkProps = SharedProps & {
 
 type ButtonProps = SharedProps & {
   href?: never;
-  type?: 'submit' | 'button' | 'reset';
+  type?: "submit" | "button" | "reset";
   form?: string;
   disabled?: boolean;
   // Link-only props are disallowed
@@ -40,7 +48,7 @@ const {
   fullwidth,
   outlined,
   light,
-  type = 'button',
+  type = "button",
   form,
   disabled,
   target,
@@ -52,38 +60,42 @@ const {
 } = Astro.props;
 
 const classes = [
-  'button',
+  "button",
   color && `is-${color}`,
   size && `is-${size}`,
-  fullwidth && 'is-fullwidth',
-  outlined && 'is-outlined',
-  light && 'is-light',
+  fullwidth && "is-fullwidth",
+  outlined && "is-outlined",
+  light && "is-light",
   className,
-].filter(Boolean).join(' ');
+]
+  .filter(Boolean)
+  .join(" ");
 ---
 
-{href ? (
-  <a
-    href={href}
-    class={classes}
-    target={target}
-    rel={rel}
-    title={title}
-    id={id}
-    {...rest}
-  >
-    <slot />
-  </a>
-) : (
-  <button
-    type={type}
-    class={classes}
-    form={form}
-    disabled={disabled}
-    title={title}
-    id={id}
-    {...rest}
-  >
-    <slot />
-  </button>
-)}
+{
+  href ? (
+    <a
+      href={href}
+      class={classes}
+      target={target}
+      rel={rel}
+      title={title}
+      id={id}
+      {...rest}
+    >
+      <slot />
+    </a>
+  ) : (
+    <button
+      type={type}
+      class={classes}
+      form={form}
+      disabled={disabled}
+      title={title}
+      id={id}
+      {...rest}
+    >
+      <slot />
+    </button>
+  )
+}

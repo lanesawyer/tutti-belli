@@ -1,73 +1,81 @@
 ---
-import EnsemblePageLayout from '../../../layouts/EnsemblePageLayout.astro';
-import Table from '../../../components/elements/Table.astro';
-import Modal from '../../../components/Modal.astro';
-import Button from '../../../components/elements/Button.astro';
-import Icon from '../../../components/elements/Icon.astro';
-import TextInput from '../../../components/elements/TextInput.astro';
-import Notification from '../../../components/elements/Notification.astro';
-import { db, eq, and, EnsembleMember, Part } from 'astro:db';
-import { actions } from 'astro:actions';
-import { canManageEnsemble } from '../../../lib/permissions';
-import { getEnsembleBySlugOrId } from '../../../lib/ensemble';
-import { getEnsembleUrlId } from '../../../lib/slug';
+import EnsemblePageLayout from "../../../layouts/EnsemblePageLayout.astro";
+import Table from "../../../components/elements/Table.astro";
+import Modal from "../../../components/Modal.astro";
+import Button from "../../../components/elements/Button.astro";
+import Icon from "../../../components/elements/Icon.astro";
+import TextInput from "../../../components/elements/TextInput.astro";
+import Notification from "../../../components/elements/Notification.astro";
+import { db, eq, and, EnsembleMember, Part } from "astro:db";
+import { actions } from "astro:actions";
+import { canManageEnsemble } from "../../../lib/permissions";
+import { getEnsembleBySlugOrId } from "../../../lib/ensemble";
+import { getEnsembleUrlId } from "../../../lib/slug";
 const user = Astro.locals.user!;
 
 const { id } = Astro.params;
 const ensemble = await getEnsembleBySlugOrId(id!);
 
 if (!ensemble) {
-  return new Response('Ensemble not found', { status: 404 });
+  return new Response("Ensemble not found", { status: 404 });
 }
 
 const canonicalId = getEnsembleUrlId(ensemble);
-if (Astro.request.method === 'GET' && id !== canonicalId) {
-  return Astro.redirect(Astro.url.pathname.replace(`/ensembles/${id}`, `/ensembles/${canonicalId}`), 301);
+if (Astro.request.method === "GET" && id !== canonicalId) {
+  return Astro.redirect(
+    Astro.url.pathname.replace(`/ensembles/${id}`, `/ensembles/${canonicalId}`),
+    301,
+  );
 }
 
 // Check if user is an admin of this ensemble
 const membership = await db
   .select()
   .from(EnsembleMember)
-  .where(and(eq(EnsembleMember.ensembleId, ensemble.id), eq(EnsembleMember.userId, user.id)))
+  .where(
+    and(
+      eq(EnsembleMember.ensembleId, ensemble.id),
+      eq(EnsembleMember.userId, user.id),
+    ),
+  )
   .get();
 
 const isAdmin = canManageEnsemble(user, membership);
 
 if (!isAdmin) {
-  return new Response('Unauthorized', { status: 403 });
+  return new Response("Unauthorized", { status: 403 });
 }
 
 const addResult = Astro.getActionResult(actions.parts.add);
 const editResult = Astro.getActionResult(actions.parts.edit);
 const deleteResult = Astro.getActionResult(actions.parts.delete);
 
-let message = '';
-let messageType: 'success' | 'danger' | undefined;
+let message = "";
+let messageType: "success" | "danger" | undefined;
 
 if (addResult) {
   if (addResult.error) {
-    message = addResult.error.message ?? 'Failed to add part.';
-    messageType = 'danger';
+    message = addResult.error.message ?? "Failed to add part.";
+    messageType = "danger";
   } else {
-    message = 'Part added successfully!';
-    messageType = 'success';
+    message = "Part added successfully!";
+    messageType = "success";
   }
 } else if (editResult) {
   if (editResult.error) {
-    message = editResult.error.message ?? 'Failed to update part.';
-    messageType = 'danger';
+    message = editResult.error.message ?? "Failed to update part.";
+    messageType = "danger";
   } else {
-    message = 'Part updated successfully!';
-    messageType = 'success';
+    message = "Part updated successfully!";
+    messageType = "success";
   }
 } else if (deleteResult) {
   if (deleteResult.error) {
-    message = deleteResult.error.message ?? 'Failed to delete part.';
-    messageType = 'danger';
+    message = deleteResult.error.message ?? "Failed to delete part.";
+    messageType = "danger";
   } else {
-    message = 'Part deleted.';
-    messageType = 'success';
+    message = "Part deleted.";
+    messageType = "success";
   }
 }
 
@@ -80,7 +88,8 @@ const parts = await db
 
 parts.sort((a, b) => a.sortOrder - b.sortOrder);
 
-const nextSortOrder = parts.length > 0 ? Math.max(...parts.map(p => p.sortOrder)) + 1 : 1;
+const nextSortOrder =
+  parts.length > 0 ? Math.max(...parts.map((p) => p.sortOrder)) + 1 : 1;
 ---
 
 <EnsemblePageLayout
@@ -98,121 +107,160 @@ const nextSortOrder = parts.length > 0 ? Math.max(...parts.map(p => p.sortOrder)
     <span>Add Part</span>
   </Button>
 
-  {parts.length === 0 ? (
-    <Notification color="info" light>
-      No parts defined yet. Click "Add Part" to create one.
-    </Notification>
-  ) : (
-    <Table>
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Sort Order</th>
-          <th style="width: 120px;">Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        {parts.map((part) => (
+  {
+    parts.length === 0 ? (
+      <Notification color="info" light>
+        No parts defined yet. Click "Add Part" to create one.
+      </Notification>
+    ) : (
+      <Table>
+        <thead>
           <tr>
-            <td><strong>{part.name}</strong></td>
-            <td>{part.sortOrder}</td>
-            <td>
-              <div class="buttons are-small">
-                <Button
-                  color="info"
-                  class="edit-part-btn"
-                  data-part-id={part.id}
-                  data-part-name={part.name}
-                  data-part-sort-order={part.sortOrder}
-                >
-                  <Icon icon="fa-edit" />
-                </Button>
-                <Button
-                  color="danger"
-                  class="delete-part-btn"
-                  data-part-id={part.id}
-                  data-part-name={part.name}
-                >
-                  <Icon icon="fa-trash" />
-                </Button>
-              </div>
-            </td>
+            <th>Name</th>
+            <th>Sort Order</th>
+            <th style="width: 120px;">Actions</th>
           </tr>
-        ))}
-      </tbody>
-    </Table>
-  )}
+        </thead>
+        <tbody>
+          {parts.map((part) => (
+            <tr>
+              <td>
+                <strong>{part.name}</strong>
+              </td>
+              <td>{part.sortOrder}</td>
+              <td>
+                <div class="buttons are-small">
+                  <Button
+                    color="info"
+                    class="edit-part-btn"
+                    data-part-id={part.id}
+                    data-part-name={part.name}
+                    data-part-sort-order={part.sortOrder}
+                  >
+                    <Icon icon="fa-edit" />
+                  </Button>
+                  <Button
+                    color="danger"
+                    class="delete-part-btn"
+                    data-part-id={part.id}
+                    data-part-name={part.name}
+                  >
+                    <Icon icon="fa-trash" />
+                  </Button>
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </Table>
+    )
+  }
 
   <Fragment slot="modals">
-<!-- Add Part Modal -->
-<Modal id="add-modal" title="Add Part">
-  <form id="addForm" method="POST" action={actions.parts.add}>
-    <input type="hidden" name="ensembleId" value={ensemble.id} />
+    <!-- Add Part Modal -->
+    <Modal id="add-modal" title="Add Part">
+      <form id="addForm" method="POST" action={actions.parts.add}>
+        <input type="hidden" name="ensembleId" value={ensemble.id} />
 
-    <TextInput name="name" id="add-name" label="Part Name *" placeholder="e.g., Soprano, Alto, Tenor" required />
-    <TextInput name="sortOrder" id="add-sortOrder" label="Sort Order" type="number" value={nextSortOrder} min="0" help="Lower numbers appear first in lists." />
-  </form>
+        <TextInput
+          name="name"
+          id="add-name"
+          label="Part Name *"
+          placeholder="e.g., Soprano, Alto, Tenor"
+          required
+        />
+        <TextInput
+          name="sortOrder"
+          id="add-sortOrder"
+          label="Sort Order"
+          type="number"
+          value={nextSortOrder}
+          min="0"
+          help="Lower numbers appear first in lists."
+        />
+      </form>
 
-  <div slot="footer">
-    <Button type="submit" form="addForm" color="primary">Add Part</Button>
-    <Button type="button" data-modal-close>Cancel</Button>
-  </div>
-</Modal>
+      <div slot="footer">
+        <Button type="submit" form="addForm" color="primary">Add Part</Button>
+        <Button type="button" data-modal-close>Cancel</Button>
+      </div>
+    </Modal>
 
-<!-- Edit Part Modal -->
-<Modal id="edit-modal" title="Edit Part">
-  <form id="editForm" method="POST" action={actions.parts.edit}>
-    <input type="hidden" name="ensembleId" value={ensemble.id} />
-    <input type="hidden" name="partId" id="edit-part-id" />
+    <!-- Edit Part Modal -->
+    <Modal id="edit-modal" title="Edit Part">
+      <form id="editForm" method="POST" action={actions.parts.edit}>
+        <input type="hidden" name="ensembleId" value={ensemble.id} />
+        <input type="hidden" name="partId" id="edit-part-id" />
 
-    <TextInput name="name" id="edit-name" label="Part Name *" required />
-    <TextInput name="sortOrder" id="edit-sortOrder" label="Sort Order" type="number" min="0" help="Lower numbers appear first in lists." />
-  </form>
+        <TextInput name="name" id="edit-name" label="Part Name *" required />
+        <TextInput
+          name="sortOrder"
+          id="edit-sortOrder"
+          label="Sort Order"
+          type="number"
+          min="0"
+          help="Lower numbers appear first in lists."
+        />
+      </form>
 
-  <div slot="footer">
-    <Button type="submit" form="editForm" color="primary">Save Changes</Button>
-    <Button type="button" data-modal-close>Cancel</Button>
-  </div>
-</Modal>
+      <div slot="footer">
+        <Button type="submit" form="editForm" color="primary"
+          >Save Changes</Button
+        >
+        <Button type="button" data-modal-close>Cancel</Button>
+      </div>
+    </Modal>
 
-<!-- Delete Confirmation Modal -->
-<Modal id="delete-modal" title="Delete Part">
-  <p>Are you sure you want to delete <strong id="delete-part-name"></strong>?</p>
-  <p class="mt-2 has-text-grey">Parts with assigned members cannot be deleted.</p>
-  <form id="deleteForm" method="POST" action={actions.parts.delete}>
-    <input type="hidden" name="ensembleId" value={ensemble.id} />
-    <input type="hidden" name="partId" id="delete-part-id" />
-  </form>
+    <!-- Delete Confirmation Modal -->
+    <Modal id="delete-modal" title="Delete Part">
+      <p>
+        Are you sure you want to delete <strong id="delete-part-name"></strong>?
+      </p>
+      <p class="mt-2 has-text-grey">
+        Parts with assigned members cannot be deleted.
+      </p>
+      <form id="deleteForm" method="POST" action={actions.parts.delete}>
+        <input type="hidden" name="ensembleId" value={ensemble.id} />
+        <input type="hidden" name="partId" id="delete-part-id" />
+      </form>
 
-  <div slot="footer">
-    <Button type="submit" form="deleteForm" color="danger">Delete</Button>
-    <Button type="button" data-modal-close>Cancel</Button>
-  </div>
-</Modal>
+      <div slot="footer">
+        <Button type="submit" form="deleteForm" color="danger">Delete</Button>
+        <Button type="button" data-modal-close>Cancel</Button>
+      </div>
+    </Modal>
 
-<script is:inline>
-  document.addEventListener('astro:page-load', () => {
-    document.getElementById('add-part-btn')?.addEventListener('click', () => {
-      document.getElementById('add-modal')?.classList.add('is-active');
-    });
+    <script is:inline>
+      document.addEventListener("astro:page-load", () => {
+        document
+          .getElementById("add-part-btn")
+          ?.addEventListener("click", () => {
+            document.getElementById("add-modal")?.classList.add("is-active");
+          });
 
-    document.querySelectorAll('.edit-part-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.getElementById('edit-part-id').value = btn.getAttribute('data-part-id');
-        document.getElementById('edit-name').value = btn.getAttribute('data-part-name');
-        document.getElementById('edit-sortOrder').value = btn.getAttribute('data-part-sort-order');
-        document.getElementById('edit-modal')?.classList.add('is-active');
+        document.querySelectorAll(".edit-part-btn").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            document.getElementById("edit-part-id").value =
+              btn.getAttribute("data-part-id");
+            document.getElementById("edit-name").value =
+              btn.getAttribute("data-part-name");
+            document.getElementById("edit-sortOrder").value = btn.getAttribute(
+              "data-part-sort-order",
+            );
+            document.getElementById("edit-modal")?.classList.add("is-active");
+          });
+        });
+
+        document.querySelectorAll(".delete-part-btn").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            document.getElementById("delete-part-id").value =
+              btn.getAttribute("data-part-id");
+            document.getElementById("delete-part-name").textContent =
+              btn.getAttribute("data-part-name");
+            document.getElementById("delete-modal")?.classList.add("is-active");
+          });
+        });
       });
-    });
-
-    document.querySelectorAll('.delete-part-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.getElementById('delete-part-id').value = btn.getAttribute('data-part-id');
-        document.getElementById('delete-part-name').textContent = btn.getAttribute('data-part-name');
-        document.getElementById('delete-modal')?.classList.add('is-active');
-      });
-    });
-  });
-</script>
+    </script>
   </Fragment>
 </EnsemblePageLayout>

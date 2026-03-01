@@ -1,7 +1,7 @@
 ---
-import type { Color } from '../../lib/bulma';
+import type { Color } from "../../lib/bulma";
 
-type Size = 'normal' | 'medium' | 'large' | 'small';
+type Size = "normal" | "medium" | "large" | "small";
 
 interface Props {
   color?: Color;
@@ -27,16 +27,17 @@ const {
 } = Astro.props;
 
 const classes = [
-  'tag',
+  "tag",
   color && `is-${color}`,
-  light && 'is-light',
+  light && "is-light",
   size && `is-${size}`,
-  rounded && 'is-rounded',
-  isDelete && 'is-delete',
+  rounded && "is-rounded",
+  isDelete && "is-delete",
   className,
 ]
   .filter(Boolean)
-  .join(' ');
+  .join(" ");
 ---
 
-<span class={classes} title={title} {...rest}>{isDelete ? null : <slot />}</span>
+<span class={classes} title={title} {...rest}>{isDelete ? null : <slot />}</span
+>

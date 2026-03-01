@@ -1,10 +1,10 @@
 ---
-import Layout from '../../layouts/Layout.astro';
-import Button from '../../components/elements/Button.astro';
-import Icon from '../../components/elements/Icon.astro';
-import Notification from '../../components/elements/Notification.astro';
-import { actions } from 'astro:actions';
-import { db, eq, Event, Ensemble } from 'astro:db';
+import Layout from "../../layouts/Layout.astro";
+import Button from "../../components/elements/Button.astro";
+import Icon from "../../components/elements/Icon.astro";
+import Notification from "../../components/elements/Notification.astro";
+import { actions } from "astro:actions";
+import { db, eq, Event, Ensemble } from "astro:db";
 
 const user = Astro.locals.user;
 if (!user) {
@@ -13,28 +13,40 @@ if (!user) {
 
 const { code } = Astro.params;
 if (!code) {
-  return Astro.redirect('/ensembles');
+  return Astro.redirect("/ensembles");
 }
 
 // Find event by check-in code
-const event = await db.select().from(Event).where(eq(Event.checkInCode, code.toUpperCase())).get();
+const event = await db
+  .select()
+  .from(Event)
+  .where(eq(Event.checkInCode, code.toUpperCase()))
+  .get();
 
 if (!event) {
-  return new Response('Invalid check-in code', { status: 404 });
+  return new Response("Invalid check-in code", { status: 404 });
 }
 
 // Get ensemble with check-in window settings
-const ensemble = await db.select().from(Ensemble).where(eq(Ensemble.id, event.ensembleId)).get();
+const ensemble = await db
+  .select()
+  .from(Ensemble)
+  .where(eq(Ensemble.id, event.ensembleId))
+  .get();
 
 if (!ensemble) {
-  return new Response('Ensemble not found', { status: 404 });
+  return new Response("Ensemble not found", { status: 404 });
 }
 
 // Calculate check-in window
 const now = new Date();
 const scheduledTime = new Date(event.scheduledAt);
-const checkInStartTime = new Date(scheduledTime.getTime() - (ensemble.checkInStartMinutes * 60 * 1000));
-const checkInEndTime = new Date(scheduledTime.getTime() + (ensemble.checkInEndMinutes * 60 * 1000));
+const checkInStartTime = new Date(
+  scheduledTime.getTime() - ensemble.checkInStartMinutes * 60 * 1000,
+);
+const checkInEndTime = new Date(
+  scheduledTime.getTime() + ensemble.checkInEndMinutes * 60 * 1000,
+);
 
 const canCheckIn = now >= checkInStartTime && now <= checkInEndTime;
 const isTooEarly = now < checkInStartTime;
@@ -42,29 +54,35 @@ const isTooLate = now > checkInEndTime;
 
 const result = Astro.getActionResult(actions.events.checkInByCode);
 const success = result && !result.error;
-const message = result?.error?.message ?? (success ? 'Successfully checked in!' : '');
+const message =
+  result?.error?.message ?? (success ? "Successfully checked in!" : "");
 
 const scheduledDate = new Date(event.scheduledAt);
-const isPerformance = event.category === 'performance';
+const isPerformance = event.category === "performance";
 ---
 
 <Layout title="Check In">
   <div class="columns is-centered">
     <div class="column is-6-tablet is-5-desktop">
       <div class="box has-text-centered">
-        <Icon icon="fa-qrcode fa-3x" size="large" color="primary" class="mb-3" />
+        <Icon
+          icon="fa-qrcode fa-3x"
+          size="large"
+          color="primary"
+          class="mb-3"
+        />
 
         <h1 class="title">Event Check-In</h1>
 
-        {ensemble && (
-          <p class="subtitle">{ensemble.name}</p>
-        )}
+        {ensemble && <p class="subtitle">{ensemble.name}</p>}
 
         <div class="content mt-4">
           <p>
             <strong>{event.title}</strong>
-            <span class={`tag ml-2 ${isPerformance ? 'is-warning' : 'is-primary'}`}>
-              {isPerformance ? 'Performance' : 'Rehearsal'}
+            <span
+              class={`tag ml-2 ${isPerformance ? "is-warning" : "is-primary"}`}
+            >
+              {isPerformance ? "Performance" : "Rehearsal"}
             </span>
           </p>
           <p>
@@ -74,17 +92,26 @@ const isPerformance = event.category === 'performance';
             </span>
             <span class="ml-3 icon-text">
               <Icon icon="fa-clock" />
-              <span>{scheduledDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+              <span
+                >{
+                  scheduledDate.toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })
+                }</span
+              >
             </span>
           </p>
-          {event.location && (
-            <p>
-              <span class="icon-text">
-                <Icon icon="fa-map-marker-alt" />
-                <span>{event.location}</span>
-              </span>
-            </p>
-          )}
+          {
+            event.location && (
+              <p>
+                <span class="icon-text">
+                  <Icon icon="fa-map-marker-alt" />
+                  <span>{event.location}</span>
+                </span>
+              </p>
+            )
+          }
         </div>
 
         <Notification color="info" light class="mt-4">
@@ -93,42 +120,65 @@ const isPerformance = event.category === 'performance';
           <p>Closes {ensemble.checkInEndMinutes} minutes after event start</p>
         </Notification>
 
-        {message && (
-          <Notification color={success ? 'success' : 'warning'} light class="mt-4">
-            {message}
-          </Notification>
-        )}
+        {
+          message && (
+            <Notification
+              color={success ? "success" : "warning"}
+              light
+              class="mt-4"
+            >
+              {message}
+            </Notification>
+          )
+        }
 
-        {!result && canCheckIn && (
-          <form method="POST" action={actions.events.checkInByCode} class="mt-5">
-            <input type="hidden" name="code" value={code} />
-            <Button type="submit" color="primary" size="large" fullwidth>
-              <Icon icon="fa-check" />
-              <span>Check In Now</span>
-            </Button>
-          </form>
-        )}
+        {
+          !result && canCheckIn && (
+            <form
+              method="POST"
+              action={actions.events.checkInByCode}
+              class="mt-5"
+            >
+              <input type="hidden" name="code" value={code} />
+              <Button type="submit" color="primary" size="large" fullwidth>
+                <Icon icon="fa-check" />
+                <span>Check In Now</span>
+              </Button>
+            </form>
+          )
+        }
 
-        {!result && !canCheckIn && (
-          <div class="mt-5">
-            <Button type="button" size="large" fullwidth disabled>
-              <Icon icon="fa-lock" />
-              <span>Check-in {isTooEarly ? 'Not Yet Available' : 'Closed'}</span>
-            </Button>
-            <p class="help mt-2">
-              {isTooEarly && `Check-in opens ${ensemble.checkInStartMinutes} minutes before event`}
-              {isTooLate && `Check-in closed ${ensemble.checkInEndMinutes} minutes after event start`}
-            </p>
-          </div>
-        )}
+        {
+          !result && !canCheckIn && (
+            <div class="mt-5">
+              <Button type="button" size="large" fullwidth disabled>
+                <Icon icon="fa-lock" />
+                <span>
+                  Check-in {isTooEarly ? "Not Yet Available" : "Closed"}
+                </span>
+              </Button>
+              <p class="help mt-2">
+                {isTooEarly &&
+                  `Check-in opens ${ensemble.checkInStartMinutes} minutes before event`}
+                {isTooLate &&
+                  `Check-in closed ${ensemble.checkInEndMinutes} minutes after event start`}
+              </p>
+            </div>
+          )
+        }
 
-        {success && (
-          <div class="mt-4">
-            <Button href={`/ensembles/${event.ensembleId}/events/${event.id}`} color="info">
-              View Event Details
-            </Button>
-          </div>
-        )}
+        {
+          success && (
+            <div class="mt-4">
+              <Button
+                href={`/ensembles/${event.ensembleId}/events/${event.id}`}
+                color="info"
+              >
+                View Event Details
+              </Button>
+            </div>
+          )
+        }
       </div>
     </div>
   </div>

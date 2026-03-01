@@ -1,43 +1,54 @@
 ---
-import Layout from '../../layouts/Layout.astro';
-import Button from '../../components/elements/Button.astro';
-import TextInput from '../../components/elements/TextInput.astro';
-import Notification from '../../components/elements/Notification.astro';
-import { actions } from 'astro:actions';
+import Layout from "../../layouts/Layout.astro";
+import Button from "../../components/elements/Button.astro";
+import TextInput from "../../components/elements/TextInput.astro";
+import Notification from "../../components/elements/Notification.astro";
+import { actions } from "astro:actions";
 
 const result = Astro.getActionResult(actions.admin.createEnsemble);
 if (result && !result.error) {
   return Astro.redirect(`/ensembles/${result.data.ensembleUrlId}`);
 }
 
-const error = result?.error?.message ?? '';
+const error = result?.error?.message ?? "";
 ---
 
 <Layout title="Create Ensemble">
   <div class="columns is-centered">
     <div class="column is-6-tablet is-5-desktop">
       <h1 class="title">Create Ensemble</h1>
-      <p class="subtitle">Start your own ensemble. You'll be added as an admin automatically.</p>
+      <p class="subtitle">
+        Start your own ensemble. You'll be added as an admin automatically.
+      </p>
 
-      {error && (
-        <Notification color="danger" light>
-          {error}
-        </Notification>
-      )}
+      {
+        error && (
+          <Notification color="danger" light>
+            {error}
+          </Notification>
+        )
+      }
 
       <form method="POST" action={actions.admin.createEnsemble}>
-        <TextInput name="name" label="Ensemble Name" placeholder="e.g. Chamber Orchestra" required />
+        <TextInput
+          name="name"
+          label="Ensemble Name"
+          placeholder="e.g. Chamber Orchestra"
+          required
+        />
 
         <div class="field">
-          <label class="label" for="description">Description <span class="has-text-grey-light">(optional)</span></label>
+          <label class="label" for="description"
+            >Description <span class="has-text-grey-light">(optional)</span
+            ></label
+          >
           <div class="control">
             <textarea
               class="textarea"
               id="description"
               name="description"
               placeholder="A brief description of your ensemble"
-              rows="3"
-            ></textarea>
+              rows="3"></textarea>
           </div>
         </div>
 

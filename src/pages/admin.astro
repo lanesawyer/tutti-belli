@@ -1,62 +1,64 @@
 ---
-import PageLayout from '../layouts/PageLayout.astro';
-import Table from '../components/elements/Table.astro';
-import Button from '../components/elements/Button.astro';
-import Icon from '../components/elements/Icon.astro';
-import TextInput from '../components/elements/TextInput.astro';
-import Modal from '../components/Modal.astro';
-import Notification from '../components/elements/Notification.astro';
-import { db, Ensemble, User } from 'astro:db';
-import { actions } from 'astro:actions';
-import { getActiveBanner } from '../lib/banner';
+import PageLayout from "../layouts/PageLayout.astro";
+import Table from "../components/elements/Table.astro";
+import Button from "../components/elements/Button.astro";
+import Icon from "../components/elements/Icon.astro";
+import TextInput from "../components/elements/TextInput.astro";
+import Modal from "../components/Modal.astro";
+import Notification from "../components/elements/Notification.astro";
+import { db, Ensemble, User } from "astro:db";
+import { actions } from "astro:actions";
+import { getActiveBanner } from "../lib/banner";
 
 const user = Astro.locals.user;
 
-if (!user || user.role !== 'admin') {
-  return Astro.redirect('/');
+if (!user || user.role !== "admin") {
+  return Astro.redirect("/");
 }
 
 const createResult = Astro.getActionResult(actions.admin.createEnsemble);
-const deleteEnsembleResult = Astro.getActionResult(actions.admin.deleteEnsemble);
+const deleteEnsembleResult = Astro.getActionResult(
+  actions.admin.deleteEnsemble,
+);
 const toggleAdminResult = Astro.getActionResult(actions.admin.toggleAdmin);
 const deleteUserResult = Astro.getActionResult(actions.admin.deleteUser);
 const setBannerResult = Astro.getActionResult(actions.admin.setBanner);
 const clearBannerResult = Astro.getActionResult(actions.admin.clearBanner);
 
-let message = '';
-let messageType: 'success' | 'danger' = 'success';
+let message = "";
+let messageType: "success" | "danger" = "success";
 
 if (createResult?.data) {
   message = `Ensemble created successfully!`;
 } else if (createResult?.error) {
   message = createResult.error.message;
-  messageType = 'danger';
+  messageType = "danger";
 } else if (deleteEnsembleResult && !deleteEnsembleResult.error) {
-  message = 'Ensemble deleted successfully!';
+  message = "Ensemble deleted successfully!";
 } else if (deleteEnsembleResult?.error) {
   message = deleteEnsembleResult.error.message;
-  messageType = 'danger';
+  messageType = "danger";
 } else if (toggleAdminResult?.data) {
   const { name, newRole } = toggleAdminResult.data;
-  message = `User ${name} is now ${newRole === 'admin' ? 'a site admin' : 'a regular user'}`;
+  message = `User ${name} is now ${newRole === "admin" ? "a site admin" : "a regular user"}`;
 } else if (toggleAdminResult?.error) {
   message = toggleAdminResult.error.message;
-  messageType = 'danger';
+  messageType = "danger";
 } else if (deleteUserResult?.data) {
   message = `User "${deleteUserResult.data.name}" has been deleted.`;
 } else if (deleteUserResult?.error) {
   message = deleteUserResult.error.message;
-  messageType = 'danger';
+  messageType = "danger";
 } else if (setBannerResult && !setBannerResult.error) {
-  message = 'Site banner updated.';
+  message = "Site banner updated.";
 } else if (setBannerResult?.error) {
   message = setBannerResult.error.message;
-  messageType = 'danger';
+  messageType = "danger";
 } else if (clearBannerResult && !clearBannerResult.error) {
-  message = 'Site banner cleared.';
+  message = "Site banner cleared.";
 } else if (clearBannerResult?.error) {
   message = clearBannerResult.error.message;
-  messageType = 'danger';
+  messageType = "danger";
 }
 
 // Get all ensembles
@@ -82,49 +84,65 @@ const activeBanner = await getActiveBanner();
   <!-- Ensembles -->
   <h2 class="title is-4">Ensembles ({allEnsembles.length})</h2>
 
-  {allEnsembles.length === 0 ? (
-    <Notification color="info" light>
-      No ensembles created yet.
-    </Notification>
-  ) : (
-    <Table>
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Description</th>
-          <th>Created</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        {allEnsembles.map((ensemble) => (
+  {
+    allEnsembles.length === 0 ? (
+      <Notification color="info" light>
+        No ensembles created yet.
+      </Notification>
+    ) : (
+      <Table>
+        <thead>
           <tr>
-            <td><strong>{ensemble.name}</strong></td>
-            <td>{ensemble.description}</td>
-            <td>{new Date(ensemble.createdAt).toLocaleDateString()}</td>
-            <td>
-              <div class="buttons are-small">
-                <Button href={`/ensembles/${ensemble.id}`} color="info" size="small">
-                  View
-                </Button>
-                <form method="POST" action={actions.admin.deleteEnsemble} style="display: inline;">
-                  <input type="hidden" name="ensembleId" value={ensemble.id} />
-                  <Button
-                    type="submit"
-                    color="danger"
-                    size="small"
-                    onclick="return confirm('Are you sure you want to delete this ensemble?')"
-                  >
-                    Delete
-                  </Button>
-                </form>
-              </div>
-            </td>
+            <th>Name</th>
+            <th>Description</th>
+            <th>Created</th>
+            <th>Actions</th>
           </tr>
-        ))}
-      </tbody>
-    </Table>
-  )}
+        </thead>
+        <tbody>
+          {allEnsembles.map((ensemble) => (
+            <tr>
+              <td>
+                <strong>{ensemble.name}</strong>
+              </td>
+              <td>{ensemble.description}</td>
+              <td>{new Date(ensemble.createdAt).toLocaleDateString()}</td>
+              <td>
+                <div class="buttons are-small">
+                  <Button
+                    href={`/ensembles/${ensemble.id}`}
+                    color="info"
+                    size="small"
+                  >
+                    View
+                  </Button>
+                  <form
+                    method="POST"
+                    action={actions.admin.deleteEnsemble}
+                    style="display: inline;"
+                  >
+                    <input
+                      type="hidden"
+                      name="ensembleId"
+                      value={ensemble.id}
+                    />
+                    <Button
+                      type="submit"
+                      color="danger"
+                      size="small"
+                      onclick="return confirm('Are you sure you want to delete this ensemble?')"
+                    >
+                      Delete
+                    </Button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </Table>
+    )
+  }
 
   <!-- Users -->
   <h2 class="title is-4 mt-5">Users ({allUsers.length})</h2>
@@ -140,100 +158,155 @@ const activeBanner = await getActiveBanner();
       </tr>
     </thead>
     <tbody>
-      {allUsers.map((u) => (
-        <tr>
-          <td>{u.name}</td>
-          <td>{u.email}</td>
-          <td>
-            <span class={`tag ${u.role === 'admin' ? 'is-danger' : 'is-info'}`}>
-              {u.role === 'admin' ? 'Site Admin' : 'User'}
-            </span>
-          </td>
-          <td>{new Date(u.createdAt).toLocaleDateString()}</td>
-          <td>
-            {u.id !== user.id && (
-              <div class="buttons are-small">
-                <form method="POST" action={actions.admin.toggleAdmin} style="display: inline;">
-                  <input type="hidden" name="userId" value={u.id} />
-                  <Button
-                    type="submit"
-                    color={u.role === 'admin' ? 'warning' : 'success'}
-                    size="small"
+      {
+        allUsers.map((u) => (
+          <tr>
+            <td>{u.name}</td>
+            <td>{u.email}</td>
+            <td>
+              <span
+                class={`tag ${u.role === "admin" ? "is-danger" : "is-info"}`}
+              >
+                {u.role === "admin" ? "Site Admin" : "User"}
+              </span>
+            </td>
+            <td>{new Date(u.createdAt).toLocaleDateString()}</td>
+            <td>
+              {u.id !== user.id && (
+                <div class="buttons are-small">
+                  <form
+                    method="POST"
+                    action={actions.admin.toggleAdmin}
+                    style="display: inline;"
                   >
-                    {u.role === 'admin' ? 'Remove Admin' : 'Make Admin'}
-                  </Button>
-                </form>
-                <form method="POST" action={actions.admin.deleteUser} style="display: inline;">
-                  <input type="hidden" name="userId" value={u.id} />
-                  <Button
-                    type="submit"
-                    color="danger"
-                    size="small"
-                    onclick={`return confirm('Delete user "${u.name}"? This cannot be undone.')`}
+                    <input type="hidden" name="userId" value={u.id} />
+                    <Button
+                      type="submit"
+                      color={u.role === "admin" ? "warning" : "success"}
+                      size="small"
+                    >
+                      {u.role === "admin" ? "Remove Admin" : "Make Admin"}
+                    </Button>
+                  </form>
+                  <form
+                    method="POST"
+                    action={actions.admin.deleteUser}
+                    style="display: inline;"
                   >
-                    Delete
-                  </Button>
-                </form>
-              </div>
-            )}
-          </td>
-        </tr>
-      ))}
+                    <input type="hidden" name="userId" value={u.id} />
+                    <Button
+                      type="submit"
+                      color="danger"
+                      size="small"
+                      onclick={`return confirm('Delete user "${u.name}"? This cannot be undone.')`}
+                    >
+                      Delete
+                    </Button>
+                  </form>
+                </div>
+              )}
+            </td>
+          </tr>
+        ))
+      }
     </tbody>
   </Table>
 
   <!-- Site Banner -->
   <h2 class="title is-4 mt-5">Site Banner</h2>
 
-  {activeBanner ? (
-    <div class={`notification is-${activeBanner.color} mb-4`}>
-      <strong>Active banner:</strong> {activeBanner.message}
-    </div>
-  ) : (
-    <Notification color="info" light class="mb-4">
-      No active banner. Set one below to display a message to all users.
-    </Notification>
-  )}
+  {
+    activeBanner ? (
+      <div class={`notification is-${activeBanner.color} mb-4`}>
+        <strong>Active banner:</strong> {activeBanner.message}
+      </div>
+    ) : (
+      <Notification color="info" light class="mb-4">
+        No active banner. Set one below to display a message to all users.
+      </Notification>
+    )
+  }
 
   <div class="box">
     <form method="POST" action={actions.admin.setBanner} id="set-banner-form">
-      <TextInput name="message" id="banner-message" label="Message" placeholder="e.g., Rehearsal is cancelled this Friday." value={activeBanner?.message ?? ''} required />
+      <TextInput
+        name="message"
+        id="banner-message"
+        label="Message"
+        placeholder="e.g., Rehearsal is cancelled this Friday."
+        value={activeBanner?.message ?? ""}
+        required
+      />
       <div class="field">
         <label class="label" for="banner-color">Color</label>
         <div class="control">
           <div class="select">
             <select id="banner-color" name="color">
-              {(['info', 'success', 'warning', 'danger', 'primary', 'link'] as const).map((c) => (
-                <option value={c} selected={activeBanner?.color === c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>
-              ))}
+              {
+                (
+                  [
+                    "info",
+                    "success",
+                    "warning",
+                    "danger",
+                    "primary",
+                    "link",
+                  ] as const
+                ).map((c) => (
+                  <option value={c} selected={activeBanner?.color === c}>
+                    {c.charAt(0).toUpperCase() + c.slice(1)}
+                  </option>
+                ))
+              }
             </select>
           </div>
         </div>
       </div>
     </form>
-    <form method="POST" action={actions.admin.clearBanner} id="clear-banner-form"></form>
+    <form
+      method="POST"
+      action={actions.admin.clearBanner}
+      id="clear-banner-form"
+    >
+    </form>
     <div class="field is-grouped mt-4">
       <div class="control">
         <Button type="submit" form="set-banner-form" color="primary">
           <Icon icon="fa-bullhorn" />
-          <span>{activeBanner ? 'Update Banner' : 'Set Banner'}</span>
+          <span>{activeBanner ? "Update Banner" : "Set Banner"}</span>
         </Button>
       </div>
-      {activeBanner && (
-        <div class="control">
-          <Button type="submit" form="clear-banner-form" color="danger" outlined>
-            <Icon icon="fa-times" />
-            <span>Clear Banner</span>
-          </Button>
-        </div>
-      )}
+      {
+        activeBanner && (
+          <div class="control">
+            <Button
+              type="submit"
+              form="clear-banner-form"
+              color="danger"
+              outlined
+            >
+              <Icon icon="fa-times" />
+              <span>Clear Banner</span>
+            </Button>
+          </div>
+        )
+      }
     </div>
   </div>
 
   <Fragment slot="modals">
     <Modal id="create-ensemble-modal" title="New Ensemble">
-      <form method="POST" action={actions.admin.createEnsemble} id="create-ensemble-form">
-        <TextInput name="name" label="Ensemble Name" placeholder="e.g., Chamber Orchestra" required />
+      <form
+        method="POST"
+        action={actions.admin.createEnsemble}
+        id="create-ensemble-form"
+      >
+        <TextInput
+          name="name"
+          label="Ensemble Name"
+          placeholder="e.g., Chamber Orchestra"
+          required
+        />
 
         <div class="field">
           <label class="label" for="description">Description</label>
@@ -242,8 +315,7 @@ const activeBanner = await getActiveBanner();
               class="textarea"
               id="description"
               name="description"
-              placeholder="Optional description"
-            ></textarea>
+              placeholder="Optional description"></textarea>
           </div>
         </div>
       </form>
@@ -260,9 +332,13 @@ const activeBanner = await getActiveBanner();
 </PageLayout>
 
 <script>
-  document.addEventListener('astro:page-load', () => {
-    document.getElementById('create-ensemble-btn')?.addEventListener('click', () => {
-      document.getElementById('create-ensemble-modal')?.classList.add('is-active');
-    });
+  document.addEventListener("astro:page-load", () => {
+    document
+      .getElementById("create-ensemble-btn")
+      ?.addEventListener("click", () => {
+        document
+          .getElementById("create-ensemble-modal")
+          ?.classList.add("is-active");
+      });
   });
 </script>

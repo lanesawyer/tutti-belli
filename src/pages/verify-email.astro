@@ -1,17 +1,25 @@
 ---
-import Layout from '../layouts/Layout.astro';
-import Button from '../components/elements/Button.astro';
-import Notification from '../components/elements/Notification.astro';
-import { db, eq, and, gt, isNull, User, EmailVerificationToken } from 'astro:db';
-import { createSession } from '../lib/session';
-import { getRedirectUrl } from '../lib/redirect';
+import Layout from "../layouts/Layout.astro";
+import Button from "../components/elements/Button.astro";
+import Notification from "../components/elements/Notification.astro";
+import {
+  db,
+  eq,
+  and,
+  gt,
+  isNull,
+  User,
+  EmailVerificationToken,
+} from "astro:db";
+import { createSession } from "../lib/session";
+import { getRedirectUrl } from "../lib/redirect";
 
-const token = Astro.url.searchParams.get('token');
-const customRedirect = Astro.url.searchParams.get('redirect');
-let error = '';
+const token = Astro.url.searchParams.get("token");
+const customRedirect = Astro.url.searchParams.get("redirect");
+let error = "";
 
 if (!token) {
-  error = 'Invalid verification link.';
+  error = "Invalid verification link.";
 } else {
   const now = new Date();
 
@@ -23,12 +31,12 @@ if (!token) {
         eq(EmailVerificationToken.token, token),
         gt(EmailVerificationToken.expiresAt, now),
         isNull(EmailVerificationToken.usedAt),
-      )
+      ),
     )
     .get();
 
   if (!verifyToken) {
-    error = 'This verification link is invalid or has expired.';
+    error = "This verification link is invalid or has expired.";
   } else {
     await db
       .update(User)
@@ -41,15 +49,17 @@ if (!token) {
       .where(eq(EmailVerificationToken.id, verifyToken.id));
 
     const sessionToken = createSession(verifyToken.userId);
-    Astro.cookies.set('session', sessionToken, {
-      path: '/',
+    Astro.cookies.set("session", sessionToken, {
+      path: "/",
       httpOnly: true,
       secure: import.meta.env.PROD,
-      sameSite: 'lax',
+      sameSite: "lax",
       maxAge: 60 * 60 * 24 * 30,
     });
 
-    return Astro.redirect(await getRedirectUrl(verifyToken.userId, customRedirect));
+    return Astro.redirect(
+      await getRedirectUrl(verifyToken.userId, customRedirect),
+    );
   }
 }
 ---
@@ -59,14 +69,18 @@ if (!token) {
     <div class="column is-5-tablet is-4-desktop">
       <h1 class="title">Email Verification</h1>
 
-      {error && (
-        <Notification color="danger" light>
-          <p>{error}</p>
-          <p class="mt-3">
-            <Button href="/resend-verification" color="light">Resend verification email</Button>
-          </p>
-        </Notification>
-      )}
+      {
+        error && (
+          <Notification color="danger" light>
+            <p>{error}</p>
+            <p class="mt-3">
+              <Button href="/resend-verification" color="light">
+                Resend verification email
+              </Button>
+            </p>
+          </Notification>
+        )
+      }
     </div>
   </div>
 </Layout>

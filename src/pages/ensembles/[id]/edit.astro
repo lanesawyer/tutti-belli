@@ -1,17 +1,25 @@
 ---
-import Layout from '../../../layouts/Layout.astro';
-import { db, eq, and, ne, Ensemble, EnsembleMember, EnsembleLink } from 'astro:db';
-import { fileToDataUri, validateImageFile } from '../../../lib/upload';
-import { canManageEnsemble } from '../../../lib/permissions';
-import { ensembleAdminTools } from '../../../lib/config';
-import { getEnsembleBySlugOrId } from '../../../lib/ensemble';
-import { generateSlug, getEnsembleUrlId } from '../../../lib/slug';
-import Button from '../../../components/elements/Button.astro';
-import Image from '../../../components/elements/Image.astro';
-import Icon from '../../../components/elements/Icon.astro';
-import TextInput from '../../../components/elements/TextInput.astro';
-import Breadcrumb from '../../../components/Breadcrumb.astro';
-import FileInput from '../../../components/FileInput.astro';
+import Layout from "../../../layouts/Layout.astro";
+import {
+  db,
+  eq,
+  and,
+  ne,
+  Ensemble,
+  EnsembleMember,
+  EnsembleLink,
+} from "astro:db";
+import { fileToDataUri, validateImageFile } from "../../../lib/upload";
+import { canManageEnsemble } from "../../../lib/permissions";
+import { ensembleAdminTools } from "../../../lib/config";
+import { getEnsembleBySlugOrId } from "../../../lib/ensemble";
+import { generateSlug, getEnsembleUrlId } from "../../../lib/slug";
+import Button from "../../../components/elements/Button.astro";
+import Image from "../../../components/elements/Image.astro";
+import Icon from "../../../components/elements/Icon.astro";
+import TextInput from "../../../components/elements/TextInput.astro";
+import Breadcrumb from "../../../components/Breadcrumb.astro";
+import FileInput from "../../../components/FileInput.astro";
 
 const user = Astro.locals.user!;
 
@@ -20,11 +28,11 @@ const { id } = Astro.params;
 const ensemble = await getEnsembleBySlugOrId(id!);
 
 if (!ensemble) {
-  return new Response('Ensemble not found', { status: 404 });
+  return new Response("Ensemble not found", { status: 404 });
 }
 
 const canonicalId = getEnsembleUrlId(ensemble);
-if (Astro.request.method === 'GET' && id !== canonicalId) {
+if (Astro.request.method === "GET" && id !== canonicalId) {
   return Astro.redirect(`/ensembles/${canonicalId}/edit`, 301);
 }
 
@@ -32,13 +40,18 @@ if (Astro.request.method === 'GET' && id !== canonicalId) {
 const membership = await db
   .select()
   .from(EnsembleMember)
-  .where(and(eq(EnsembleMember.ensembleId, ensemble.id), eq(EnsembleMember.userId, user.id)))
+  .where(
+    and(
+      eq(EnsembleMember.ensembleId, ensemble.id),
+      eq(EnsembleMember.userId, user.id),
+    ),
+  )
   .get();
 
 const isAdmin = canManageEnsemble(user, membership);
 
 if (!isAdmin) {
-  return new Response('Unauthorized', { status: 403 });
+  return new Response("Unauthorized", { status: 403 });
 }
 
 // Get ensemble links
@@ -48,17 +61,17 @@ const ensembleLinks = await db
   .where(eq(EnsembleLink.ensembleId, ensemble.id))
   .orderBy(EnsembleLink.sortOrder, EnsembleLink.createdAt);
 
-let message = '';
-let messageType = '';
+let message = "";
+let messageType = "";
 
 // Handle form submission
-if (Astro.request.method === 'POST') {
+if (Astro.request.method === "POST") {
   const formData = await Astro.request.formData();
-  const action = formData.get('action')?.toString();
+  const action = formData.get("action")?.toString();
 
-  if (action === 'add-link') {
-    const label = formData.get('label')?.toString()?.trim();
-    const url = formData.get('url')?.toString()?.trim();
+  if (action === "add-link") {
+    const label = formData.get("label")?.toString()?.trim();
+    const url = formData.get("url")?.toString()?.trim();
     if (label && url) {
       await db.insert(EnsembleLink).values({
         id: crypto.randomUUID(),
@@ -71,45 +84,58 @@ if (Astro.request.method === 'POST') {
     return Astro.redirect(`/ensembles/${canonicalId}/edit`);
   }
 
-  if (action === 'delete-link') {
-    const linkId = formData.get('linkId')?.toString();
+  if (action === "delete-link") {
+    const linkId = formData.get("linkId")?.toString();
     if (linkId) {
-      await db.delete(EnsembleLink).where(and(eq(EnsembleLink.id, linkId), eq(EnsembleLink.ensembleId, ensemble.id)));
+      await db
+        .delete(EnsembleLink)
+        .where(
+          and(
+            eq(EnsembleLink.id, linkId),
+            eq(EnsembleLink.ensembleId, ensemble.id),
+          ),
+        );
     }
     return Astro.redirect(`/ensembles/${canonicalId}/edit`);
   }
 
-  const name = formData.get('name')?.toString();
-  const description = formData.get('description')?.toString();
-  const discordLink = formData.get('discordLink')?.toString();
-  const codeOfConduct = formData.get('codeOfConduct')?.toString();
-  const imageFile = formData.get('image') as File;
-  const removeImage = formData.get('removeImage')?.toString() === 'true';
-  const checkInStartMinutes = parseInt(formData.get('checkInStartMinutes')?.toString() || '30');
-  const checkInEndMinutes = parseInt(formData.get('checkInEndMinutes')?.toString() || '15');
+  const name = formData.get("name")?.toString();
+  const description = formData.get("description")?.toString();
+  const discordLink = formData.get("discordLink")?.toString();
+  const codeOfConduct = formData.get("codeOfConduct")?.toString();
+  const imageFile = formData.get("image") as File;
+  const removeImage = formData.get("removeImage")?.toString() === "true";
+  const checkInStartMinutes = parseInt(
+    formData.get("checkInStartMinutes")?.toString() || "30",
+  );
+  const checkInEndMinutes = parseInt(
+    formData.get("checkInEndMinutes")?.toString() || "15",
+  );
 
   // Handle slug
-  const rawSlug = formData.get('slug')?.toString()?.trim();
+  const rawSlug = formData.get("slug")?.toString()?.trim();
   let newSlug = ensemble.slug ?? null;
 
   if (rawSlug !== undefined) {
-    if (rawSlug === '') {
+    if (rawSlug === "") {
       newSlug = null;
     } else {
       const normalized = generateSlug(rawSlug);
       if (!normalized) {
-        message = 'Invalid slug — use only letters, numbers, and hyphens.';
-        messageType = 'danger';
+        message = "Invalid slug — use only letters, numbers, and hyphens.";
+        messageType = "danger";
       } else {
         // Check if taken by a different ensemble
         const conflict = await db
           .select({ id: Ensemble.id })
           .from(Ensemble)
-          .where(and(eq(Ensemble.slug, normalized), ne(Ensemble.id, ensemble.id)))
+          .where(
+            and(eq(Ensemble.slug, normalized), ne(Ensemble.id, ensemble.id)),
+          )
           .get();
         if (conflict) {
           message = `The slug "${normalized}" is already taken by another ensemble.`;
-          messageType = 'danger';
+          messageType = "danger";
         } else {
           newSlug = normalized;
         }
@@ -118,8 +144,8 @@ if (Astro.request.method === 'POST') {
   }
 
   if (!name || !name.trim()) {
-    message = 'Ensemble name is required';
-    messageType = 'danger';
+    message = "Ensemble name is required";
+    messageType = "danger";
   } else if (!message) {
     try {
       let imageUrl = ensemble.imageUrl;
@@ -134,7 +160,7 @@ if (Astro.request.method === 'POST') {
         const validation = validateImageFile(imageFile, 5);
         if (!validation.valid) {
           message = validation.error!;
-          messageType = 'danger';
+          messageType = "danger";
         } else {
           imageUrl = await fileToDataUri(imageFile);
         }
@@ -158,9 +184,9 @@ if (Astro.request.method === 'POST') {
         return Astro.redirect(`/ensembles/${newSlug || ensemble.id}`);
       }
     } catch (error) {
-      console.error('Error updating ensemble:', error);
-      message = 'Failed to update ensemble';
-      messageType = 'danger';
+      console.error("Error updating ensemble:", error);
+      message = "Failed to update ensemble";
+      messageType = "danger";
     }
   }
 }
@@ -170,51 +196,70 @@ if (Astro.request.method === 'POST') {
   <div class="navbar-item has-dropdown is-hoverable" slot="navbar-start">
     <a class="navbar-link">{ensemble.name}</a>
     <div class="navbar-dropdown">
-      <a class={`navbar-item${Astro.url.pathname === `/ensembles/${canonicalId}` ? ' is-active' : ''}`} href={`/ensembles/${canonicalId}`}>
+      <a
+        class={`navbar-item${Astro.url.pathname === `/ensembles/${canonicalId}` ? " is-active" : ""}`}
+        href={`/ensembles/${canonicalId}`}
+      >
         <Icon icon="fa-home" size="small" class="mr-1" />
         Dashboard
       </a>
       <hr class="navbar-divider" />
-      {ensembleAdminTools.map((tool) => {
-        const href = tool.href(canonicalId);
-        return (
-          <a class={`navbar-item${Astro.url.pathname.startsWith(href) ? ' is-active' : ''}`} href={href}>
-            <Icon icon={tool.icon} size="small" class="mr-1" />
-            {tool.label}
-          </a>
-        );
-      })}
+      {
+        ensembleAdminTools.map((tool) => {
+          const href = tool.href(canonicalId);
+          return (
+            <a
+              class={`navbar-item${Astro.url.pathname.startsWith(href) ? " is-active" : ""}`}
+              href={href}
+            >
+              <Icon icon={tool.icon} size="small" class="mr-1" />
+              {tool.label}
+            </a>
+          );
+        })
+      }
     </div>
   </div>
   <section class="section">
     <div class="container">
-      <Breadcrumb items={[
-        { label: 'Ensembles', href: '/ensembles' },
-        { label: ensemble.name, href: `/ensembles/${canonicalId}` },
-        { label: 'Edit' },
-      ]} />
+      <Breadcrumb
+        items={[
+          { label: "Ensembles", href: "/ensembles" },
+          { label: ensemble.name, href: `/ensembles/${canonicalId}` },
+          { label: "Edit" },
+        ]}
+      />
 
       <h1 class="title">Edit Ensemble</h1>
 
-      {message && (
-        <div class={`notification is-${messageType}`}>
-          {message}
-        </div>
-      )}
+      {message && <div class={`notification is-${messageType}`}>{message}</div>}
 
       <div class="columns">
         <div class="column is-two-thirds">
           <div class="box">
             <form method="POST" enctype="multipart/form-data">
-              <TextInput name="name" label="Ensemble Name" value={ensemble.name} required />
+              <TextInput
+                name="name"
+                label="Ensemble Name"
+                value={ensemble.name}
+                required
+              />
               <div class="field">
                 <label class="label" for="slug">URL Slug</label>
                 <div class="control">
-                  <TextInput name="slug" id="slug" value={ensemble.slug || ''} placeholder="my-ensemble-name" standalone />
+                  <TextInput
+                    name="slug"
+                    id="slug"
+                    value={ensemble.slug || ""}
+                    placeholder="my-ensemble-name"
+                    standalone
+                  />
                 </div>
                 <p class="help">
-                  Used in URLs: <code>/ensembles/{ensemble.slug || ensemble.id}</code>.
-                  Lowercase letters, numbers, and hyphens only. Leave blank to use the ID.
+                  Used in URLs: <code
+                    >/ensembles/{ensemble.slug || ensemble.id}</code
+                  >. Lowercase letters, numbers, and hyphens only. Leave blank
+                  to use the ID.
                 </p>
               </div>
 
@@ -227,42 +272,88 @@ if (Astro.request.method === 'POST') {
                     name="description"
                     rows="4"
                     placeholder="Optional description..."
-                  >{ensemble.description || ''}</textarea>
+                    >{ensemble.description || ""}</textarea
+                  >
                 </div>
               </div>
 
-              <TextInput name="discordLink" label="Discord Link" type="url" value={ensemble.discordLink || ''} placeholder="https://discord.gg/..." iconLeft="fa-discord" iconLeftVariant="fab" help="Optional Discord server invite link for this ensemble" />
+              <TextInput
+                name="discordLink"
+                label="Discord Link"
+                type="url"
+                value={ensemble.discordLink || ""}
+                placeholder="https://discord.gg/..."
+                iconLeft="fa-discord"
+                iconLeftVariant="fab"
+                help="Optional Discord server invite link for this ensemble"
+              />
 
               <div class="field">
                 <label class="label">Links</label>
-                <p class="help mb-3">Add arbitrary links (e.g. sheet music, website, calendar) shown on the ensemble page</p>
+                <p class="help mb-3">
+                  Add arbitrary links (e.g. sheet music, website, calendar)
+                  shown on the ensemble page
+                </p>
 
-                {ensembleLinks.length > 0 && (
-                  <div class="mb-3">
-                    {ensembleLinks.map((link) => (
-                      <div class="field has-addons mb-2">
-                        <div class="control is-expanded">
-                          <TextInput name="_link-display" type="text" value={`${link.label} — ${link.url}`} static readonly standalone />
+                {
+                  ensembleLinks.length > 0 && (
+                    <div class="mb-3">
+                      {ensembleLinks.map((link) => (
+                        <div class="field has-addons mb-2">
+                          <div class="control is-expanded">
+                            <TextInput
+                              name="_link-display"
+                              type="text"
+                              value={`${link.label} — ${link.url}`}
+                              static
+                              readonly
+                              standalone
+                            />
+                          </div>
+                          <div class="control">
+                            <Button
+                              type="submit"
+                              form={`delete-link-${link.id}`}
+                              color="danger"
+                              light
+                              title="Remove link"
+                            >
+                              <Icon icon="fa-times" />
+                            </Button>
+                          </div>
                         </div>
-                        <div class="control">
-                          <Button type="submit" form={`delete-link-${link.id}`} color="danger" light title="Remove link">
-                            <Icon icon="fa-times" />
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                      ))}
+                    </div>
+                  )
+                }
 
                 <div class="field is-grouped">
                   <div class="control" style="flex: 0 0 10rem;">
-                    <TextInput name="label" type="text" form="add-link-form" placeholder="Label" maxlength="50" standalone />
+                    <TextInput
+                      name="label"
+                      type="text"
+                      form="add-link-form"
+                      placeholder="Label"
+                      maxlength="50"
+                      standalone
+                    />
                   </div>
                   <div class="control is-expanded">
-                    <TextInput name="url" type="url" form="add-link-form" placeholder="https://..." standalone />
+                    <TextInput
+                      name="url"
+                      type="url"
+                      form="add-link-form"
+                      placeholder="https://..."
+                      standalone
+                    />
                   </div>
                   <div class="control">
-                    <Button type="submit" form="add-link-form" color="link" light>
+                    <Button
+                      type="submit"
+                      form="add-link-form"
+                      color="link"
+                      light
+                    >
                       <Icon icon="fa-plus" />
                       <span>Add</span>
                     </Button>
@@ -279,42 +370,81 @@ if (Astro.request.method === 'POST') {
                     name="codeOfConduct"
                     rows="8"
                     placeholder="Optional code of conduct for new members. If set, new members must agree to these terms before joining."
-                  >{ensemble.codeOfConduct || ''}</textarea>
+                    >{ensemble.codeOfConduct || ""}</textarea
+                  >
                 </div>
-                <p class="help">New members will be required to read and agree to this code of conduct before joining</p>
+                <p class="help">
+                  New members will be required to read and agree to this code of
+                  conduct before joining
+                </p>
               </div>
 
               <div class="field">
                 <label class="label">Ensemble Image</label>
-                {ensemble.imageUrl && (
-                  <div class="mb-3">
-                    <p class="mb-2 has-text-weight-semibold">Current Image:</p>
-                    <Image src={ensemble.imageUrl} alt={ensemble.name} size="128x128" imgStyle="object-fit: cover; border-radius: 8px;" />
-                    <label class="checkbox mt-2">
-                      <input type="checkbox" name="removeImage" value="true" />
-                      Remove current image
-                    </label>
-                  </div>
-                )}
+                {
+                  ensemble.imageUrl && (
+                    <div class="mb-3">
+                      <p class="mb-2 has-text-weight-semibold">
+                        Current Image:
+                      </p>
+                      <Image
+                        src={ensemble.imageUrl}
+                        alt={ensemble.name}
+                        size="128x128"
+                        imgStyle="object-fit: cover; border-radius: 8px;"
+                      />
+                      <label class="checkbox mt-2">
+                        <input
+                          type="checkbox"
+                          name="removeImage"
+                          value="true"
+                        />
+                        Remove current image
+                      </label>
+                    </div>
+                  )
+                }
                 <FileInput
                   name="image"
                   id="imageInput"
                   accept="image/*"
-                  ctaLabel={ensemble.imageUrl ? 'Replace image…' : 'Choose an image…'}
+                  ctaLabel={ensemble.imageUrl
+                    ? "Replace image…"
+                    : "Choose an image…"}
                   help="Maximum file size: 5MB. Supported formats: JPG, PNG, GIF, WebP"
                 />
               </div>
 
               <div class="field">
                 <label class="label">Check-in Window Settings</label>
-                <p class="help mb-3">Configure when members can check in for rehearsals</p>
+                <p class="help mb-3">
+                  Configure when members can check in for rehearsals
+                </p>
 
                 <div class="columns">
                   <div class="column is-6">
-                    <TextInput name="checkInStartMinutes" label="Check-in opens (minutes before)" type="number" value={ensemble.checkInStartMinutes} min="0" max="180" required help="Default: 30 minutes before rehearsal" />
+                    <TextInput
+                      name="checkInStartMinutes"
+                      label="Check-in opens (minutes before)"
+                      type="number"
+                      value={ensemble.checkInStartMinutes}
+                      min="0"
+                      max="180"
+                      required
+                      help="Default: 30 minutes before rehearsal"
+                    />
                   </div>
                   <div class="column is-6">
-                    <TextInput name="checkInEndMinutes" label="Check-in closes (minutes after start)" type="number" value={ensemble.checkInEndMinutes} min="0" max="180" required help="Default: 15 minutes after rehearsal starts" />
+                    <TextInput
+                      name="checkInEndMinutes"
+                      label="Check-in closes (minutes after start)"
+                      type="number"
+                      value={ensemble.checkInEndMinutes}
+                      min="0"
+                      max="180"
+                      required
+                      help="Default: 15 minutes after rehearsal starts"
+                    />
                   </div>
                 </div>
               </div>
@@ -338,12 +468,14 @@ if (Astro.request.method === 'POST') {
             <form id="add-link-form" method="POST">
               <input type="hidden" name="action" value="add-link" />
             </form>
-            {ensembleLinks.map((link) => (
-              <form id={`delete-link-${link.id}`} method="POST">
-                <input type="hidden" name="action" value="delete-link" />
-                <input type="hidden" name="linkId" value={link.id} />
-              </form>
-            ))}
+            {
+              ensembleLinks.map((link) => (
+                <form id={`delete-link-${link.id}`} method="POST">
+                  <input type="hidden" name="action" value="delete-link" />
+                  <input type="hidden" name="linkId" value={link.id} />
+                </form>
+              ))
+            }
           </div>
         </div>
 
@@ -353,7 +485,10 @@ if (Astro.request.method === 'POST') {
             <div class="content">
               <ul>
                 <li>Choose a descriptive name for your ensemble</li>
-                <li>Add a description to help members understand the ensemble's purpose</li>
+                <li>
+                  Add a description to help members understand the ensemble's
+                  purpose
+                </li>
                 <li>Upload a logo or photo that represents your ensemble</li>
                 <li>Square images work best for display</li>
               </ul>
@@ -363,5 +498,4 @@ if (Astro.request.method === 'POST') {
       </div>
     </div>
   </section>
-
 </Layout>

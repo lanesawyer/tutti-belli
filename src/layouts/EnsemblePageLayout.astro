@@ -1,8 +1,8 @@
 ---
-import PageLayout from './PageLayout.astro';
-import { ensembleAdminTools } from '../lib/config';
-import Breadcrumb from '../components/Breadcrumb.astro';
-import Icon from '../components/elements/Icon.astro';
+import PageLayout from "./PageLayout.astro";
+import { ensembleAdminTools } from "../lib/config";
+import Breadcrumb from "../components/Breadcrumb.astro";
+import Icon from "../components/elements/Icon.astro";
 
 interface Props {
   title: string;
@@ -13,7 +13,7 @@ interface Props {
   /** Extra breadcrumb entries before the active page. Each is [label, href]. */
   extraBreadcrumbs?: [string, string][];
   message?: string;
-  messageType?: 'link' | 'primary' | 'info' | 'success' | 'warning' | 'danger';
+  messageType?: "link" | "primary" | "info" | "success" | "warning" | "danger";
   isAdmin?: boolean;
 }
 
@@ -39,32 +39,40 @@ const currentPath = Astro.url.pathname;
   message={message}
   messageType={messageType}
 >
-  {isAdmin && (
-    <div class="navbar-item has-dropdown is-hoverable" slot="navbar-start">
-      <a class="navbar-link">{ensembleName}</a>
-      <div class="navbar-dropdown">
-        <a class={`navbar-item${currentPath === `/ensembles/${ensembleId}` ? ' is-active' : ''}`} href={`/ensembles/${ensembleId}`}>
-          <Icon icon="fa-home" size="small" class="mr-1" />
-          Dashboard
-        </a>
-        <hr class="navbar-divider" />
-        {ensembleAdminTools.map((tool) => {
-          const href = tool.href(ensembleId);
-          return (
-            <a class={`navbar-item${currentPath.startsWith(href) ? ' is-active' : ''}`} href={href}>
-              <Icon icon={tool.icon} size="small" class="mr-1" />
-              {tool.label}
-            </a>
-          );
-        })}
+  {
+    isAdmin && (
+      <div class="navbar-item has-dropdown is-hoverable" slot="navbar-start">
+        <a class="navbar-link">{ensembleName}</a>
+        <div class="navbar-dropdown">
+          <a
+            class={`navbar-item${currentPath === `/ensembles/${ensembleId}` ? " is-active" : ""}`}
+            href={`/ensembles/${ensembleId}`}
+          >
+            <Icon icon="fa-home" size="small" class="mr-1" />
+            Dashboard
+          </a>
+          <hr class="navbar-divider" />
+          {ensembleAdminTools.map((tool) => {
+            const href = tool.href(ensembleId);
+            return (
+              <a
+                class={`navbar-item${currentPath.startsWith(href) ? " is-active" : ""}`}
+                href={href}
+              >
+                <Icon icon={tool.icon} size="small" class="mr-1" />
+                {tool.label}
+              </a>
+            );
+          })}
+        </div>
       </div>
-    </div>
-  )}
+    )
+  }
 
   <Breadcrumb
     slot="before"
     items={[
-      { label: 'Ensembles', href: '/ensembles' },
+      { label: "Ensembles", href: "/ensembles" },
       { label: ensembleName, href: `/ensembles/${ensembleId}` },
       ...extraBreadcrumbs.map(([label, href]) => ({ label, href })),
       { label: pageTitle },

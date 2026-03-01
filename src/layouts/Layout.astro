@@ -1,9 +1,9 @@
 ---
-import { ClientRouter } from 'astro:transitions';
-import Header from '../components/Header.astro';
-import Footer from '../components/Footer.astro';
-import { APP_NAME } from '../lib/config';
-import { getActiveBanner } from '../lib/banner';
+import { ClientRouter } from "astro:transitions";
+import Header from "../components/Header.astro";
+import Footer from "../components/Footer.astro";
+import { APP_NAME } from "../lib/config";
+import { getActiveBanner } from "../lib/banner";
 
 interface Props {
   title: string;
@@ -21,30 +21,42 @@ const activeBanner = await getActiveBanner();
     <meta name="description" content={APP_NAME} />
     <meta name="viewport" content="width=device-width" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.0/css/bulma.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bulma@1.0.0/css/bulma.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+    />
     <script is:inline>
-      const THEME_ICON_CSS = '.theme-icon-dark{display:none}[data-theme="dark"] .theme-icon-light{display:none}[data-theme="dark"] .theme-icon-dark{display:inline}.theme-label-dark{display:none}[data-theme="dark"] .theme-label-light{display:none}[data-theme="dark"] .theme-label-dark{display:inline}';
+      const THEME_ICON_CSS =
+        '.theme-icon-dark{display:none}[data-theme="dark"] .theme-icon-light{display:none}[data-theme="dark"] .theme-icon-dark{display:inline}.theme-label-dark{display:none}[data-theme="dark"] .theme-label-light{display:none}[data-theme="dark"] .theme-label-dark{display:inline}';
 
       // Inject theme icon styles (must be global, not scoped by Astro)
-      (function() {
-        const s = document.createElement('style');
+      (function () {
+        const s = document.createElement("style");
         s.textContent = THEME_ICON_CSS;
         document.head.appendChild(s);
       })();
 
       // Set theme immediately to prevent flash on hard load
-      (function() {
-        const savedTheme = localStorage.getItem('theme');
-        const theme = savedTheme || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-        document.documentElement.setAttribute('data-theme', theme);
+      (function () {
+        const savedTheme = localStorage.getItem("theme");
+        const theme =
+          savedTheme ||
+          (window.matchMedia("(prefers-color-scheme: dark)").matches
+            ? "dark"
+            : "light");
+        document.documentElement.setAttribute("data-theme", theme);
       })();
 
       // Preserve data-theme and re-inject styles into the incoming document
-      document.addEventListener('astro:before-swap', (e) => {
-        const theme = document.documentElement.getAttribute('data-theme');
-        if (theme) e.newDocument.documentElement.setAttribute('data-theme', theme);
-        const s = e.newDocument.createElement('style');
+      document.addEventListener("astro:before-swap", (e) => {
+        const theme = document.documentElement.getAttribute("data-theme");
+        if (theme)
+          e.newDocument.documentElement.setAttribute("data-theme", theme);
+        const s = e.newDocument.createElement("style");
         s.textContent = THEME_ICON_CSS;
         e.newDocument.head.appendChild(s);
       });
@@ -58,7 +70,9 @@ const activeBanner = await getActiveBanner();
         --body-bg: #fff;
         --body-text: #4a4a4a;
         --box-bg: #fff;
-        --box-shadow: 0 0.5em 1em -0.125em rgba(10, 10, 10, 0.1), 0 0px 0 1px rgba(10, 10, 10, 0.02);
+        --box-shadow:
+          0 0.5em 1em -0.125em rgba(10, 10, 10, 0.1),
+          0 0px 0 1px rgba(10, 10, 10, 0.02);
         --input-bg: #fff;
         --input-border: #dbdbdb;
         --footer-bg: #fafafa;
@@ -70,7 +84,9 @@ const activeBanner = await getActiveBanner();
         --body-bg: #0a0a0a;
         --body-text: #e0e0e0;
         --box-bg: #1a1a1a;
-        --box-shadow: 0 0.5em 1em -0.125em rgba(0, 0, 0, 0.5), 0 0px 0 1px rgba(255, 255, 255, 0.1);
+        --box-shadow:
+          0 0.5em 1em -0.125em rgba(0, 0, 0, 0.5),
+          0 0px 0 1px rgba(255, 255, 255, 0.1);
         --input-bg: #2a2a2a;
         --input-border: #4a4a4a;
         --footer-bg: #0f0f0f;
@@ -165,22 +181,41 @@ const activeBanner = await getActiveBanner();
         text-align: center;
         font-weight: 500;
       }
-      .site-banner-info    { background-color: #3e8ed0; color: #fff; }
-      .site-banner-success { background-color: #48c78e; color: #fff; }
-      .site-banner-warning { background-color: #ffe08a; color: rgba(0,0,0,0.7); }
-      .site-banner-danger  { background-color: #f14668; color: #fff; }
-      .site-banner-primary { background-color: #00d1b2; color: #fff; }
-      .site-banner-link    { background-color: #485fc7; color: #fff; }
-
+      .site-banner-info {
+        background-color: #3e8ed0;
+        color: #fff;
+      }
+      .site-banner-success {
+        background-color: #48c78e;
+        color: #fff;
+      }
+      .site-banner-warning {
+        background-color: #ffe08a;
+        color: rgba(0, 0, 0, 0.7);
+      }
+      .site-banner-danger {
+        background-color: #f14668;
+        color: #fff;
+      }
+      .site-banner-primary {
+        background-color: #00d1b2;
+        color: #fff;
+      }
+      .site-banner-link {
+        background-color: #485fc7;
+        color: #fff;
+      }
     </style>
   </head>
   <body style="min-height: 100vh; display: flex; flex-direction: column;">
     <div id="site-header" style="position: sticky; top: 0; z-index: 30;">
-      {activeBanner && (
-        <div id="site-banner" class={`site-banner-${activeBanner.color}`}>
-          {activeBanner.message}
-        </div>
-      )}
+      {
+        activeBanner && (
+          <div id="site-banner" class={`site-banner-${activeBanner.color}`}>
+            {activeBanner.message}
+          </div>
+        )
+      }
       <Header>
         <slot name="navbar-start" slot="navbar-start" />
       </Header>

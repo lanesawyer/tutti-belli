@@ -11,7 +11,7 @@
     "astro": "astro",
     "check": "astro check",
     "lint": "oxlint src/lib db --deny-warnings",
-    "fmt": "oxlint src/lib db --fix",
+    "fmt": "oxlint src/lib db --fix && prettier --write \"src/**/*.astro\"",
     "astro:db:push": "astro db push --remote",
     "fly:deploy": "./deploy.sh",
     "test": "vitest run",
@@ -41,6 +41,8 @@
     "@vitest/coverage-istanbul": "4.0.18",
     "drizzle-orm": "0.45.1",
     "oxlint": "1.50.0",
+    "prettier": "3.8.1",
+    "prettier-plugin-astro": "0.14.1",
     "vitest": "4.0.18"
   },
   "engines": {
