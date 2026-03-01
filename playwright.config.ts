@@ -63,5 +63,8 @@ export default defineConfig({
     stdout: 'ignore',
     stderr: 'pipe',
     timeout: 60_000,
+    env: {
+      EMAIL_DISABLED: 'true',
+    },
   },
 });

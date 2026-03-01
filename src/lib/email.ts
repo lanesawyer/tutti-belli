@@ -26,6 +26,10 @@ function getClient(): { client: Resend; fromEmail: string } | { error: EmailResu
 }
 
 async function sendEmail(params: SendParams, logContext: string): Promise<EmailResult> {
+  if (getEnv('EMAIL_DISABLED')) {
+    console.log(`[email] disabled — skipping ${logContext} to="${params.to}"`);
+    return { success: true };
+  }
   const result = getClient();
   if ('error' in result) return result.error;
 
@@ -44,6 +48,10 @@ async function sendEmail(params: SendParams, logContext: string): Promise<EmailR
 }
 
 async function sendEmailBatch(paramsList: SendParams[], logContext: string): Promise<EmailResult> {
+  if (getEnv('EMAIL_DISABLED')) {
+    console.log(`[email] disabled — skipping ${logContext} to ${paramsList.length} recipients`);
+    return { success: true };
+  }
   const result = getClient();
   if ('error' in result) return result.error;
 
