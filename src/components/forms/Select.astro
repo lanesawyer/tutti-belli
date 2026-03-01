@@ -1,0 +1,164 @@
+---
+import Icon from "../elements/Icon.astro";
+
+/**
+ * Select component following the Bulma select spec.
+ * https://bulma.io/documentation/form/select/
+ *
+ * Usage (with field/label/control wrapper):
+ *   <Select name="color" label="Color">
+ *     <option value="red">Red</option>
+ *   </Select>
+ *
+ * Usage (standalone — just the wrapper div + select, no field/control wrappers):
+ *   <Select name="color" standalone>
+ *     <option value="red">Red</option>
+ *   </Select>
+ *
+ * Fullwidth (common inside column layouts):
+ *   <Select name="color" fullwidth>...</Select>
+ *
+ * Icon support (left only, per Bulma spec):
+ *   <Select name="country" label="Country" iconLeft="fa-globe">...</Select>
+ */
+
+interface Props {
+  /** select name attribute (required) */
+  name: string;
+  /** select id; defaults to name */
+  id?: string;
+  /** label text; renders field/label/control wrappers when set (unless standalone) */
+  label?: string;
+  required?: boolean;
+  disabled?: boolean;
+  /** HTML multiple attribute — enables multi-select listbox */
+  multiple?: boolean;
+  /** Number of visible rows for multiple select */
+  size?: "small" | "normal" | "medium" | "large";
+  /** HTML form attribute (associates select with a form by id) */
+  form?: string;
+
+  // Bulma modifiers (on the div.select wrapper)
+  color?: "primary" | "link" | "info" | "success" | "warning" | "danger";
+  rounded?: boolean;
+  loading?: boolean;
+  /** Stretches to fill the container width */
+  fullwidth?: boolean;
+
+  /** Font Awesome icon name for left icon, e.g. "fa-globe" */
+  iconLeft?: string;
+  /** Font Awesome icon variant for left icon, defaults to "fas" */
+  iconLeftVariant?: "fas" | "far" | "fab";
+
+  /** Help text rendered below the control */
+  help?: string;
+  /** Color for the help text */
+  helpColor?: "primary" | "link" | "info" | "success" | "warning" | "danger";
+
+  /** When true, renders only the div.select + select with no field/control wrappers */
+  standalone?: boolean;
+  /** Extra classes on the div.select wrapper */
+  class?: string;
+}
+
+const {
+  name,
+  id,
+  label,
+  required,
+  disabled,
+  multiple,
+  size,
+  form,
+  color,
+  rounded,
+  loading,
+  fullwidth,
+  iconLeft,
+  iconLeftVariant = "fas",
+  help,
+  helpColor,
+  standalone,
+  class: className,
+} = Astro.props;
+
+const selectId = id ?? name;
+
+const wrapperClasses = [
+  "select",
+  color && `is-${color}`,
+  size && `is-${size}`,
+  rounded && "is-rounded",
+  loading && "is-loading",
+  multiple && "is-multiple",
+  fullwidth && "is-fullwidth",
+  className,
+]
+  .filter(Boolean)
+  .join(" ");
+
+const iconSize = size === "large" ? "medium" : "small";
+---
+
+{
+  standalone ? (
+    <div class={wrapperClasses}>
+      <select
+        id={selectId}
+        name={name}
+        required={required}
+        disabled={disabled}
+        multiple={multiple}
+        form={form}
+      >
+        <slot />
+      </select>
+    </div>
+  ) : (
+    <div class="field">
+      {label && (
+        <label
+          class={["label", size && `is-${size}`].filter(Boolean).join(" ")}
+          for={selectId}
+        >
+          {label}
+        </label>
+      )}
+      <div
+        class={["control", iconLeft && "has-icons-left"]
+          .filter(Boolean)
+          .join(" ")}
+      >
+        <div class={wrapperClasses}>
+          <select
+            id={selectId}
+            name={name}
+            required={required}
+            disabled={disabled}
+            multiple={multiple}
+            form={form}
+          >
+            <slot />
+          </select>
+        </div>
+        {iconLeft && (
+          <Icon
+            icon={iconLeft}
+            variant={iconLeftVariant}
+            size={iconSize}
+            position="left"
+          />
+        )}
+      </div>
+      {help && (
+        <p
+          class={["help", helpColor && `is-${helpColor}`]
+            .filter(Boolean)
+            .join(" ")}
+        >
+          {help}
+        </p>
+      )}
+    </div>
+  )
+}

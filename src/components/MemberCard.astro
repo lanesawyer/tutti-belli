@@ -1,0 +1,67 @@
+---
+import Card from "./Card.astro";
+import Image from "./elements/Image.astro";
+import Tag from "./elements/Tag.astro";
+import { getInitials, getColorFromInitials } from "../lib/avatar";
+import { isColor } from "../lib/bulma";
+
+interface Group {
+  name: string;
+  color: string;
+  description?: string | null;
+}
+
+interface Props {
+  name: string;
+  avatarUrl?: string | null;
+  parts?: string[];
+  groups?: Group[];
+}
+
+const { name, avatarUrl, parts, groups } = Astro.props;
+const initials = getInitials(name);
+const avatarColor = getColorFromInitials(initials);
+---
+
+<Card contentClass="has-text-centered">
+  {
+    avatarUrl ? (
+      <Image
+        src={avatarUrl}
+        alt={name}
+        size="96x96"
+        rounded
+        class="mx-auto mb-3"
+        imgStyle="object-fit: cover;"
+      />
+    ) : (
+      <figure class="image is-96x96 mx-auto mb-3">
+        <div
+          style={`width: 96px; height: 96px; border-radius: 50%; background-color: ${avatarColor}; display: flex; align-items: center; justify-content: center; color: white; font-size: 2rem; font-weight: bold;`}
+        >
+          {initials}
+        </div>
+      </figure>
+    )
+  }
+  <p class="title is-6 mb-2">{name}</p>
+  {
+    parts && parts.length > 0 && (
+      <p class="subtitle is-7 has-text-grey mb-2">{parts.join(", ")}</p>
+    )
+  }
+  {
+    groups && groups.length > 0 && (
+      <div class="tags are-small is-justify-content-center mt-2">
+        {groups.map((group) => (
+          <Tag
+            color={isColor(group.color) ? group.color : undefined}
+            title={group.description || group.name}
+          >
+            {group.name}
+          </Tag>
+        ))}
+      </div>
+    )
+  }
+</Card>

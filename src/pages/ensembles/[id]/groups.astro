@@ -4,8 +4,9 @@ import Table from "../../../components/elements/Table.astro";
 import Modal from "../../../components/Modal.astro";
 import Button from "../../../components/elements/Button.astro";
 import Icon from "../../../components/elements/Icon.astro";
-import TextInput from "../../../components/elements/TextInput.astro";
-import Checkbox from "../../../components/elements/Checkbox.astro";
+import TextInput from "../../../components/forms/TextInput.astro";
+import Select from "../../../components/forms/Select.astro";
+import Checkbox from "../../../components/forms/Checkbox.astro";
 import Notification from "../../../components/elements/Notification.astro";
 import Tag from "../../../components/elements/Tag.astro";
 import type { Color } from "../../../lib/bulma";
@@ -304,25 +305,18 @@ const colorOptions = [
               </div>
             </div>
 
-            <div class="field">
-              <label class="label" for="create-color">
-                Badge Color
-              </label>
-              <div class="control">
-                <div class="select is-fullwidth">
-                  <select id="create-color" name="color">
-                    {colorOptions.map((option) => (
-                      <option
-                        value={option.value}
-                        selected={option.value === "info"}
-                      >
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            </div>
+            <Select
+              id="create-color"
+              name="color"
+              label="Badge Color"
+              fullwidth
+            >
+              {colorOptions.map((option) => (
+                <option value={option.value} selected={option.value === "info"}>
+                  {option.label}
+                </option>
+              ))}
+            </Select>
           </form>
 
           <div slot="footer">
@@ -366,20 +360,11 @@ const colorOptions = [
               </div>
             </div>
 
-            <div class="field">
-              <label class="label" for="edit-color">
-                Badge Color
-              </label>
-              <div class="control">
-                <div class="select is-fullwidth">
-                  <select id="edit-color" name="color">
-                    {colorOptions.map((option) => (
-                      <option value={option.value}>{option.label}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            </div>
+            <Select id="edit-color" name="color" label="Badge Color" fullwidth>
+              {colorOptions.map((option) => (
+                <option value={option.value}>{option.label}</option>
+              ))}
+            </Select>
           </form>
 
           <div slot="footer">

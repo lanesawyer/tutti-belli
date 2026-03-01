@@ -1,6 +1,7 @@
 ---
 import PageLayout from "../../layouts/PageLayout.astro";
 import Button from "../../components/elements/Button.astro";
+import Card from "../../components/Card.astro";
 import Icon from "../../components/elements/Icon.astro";
 import Notification from "../../components/elements/Notification.astro";
 import Tag from "../../components/elements/Tag.astro";
@@ -41,27 +42,24 @@ const userEnsembles = await db
       <div class="columns is-multiline">
         {userEnsembles.map((ensemble) => (
           <div class="column is-4">
-            <div class="card">
-              <div class="card-content">
-                <p class="title is-4">{ensemble.name}</p>
-                {ensemble.description && (
-                  <p class="subtitle is-6">{ensemble.description}</p>
-                )}
-                <div class="tags mt-2">
-                  <Tag color={ensemble.role === "admin" ? "warning" : "info"}>
-                    {ensemble.role === "admin" ? "Ensemble Admin" : "Member"}
-                  </Tag>
-                </div>
+            <Card>
+              <p class="title is-4">{ensemble.name}</p>
+              {ensemble.description && (
+                <p class="subtitle is-6">{ensemble.description}</p>
+              )}
+              <div class="tags mt-2">
+                <Tag color={ensemble.role === "admin" ? "warning" : "info"}>
+                  {ensemble.role === "admin" ? "Ensemble Admin" : "Member"}
+                </Tag>
               </div>
-              <footer class="card-footer">
-                <a
-                  href={`/ensembles/${getEnsembleUrlId(ensemble)}`}
-                  class="card-footer-item"
-                >
-                  View Details
-                </a>
-              </footer>
-            </div>
+              <a
+                slot="footer"
+                href={`/ensembles/${getEnsembleUrlId(ensemble)}`}
+                class="card-footer-item"
+              >
+                View Details
+              </a>
+            </Card>
           </div>
         ))}
       </div>

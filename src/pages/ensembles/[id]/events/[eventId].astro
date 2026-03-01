@@ -3,7 +3,8 @@ import Layout from "../../../../layouts/Layout.astro";
 import Button from "../../../../components/elements/Button.astro";
 import Image from "../../../../components/elements/Image.astro";
 import Icon from "../../../../components/elements/Icon.astro";
-import TextInput from "../../../../components/elements/TextInput.astro";
+import TextInput from "../../../../components/forms/TextInput.astro";
+import Select from "../../../../components/forms/Select.astro";
 import Tag from "../../../../components/elements/Tag.astro";
 import Notification from "../../../../components/elements/Notification.astro";
 import { db, eq, Event, Group } from "astro:db";
@@ -629,21 +630,14 @@ const programLabel = isPerformance ? "Set List" : "Rehearsal Plan";
           <input type="hidden" name="ensembleId" value={ensemble.id} />
           <input type="hidden" name="eventId" value={event.id} />
 
-          <div class="field">
-            <label class="label is-small">Song</label>
-            <div class="control">
-              <div class="select is-fullwidth">
-                <select name="songId">
-                  {availableSeasonSongs.map((s) => (
-                    <option value={s.id}>
-                      {s.name}
-                      {s.composer ? ` — ${s.composer}` : ""}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          </div>
+          <Select name="songId" label="Song" size="small" fullwidth>
+            {availableSeasonSongs.map((s) => (
+              <option value={s.id}>
+                {s.name}
+                {s.composer ? ` — ${s.composer}` : ""}
+              </option>
+            ))}
+          </Select>
 
           <div class="field">
             <label class="label is-small">Notes (optional)</label>
@@ -769,29 +763,20 @@ const programLabel = isPerformance ? "Set List" : "Rehearsal Plan";
               />
 
               {groups.length > 0 && (
-                <div class="field">
-                  <label class="label" for="edit-groupId">
-                    Group (optional)
-                  </label>
-                  <div class="control">
-                    <div class="select is-fullwidth">
-                      <select id="edit-groupId" name="groupId">
-                        <option value="">— All Members —</option>
-                        {groups.map((g) => (
-                          <option
-                            value={g.id}
-                            selected={event.groupId === g.id}
-                          >
-                            {g.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                  <p class="help">
-                    Restrict attendance tracking to this group's members.
-                  </p>
-                </div>
+                <Select
+                  id="edit-groupId"
+                  name="groupId"
+                  label="Group (optional)"
+                  fullwidth
+                  help="Restrict attendance tracking to this group's members."
+                >
+                  <option value="">— All Members —</option>
+                  {groups.map((g) => (
+                    <option value={g.id} selected={event.groupId === g.id}>
+                      {g.name}
+                    </option>
+                  ))}
+                </Select>
               )}
             </section>
             <footer class="modal-card-foot">
