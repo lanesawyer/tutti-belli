@@ -5,6 +5,7 @@ import Image from "../components/elements/Image.astro";
 import FileInput from "../components/FileInput.astro";
 import Icon from "../components/elements/Icon.astro";
 import TextInput from "../components/elements/TextInput.astro";
+import Checkbox from "../components/elements/Checkbox.astro";
 import Notification from "../components/elements/Notification.astro";
 import Tag from "../components/elements/Tag.astro";
 import { actions } from "astro:actions";
@@ -123,10 +124,12 @@ const tasksByEnsemble = await getUserTasksAcrossEnsembles(user.id);
               <label class="label">Profile Picture</label>
               {
                 user.avatarUrl && (
-                  <label class="checkbox mb-2" style="display: block;">
-                    <input type="checkbox" name="removeAvatar" value="true" />
-                    Remove current avatar
-                  </label>
+                  <Checkbox
+                    name="removeAvatar"
+                    value="true"
+                    label="Remove current avatar"
+                    class="mb-2 is-block"
+                  />
                 )
               }
               <FileInput
@@ -259,20 +262,15 @@ const tasksByEnsemble = await getUserTasksAcrossEnsembles(user.id);
                                   membership.membershipId,
                                 ) ?? [];
                               return (
-                                <label
-                                  class="checkbox"
-                                  style="display: block; margin-bottom: 0.5rem;"
-                                >
-                                  <input
-                                    type="checkbox"
-                                    name="partIds"
-                                    value={part.id}
-                                    checked={currentParts.some(
-                                      (p) => p.id === part.id,
-                                    )}
-                                  />{" "}
-                                  {part.name}
-                                </label>
+                                <Checkbox
+                                  name="partIds"
+                                  value={part.id}
+                                  checked={currentParts.some(
+                                    (p) => p.id === part.id,
+                                  )}
+                                  label={part.name}
+                                  class="is-block mb-2"
+                                />
                               );
                             })}
                           </div>

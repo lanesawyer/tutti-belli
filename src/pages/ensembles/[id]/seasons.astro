@@ -5,6 +5,7 @@ import Modal from "../../../components/Modal.astro";
 import Button from "../../../components/elements/Button.astro";
 import Icon from "../../../components/elements/Icon.astro";
 import TextInput from "../../../components/elements/TextInput.astro";
+import Checkbox from "../../../components/elements/Checkbox.astro";
 import Notification from "../../../components/elements/Notification.astro";
 import Tag from "../../../components/elements/Tag.astro";
 import {
@@ -352,10 +353,7 @@ const membershipsBySeasonId = seasonMemberships.reduce(
 
             <div class="field">
               <div class="control">
-                <label class="checkbox">
-                  <input type="checkbox" name="setActive" />
-                  Set as active season
-                </label>
+                <Checkbox name="setActive" label="Set as active season" />
               </div>
               <p class="help">
                 Only one season can be active at a time. New rehearsals use the
@@ -412,10 +410,11 @@ const membershipsBySeasonId = seasonMemberships.reduce(
 
             <div class="field">
               <div class="control">
-                <label class="checkbox">
-                  <input type="checkbox" name="setActive" id="edit-setActive" />
-                  Set as active season
-                </label>
+                <Checkbox
+                  name="setActive"
+                  id="edit-setActive"
+                  label="Set as active season"
+                />
               </div>
             </div>
           </form>
@@ -441,14 +440,12 @@ const membershipsBySeasonId = seasonMemberships.reduce(
           {allMembers.map((member) => (
             <div class="field">
               <div class="control">
-                <label class="checkbox">
-                  <input
-                    type="checkbox"
-                    class="member-checkbox"
-                    data-user-id={member.id}
-                  />
-                  {member.name}
-                </label>
+                <Checkbox
+                  name="member"
+                  class="member-checkbox"
+                  data-user-id={member.id}
+                  label={member.name}
+                />
               </div>
             </div>
           ))}
