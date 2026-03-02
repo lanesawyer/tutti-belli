@@ -1,0 +1,92 @@
+---
+import { db, eq, Season, SeasonSong, Song, and } from "astro:db";
+import DashboardSection from "../components/DashboardSection.astro";
+import Notification from "../components/elements/Notification.astro";
+import Button from "../components/elements/Button.astro";
+
+interface Props {
+  ensembleId: string;
+  canonicalId: string;
+  isAdmin: boolean;
+}
+
+const { ensembleId, canonicalId, isAdmin } = Astro.props;
+
+const [currentSeason] = await db
+  .select()
+  .from(Season)
+  .where(and(eq(Season.ensembleId, ensembleId), eq(Season.isActive, 1)));
+
+if (!currentSeason) return;
+
+const seasonSongs = await db
+  .select({
+    id: Song.id,
+    name: Song.name,
+    composer: Song.composer,
+    arranger: Song.arranger,
+    runTime: Song.runTime,
+  })
+  .from(SeasonSong)
+  .innerJoin(Song, eq(SeasonSong.songId, Song.id))
+  .where(eq(SeasonSong.seasonId, currentSeason.id))
+  .orderBy(Song.name);
+---
+
+<DashboardSection
+  title={`${currentSeason.name} Repertoire`}
+  viewAllHref={`/ensembles/${canonicalId}/songs`}
+  viewAllColor="is-info"
+>
+  {
+    seasonSongs.length === 0 ? (
+      <Notification color="info" light>
+        <p class="has-text-centered">No songs added to this season yet.</p>
+        {isAdmin && (
+          <p class="has-text-centered mt-2">
+            <Button
+              href={`/ensembles/${canonicalId}/songs`}
+              color="info"
+              size="small"
+            >
+              Add Songs
+            </Button>
+          </p>
+        )}
+      </Notification>
+    ) : (
+      <table class="table is-fullwidth is-hoverable">
+        <tbody>
+          {seasonSongs.map((song) => {
+            const minutes = song.runTime ? Math.floor(song.runTime / 60) : null;
+            const seconds = song.runTime
+              ? String(song.runTime % 60).padStart(2, "0")
+              : null;
+            return (
+              <tr>
+                <td>
+                  <a
+                    href={`/ensembles/${canonicalId}/songs/${song.id}`}
+                    class="has-text-weight-semibold"
+                  >
+                    {song.name}
+                  </a>
+                  <p class="is-size-7 has-text-grey">
+                    {song.composer ?? "Unknown"}
+                    {song.arranger && ` — arr. ${song.arranger}`}
+                  </p>
+                </td>
+                <td
+                  class="has-text-right has-text-grey is-size-7"
+                  style="vertical-align: middle; white-space: nowrap;"
+                >
+                  {minutes !== null ? `${minutes}:${seconds}` : ""}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    )
+  }
+</DashboardSection>

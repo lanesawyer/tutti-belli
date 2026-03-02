@@ -1,0 +1,189 @@
+---
+import {
+  db,
+  eq,
+  inArray,
+  Event,
+  EventProgram,
+  Song,
+  Group,
+  GroupMembership,
+} from "astro:db";
+import DashboardSection from "../components/DashboardSection.astro";
+import Message from "../components/Message.astro";
+import Notification from "../components/elements/Notification.astro";
+import Button from "../components/elements/Button.astro";
+import Icon from "../components/elements/Icon.astro";
+import Tag from "../components/elements/Tag.astro";
+import { formatDuration } from "../lib/format";
+
+interface Props {
+  ensembleId: string;
+  canonicalId: string;
+  userId: string;
+  isAdmin: boolean;
+}
+
+const { ensembleId, canonicalId, userId, isAdmin } = Astro.props;
+
+const allEvents = await db
+  .select()
+  .from(Event)
+  .where(eq(Event.ensembleId, ensembleId))
+  .orderBy(Event.scheduledAt);
+
+const groups = await db
+  .select()
+  .from(Group)
+  .where(eq(Group.ensembleId, ensembleId))
+  .all();
+
+const groupMemberships = await db
+  .select({ groupId: GroupMembership.groupId, userId: GroupMembership.userId })
+  .from(GroupMembership);
+
+const userGroupIds = new Set(
+  groupMemberships.filter((gm) => gm.userId === userId).map((gm) => gm.groupId),
+);
+
+const now = new Date();
+const upcomingEvents = allEvents
+  .filter((e) => {
+    const endTime = new Date(
+      new Date(e.scheduledAt).getTime() + e.durationMinutes * 60 * 1000,
+    );
+    const isUpcoming = endTime > now;
+    const canSee = !e.groupId || userGroupIds.has(e.groupId) || isAdmin;
+    return isUpcoming && canSee;
+  })
+  .slice(0, 10);
+
+const allUpcomingIds = upcomingEvents.map((e) => e.id);
+const upcomingProgramRows =
+  allUpcomingIds.length > 0
+    ? await db
+        .select({
+          eventId: EventProgram.eventId,
+          songName: Song.name,
+          composer: Song.composer,
+          notes: EventProgram.notes,
+          sortOrder: EventProgram.sortOrder,
+        })
+        .from(EventProgram)
+        .innerJoin(Song, eq(EventProgram.songId, Song.id))
+        .where(inArray(EventProgram.eventId, allUpcomingIds))
+        .orderBy(EventProgram.sortOrder)
+        .all()
+    : [];
+
+const programByEventId = new Map<string, typeof upcomingProgramRows>();
+for (const row of upcomingProgramRows) {
+  if (!programByEventId.has(row.eventId)) programByEventId.set(row.eventId, []);
+  programByEventId.get(row.eventId)!.push(row);
+}
+---
+
+<DashboardSection
+  title="Upcoming Events"
+  viewAllHref={`/ensembles/${canonicalId}/events`}
+  viewAllColor="is-primary"
+>
+  {
+    upcomingEvents.length === 0 ? (
+      <Notification color="info" light>
+        <p class="has-text-centered">No upcoming events.</p>
+        {isAdmin && (
+          <p class="has-text-centered mt-2">
+            <Button
+              href={`/ensembles/${canonicalId}/events`}
+              color="primary"
+              size="small"
+            >
+              Schedule Event
+            </Button>
+          </p>
+        )}
+      </Notification>
+    ) : (
+      <div class="content">
+        {upcomingEvents.map((event) => {
+          const scheduledDate = new Date(event.scheduledAt);
+          const isToday =
+            scheduledDate.toDateString() === new Date().toDateString();
+          const catColor =
+            event.category === "performance"
+              ? "warning"
+              : event.category === "social"
+                ? "success"
+                : event.category === "sectional"
+                  ? "info"
+                  : "primary";
+          const catLabel =
+            event.category === "performance"
+              ? "Performance"
+              : event.category === "social"
+                ? "Social"
+                : event.category === "sectional"
+                  ? "Sectional"
+                  : "Rehearsal";
+
+          return (
+            <Message color={isToday ? "success" : catColor}>
+              <div slot="header">
+                <a
+                  href={`/ensembles/${canonicalId}/events/${event.id}`}
+                  class="has-text-white"
+                >
+                  {event.title}
+                </a>
+                {isToday && <Tag class="ml-2">Today</Tag>}
+                <Tag class="ml-2">{catLabel}</Tag>
+              </div>
+              <small slot="header" class="has-text-weight-normal">
+                {scheduledDate.toLocaleDateString()} at{" "}
+                {scheduledDate.toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}{" "}
+                · {formatDuration(event.durationMinutes)}
+              </small>
+              {event.location && (
+                <p class="mb-2">
+                  <span class="icon-text">
+                    <Icon icon="fa-map-marker-alt" />
+                    <span>{event.location}</span>
+                  </span>
+                </p>
+              )}
+              {event.description && (
+                <p style="white-space: pre-wrap;">{event.description}</p>
+              )}
+              {(() => {
+                const songs = programByEventId.get(event.id) ?? [];
+                if (songs.length === 0) return null;
+                return (
+                  <ul class="mt-2 mb-1">
+                    {songs.map((s) => (
+                      <li>
+                        <span class="has-text-weight-semibold">
+                          {s.songName}
+                        </span>
+                        {s.composer && (
+                          <span class="has-text-grey is-size-7">
+                            {" "}
+                            — {s.composer}
+                          </span>
+                        )}
+                        {s.notes && <span class="is-size-7"> · {s.notes}</span>}
+                      </li>
+                    ))}
+                  </ul>
+                );
+              })()}
+            </Message>
+          );
+        })}
+      </div>
+    )
+  }
+</DashboardSection>

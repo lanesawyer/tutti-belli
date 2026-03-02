@@ -1,18 +1,21 @@
 ---
-import Button from "./elements/Button.astro";
-import Icon from "./elements/Icon.astro";
-import TextInput from "./forms/TextInput.astro";
-import Notification from "./elements/Notification.astro";
+import { db, eq, EnsembleInvite } from "astro:db";
+import { actions } from "astro:actions";
+import Button from "../components/elements/Button.astro";
+import Icon from "../components/elements/Icon.astro";
+import TextInput from "../components/forms/TextInput.astro";
+import Notification from "../components/elements/Notification.astro";
 
 interface Props {
-  invites: Array<{
-    id: string;
-    code: string;
-    createdAt: Date;
-  }>;
+  ensembleId: string;
 }
 
-const { invites } = Astro.props;
+const { ensembleId } = Astro.props;
+
+const invites = await db
+  .select()
+  .from(EnsembleInvite)
+  .where(eq(EnsembleInvite.ensembleId, ensembleId));
 ---
 
 <div class="box">
@@ -27,8 +30,8 @@ const { invites } = Astro.props;
   </p>
 
   <div class="mb-4">
-    <form method="POST">
-      <input type="hidden" name="action" value="create-invite" />
+    <form method="POST" action={actions.ensembles.createInvite}>
+      <input type="hidden" name="ensembleId" value={ensembleId} />
       <Button type="submit" color="success" size="small" fullwidth>
         <Icon icon="fa-plus" />
         <span>Generate Code</span>
@@ -76,9 +79,9 @@ const { invites } = Astro.props;
                 <small class="has-text-grey mb-2">
                   Created {new Date(invite.createdAt).toLocaleDateString()}
                 </small>
-                <form method="POST">
-                  <input type="hidden" name="action" value="delete-invite" />
+                <form method="POST" action={actions.ensembles.deleteInvite}>
                   <input type="hidden" name="inviteId" value={invite.id} />
+                  <input type="hidden" name="ensembleId" value={ensembleId} />
                   <Button type="submit" color="danger" size="small" fullwidth>
                     Delete
                   </Button>

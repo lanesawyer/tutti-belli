@@ -1,0 +1,56 @@
+---
+import { db, eq, EnsembleLink } from "astro:db";
+import Button from "../components/elements/Button.astro";
+import Icon from "../components/elements/Icon.astro";
+
+interface Props {
+  ensembleId: string;
+  discordLink: string | null;
+}
+
+const { ensembleId, discordLink } = Astro.props;
+
+const ensembleLinks = await db
+  .select()
+  .from(EnsembleLink)
+  .where(eq(EnsembleLink.ensembleId, ensembleId))
+  .orderBy(EnsembleLink.sortOrder, EnsembleLink.createdAt);
+---
+
+{
+  (discordLink || ensembleLinks.length > 0) && (
+    <div class="box mb-5">
+      <h2 class="title is-5 mb-4">
+        <span class="icon-text">
+          <Icon icon="fa-link" />
+          <span>Links</span>
+        </span>
+      </h2>
+      <div class="buttons">
+        {discordLink && (
+          <Button
+            href={discordLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            color="link"
+            fullwidth
+          >
+            <Icon icon="fa-discord" variant="fab" />
+            <span>Discord</span>
+          </Button>
+        )}
+        {ensembleLinks.map((link) => (
+          <Button
+            href={link.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            color="light"
+            fullwidth
+          >
+            {link.label}
+          </Button>
+        ))}
+      </div>
+    </div>
+  )
+}

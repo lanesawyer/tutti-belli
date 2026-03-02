@@ -1,0 +1,62 @@
+---
+import { getTasksWithCompletionsForUser } from "../lib/tasks";
+import Button from "../components/elements/Button.astro";
+import Icon from "../components/elements/Icon.astro";
+
+interface Props {
+  ensembleId: string;
+  userId: string;
+  seasonId: string;
+  canonicalId: string;
+  isAdmin: boolean;
+}
+
+const { ensembleId, userId, seasonId, canonicalId, isAdmin } = Astro.props;
+
+const myTasks = await getTasksWithCompletionsForUser(
+  ensembleId,
+  userId,
+  seasonId,
+);
+---
+
+{
+  myTasks.length > 0 && (
+    <div class="box mb-5">
+      <h2 class="title is-5 mb-4">
+        <span class="icon-text">
+          <Icon icon="fa-tasks" />
+          <span>My Tasks</span>
+        </span>
+      </h2>
+      <ul>
+        {myTasks.map((task) => (
+          <li class="mb-2">
+            <span class="icon-text">
+              {task.completed ? (
+                <Icon icon="fa-check-circle" color="success" />
+              ) : (
+                <Icon icon="fa-circle" variant="far" color="grey-light" />
+              )}
+              <span class:list={["ml-1", { "has-text-grey": task.completed }]}>
+                {task.title}
+              </span>
+            </span>
+          </li>
+        ))}
+      </ul>
+      {isAdmin && (
+        <Button
+          href={`/ensembles/${canonicalId}/tasks`}
+          size="small"
+          color="link"
+          fullwidth
+          class="mt-3"
+        >
+          <Icon icon="fa-tasks" />
+          <span>Manage Tasks</span>
+        </Button>
+      )}
+    </div>
+  )
+}

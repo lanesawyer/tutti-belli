@@ -43,6 +43,25 @@ test('user can create a new ensemble and is redirected to it', async ({ page }) 
   await expect(page).not.toHaveURL('/ensembles/new');
 });
 
+test('custom link added on edit page appears in sidebar on ensemble homepage', async ({ page }) => {
+  await page.goto('/ensembles');
+  await page.locator('.card').filter({ hasText: 'Chamber Orchestra' }).locator('a').first().click();
+  await expect(page).toHaveURL(/\/ensembles\/.+/);
+  const ensembleUrl = page.url();
+
+  await page.goto(ensembleUrl + '/edit');
+  await expect(page).toHaveURL(/\/edit/);
+
+  const linkLabel = `Sheet Music ${Date.now()}`;
+  await page.fill('input[name="label"]', linkLabel);
+  await page.fill('input[name="url"]', 'https://example.com/sheets');
+  await page.locator('button[type="submit"][form="add-link-form"]').click();
+  await expect(page.locator(`input[value*="${linkLabel}"]`).first()).toBeVisible();
+
+  await page.goto(ensembleUrl);
+  await expect(page.locator('body')).toContainText(linkLabel);
+});
+
 test('invite join page loads', async ({ page }) => {
   // The join page is public — test it loads without error
   const response = await page.goto('/invite/join');
