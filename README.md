@@ -279,6 +279,10 @@ pnpm fmt        # Auto-fix linting issues
 - Always use HTTPS in production
 - Change the default admin password immediately
 
+## Self-Hosting
+
+See [docs/self-hosting.md](docs/self-hosting.md) for a full guide covering the required external services (Turso, Resend, Backblaze B2), environment variables, Docker setup, Fly.io deployment, and first-login setup.
+
 ## License
 
 AGPL V3 License. See LICENSE file for details.
