@@ -1,0 +1,119 @@
+---
+import { db, eq, and, EnsembleMember, User } from "astro:db";
+import { actions } from "astro:actions";
+import Button from "../components/elements/Button.astro";
+import Icon from "../components/elements/Icon.astro";
+import Image from "../components/elements/Image.astro";
+import { getInitials, getColorFromInitials } from "../lib/avatar";
+
+interface Props {
+  ensembleId: string;
+}
+
+const { ensembleId } = Astro.props;
+
+const pendingMembers = await db
+  .select({
+    id: User.id,
+    name: User.name,
+    email: User.email,
+    avatarUrl: User.avatarUrl,
+    joinedAt: EnsembleMember.joinedAt,
+    membershipId: EnsembleMember.id,
+  })
+  .from(EnsembleMember)
+  .innerJoin(User, eq(EnsembleMember.userId, User.id))
+  .where(
+    and(
+      eq(EnsembleMember.ensembleId, ensembleId),
+      eq(EnsembleMember.status, "pending"),
+    ),
+  );
+
+if (pendingMembers.length === 0) return;
+---
+
+<div class="box mb-5">
+  <h2 class="title is-5 mb-4">
+    <span class="icon-text">
+      <Icon icon="fa-user-clock" color="warning" />
+      <span>Pending Members ({pendingMembers.length})</span>
+    </span>
+  </h2>
+  <p class="mb-4 is-size-7">
+    These members are awaiting approval to join the ensemble
+  </p>
+
+  <div class="content">
+    {
+      pendingMembers.map((member) => (
+        <div class="box p-2 mb-2">
+          <div class="media">
+            <div class="media-left">
+              {member.avatarUrl ? (
+                <Image
+                  src={member.avatarUrl}
+                  alt={member.name}
+                  size="32x32"
+                  rounded
+                  imgStyle="object-fit: cover;"
+                />
+              ) : (
+                <figure class="image is-32x32">
+                  <div
+                    style={`width: 32px; height: 32px; border-radius: 50%; background-color: ${getColorFromInitials(getInitials(member.name))}; display: flex; align-items: center; justify-content: center; color: white; font-size: 0.75rem; font-weight: bold;`}
+                  >
+                    {getInitials(member.name)}
+                  </div>
+                </figure>
+              )}
+            </div>
+            <div class="media-content">
+              <p class="is-size-7 has-text-weight-semibold">{member.name}</p>
+              <p class="is-size-7 has-text-grey">{member.email}</p>
+              <p class="is-size-7 has-text-grey-light">
+                <small>
+                  Applied {new Date(member.joinedAt).toLocaleDateString()}
+                </small>
+              </p>
+            </div>
+          </div>
+          <div class="buttons are-small mt-2">
+            <form
+              method="POST"
+              action={actions.members.approve}
+              style="display: inline; width: 48%;"
+            >
+              <input
+                type="hidden"
+                name="membershipId"
+                value={member.membershipId}
+              />
+              <input type="hidden" name="ensembleId" value={ensembleId} />
+              <Button type="submit" color="success" size="small" fullwidth>
+                <Icon icon="fa-check" />
+                <span>Approve</span>
+              </Button>
+            </form>
+            <form
+              method="POST"
+              action={actions.members.reject}
+              style="display: inline; width: 48%;"
+            >
+              <input
+                type="hidden"
+                name="membershipId"
+                value={member.membershipId}
+              />
+              <input type="hidden" name="ensembleId" value={ensembleId} />
+              <Button type="submit" color="danger" size="small" fullwidth>
+                <Icon icon="fa-times" />
+                <span>Reject</span>
+              </Button>
+            </form>
+          </div>
+        </div>
+      ))
+    }
+  </div>
+</div>

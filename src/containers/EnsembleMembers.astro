@@ -1,0 +1,187 @@
+---
+import {
+  db,
+  eq,
+  and,
+  inArray,
+  EnsembleMember,
+  User,
+  Part,
+  MemberPart,
+  Group,
+  GroupMembership,
+} from "astro:db";
+import DashboardSection from "../components/DashboardSection.astro";
+import MemberCard from "../components/MemberCard.astro";
+import Tabs from "../components/Tabs.astro";
+
+interface Props {
+  ensembleId: string;
+  canonicalId: string;
+  isAdmin: boolean;
+}
+
+const { ensembleId, canonicalId, isAdmin } = Astro.props;
+
+const membersData = await db
+  .select({
+    id: User.id,
+    name: User.name,
+    email: User.email,
+    avatarUrl: User.avatarUrl,
+    role: EnsembleMember.role,
+    status: EnsembleMember.status,
+    joinedAt: EnsembleMember.joinedAt,
+    membershipId: EnsembleMember.id,
+  })
+  .from(EnsembleMember)
+  .innerJoin(User, eq(EnsembleMember.userId, User.id))
+  .where(
+    and(
+      eq(EnsembleMember.ensembleId, ensembleId),
+      eq(EnsembleMember.status, "active"),
+    ),
+  );
+
+const allParts = await db
+  .select()
+  .from(Part)
+  .where(eq(Part.ensembleId, ensembleId))
+  .all();
+
+allParts.sort((a, b) => a.sortOrder - b.sortOrder);
+
+const membershipIds = membersData.map((m) => m.membershipId);
+const memberPartRows =
+  membershipIds.length > 0
+    ? await db
+        .select()
+        .from(MemberPart)
+        .where(inArray(MemberPart.membershipId, membershipIds))
+        .all()
+    : [];
+
+const memberPartIdsByMembership = new Map<string, string[]>();
+for (const mp of memberPartRows) {
+  if (!memberPartIdsByMembership.has(mp.membershipId)) {
+    memberPartIdsByMembership.set(mp.membershipId, []);
+  }
+  memberPartIdsByMembership.get(mp.membershipId)!.push(mp.partId);
+}
+
+const groups = await db
+  .select()
+  .from(Group)
+  .where(eq(Group.ensembleId, ensembleId))
+  .all();
+
+const groupMemberships = await db
+  .select({ groupId: GroupMembership.groupId, userId: GroupMembership.userId })
+  .from(GroupMembership);
+
+const userGroups = new Map<string, typeof groups>();
+for (const gm of groupMemberships) {
+  if (!userGroups.has(gm.userId)) {
+    userGroups.set(gm.userId, []);
+  }
+  const group = groups.find((g) => g.id === gm.groupId);
+  if (group) {
+    userGroups.get(gm.userId)!.push(group);
+  }
+}
+
+const partsWithMembers = allParts.filter((p) =>
+  memberPartRows.some((mp) => mp.partId === p.id),
+);
+
+const noPartMembers = membersData.filter(
+  (m) => !memberPartIdsByMembership.has(m.membershipId),
+);
+
+const memberTabs = [
+  { id: "all", label: "All", count: membersData.length },
+  ...partsWithMembers.map((p) => ({
+    id: p.id,
+    label: p.name,
+    count: memberPartRows.filter((mp) => mp.partId === p.id).length,
+  })),
+  ...(noPartMembers.length > 0
+    ? [{ id: "none", label: "No Part", count: noPartMembers.length }]
+    : []),
+];
+---
+
+<DashboardSection
+  title="Members"
+  viewAllHref={isAdmin ? `/ensembles/${canonicalId}/members` : undefined}
+  viewAllLabel="View All"
+  viewAllColor="is-warning"
+  class="mb-0"
+>
+  <Tabs tabs={memberTabs}>
+    <div data-tab-panel="all">
+      <div class="columns is-multiline">
+        {
+          membersData.map((member) => {
+            const parts = (
+              memberPartIdsByMembership.get(member.membershipId) ?? []
+            )
+              .map((pid) => allParts.find((p) => p.id === pid)?.name)
+              .filter((n): n is string => Boolean(n));
+            return (
+              <div class="column is-6-tablet is-4-desktop is-3-widescreen">
+                <MemberCard
+                  name={member.name}
+                  avatarUrl={member.avatarUrl}
+                  parts={parts}
+                  groups={userGroups.get(member.id)}
+                />
+              </div>
+            );
+          })
+        }
+      </div>
+    </div>
+
+    {
+      partsWithMembers.map((part) => {
+        const partMembers = membersData.filter((m) =>
+          memberPartIdsByMembership.get(m.membershipId)?.includes(part.id),
+        );
+        return (
+          <div data-tab-panel={part.id}>
+            <div class="columns is-multiline">
+              {partMembers.map((member) => (
+                <div class="column is-6-tablet is-4-desktop is-3-widescreen">
+                  <MemberCard
+                    name={member.name}
+                    avatarUrl={member.avatarUrl}
+                    groups={userGroups.get(member.id)}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })
+    }
+
+    {
+      noPartMembers.length > 0 && (
+        <div data-tab-panel="none">
+          <div class="columns is-multiline">
+            {noPartMembers.map((member) => (
+              <div class="column is-6-tablet is-4-desktop is-3-widescreen">
+                <MemberCard
+                  name={member.name}
+                  avatarUrl={member.avatarUrl}
+                  groups={userGroups.get(member.id)}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      )
+    }
+  </Tabs>
+</DashboardSection>

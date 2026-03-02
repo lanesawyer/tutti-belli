@@ -1,0 +1,232 @@
+---
+import { db, eq, desc, Announcement, User } from "astro:db";
+import DashboardSection from "../components/DashboardSection.astro";
+import Message from "../components/Message.astro";
+import Notification from "../components/elements/Notification.astro";
+import Button from "../components/elements/Button.astro";
+import Icon from "../components/elements/Icon.astro";
+
+interface Props {
+  ensembleId: string;
+  canonicalId: string;
+  isAdmin: boolean;
+}
+
+const { ensembleId, canonicalId, isAdmin } = Astro.props;
+
+const latestAnnouncements = await db
+  .select({
+    id: Announcement.id,
+    title: Announcement.title,
+    content: Announcement.content,
+    createdAt: Announcement.createdAt,
+    creatorName: User.name,
+  })
+  .from(Announcement)
+  .innerJoin(User, eq(Announcement.createdBy, User.id))
+  .where(eq(Announcement.ensembleId, ensembleId))
+  .orderBy(desc(Announcement.createdAt))
+  .limit(3);
+---
+
+<DashboardSection
+  title="Recent Announcements"
+  viewAllHref={`/ensembles/${canonicalId}/announcements`}
+  viewAllColor="is-link"
+>
+  {
+    latestAnnouncements.length === 0 ? (
+      <Notification color="info" light>
+        <p class="has-text-centered">No announcements yet.</p>
+        {isAdmin && (
+          <p class="has-text-centered mt-2">
+            <Button
+              href={`/ensembles/${canonicalId}/announcements`}
+              color="link"
+              size="small"
+            >
+              Create First Announcement
+            </Button>
+          </p>
+        )}
+      </Notification>
+    ) : (
+      <div class="ann-carousel">
+        <div class="ann-slides" style="height: 16rem; overflow-y: auto;">
+          {latestAnnouncements.map((announcement, i) => (
+            <div
+              class="ann-slide"
+              data-index={i}
+              style={i === 0 ? "" : "display:none"}
+            >
+              <Message color="link" style="margin-bottom: 0;">
+                <p slot="header">{announcement.title}</p>
+                <small slot="header" class="has-text-weight-normal">
+                  {new Date(announcement.createdAt).toLocaleDateString()}
+                </small>
+                <p style="white-space: pre-wrap;">{announcement.content}</p>
+                <p class="mt-2">
+                  <small>
+                    <em>— {announcement.creatorName}</em>
+                  </small>
+                </p>
+              </Message>
+            </div>
+          ))}
+          <div
+            class="ann-slide"
+            data-index={latestAnnouncements.length}
+            style="display:none"
+          >
+            <div class="has-text-centered" style="padding: 2rem 1rem;">
+              <p class="mb-4 has-text-grey">
+                See all announcements from this ensemble.
+              </p>
+              <Button
+                href={`/ensembles/${canonicalId}/announcements`}
+                color="link"
+              >
+                <Icon icon="fa-bullhorn" />
+                <span>View All Announcements</span>
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        <div class="ann-nav">
+          <button
+            class="ann-arrow"
+            id="ann-prev"
+            aria-label="Previous announcement"
+          >
+            <Icon icon="fa-chevron-left" />
+          </button>
+          <div class="ann-dots">
+            {latestAnnouncements.map((_, i) => (
+              <button
+                class="ann-dot"
+                class:list={[{ "ann-dot-active": i === 0 }]}
+                data-target={i}
+                aria-label={`Announcement ${i + 1}`}
+              />
+            ))}
+            <button
+              class="ann-dot ann-dot-viewall"
+              data-target={latestAnnouncements.length}
+              aria-label="View all"
+            />
+          </div>
+          <button
+            class="ann-arrow"
+            id="ann-next"
+            aria-label="Next announcement"
+          >
+            <Icon icon="fa-chevron-right" />
+          </button>
+        </div>
+      </div>
+    )
+  }
+</DashboardSection>
+
+<style>
+  .ann-carousel {
+    position: relative;
+  }
+  .ann-nav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    margin-top: 0.875rem;
+  }
+  .ann-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    border: 1px solid #dbdbdb;
+    background: transparent;
+    cursor: pointer;
+    color: inherit;
+    transition:
+      background 0.2s,
+      border-color 0.2s;
+    flex-shrink: 0;
+  }
+  .ann-arrow:hover {
+    background: #f5f5f5;
+    border-color: #b5b5b5;
+  }
+  .ann-arrow:disabled {
+    opacity: 0.35;
+    cursor: default;
+  }
+  .ann-dots {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+  .ann-dot {
+    display: block;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #dbdbdb;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    box-shadow: 0 0 0 6px transparent;
+    transition:
+      background 0.2s,
+      box-shadow 0.2s;
+  }
+  .ann-dot:hover {
+    box-shadow: 0 0 0 6px #f0f0f0;
+  }
+  .ann-dot-viewall {
+    border-radius: 50%;
+    width: 14px;
+  }
+  .ann-dot-active {
+    background: #3273dc;
+  }
+</style>
+
+<script>
+  document.addEventListener("astro:page-load", () => {
+    document.querySelectorAll(".ann-carousel").forEach((carousel) => {
+      const slides = Array.from(
+        carousel.querySelectorAll<HTMLElement>(".ann-slide"),
+      );
+      const dots = Array.from(
+        carousel.querySelectorAll<HTMLElement>(".ann-dot"),
+      );
+      const prevBtn = carousel.querySelector<HTMLButtonElement>("#ann-prev");
+      const nextBtn = carousel.querySelector<HTMLButtonElement>("#ann-next");
+      let current = 0;
+
+      function goTo(index: number) {
+        current = index;
+        slides.forEach((slide, i) => {
+          slide.style.display = i === current ? "" : "none";
+        });
+        dots.forEach((d) => d.classList.remove("ann-dot-active"));
+        dots[current]?.classList.add("ann-dot-active");
+        if (prevBtn) prevBtn.disabled = current === 0;
+        if (nextBtn) nextBtn.disabled = current === slides.length - 1;
+      }
+
+      dots.forEach((dot, i) => dot.addEventListener("click", () => goTo(i)));
+      prevBtn?.addEventListener("click", () => goTo(Math.max(0, current - 1)));
+      nextBtn?.addEventListener("click", () =>
+        goTo(Math.min(slides.length - 1, current + 1)),
+      );
+
+      goTo(0);
+    });
+  });
+</script>

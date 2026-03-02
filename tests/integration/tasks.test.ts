@@ -81,6 +81,19 @@ describe('getTasksWithCompletionsForUser', () => {
     expect(result[0].completed).toBe(true);
   });
 
+  it('filters to only tasks in the given season', async () => {
+    const admin = await createUser({ role: 'admin' });
+    const user = await createUser();
+    const ensemble = await createEnsemble(admin!.id);
+    const season = await createSeason(ensemble!.id);
+    await createTaskFixture(ensemble!.id, { title: 'Season Task', seasonId: season!.id });
+    await createTaskFixture(ensemble!.id, { title: 'Ensemble Task' });
+
+    const result = await getTasksWithCompletionsForUser(ensemble!.id, user!.id, season!.id);
+    expect(result).toHaveLength(1);
+    expect(result[0].title).toBe('Season Task');
+  });
+
   it('only marks completion for the specific user, not others', async () => {
     const admin = await createUser({ role: 'admin' });
     const user1 = await createUser();
