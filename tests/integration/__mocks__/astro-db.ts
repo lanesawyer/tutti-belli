@@ -45,6 +45,7 @@ export const Season = asDrizzleTable('Season', tables.Season);
 export const SeasonMembership = asDrizzleTable('SeasonMembership', tables.SeasonMembership);
 export const Event = asDrizzleTable('Event', tables.Event);
 export const Attendance = asDrizzleTable('Attendance', tables.Attendance);
+export const EventRsvp = asDrizzleTable('EventRsvp', tables.EventRsvp);
 export const Announcement = asDrizzleTable('Announcement', tables.Announcement);
 export const Group = asDrizzleTable('Group', tables.Group);
 export const GroupMembership = asDrizzleTable('GroupMembership', tables.GroupMembership);
