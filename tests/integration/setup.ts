@@ -34,6 +34,7 @@ const CREATE_STATEMENTS = [
     "description" TEXT,
     "imageUrl" TEXT,
     "discordLink" TEXT,
+    "discordWebhookUrl" TEXT,
     "codeOfConduct" TEXT,
     "checkInStartMinutes" INTEGER DEFAULT 30 NOT NULL,
     "checkInEndMinutes" INTEGER DEFAULT 15 NOT NULL,

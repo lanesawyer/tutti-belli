@@ -17,6 +17,8 @@ import {
   User,
 } from "astro:db";
 import { sendAnnouncementEmail } from "../../../lib/email";
+import { postAnnouncementToDiscord } from "../../../lib/discord";
+import Checkbox from "../../../components/forms/Checkbox.astro";
 import {
   getEnsembleBySlugOrId,
   getEnsembleAccess,
@@ -94,6 +96,17 @@ if (Astro.request.method === "POST") {
         user.name,
       ).catch(() => {});
 
+      const postToDiscord = formData.get("postToDiscord")?.toString() === "on";
+      if (postToDiscord && ensemble.discordWebhookUrl) {
+        postAnnouncementToDiscord(
+          ensemble.discordWebhookUrl,
+          ensemble.name,
+          title.trim(),
+          content.trim(),
+          user.name,
+        ).catch(() => {});
+      }
+
       message = "Announcement created successfully!";
       messageType = "success";
     }
@@ -120,6 +133,19 @@ if (Astro.request.method === "POST") {
           updatedAt: new Date(),
         })
         .where(eq(Announcement.id, announcementId));
+
+      const postToDiscordOnEdit =
+        formData.get("postToDiscord")?.toString() === "on";
+      if (postToDiscordOnEdit && ensemble.discordWebhookUrl) {
+        postAnnouncementToDiscord(
+          ensemble.discordWebhookUrl,
+          ensemble.name,
+          title.trim(),
+          content.trim(),
+          user.name,
+        ).catch(() => {});
+      }
+
       message = "Announcement updated successfully!";
       messageType = "success";
     }
@@ -263,6 +289,10 @@ const announcements = await db
                 />
               </div>
             </div>
+
+            {ensemble.discordWebhookUrl && (
+              <Checkbox name="postToDiscord" label="Post to Discord" />
+            )}
           </form>
 
           <div slot="footer">
@@ -306,6 +336,10 @@ const announcements = await db
                 />
               </div>
             </div>
+
+            {ensemble.discordWebhookUrl && (
+              <Checkbox name="postToDiscord" label="Post to Discord" />
+            )}
           </form>
 
           <div slot="footer">

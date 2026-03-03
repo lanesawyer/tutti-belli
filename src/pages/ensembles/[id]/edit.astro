@@ -103,6 +103,7 @@ if (Astro.request.method === "POST") {
   const name = formData.get("name")?.toString();
   const description = formData.get("description")?.toString();
   const discordLink = formData.get("discordLink")?.toString();
+  const discordWebhookUrl = formData.get("discordWebhookUrl")?.toString();
   const codeOfConduct = formData.get("codeOfConduct")?.toString();
   const imageFile = formData.get("image") as File;
   const removeImage = formData.get("removeImage")?.toString() === "true";
@@ -175,6 +176,7 @@ if (Astro.request.method === "POST") {
             slug: newSlug,
             description: description?.trim() || null,
             discordLink: discordLink?.trim() || null,
+            discordWebhookUrl: discordWebhookUrl?.trim() || null,
             codeOfConduct: codeOfConduct?.trim() || null,
             imageUrl,
             checkInStartMinutes,
@@ -287,6 +289,17 @@ if (Astro.request.method === "POST") {
                 iconLeft="fa-discord"
                 iconLeftVariant="fab"
                 help="Optional Discord server invite link for this ensemble"
+              />
+
+              <TextInput
+                name="discordWebhookUrl"
+                label="Discord Webhook URL"
+                type="url"
+                value={ensemble.discordWebhookUrl || ""}
+                placeholder="https://discord.com/api/webhooks/..."
+                iconLeft="fa-discord"
+                iconLeftVariant="fab"
+                help="Paste a Discord webhook URL to enable posting announcements to a channel"
               />
 
               <div class="field">
