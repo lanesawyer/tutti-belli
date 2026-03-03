@@ -1,4 +1,20 @@
-import { db, eq, and, Ensemble, Event, EventProgram, Attendance, Season, User, EnsembleMember, Song, SeasonSong, Group, GroupMembership } from 'astro:db';
+import { db, eq, and, inArray, Ensemble, Event, EventProgram, Attendance, EventRsvp, Season, User, EnsembleMember, Song, SeasonSong, Group, GroupMembership } from 'astro:db';
+
+// ─── RSVP Helpers ───────────────────────────────────────────────────────────
+
+const RSVP_CATEGORY_DEFAULTS: Record<string, boolean> = {
+  rehearsal: false,
+  performance: true,
+  social: true,
+  sectional: false,
+};
+
+export function isRsvpEnabled(event: { category: string; rsvpEnabled: number | null }): boolean {
+  if (event.rsvpEnabled !== null && event.rsvpEnabled !== undefined) {
+    return event.rsvpEnabled === 1;
+  }
+  return RSVP_CATEGORY_DEFAULTS[event.category] ?? false;
+}
 
 // ─── Queries ────────────────────────────────────────────────────────────────
 
@@ -7,7 +23,7 @@ export async function getEvent(eventId: string) {
 }
 
 export async function getEventPageData(ensembleId: string, eventId: string) {
-  const [event, ensembleData, attendanceRecords] = await Promise.all([
+  const [event, ensembleData, attendanceRecords, rsvpRecords] = await Promise.all([
     db.select().from(Event).where(eq(Event.id, eventId)).get(),
     db.select().from(Ensemble).where(eq(Ensemble.id, ensembleId)).get(),
     db
@@ -21,6 +37,17 @@ export async function getEventPageData(ensembleId: string, eventId: string) {
       .from(Attendance)
       .innerJoin(User, eq(Attendance.userId, User.id))
       .where(eq(Attendance.eventId, eventId))
+      .all(),
+    db
+      .select({
+        userId: EventRsvp.userId,
+        userName: User.name,
+        response: EventRsvp.response,
+        respondedAt: EventRsvp.respondedAt,
+      })
+      .from(EventRsvp)
+      .innerJoin(User, eq(EventRsvp.userId, User.id))
+      .where(eq(EventRsvp.eventId, eventId))
       .all(),
   ]);
 
@@ -64,7 +91,7 @@ export async function getEventPageData(ensembleId: string, eventId: string) {
       .all();
   }
 
-  return { event: event ?? null, ensembleData: ensembleData ?? null, attendanceRecords, allMembers, group };
+  return { event: event ?? null, ensembleData: ensembleData ?? null, attendanceRecords, rsvpRecords, allMembers, group };
 }
 
 export async function getEventProgramData(eventId: string, seasonId: string) {
@@ -98,7 +125,7 @@ export async function getEventProgramData(eventId: string, seasonId: string) {
   return { programSongs, availableSeasonSongs };
 }
 
-export async function getEventsPageData(ensembleId: string) {
+export async function getEventsPageData(ensembleId: string, userId: string) {
   const [activeSeason, events, groups] = await Promise.all([
     db
       .select()
@@ -120,6 +147,7 @@ export async function getEventsPageData(ensembleId: string) {
         groupId: Event.groupId,
         groupName: Group.name,
         groupColor: Group.color,
+        rsvpEnabled: Event.rsvpEnabled,
         createdAt: Event.createdAt,
       })
       .from(Event)
@@ -135,7 +163,21 @@ export async function getEventsPageData(ensembleId: string) {
       .all(),
   ]);
 
-  return { activeSeason: activeSeason ?? null, events, groups };
+  // Fetch the current user's RSVPs for all events in one query
+  const userRsvpMap = new Map<string, 'yes' | 'no'>();
+  if (events.length > 0) {
+    const eventIds = events.map(e => e.id);
+    const rsvps = await db
+      .select({ eventId: EventRsvp.eventId, response: EventRsvp.response })
+      .from(EventRsvp)
+      .where(and(eq(EventRsvp.userId, userId), inArray(EventRsvp.eventId, eventIds)))
+      .all();
+    for (const r of rsvps) {
+      userRsvpMap.set(r.eventId, r.response as 'yes' | 'no');
+    }
+  }
+
+  return { activeSeason: activeSeason ?? null, events, groups, userRsvpMap };
 }
 
 // ─── Mutations ──────────────────────────────────────────────────────────────
@@ -150,8 +192,9 @@ export async function createEvent(params: {
   durationMinutes: number;
   category: 'rehearsal' | 'performance' | 'social' | 'sectional';
   groupId?: string;
+  rsvpEnabled?: number | null;
 }) {
-  const { ensembleId, title, description, date, time, location, durationMinutes, category, groupId } = params;
+  const { ensembleId, title, description, date, time, location, durationMinutes, category, groupId, rsvpEnabled } = params;
 
   const activeSeason = await db
     .select()
@@ -178,6 +221,7 @@ export async function createEvent(params: {
     location: location || '',
     checkInCode,
     groupId: groupId || null,
+    rsvpEnabled: rsvpEnabled ?? null,
   });
 }
 
@@ -194,8 +238,9 @@ export async function editEvent(params: {
   location?: string;
   durationMinutes: number;
   groupId?: string | null;
+  rsvpEnabled?: number | null;
 }) {
-  const { eventId, title, description, date, time, location, durationMinutes, groupId } = params;
+  const { eventId, title, description, date, time, location, durationMinutes, groupId, rsvpEnabled } = params;
   const scheduledAt = new Date(`${date}T${time}`);
 
   await db.update(Event)
@@ -206,6 +251,7 @@ export async function editEvent(params: {
       durationMinutes,
       location: location?.trim() || '',
       groupId: groupId || null,
+      rsvpEnabled: rsvpEnabled ?? null,
     })
     .where(eq(Event.id, eventId));
 }
@@ -317,6 +363,41 @@ export async function addAttendance(eventId: string, userId: string) {
 
 export async function removeAttendance(attendanceId: string) {
   await db.delete(Attendance).where(eq(Attendance.id, attendanceId));
+}
+
+export async function setRsvp(eventId: string, userId: string, response: 'yes' | 'no') {
+  const existing = await db
+    .select()
+    .from(EventRsvp)
+    .where(and(eq(EventRsvp.eventId, eventId), eq(EventRsvp.userId, userId)))
+    .get();
+
+  if (existing) {
+    await db.update(EventRsvp)
+      .set({ response, respondedAt: new Date() })
+      .where(and(eq(EventRsvp.eventId, eventId), eq(EventRsvp.userId, userId)));
+  } else {
+    await db.insert(EventRsvp).values({
+      id: crypto.randomUUID(),
+      eventId,
+      userId,
+      response,
+    });
+  }
+}
+
+export async function removeRsvp(eventId: string, userId: string) {
+  await db.delete(EventRsvp)
+    .where(and(eq(EventRsvp.eventId, eventId), eq(EventRsvp.userId, userId)));
+}
+
+export async function getRsvpForUser(eventId: string, userId: string): Promise<'yes' | 'no' | null> {
+  const record = await db
+    .select({ response: EventRsvp.response })
+    .from(EventRsvp)
+    .where(and(eq(EventRsvp.eventId, eventId), eq(EventRsvp.userId, userId)))
+    .get();
+  return record ? (record.response as 'yes' | 'no') : null;
 }
 
 export async function addProgramSong(eventId: string, songId: string, notes?: string) {

@@ -15,7 +15,7 @@ import {
 } from "../../../../lib/ensemble";
 import { getEnsembleUrlId } from "../../../../lib/slug";
 import { formatDuration } from "../../../../lib/format";
-import { getEventsPageData } from "../../../../lib/events";
+import { getEventsPageData, isRsvpEnabled } from "../../../../lib/events";
 
 const user = Astro.locals.user!;
 
@@ -39,6 +39,8 @@ const { isAdmin } = access;
 
 const createResult = Astro.getActionResult(actions.events.create);
 const deleteResult = Astro.getActionResult(actions.events.delete);
+const rsvpResult = Astro.getActionResult(actions.events.rsvp);
+const removeRsvpResult = Astro.getActionResult(actions.events.removeRsvp);
 
 let message = "";
 let messageType: "success" | "danger" | undefined;
@@ -59,13 +61,30 @@ if (createResult) {
     message = "Event deleted successfully!";
     messageType = "success";
   }
+} else if (rsvpResult) {
+  if (rsvpResult.error) {
+    message = rsvpResult.error.message || "Failed to save RSVP.";
+    messageType = "danger";
+  } else {
+    message = "RSVP saved!";
+    messageType = "success";
+  }
+} else if (removeRsvpResult) {
+  if (removeRsvpResult.error) {
+    message = removeRsvpResult.error.message || "Failed to remove RSVP.";
+    messageType = "danger";
+  } else {
+    message = "RSVP removed.";
+    messageType = "success";
+  }
 }
 
 const {
   activeSeason,
   events: allEvents,
   groups,
-} = await getEventsPageData(ensemble.id);
+  userRsvpMap,
+} = await getEventsPageData(ensemble.id, user.id);
 
 function categoryTag(category: string) {
   switch (category) {
@@ -141,12 +160,17 @@ const pastEvents = allEvents.filter((e) => {
                   <th>Time</th>
                   <th>Location</th>
                   <th>Duration</th>
+                  <th>RSVP</th>
                   <th style="width: 160px;">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {upcomingEvents.map((event) => {
                   const scheduledDate = new Date(event.scheduledAt);
+                  const rsvpOn = isRsvpEnabled(event);
+                  const userRsvp = rsvpOn
+                    ? (userRsvpMap.get(event.id) ?? null)
+                    : null;
                   return (
                     <tr>
                       <td>
@@ -178,6 +202,142 @@ const pastEvents = allEvents.filter((e) => {
                       </td>
                       <td>{event.location || "-"}</td>
                       <td>{formatDuration(event.durationMinutes)}</td>
+                      <td>
+                        {rsvpOn ? (
+                          <div class="buttons are-small">
+                            {userRsvp === "yes" ? (
+                              <>
+                                <span class="tag is-success is-small">
+                                  Attending
+                                </span>
+                                <form
+                                  method="POST"
+                                  action={actions.events.rsvp}
+                                  style="display:inline"
+                                >
+                                  <input
+                                    type="hidden"
+                                    name="ensembleId"
+                                    value={ensemble.id}
+                                  />
+                                  <input
+                                    type="hidden"
+                                    name="eventId"
+                                    value={event.id}
+                                  />
+                                  <input
+                                    type="hidden"
+                                    name="response"
+                                    value="no"
+                                  />
+                                  <Button
+                                    type="submit"
+                                    size="small"
+                                    color="danger"
+                                  >
+                                    No
+                                  </Button>
+                                </form>
+                              </>
+                            ) : userRsvp === "no" ? (
+                              <>
+                                <span class="tag is-danger is-small">
+                                  Not Attending
+                                </span>
+                                <form
+                                  method="POST"
+                                  action={actions.events.rsvp}
+                                  style="display:inline"
+                                >
+                                  <input
+                                    type="hidden"
+                                    name="ensembleId"
+                                    value={ensemble.id}
+                                  />
+                                  <input
+                                    type="hidden"
+                                    name="eventId"
+                                    value={event.id}
+                                  />
+                                  <input
+                                    type="hidden"
+                                    name="response"
+                                    value="yes"
+                                  />
+                                  <Button
+                                    type="submit"
+                                    size="small"
+                                    color="success"
+                                  >
+                                    Yes
+                                  </Button>
+                                </form>
+                              </>
+                            ) : (
+                              <>
+                                <form
+                                  method="POST"
+                                  action={actions.events.rsvp}
+                                  style="display:inline"
+                                >
+                                  <input
+                                    type="hidden"
+                                    name="ensembleId"
+                                    value={ensemble.id}
+                                  />
+                                  <input
+                                    type="hidden"
+                                    name="eventId"
+                                    value={event.id}
+                                  />
+                                  <input
+                                    type="hidden"
+                                    name="response"
+                                    value="yes"
+                                  />
+                                  <Button
+                                    type="submit"
+                                    size="small"
+                                    color="success"
+                                  >
+                                    Yes
+                                  </Button>
+                                </form>
+                                <form
+                                  method="POST"
+                                  action={actions.events.rsvp}
+                                  style="display:inline"
+                                >
+                                  <input
+                                    type="hidden"
+                                    name="ensembleId"
+                                    value={ensemble.id}
+                                  />
+                                  <input
+                                    type="hidden"
+                                    name="eventId"
+                                    value={event.id}
+                                  />
+                                  <input
+                                    type="hidden"
+                                    name="response"
+                                    value="no"
+                                  />
+                                  <Button
+                                    type="submit"
+                                    size="small"
+                                    color="danger"
+                                  >
+                                    No
+                                  </Button>
+                                </form>
+                              </>
+                            )}
+                          </div>
+                        ) : (
+                          <span class="has-text-grey-light">—</span>
+                        )}
+                      </td>
                       <td>
                         <div class="buttons are-small">
                           <Button
@@ -312,6 +472,16 @@ const pastEvents = allEvents.filter((e) => {
                 </div>
               )}
             </div>
+
+            <Select
+              name="rsvpEnabled"
+              label="RSVP"
+              help="Whether members can RSVP for this event."
+            >
+              <option value="">Default (based on type)</option>
+              <option value="1">Enabled</option>
+              <option value="0">Disabled</option>
+            </Select>
 
             <TextInput
               name="location"

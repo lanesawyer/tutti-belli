@@ -102,6 +102,7 @@ const Event = defineTable({
     location: column.text({ optional: true }),
     checkInCode: column.text({ unique: true }),
     groupId: column.text({ optional: true, references: () => Group.columns.id }),
+    rsvpEnabled: column.number({ optional: true }), // null = use category default, 0 = disabled, 1 = enabled
     createdAt: column.date({ default: NOW }),
   }
 });
@@ -256,6 +257,16 @@ const SiteBanner = defineTable({
   }
 });
 
+const EventRsvp = defineTable({
+  columns: {
+    id: column.text({ primaryKey: true }),
+    eventId: column.text({ references: () => Event.columns.id }),
+    userId: column.text({ references: () => User.columns.id }),
+    response: column.text(), // 'yes' | 'no'
+    respondedAt: column.date({ default: NOW }),
+  }
+});
+
 const Task = defineTable({
   columns: {
     id: column.text({ primaryKey: true }),
@@ -279,5 +290,5 @@ const TaskCompletion = defineTable({
 });
 
 export default defineDb({
-  tables: { User, Ensemble, EnsembleMember, Part, MemberPart, EnsembleInvite, Season, SeasonMembership, Event, Attendance, Announcement, Group, GroupMembership, Song, SongPart, SeasonSong, SongFile, EventProgram, PasswordResetToken, EmailChangeToken, EmailVerificationToken, EnsembleLink, SiteBanner, Task, TaskCompletion }
+  tables: { User, Ensemble, EnsembleMember, Part, MemberPart, EnsembleInvite, Season, SeasonMembership, Event, Attendance, EventRsvp, Announcement, Group, GroupMembership, Song, SongPart, SeasonSong, SongFile, EventProgram, PasswordResetToken, EmailChangeToken, EmailVerificationToken, EnsembleLink, SiteBanner, Task, TaskCompletion }
 });

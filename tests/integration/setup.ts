@@ -126,6 +126,7 @@ const CREATE_STATEMENTS = [
     "location" TEXT,
     "checkInCode" TEXT UNIQUE NOT NULL,
     "groupId" TEXT REFERENCES "Group"("id"),
+    "rsvpEnabled" INTEGER,
     "createdAt" TEXT DEFAULT CURRENT_TIMESTAMP
   )`,
   `CREATE TABLE IF NOT EXISTS "Attendance" (
@@ -134,6 +135,13 @@ const CREATE_STATEMENTS = [
     "userId" TEXT NOT NULL REFERENCES "User"("id"),
     "checkedInAt" TEXT DEFAULT CURRENT_TIMESTAMP,
     "checkedInMethod" TEXT NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS "EventRsvp" (
+    "id" TEXT PRIMARY KEY,
+    "eventId" TEXT NOT NULL REFERENCES "Event"("id"),
+    "userId" TEXT NOT NULL REFERENCES "User"("id"),
+    "response" TEXT NOT NULL,
+    "respondedAt" TEXT DEFAULT CURRENT_TIMESTAMP
   )`,
   `CREATE TABLE IF NOT EXISTS "Announcement" (
     "id" TEXT PRIMARY KEY,
@@ -227,7 +235,7 @@ const CREATE_STATEMENTS = [
 const TABLE_NAMES = [
   'SiteBanner', 'EmailVerificationToken', 'EmailChangeToken', 'PasswordResetToken', 'EventProgram', 'SongFile',
   'SeasonSong', 'SongPart', 'Song', 'GroupMembership', 'Group',
-  'Announcement', 'Attendance', 'Event', 'TaskCompletion', 'Task',
+  'Announcement', 'EventRsvp', 'Attendance', 'Event', 'TaskCompletion', 'Task',
   'SeasonMembership', 'EnsembleInvite',
   'Season', 'EnsembleLink', 'MemberPart', 'EnsembleMember', 'Part', 'Ensemble', 'User',
 ];

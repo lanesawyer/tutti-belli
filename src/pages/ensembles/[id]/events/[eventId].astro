@@ -16,7 +16,12 @@ import {
   getEnsembleAccess,
 } from "../../../../lib/ensemble";
 import { getEnsembleUrlId } from "../../../../lib/slug";
-import { getEventProgramData, getEventPageData } from "../../../../lib/events";
+import {
+  getEventProgramData,
+  getEventPageData,
+  isRsvpEnabled,
+  getRsvpForUser,
+} from "../../../../lib/events";
 import { formatDuration } from "../../../../lib/format";
 
 const user = Astro.locals.user!;
@@ -81,6 +86,8 @@ const removeAttendanceResult = Astro.getActionResult(
 const updateNotesResult = Astro.getActionResult(
   actions.events.updateProgramSongNotes,
 );
+const rsvpResult = Astro.getActionResult(actions.events.rsvp);
+const removeRsvpResult = Astro.getActionResult(actions.events.removeRsvp);
 
 let message = "";
 if (checkInResult?.error)
@@ -98,12 +105,19 @@ else if (updateNotesResult && !updateNotesResult.error)
   message = "Notes updated.";
 else if (updateNotesResult?.error)
   message = updateNotesResult.error.message || "Failed to update notes.";
+else if (rsvpResult && !rsvpResult.error) message = "RSVP saved!";
+else if (rsvpResult?.error)
+  message = rsvpResult.error.message || "Failed to save RSVP.";
+else if (removeRsvpResult && !removeRsvpResult.error) message = "RSVP removed.";
+else if (removeRsvpResult?.error)
+  message = removeRsvpResult.error.message || "Failed to remove RSVP.";
 
-// Get attendance records, member list (scoped to group if set), and group metadata
-const { attendanceRecords, allMembers, group } = await getEventPageData(
-  ensemble.id,
-  eventId,
-);
+// Get attendance records, RSVP records, member list (scoped to group if set), and group metadata
+const { attendanceRecords, rsvpRecords, allMembers, group } =
+  await getEventPageData(ensemble.id, eventId);
+
+const rsvpOn = isRsvpEnabled(event);
+const userRsvp = rsvpOn ? await getRsvpForUser(event.id, user.id) : null;
 
 // Fetch groups for the edit modal selector
 const groups = await db
@@ -114,7 +128,14 @@ const groups = await db
   .all();
 
 const attendedUserIds = new Set(attendanceRecords.map((a) => a.userId));
-const absentMembers = allMembers.filter((m) => !attendedUserIds.has(m.id));
+const attendanceByUserId = new Map(attendanceRecords.map((a) => [a.userId, a]));
+const rsvpByUserId = new Map(
+  rsvpRecords.map((r) => [r.userId, r.response as "yes" | "no"]),
+);
+
+const rsvpYesCount = rsvpRecords.filter((r) => r.response === "yes").length;
+const rsvpNoCount = rsvpRecords.filter((r) => r.response === "no").length;
+const rsvpNoResponseCount = allMembers.length - rsvpYesCount - rsvpNoCount;
 
 // Generate QR code for check-in
 const checkInUrl = `${Astro.url.origin}/checkin/${event.checkInCode}`;
@@ -150,13 +171,13 @@ const categoryLabel = isPerformance
     : isSectional
       ? "Sectional"
       : "Rehearsal";
-const categoryTagClass = isPerformance
-  ? "is-warning"
+const categoryColor = isPerformance
+  ? "warning"
   : isSocial
-    ? "is-success"
+    ? "success"
     : isSectional
-      ? "is-info"
-      : "is-primary";
+      ? "info"
+      : "primary";
 const programLabel = isPerformance ? "Set List" : "Rehearsal Plan";
 ---
 
@@ -197,9 +218,9 @@ const programLabel = isPerformance ? "Set List" : "Rehearsal Plan";
         <div>
           <h1 class="title">
             {event.title}
-            <span class={`tag ml-2 ${categoryTagClass}`}>
+            <Tag color={categoryColor as any} class="ml-2">
               {categoryLabel}
-            </span>
+            </Tag>
             {
               group && (
                 <Tag color={group.color as any} class="ml-2">
@@ -278,6 +299,110 @@ const programLabel = isPerformance ? "Set List" : "Rehearsal Plan";
 
   <div class="columns">
     <div class="column">
+      {
+        rsvpOn && !isAdmin && (
+          <div class="box">
+            <h2 class="title is-4">RSVP</h2>
+            {userRsvp === "yes" ? (
+              <>
+                <Notification color="success" light>
+                  <Icon icon="fa-check-circle" /> You're planning to attend!
+                </Notification>
+                <div class="buttons">
+                  <form method="POST" action={actions.events.rsvp}>
+                    <input
+                      type="hidden"
+                      name="ensembleId"
+                      value={ensemble.id}
+                    />
+                    <input type="hidden" name="eventId" value={event.id} />
+                    <input type="hidden" name="response" value="no" />
+                    <Button type="submit" color="danger" size="small">
+                      Change to Not Attending
+                    </Button>
+                  </form>
+                  <form method="POST" action={actions.events.removeRsvp}>
+                    <input
+                      type="hidden"
+                      name="ensembleId"
+                      value={ensemble.id}
+                    />
+                    <input type="hidden" name="eventId" value={event.id} />
+                    <Button type="submit" size="small">
+                      Remove RSVP
+                    </Button>
+                  </form>
+                </div>
+              </>
+            ) : userRsvp === "no" ? (
+              <>
+                <Notification color="warning" light>
+                  <Icon icon="fa-times-circle" /> You've marked yourself as not
+                  attending.
+                </Notification>
+                <div class="buttons">
+                  <form method="POST" action={actions.events.rsvp}>
+                    <input
+                      type="hidden"
+                      name="ensembleId"
+                      value={ensemble.id}
+                    />
+                    <input type="hidden" name="eventId" value={event.id} />
+                    <input type="hidden" name="response" value="yes" />
+                    <Button type="submit" color="success" size="small">
+                      Change to Attending
+                    </Button>
+                  </form>
+                  <form method="POST" action={actions.events.removeRsvp}>
+                    <input
+                      type="hidden"
+                      name="ensembleId"
+                      value={ensemble.id}
+                    />
+                    <input type="hidden" name="eventId" value={event.id} />
+                    <Button type="submit" size="small">
+                      Remove RSVP
+                    </Button>
+                  </form>
+                </div>
+              </>
+            ) : (
+              <>
+                <p class="mb-3">Will you attend this event?</p>
+                <div class="buttons">
+                  <form method="POST" action={actions.events.rsvp}>
+                    <input
+                      type="hidden"
+                      name="ensembleId"
+                      value={ensemble.id}
+                    />
+                    <input type="hidden" name="eventId" value={event.id} />
+                    <input type="hidden" name="response" value="yes" />
+                    <Button type="submit" color="success">
+                      <Icon icon="fa-check" />
+                      <span>Yes, I'll attend</span>
+                    </Button>
+                  </form>
+                  <form method="POST" action={actions.events.rsvp}>
+                    <input
+                      type="hidden"
+                      name="ensembleId"
+                      value={ensemble.id}
+                    />
+                    <input type="hidden" name="eventId" value={event.id} />
+                    <input type="hidden" name="response" value="no" />
+                    <Button type="submit" color="danger">
+                      <Icon icon="fa-times" />
+                      <span>No, I can't make it</span>
+                    </Button>
+                  </form>
+                </div>
+              </>
+            )}
+          </div>
+        )
+      }
+
       <div class="box">
         <h2 class="title is-4">Check-In</h2>
 
@@ -411,112 +536,149 @@ const programLabel = isPerformance ? "Set List" : "Rehearsal Plan";
               )}
             </h2>
 
-            {attendanceRecords.length > 0 ? (
-              <table class="table is-fullwidth is-striped">
+            {rsvpOn && (
+              <div class="tags mb-3">
+                <Tag color="success">
+                  <Icon icon="fa-check" size="small" class="mr-1" />
+                  Attending: {rsvpYesCount}
+                </Tag>
+                <Tag color="danger">
+                  <Icon icon="fa-times" size="small" class="mr-1" />
+                  Not Attending: {rsvpNoCount}
+                </Tag>
+                <Tag>No Response: {rsvpNoResponseCount}</Tag>
+              </div>
+            )}
+
+            {allMembers.length > 0 ? (
+              <table class="table is-fullwidth is-striped is-size-7">
                 <thead>
                   <tr>
                     <th>Name</th>
+                    {rsvpOn && <th>RSVP</th>}
                     <th>Checked In</th>
                     <th>Method</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {attendanceRecords.map((record) => (
-                    <tr>
-                      <td>{record.userName}</td>
-                      <td>
-                        {new Date(record.checkedInAt).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </td>
-                      <td>
-                        <span
-                          class={`tag is-small ${
-                            record.checkedInMethod === "qr"
-                              ? "is-success"
-                              : record.checkedInMethod === "manual"
-                                ? "is-info"
-                                : "is-warning"
-                          }`}
-                        >
-                          {record.checkedInMethod === "qr"
-                            ? "QR Scan"
-                            : record.checkedInMethod === "manual"
-                              ? "Manual"
-                              : "Admin"}
-                        </span>
-                      </td>
-                      <td>
-                        <form
-                          method="POST"
-                          action={actions.events.removeAttendance}
-                          style="display: inline;"
-                        >
-                          <input
-                            type="hidden"
-                            name="ensembleId"
-                            value={ensemble.id}
-                          />
-                          <input
-                            type="hidden"
-                            name="attendanceId"
-                            value={record.id}
-                          />
-                          <Button type="submit" color="danger" size="small">
-                            Remove
-                          </Button>
-                        </form>
-                      </td>
-                    </tr>
-                  ))}
+                  {allMembers.map((member) => {
+                    const attendance = attendanceByUserId.get(member.id);
+                    const memberRsvp = rsvpByUserId.get(member.id) ?? null;
+                    return (
+                      <tr>
+                        <td>{member.name}</td>
+                        {rsvpOn && (
+                          <td>
+                            {memberRsvp === "yes" ? (
+                              <Tag color="success" size="small">
+                                Yes
+                              </Tag>
+                            ) : memberRsvp === "no" ? (
+                              <Tag color="danger" size="small">
+                                No
+                              </Tag>
+                            ) : (
+                              <span class="has-text-grey-light">—</span>
+                            )}
+                          </td>
+                        )}
+                        <td>
+                          {attendance ? (
+                            new Date(attendance.checkedInAt).toLocaleTimeString(
+                              [],
+                              {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              },
+                            )
+                          ) : (
+                            <span class="has-text-grey-light">—</span>
+                          )}
+                        </td>
+                        <td>
+                          {attendance ? (
+                            <Tag
+                              size="small"
+                              color={
+                                attendance.checkedInMethod === "qr"
+                                  ? "success"
+                                  : attendance.checkedInMethod === "manual"
+                                    ? "info"
+                                    : "warning"
+                              }
+                            >
+                              {attendance.checkedInMethod === "qr"
+                                ? "QR Scan"
+                                : attendance.checkedInMethod === "manual"
+                                  ? "Manual"
+                                  : "Admin"}
+                            </Tag>
+                          ) : (
+                            <span class="has-text-grey-light">—</span>
+                          )}
+                        </td>
+                        <td>
+                          {attendance ? (
+                            <form
+                              method="POST"
+                              action={actions.events.removeAttendance}
+                              style="display: inline;"
+                            >
+                              <input
+                                type="hidden"
+                                name="ensembleId"
+                                value={ensemble.id}
+                              />
+                              <input
+                                type="hidden"
+                                name="attendanceId"
+                                value={attendance.id}
+                              />
+                              <Button type="submit" color="danger" size="small">
+                                Remove
+                              </Button>
+                            </form>
+                          ) : (
+                            <form
+                              method="POST"
+                              action={actions.events.addAttendance}
+                              style="display: inline;"
+                            >
+                              <input
+                                type="hidden"
+                                name="ensembleId"
+                                value={ensemble.id}
+                              />
+                              <input
+                                type="hidden"
+                                name="eventId"
+                                value={event.id}
+                              />
+                              <input
+                                type="hidden"
+                                name="userId"
+                                value={member.id}
+                              />
+                              <Button
+                                type="submit"
+                                color="success"
+                                size="small"
+                              >
+                                Mark Present
+                              </Button>
+                            </form>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             ) : (
               <Notification color="info" light>
-                No one has checked in yet.
+                No members found for this event.
               </Notification>
-            )}
-
-            {absentMembers.length > 0 && (
-              <>
-                <hr />
-                <h3 class="title is-5 mt-4">Mark Attendance</h3>
-                <p class="mb-3">Members who haven't checked in:</p>
-                {absentMembers.map((member) => (
-                  <div class="field is-grouped mb-2">
-                    <div class="control is-expanded">
-                      <TextInput
-                        name="_member-display"
-                        type="text"
-                        value={member.name}
-                        static
-                        readonly
-                        standalone
-                      />
-                    </div>
-                    <div class="control">
-                      <form
-                        method="POST"
-                        action={actions.events.addAttendance}
-                        style="display: inline;"
-                      >
-                        <input
-                          type="hidden"
-                          name="ensembleId"
-                          value={ensemble.id}
-                        />
-                        <input type="hidden" name="eventId" value={event.id} />
-                        <input type="hidden" name="userId" value={member.id} />
-                        <Button type="submit" color="success">
-                          Mark Present
-                        </Button>
-                      </form>
-                    </div>
-                  </div>
-                ))}
-              </>
             )}
           </div>
         </div>
@@ -778,6 +940,24 @@ const programLabel = isPerformance ? "Set List" : "Rehearsal Plan";
                   ))}
                 </Select>
               )}
+
+              <Select
+                id="edit-rsvpEnabled"
+                name="rsvpEnabled"
+                label="RSVP"
+                fullwidth
+                help="Whether members can RSVP for this event."
+              >
+                <option value="" selected={event.rsvpEnabled === null}>
+                  Default (based on type)
+                </option>
+                <option value="1" selected={event.rsvpEnabled === 1}>
+                  Enabled
+                </option>
+                <option value="0" selected={event.rsvpEnabled === 0}>
+                  Disabled
+                </option>
+              </Select>
             </section>
             <footer class="modal-card-foot">
               <Button color="primary" type="submit">

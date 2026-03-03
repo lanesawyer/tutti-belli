@@ -10,8 +10,11 @@ import {
   removeProgramSong,
   updateProgramSongNotes,
   getEventPageData,
+  setRsvp,
+  removeRsvp,
+  isRsvpEnabled,
 } from '../../src/lib/events.ts';
-import { db, Attendance, Event, EventProgram, GroupMembership, eq, and } from 'astro:db';
+import { db, Attendance, Event, EventProgram, EventRsvp, GroupMembership, eq, and } from 'astro:db';
 import {
   createUser,
   createEnsemble,
@@ -416,6 +419,129 @@ describe('removeProgramSong', () => {
 
     const row = await db.select().from(EventProgram).where(eq(EventProgram.id, entry!.id)).get();
     expect(row).toBeUndefined();
+  });
+});
+
+describe('isRsvpEnabled', () => {
+  it('returns the category default when rsvpEnabled is null', () => {
+    expect(isRsvpEnabled({ category: 'performance', rsvpEnabled: null })).toBe(true);
+    expect(isRsvpEnabled({ category: 'social', rsvpEnabled: null })).toBe(true);
+    expect(isRsvpEnabled({ category: 'rehearsal', rsvpEnabled: null })).toBe(false);
+    expect(isRsvpEnabled({ category: 'sectional', rsvpEnabled: null })).toBe(false);
+  });
+
+  it('returns true when rsvpEnabled is 1 regardless of category', () => {
+    expect(isRsvpEnabled({ category: 'rehearsal', rsvpEnabled: 1 })).toBe(true);
+  });
+
+  it('returns false when rsvpEnabled is 0 regardless of category', () => {
+    expect(isRsvpEnabled({ category: 'performance', rsvpEnabled: 0 })).toBe(false);
+  });
+});
+
+describe('setRsvp', () => {
+  it('creates a yes RSVP record', async () => {
+    const admin = await createUser({ role: 'admin' });
+    const member = await createUser();
+    const ensemble = await createEnsemble(admin!.id);
+    const season = await createSeason(ensemble!.id);
+    const event = await createEvent(ensemble!.id, season!.id);
+
+    await setRsvp(event!.id, member!.id, 'yes');
+
+    const record = await db
+      .select()
+      .from(EventRsvp)
+      .where(and(eq(EventRsvp.eventId, event!.id), eq(EventRsvp.userId, member!.id)))
+      .get();
+    expect(record).not.toBeUndefined();
+    expect(record!.response).toBe('yes');
+  });
+
+  it('creates a no RSVP record', async () => {
+    const admin = await createUser({ role: 'admin' });
+    const member = await createUser();
+    const ensemble = await createEnsemble(admin!.id);
+    const season = await createSeason(ensemble!.id);
+    const event = await createEvent(ensemble!.id, season!.id);
+
+    await setRsvp(event!.id, member!.id, 'no');
+
+    const record = await db
+      .select()
+      .from(EventRsvp)
+      .where(and(eq(EventRsvp.eventId, event!.id), eq(EventRsvp.userId, member!.id)))
+      .get();
+    expect(record!.response).toBe('no');
+  });
+
+  it('updates an existing RSVP (upsert behavior)', async () => {
+    const admin = await createUser({ role: 'admin' });
+    const member = await createUser();
+    const ensemble = await createEnsemble(admin!.id);
+    const season = await createSeason(ensemble!.id);
+    const event = await createEvent(ensemble!.id, season!.id);
+
+    await setRsvp(event!.id, member!.id, 'yes');
+    await setRsvp(event!.id, member!.id, 'no');
+
+    const records = await db
+      .select()
+      .from(EventRsvp)
+      .where(and(eq(EventRsvp.eventId, event!.id), eq(EventRsvp.userId, member!.id)))
+      .all();
+    expect(records).toHaveLength(1);
+    expect(records[0].response).toBe('no');
+  });
+});
+
+describe('removeRsvp', () => {
+  it('removes an existing RSVP record', async () => {
+    const admin = await createUser({ role: 'admin' });
+    const member = await createUser();
+    const ensemble = await createEnsemble(admin!.id);
+    const season = await createSeason(ensemble!.id);
+    const event = await createEvent(ensemble!.id, season!.id);
+
+    await setRsvp(event!.id, member!.id, 'yes');
+    await removeRsvp(event!.id, member!.id);
+
+    const record = await db
+      .select()
+      .from(EventRsvp)
+      .where(and(eq(EventRsvp.eventId, event!.id), eq(EventRsvp.userId, member!.id)))
+      .get();
+    expect(record).toBeUndefined();
+  });
+
+  it('is a no-op when no RSVP exists', async () => {
+    const admin = await createUser({ role: 'admin' });
+    const member = await createUser();
+    const ensemble = await createEnsemble(admin!.id);
+    const season = await createSeason(ensemble!.id);
+    const event = await createEvent(ensemble!.id, season!.id);
+
+    await expect(removeRsvp(event!.id, member!.id)).resolves.not.toThrow();
+  });
+});
+
+describe('getEventPageData — RSVP records', () => {
+  it('includes rsvpRecords in return value', async () => {
+    const admin = await createUser({ role: 'admin' });
+    const member = await createUser();
+    const ensemble = await createEnsemble(admin!.id);
+    await createMembership(ensemble!.id, admin!.id);
+    await createMembership(ensemble!.id, member!.id);
+    const season = await createSeason(ensemble!.id);
+    const event = await createEvent(ensemble!.id, season!.id);
+
+    await setRsvp(event!.id, member!.id, 'yes');
+
+    const { rsvpRecords } = await getEventPageData(ensemble!.id, event!.id);
+
+    expect(rsvpRecords).toHaveLength(1);
+    expect(rsvpRecords[0].userId).toBe(member!.id);
+    expect(rsvpRecords[0].response).toBe('yes');
   });
 });
 
