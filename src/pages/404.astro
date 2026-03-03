@@ -1,0 +1,21 @@
+---
+import Layout from "../layouts/Layout.astro";
+import Button from "../components/elements/Button.astro";
+import Icon from "../components/elements/Icon.astro";
+---
+
+<Layout title="404 – Page Not Found">
+  <div class="has-text-centered" style="padding: 4rem 1rem;">
+    <div style="font-size: 6rem; line-height: 1; margin-bottom: 1rem;">𝄩</div>
+    <h1 class="title is-1">404</h1>
+    <h2 class="subtitle is-3">That note doesn't exist</h2>
+    <p class="block" style="max-width: 480px; margin: 0 auto 2rem;">
+      We searched the whole score and couldn't find this page. It may have been
+      cut from a previous arrangement, or the conductor never wrote it down.
+    </p>
+    <Button href="/" color="primary">
+      <Icon icon="fa-home" />
+      <span>Back to the Podium</span>
+    </Button>
+  </div>
+</Layout>
