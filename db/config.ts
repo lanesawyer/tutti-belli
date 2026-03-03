@@ -19,6 +19,7 @@ const Ensemble = defineTable({
     description: column.text({ optional: true }),
     imageUrl: column.text({ optional: true }),
     discordLink: column.text({ optional: true }),
+    discordWebhookUrl: column.text({ optional: true }),
     codeOfConduct: column.text({ optional: true }),
     checkInStartMinutes: column.number({ default: 30 }), // Minutes before event check-in opens
     checkInEndMinutes: column.number({ default: 15 }), // Minutes after event start check-in closes
