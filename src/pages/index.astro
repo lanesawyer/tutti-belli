@@ -1,5 +1,6 @@
 ---
 import Layout from "../layouts/Layout.astro";
+import Box from "../components/elements/Box.astro";
 import Button from "../components/elements/Button.astro";
 import Icon from "../components/elements/Icon.astro";
 import { APP_NAME, APP_SLOGAN } from "../lib/config";
@@ -50,7 +51,7 @@ const user = Astro.locals.user;
       </h2>
       <div class="columns is-multiline">
         <div class="column is-half">
-          <div class="box">
+          <Box>
             <div class="media">
               <div class="media-left">
                 <Icon icon="fa-2x fa-users" size="large" color="primary" />
@@ -63,11 +64,11 @@ const user = Astro.locals.user;
                 </p>
               </div>
             </div>
-          </div>
+          </Box>
         </div>
 
         <div class="column is-half">
-          <div class="box">
+          <Box>
             <div class="media">
               <div class="media-left">
                 <Icon
@@ -84,11 +85,11 @@ const user = Astro.locals.user;
                 </p>
               </div>
             </div>
-          </div>
+          </Box>
         </div>
 
         <div class="column is-half">
-          <div class="box">
+          <Box>
             <div class="media">
               <div class="media-left">
                 <Icon icon="fa-2x fa-music" size="large" color="primary" />
@@ -101,11 +102,11 @@ const user = Astro.locals.user;
                 </p>
               </div>
             </div>
-          </div>
+          </Box>
         </div>
 
         <div class="column is-half">
-          <div class="box">
+          <Box>
             <div class="media">
               <div class="media-left">
                 <Icon
@@ -122,11 +123,11 @@ const user = Astro.locals.user;
                 </p>
               </div>
             </div>
-          </div>
+          </Box>
         </div>
 
         <div class="column is-half">
-          <div class="box">
+          <Box>
             <div class="media">
               <div class="media-left">
                 <Icon icon="fa-2x fa-bullhorn" size="large" color="primary" />
@@ -139,11 +140,11 @@ const user = Astro.locals.user;
                 </p>
               </div>
             </div>
-          </div>
+          </Box>
         </div>
 
         <div class="column is-half">
-          <div class="box">
+          <Box>
             <div class="media">
               <div class="media-left">
                 <Icon icon="fa-2x fa-users-cog" size="large" color="primary" />
@@ -156,11 +157,11 @@ const user = Astro.locals.user;
                 </p>
               </div>
             </div>
-          </div>
+          </Box>
         </div>
 
         <div class="column is-half">
-          <div class="box">
+          <Box>
             <div class="media">
               <div class="media-left">
                 <Icon icon="fa-2x fa-list" size="large" color="primary" />
@@ -173,11 +174,11 @@ const user = Astro.locals.user;
                 </p>
               </div>
             </div>
-          </div>
+          </Box>
         </div>
 
         <div class="column is-half">
-          <div class="box">
+          <Box>
             <div class="media">
               <div class="media-left">
                 <Icon icon="fa-2x fa-moon" size="large" color="primary" />
@@ -190,7 +191,7 @@ const user = Astro.locals.user;
                 </p>
               </div>
             </div>
-          </div>
+          </Box>
         </div>
       </div>
     </div>
@@ -237,7 +238,7 @@ const user = Astro.locals.user;
           <h2 class="title is-3">Get in touch</h2>
           <p class="subtitle is-5">
             Have a feature request, found a bug, or want to get involved? Open
-            an issue on GitHub or send an email.
+            an issue on GitHub.
           </p>
           <div class="buttons">
             <a
@@ -248,13 +249,6 @@ const user = Astro.locals.user;
             >
               <Icon icon="fa-github" variant="fab" />
               <span>Open an Issue</span>
-            </a>
-            <a
-              href="mailto:github@lanesawyer.dev"
-              class="button is-primary is-outlined"
-            >
-              <Icon icon="fa-envelope" />
-              <span>Send an Email</span>
             </a>
           </div>
         </div>

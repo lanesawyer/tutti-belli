@@ -1,4 +1,5 @@
 ---
+import Box from "./elements/Box.astro";
 import Icon from "./elements/Icon.astro";
 
 interface Props {
@@ -20,7 +21,7 @@ const {
 } = Astro.props;
 ---
 
-<div class={`box mb-5 ${extraClass ?? ""}`}>
+<Box class={`mb-5 ${extraClass ?? ""}`}>
   <div class="level mb-4">
     <div class="level-left">
       <div class="level-item">
@@ -52,4 +53,4 @@ const {
   </div>
 
   <slot />
-</div>
+</Box>

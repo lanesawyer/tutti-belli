@@ -1,6 +1,7 @@
 ---
 import { db, eq, EnsembleInvite } from "astro:db";
 import { actions } from "astro:actions";
+import Box from "../components/elements/Box.astro";
 import Button from "../components/elements/Button.astro";
 import Icon from "../components/elements/Icon.astro";
 import TextInput from "../components/forms/TextInput.astro";
@@ -18,7 +19,7 @@ const invites = await db
   .where(eq(EnsembleInvite.ensembleId, ensembleId));
 ---
 
-<div class="box">
+<Box>
   <h2 class="title is-5">
     <span class="icon-text">
       <Icon icon="fa-key" />
@@ -48,7 +49,7 @@ const invites = await db
             Astro.site,
           ).toString();
           return (
-            <div class="box p-3 mb-2">
+            <Box class="p-3 mb-2">
               <div class="is-flex is-flex-direction-column">
                 <div class="field has-addons mb-2">
                   <div class="control is-expanded">
@@ -87,7 +88,7 @@ const invites = await db
                   </Button>
                 </form>
               </div>
-            </div>
+            </Box>
           );
         })}
       </div>
@@ -97,7 +98,7 @@ const invites = await db
       </Notification>
     )
   }
-</div>
+</Box>
 
 <script>
   document.addEventListener("astro:page-load", () => {

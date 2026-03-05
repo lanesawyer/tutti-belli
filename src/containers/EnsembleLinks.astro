@@ -1,5 +1,6 @@
 ---
 import { db, eq, EnsembleLink } from "astro:db";
+import Box from "../components/elements/Box.astro";
 import Button from "../components/elements/Button.astro";
 import Icon from "../components/elements/Icon.astro";
 
@@ -19,7 +20,7 @@ const ensembleLinks = await db
 
 {
   (discordLink || ensembleLinks.length > 0) && (
-    <div class="box mb-5">
+    <Box class="mb-5">
       <h2 class="title is-5 mb-4">
         <span class="icon-text">
           <Icon icon="fa-link" />
@@ -51,6 +52,6 @@ const ensembleLinks = await db
           </Button>
         ))}
       </div>
-    </div>
+    </Box>
   )
 }

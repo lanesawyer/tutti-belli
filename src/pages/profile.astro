@@ -1,5 +1,6 @@
 ---
 import Layout from "../layouts/Layout.astro";
+import Box from "../components/elements/Box.astro";
 import Button from "../components/elements/Button.astro";
 import Image from "../components/elements/Image.astro";
 import FileInput from "../components/forms/FileInput.astro";
@@ -73,7 +74,7 @@ const tasksByEnsemble = await getUserTasksAcrossEnsembles(user.id);
 
     <div class="columns">
       <div class="column is-half">
-        <div class="box">
+        <Box>
           <div class="is-flex is-align-items-center mb-5" style="gap: 1rem;">
             {
               user.avatarUrl ? (
@@ -182,7 +183,7 @@ const tasksByEnsemble = await getUserTasksAcrossEnsembles(user.id);
                   <span>Change Email Address</span>
                 </span>
               </summary>
-              <div class="box mt-3">
+              <Box class="mt-3">
                 <p class="mb-3">
                   Enter your new email address. A verification link will be sent
                   there. Your current email continues to work for login until
@@ -207,14 +208,14 @@ const tasksByEnsemble = await getUserTasksAcrossEnsembles(user.id);
                     </div>
                   </div>
                 </form>
-              </div>
+              </Box>
             </details>
           </div>
-        </div>
+        </Box>
       </div>
 
       <div class="column is-half">
-        <div class="box">
+        <Box>
           <h2 class="title is-4">My Parts</h2>
           <p class="subtitle is-6">Select your part(s) for each ensemble</p>
 
@@ -234,7 +235,7 @@ const tasksByEnsemble = await getUserTasksAcrossEnsembles(user.id);
                     partsByEnsemble.get(membership.ensembleId) || [];
 
                   return (
-                    <div class="box">
+                    <Box>
                       <h3 class="title is-5">{membership.ensembleName}</h3>
 
                       {parts.length === 0 ? (
@@ -285,26 +286,26 @@ const tasksByEnsemble = await getUserTasksAcrossEnsembles(user.id);
                           </div>
                         </form>
                       )}
-                    </div>
+                    </Box>
                   );
                 })}
               </div>
             )
           }
-        </div>
+        </Box>
       </div>
     </div>
 
     {
       tasksByEnsemble.length > 0 && (
-        <div class="box mt-5">
+        <Box class="mt-5">
           <h2 class="title is-4">My Season Tasks</h2>
           <p class="subtitle is-6">
             Task completion status across your ensembles
           </p>
 
           {tasksByEnsemble.map((group) => (
-            <div class="box">
+            <Box>
               <h3 class="title is-5">{group.ensembleName}</h3>
               <p class="subtitle is-7 has-text-grey">{group.seasonName}</p>
 
@@ -346,14 +347,14 @@ const tasksByEnsemble = await getUserTasksAcrossEnsembles(user.id);
                   </li>
                 ))}
               </ul>
-            </div>
+            </Box>
           ))}
-        </div>
+        </Box>
       )
     }
 
-    <div
-      class="box mt-5"
+    <Box
+      class="mt-5"
       style="border: 2px solid hsl(var(--bulma-danger-h), var(--bulma-danger-s), var(--bulma-danger-l));"
     >
       <h2 class="title is-4 has-text-danger">Danger Zone</h2>
@@ -382,7 +383,7 @@ const tasksByEnsemble = await getUserTasksAcrossEnsembles(user.id);
               <span>Delete My Account</span>
             </summary>
 
-            <div class="box mt-4">
+            <Box class="mt-4">
               <p class="mb-3 has-text-weight-semibold">
                 Enter your password to confirm account deletion:
               </p>
@@ -407,10 +408,10 @@ const tasksByEnsemble = await getUserTasksAcrossEnsembles(user.id);
                   </div>
                 </div>
               </form>
-            </div>
+            </Box>
           </details>
         )
       }
-    </div>
+    </Box>
   </div>
 </Layout>

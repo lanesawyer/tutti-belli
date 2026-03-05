@@ -1,6 +1,7 @@
 ---
 import { db, eq, and, EnsembleMember, User } from "astro:db";
 import { actions } from "astro:actions";
+import Box from "../components/elements/Box.astro";
 import Button from "../components/elements/Button.astro";
 import Icon from "../components/elements/Icon.astro";
 import Image from "../components/elements/Image.astro";
@@ -33,7 +34,7 @@ const pendingMembers = await db
 if (pendingMembers.length === 0) return;
 ---
 
-<div class="box mb-5">
+<Box class="mb-5">
   <h2 class="title is-5 mb-4">
     <span class="icon-text">
       <Icon icon="fa-user-clock" color="warning" />
@@ -47,7 +48,7 @@ if (pendingMembers.length === 0) return;
   <div class="content">
     {
       pendingMembers.map((member) => (
-        <div class="box p-2 mb-2">
+        <Box class="p-2 mb-2">
           <div class="media">
             <div class="media-left">
               {member.avatarUrl ? (
@@ -112,8 +113,8 @@ if (pendingMembers.length === 0) return;
               </Button>
             </form>
           </div>
-        </div>
+        </Box>
       ))
     }
   </div>
-</div>
+</Box>
