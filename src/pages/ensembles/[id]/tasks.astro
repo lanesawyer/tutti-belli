@@ -1,5 +1,6 @@
 ---
 import EnsemblePageLayout from "../../../layouts/EnsemblePageLayout.astro";
+import Box from "../../../components/elements/Box.astro";
 import Table from "../../../components/elements/Table.astro";
 import Modal from "../../../components/Modal.astro";
 import Button from "../../../components/elements/Button.astro";
@@ -247,7 +248,7 @@ const nextSortOrder =
         </p>
 
         {seasonTasks.map((task) => (
-          <div class="box mb-4">
+          <Box class="mb-4">
             <h3 class="title is-6 mb-3">{task.title}</h3>
             {activeMembers.length === 0 ? (
               <p class="has-text-grey is-size-7">No active members.</p>
@@ -301,7 +302,7 @@ const nextSortOrder =
                 })}
               </div>
             )}
-          </div>
+          </Box>
         ))}
       </>
     )

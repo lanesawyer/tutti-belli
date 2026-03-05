@@ -1,5 +1,6 @@
 ---
 import { ensembleAdminTools } from "../lib/config";
+import Box from "../components/elements/Box.astro";
 import Icon from "../components/elements/Icon.astro";
 
 interface Props {
@@ -9,7 +10,7 @@ interface Props {
 const { canonicalId } = Astro.props;
 ---
 
-<div class="box mb-5">
+<Box class="mb-5">
   <h2 class="title is-5 mb-4">
     <span class="icon-text">
       <Icon icon="fa-cog" />
@@ -29,7 +30,7 @@ const { canonicalId } = Astro.props;
       ))
     }
   </div>
-</div>
+</Box>
 
 <style>
   .admin-tool-btn {

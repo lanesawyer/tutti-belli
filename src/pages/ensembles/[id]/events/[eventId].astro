@@ -1,5 +1,6 @@
 ---
 import Layout from "../../../../layouts/Layout.astro";
+import Box from "../../../../components/elements/Box.astro";
 import Button from "../../../../components/elements/Button.astro";
 import Image from "../../../../components/elements/Image.astro";
 import Icon from "../../../../components/elements/Icon.astro";
@@ -291,9 +292,9 @@ const programLabel = isPerformance ? "Set List" : "Rehearsal Plan";
 
   {
     event.description && (
-      <div class="box">
+      <Box>
         <p class="content">{event.description}</p>
-      </div>
+      </Box>
     )
   }
 
@@ -301,7 +302,7 @@ const programLabel = isPerformance ? "Set List" : "Rehearsal Plan";
     <div class="column">
       {
         rsvpOn && !isAdmin && (
-          <div class="box">
+          <Box>
             <h2 class="title is-4">RSVP</h2>
             {userRsvp === "yes" ? (
               <>
@@ -399,11 +400,11 @@ const programLabel = isPerformance ? "Set List" : "Rehearsal Plan";
                 </div>
               </>
             )}
-          </div>
+          </Box>
         )
       }
 
-      <div class="box">
+      <Box>
         <h2 class="title is-4">Check-In</h2>
 
         {
@@ -483,11 +484,11 @@ const programLabel = isPerformance ? "Set List" : "Rehearsal Plan";
             </Notification>
           )
         }
-      </div>
+      </Box>
 
       {
         isAdmin && (
-          <div class="box">
+          <Box>
             <h2 class="title is-4">QR Code Check-In</h2>
             <p class="mb-4">
               Display this QR code for members to scan and check in
@@ -518,7 +519,7 @@ const programLabel = isPerformance ? "Set List" : "Rehearsal Plan";
                 Members can scan the QR code or visit this URL to check in
               </p>
             </div>
-          </div>
+          </Box>
         )
       }
     </div>
@@ -526,7 +527,7 @@ const programLabel = isPerformance ? "Set List" : "Rehearsal Plan";
     {
       isAdmin && (
         <div class="column">
-          <div class="box">
+          <Box>
             <h2 class="title is-4">
               Attendance ({attendanceRecords.length} / {allMembers.length})
               {group && (
@@ -680,13 +681,13 @@ const programLabel = isPerformance ? "Set List" : "Rehearsal Plan";
                 No members found for this event.
               </Notification>
             )}
-          </div>
+          </Box>
         </div>
       )
     }
   </div>
 
-  <div class="box mt-2">
+  <Box class="mt-2">
     <h2 class="title is-4">
       <span class="icon-text">
         <Icon
@@ -841,7 +842,7 @@ const programLabel = isPerformance ? "Set List" : "Rehearsal Plan";
         </p>
       )
     }
-  </div>
+  </Box>
 
   <!-- Edit Event Modal -->
   {

@@ -1,5 +1,6 @@
 ---
 import Layout from "../../layouts/Layout.astro";
+import Box from "../../components/elements/Box.astro";
 import Button from "../../components/elements/Button.astro";
 import Icon from "../../components/elements/Icon.astro";
 import TextInput from "../../components/forms/TextInput.astro";
@@ -137,18 +138,18 @@ if (Astro.request.method === "POST") {
 
       {
         !user && ensemble && (
-          <div class="box mb-5">
+          <Box class="mb-5">
             <h2 class="title is-4">{ensemble.name}</h2>
             <p class="subtitle is-6">
               You've been invited to join this ensemble
             </p>
-          </div>
+          </Box>
         )
       }
 
       {
         !user && ensemble?.codeOfConduct && (
-          <div class="box mb-5">
+          <Box class="mb-5">
             <h2 class="title is-5">Code of Conduct</h2>
             <p class="subtitle is-6 mb-4">
               This ensemble requires agreement to its code of conduct
@@ -159,13 +160,13 @@ if (Astro.request.method === "POST") {
             >
               <div style="white-space: pre-wrap;">{ensemble.codeOfConduct}</div>
             </div>
-          </div>
+          </Box>
         )
       }
 
       {
         !user ? (
-          <div class="box">
+          <Box>
             <div class="content has-text-centered mb-5">
               <p class="is-size-5">You need a {APP_NAME} account to join</p>
             </div>
@@ -190,7 +191,7 @@ if (Astro.request.method === "POST") {
             <p class="has-text-centered mt-4 help">
               Already have an account? Click "Sign In" to continue
             </p>
-          </div>
+          </Box>
         ) : (
           <form method="POST">
             <TextInput
@@ -207,7 +208,7 @@ if (Astro.request.method === "POST") {
             />
 
             {ensemble?.codeOfConduct && (
-              <div class="box mt-5">
+              <Box class="mt-5">
                 <h2 class="title is-5">Code of Conduct</h2>
                 <p class="subtitle is-6 mb-4">
                   Please review and agree to the {ensemble.name} code of conduct
@@ -225,7 +226,7 @@ if (Astro.request.method === "POST") {
                     I have read and agree to the code of conduct
                   </strong>
                 </Checkbox>
-              </div>
+              </Box>
             )}
 
             <div class="field is-grouped mt-5">

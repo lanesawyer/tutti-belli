@@ -14,6 +14,7 @@ import { canManageEnsemble } from "../../../lib/permissions";
 import { ensembleAdminTools } from "../../../lib/config";
 import { getEnsembleBySlugOrId } from "../../../lib/ensemble";
 import { generateSlug, getEnsembleUrlId } from "../../../lib/slug";
+import Box from "../../../components/elements/Box.astro";
 import Button from "../../../components/elements/Button.astro";
 import Image from "../../../components/elements/Image.astro";
 import Icon from "../../../components/elements/Icon.astro";
@@ -239,7 +240,7 @@ if (Astro.request.method === "POST") {
 
       <div class="columns">
         <div class="column is-two-thirds">
-          <div class="box">
+          <Box>
             <form method="POST" enctype="multipart/form-data">
               <TextInput
                 name="name"
@@ -488,11 +489,11 @@ if (Astro.request.method === "POST") {
                 </form>
               ))
             }
-          </div>
+          </Box>
         </div>
 
         <div class="column">
-          <div class="box">
+          <Box>
             <h2 class="title is-5">Tips</h2>
             <div class="content">
               <ul>
@@ -505,7 +506,7 @@ if (Astro.request.method === "POST") {
                 <li>Square images work best for display</li>
               </ul>
             </div>
-          </div>
+          </Box>
         </div>
       </div>
     </div>

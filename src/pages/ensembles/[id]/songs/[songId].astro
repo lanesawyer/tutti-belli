@@ -6,6 +6,7 @@ import {
   formatRuntime,
 } from "../../../../lib/songs";
 import { canManageEnsemble } from "../../../../lib/permissions";
+import Box from "../../../../components/elements/Box.astro";
 import Button from "../../../../components/elements/Button.astro";
 import Icon from "../../../../components/elements/Icon.astro";
 import TextInput from "../../../../components/forms/TextInput.astro";
@@ -87,7 +88,7 @@ const linkFiles = songFiles.filter((f) => f.category === "link");
   }
 
   <!-- Song details -->
-  <div class="box mb-5">
+  <Box class="mb-5">
     <div class="columns is-multiline">
       <div class="column is-half">
         <p class="heading">Composer</p>
@@ -134,7 +135,7 @@ const linkFiles = songFiles.filter((f) => f.category === "link");
         )
       }
     </div>
-  </div>
+  </Box>
 
   <!-- Resources section -->
   <h2 class="title is-4">
@@ -203,7 +204,7 @@ const linkFiles = songFiles.filter((f) => f.category === "link");
 
   {
     linkFiles.length > 0 && (
-      <div class="box mb-5">
+      <Box class="mb-5">
         {linkFiles.map((file) => (
           <SongLinkFile
             id={file.id}
@@ -216,13 +217,13 @@ const linkFiles = songFiles.filter((f) => f.category === "link");
             {isAdmin}
           />
         ))}
-      </div>
+      </Box>
     )
   }
 
   {
     isAdmin && (
-      <div class="box">
+      <Box>
         <h3 class="title is-5">Upload Resource</h3>
         {fileError && (
           <Notification color="danger" light class="mb-4">
@@ -318,7 +319,7 @@ const linkFiles = songFiles.filter((f) => f.category === "link");
             </div>
           </div>
         </form>
-      </div>
+      </Box>
     )
   }
 

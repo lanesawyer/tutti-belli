@@ -1,5 +1,6 @@
 ---
 import Layout from "../../layouts/Layout.astro";
+import Box from "../../components/elements/Box.astro";
 import Button from "../../components/elements/Button.astro";
 import Icon from "../../components/elements/Icon.astro";
 import Notification from "../../components/elements/Notification.astro";
@@ -64,7 +65,7 @@ const isPerformance = event.category === "performance";
 <Layout title="Check In">
   <div class="columns is-centered">
     <div class="column is-6-tablet is-5-desktop">
-      <div class="box has-text-centered">
+      <Box class="has-text-centered">
         <Icon
           icon="fa-qrcode fa-3x"
           size="large"
@@ -179,7 +180,7 @@ const isPerformance = event.category === "performance";
             </div>
           )
         }
-      </div>
+      </Box>
     </div>
   </div>
 </Layout>

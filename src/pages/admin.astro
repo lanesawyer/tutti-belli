@@ -1,5 +1,6 @@
 ---
 import PageLayout from "../layouts/PageLayout.astro";
+import Box from "../components/elements/Box.astro";
 import Table from "../components/elements/Table.astro";
 import Button from "../components/elements/Button.astro";
 import Icon from "../components/elements/Icon.astro";
@@ -228,7 +229,7 @@ const activeBanner = await getActiveBanner();
     )
   }
 
-  <div class="box">
+  <Box>
     <form method="POST" action={actions.admin.setBanner} id="set-banner-form">
       <TextInput
         name="message"
@@ -279,7 +280,7 @@ const activeBanner = await getActiveBanner();
         )
       }
     </div>
-  </div>
+  </Box>
 
   <Fragment slot="modals">
     <Modal id="create-ensemble-modal" title="New Ensemble">

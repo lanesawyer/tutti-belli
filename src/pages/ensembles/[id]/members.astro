@@ -1,5 +1,6 @@
 ---
 import Layout from "../../../layouts/Layout.astro";
+import Box from "../../../components/elements/Box.astro";
 import Table from "../../../components/elements/Table.astro";
 import {
   db,
@@ -191,7 +192,7 @@ if (Astro.request.method === "POST") {
         </div>
       </div>
 
-      <div class="box">
+      <Box>
         {
           allParts.length > 0 ? (
             <>
@@ -555,7 +556,7 @@ if (Astro.request.method === "POST") {
             </Table>
           )
         }
-      </div>
+      </Box>
     </div>
   </section>
 </Layout>

@@ -1,4 +1,5 @@
 ---
+import Box from "../elements/Box.astro";
 import Button from "../elements/Button.astro";
 import Icon from "../elements/Icon.astro";
 import SongFileHeader from "./SongFileHeader.astro";
@@ -18,7 +19,7 @@ const { id, name, category, uploaderName, uploadedAt, ensembleId, isAdmin } =
   Astro.props;
 ---
 
-<div class="box mb-3">
+<Box class="mb-3">
   <div class="mb-2">
     <SongFileHeader {name} {category} {uploaderName} {uploadedAt}>
       <Button href={`/files/${id}`} size="small" title="Download">
@@ -49,4 +50,4 @@ const { id, name, category, uploaderName, uploadedAt, ensembleId, isAdmin } =
       style="width: 100%; height: 80vh; min-height: 600px;"
     />
   </details>
-</div>
+</Box>
