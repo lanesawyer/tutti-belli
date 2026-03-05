@@ -1,22 +1,22 @@
 ---
-import EnsemblePageLayout from "../../../../layouts/EnsemblePageLayout.astro";
+import EnsemblePageLayout from "@layouts/EnsemblePageLayout.astro";
 import {
   getSongDetailData,
   getMembership,
   formatRuntime,
-} from "../../../../lib/songs";
-import { canManageEnsemble } from "../../../../lib/permissions";
-import Box from "../../../../components/elements/Box.astro";
-import Button from "../../../../components/elements/Button.astro";
-import Icon from "../../../../components/elements/Icon.astro";
-import TextInput from "../../../../components/forms/TextInput.astro";
-import Tag from "../../../../components/elements/Tag.astro";
-import FileInput from "../../../../components/forms/FileInput.astro";
-import Notification from "../../../../components/elements/Notification.astro";
-import SongPdfFile from "../../../../components/song/SongPdfFile.astro";
-import SongAudioFile from "../../../../components/song/SongAudioFile.astro";
-import SongLinkFile from "../../../../components/song/SongLinkFile.astro";
-import { getEnsembleUrlId } from "../../../../lib/slug";
+} from "@lib/songs";
+import { canManageEnsemble } from "@lib/permissions";
+import Box from "@components/elements/Box.astro";
+import Button from "@components/elements/Button.astro";
+import Icon from "@components/elements/Icon.astro";
+import TextInput from "@components/forms/TextInput.astro";
+import Tag from "@components/elements/Tag.astro";
+import FileInput from "@components/forms/FileInput.astro";
+import Notification from "@components/elements/Notification.astro";
+import SongPdfFile from "@components/song/SongPdfFile.astro";
+import SongAudioFile from "@components/song/SongAudioFile.astro";
+import SongLinkFile from "@components/song/SongLinkFile.astro";
+import { getEnsembleUrlId } from "@lib/slug";
 import { actions } from "astro:actions";
 
 const user = Astro.locals.user!;

@@ -1,22 +1,22 @@
 ---
-import Layout from "../../layouts/Layout.astro";
-import InviteCodeWidget from "../../containers/InviteCodeWidget.astro";
-import PendingMembers from "../../containers/PendingMembers.astro";
-import Button from "../../components/elements/Button.astro";
-import Image from "../../components/elements/Image.astro";
-import Icon from "../../components/elements/Icon.astro";
-import Notification from "../../components/elements/Notification.astro";
-import RecentAnnouncements from "../../containers/RecentAnnouncements.astro";
-import UpcomingEvents from "../../containers/UpcomingEvents.astro";
-import EnsembleMembers from "../../containers/EnsembleMembers.astro";
-import SeasonRepertoire from "../../containers/SeasonRepertoire.astro";
-import EnsembleLinks from "../../containers/EnsembleLinks.astro";
-import MyTasks from "../../containers/MyTasks.astro";
-import AdminTools from "../../containers/AdminTools.astro";
+import Layout from "@layouts/Layout.astro";
+import InviteCodeWidget from "@containers/InviteCodeWidget.astro";
+import PendingMembers from "@containers/PendingMembers.astro";
+import Button from "@components/elements/Button.astro";
+import Image from "@components/elements/Image.astro";
+import Icon from "@components/elements/Icon.astro";
+import Notification from "@components/elements/Notification.astro";
+import RecentAnnouncements from "@containers/RecentAnnouncements.astro";
+import UpcomingEvents from "@containers/UpcomingEvents.astro";
+import EnsembleMembers from "@containers/EnsembleMembers.astro";
+import SeasonRepertoire from "@containers/SeasonRepertoire.astro";
+import EnsembleLinks from "@containers/EnsembleLinks.astro";
+import MyTasks from "@containers/MyTasks.astro";
+import AdminTools from "@containers/AdminTools.astro";
 import { db, eq, and, Season } from "astro:db";
-import { ensembleAdminTools } from "../../lib/config";
-import { getEnsembleBySlugOrId, getEnsembleAccess } from "../../lib/ensemble";
-import { getEnsembleUrlId } from "../../lib/slug";
+import { ensembleAdminTools } from "@lib/config";
+import { getEnsembleBySlugOrId, getEnsembleAccess } from "@lib/ensemble";
+import { getEnsembleUrlId } from "@lib/slug";
 
 const user = Astro.locals.user!;
 

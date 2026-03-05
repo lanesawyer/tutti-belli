@@ -1,9 +1,9 @@
 ---
-import Button from "../elements/Button.astro";
-import Icon from "../elements/Icon.astro";
+import Button from "@components/elements/Button.astro";
+import Icon from "@components/elements/Icon.astro";
 import SongFileHeader from "./SongFileHeader.astro";
 import SongFileDeleteModal from "./SongFileDeleteModal.astro";
-import { getYouTubeId } from "../../lib/songs";
+import { getYouTubeId } from "@lib/songs";
 
 interface Props {
   id: string;

@@ -1,7 +1,7 @@
 ---
-import Layout from "../layouts/Layout.astro";
-import Button from "../components/elements/Button.astro";
-import Notification from "../components/elements/Notification.astro";
+import Layout from "@layouts/Layout.astro";
+import Button from "@components/elements/Button.astro";
+import Notification from "@components/elements/Notification.astro";
 import { db, eq, and, gt, isNull, User, EmailChangeToken } from "astro:db";
 
 const token = Astro.url.searchParams.get("token");

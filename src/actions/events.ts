@@ -1,6 +1,6 @@
 import { defineAction, ActionError } from 'astro:actions';
 import { z } from 'astro/zod';
-import { canManageEnsemble } from '../lib/permissions';
+import { canManageEnsemble } from '@lib/permissions';
 import { assertEnsembleAdmin, assertEnsembleMember } from './utils';
 import {
   createEvent,
@@ -15,7 +15,7 @@ import {
   addProgramSong,
   removeProgramSong,
   updateProgramSongNotes,
-} from '../lib/events';
+} from '@lib/events';
 
 export const events = {
   create: defineAction({

@@ -1,10 +1,10 @@
 import { defineAction, ActionError } from 'astro:actions';
 import { z } from 'astro/zod';
 import { db, eq, Ensemble, User, EnsembleMember } from 'astro:db';
-import { adminDeleteUser } from '../lib/profile';
-import { findUniqueSlug, getEnsembleUrlId } from '../lib/slug';
+import { adminDeleteUser } from '@lib/profile';
+import { findUniqueSlug, getEnsembleUrlId } from '@lib/slug';
 import { assertSiteAdmin } from './utils';
-import { setBanner, clearBanner } from '../lib/banner';
+import { setBanner, clearBanner } from '@lib/banner';
 
 export const admin = {
   createEnsemble: defineAction({

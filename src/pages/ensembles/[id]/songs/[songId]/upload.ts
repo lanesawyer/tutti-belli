@@ -1,8 +1,8 @@
 import type { APIRoute } from 'astro';
 import { db, eq, and, EnsembleMember } from 'astro:db';
-import { canManageEnsemble } from '../../../../../lib/permissions';
-import { addSongFile } from '../../../../../lib/songs';
-import { getEnsembleBySlugOrId } from '../../../../../lib/ensemble';
+import { canManageEnsemble } from '@lib/permissions';
+import { addSongFile } from '@lib/songs';
+import { getEnsembleBySlugOrId } from '@lib/ensemble';
 
 export const POST: APIRoute = async ({ params, locals, request, redirect }) => {
   const user = locals.user;

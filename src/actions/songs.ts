@@ -1,7 +1,7 @@
 import { defineAction, ActionError } from 'astro:actions';
 import { z } from 'astro/zod';
 import { assertEnsembleAdmin } from './utils';
-import { addSong, editSong, deleteSong, addSongFile, deleteSongFile } from '../lib/songs';
+import { addSong, editSong, deleteSong, addSongFile, deleteSongFile } from '@lib/songs';
 
 export const songs = {
   add: defineAction({

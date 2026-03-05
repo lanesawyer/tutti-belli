@@ -26,6 +26,18 @@ pnpm astro:db:push    # Push schema changes to remote Turso DB
 - **Zero client-side JS framework** — all interactions are HTML form POSTs handled via Astro Actions (`src/actions/`)
 
 
+### Import Aliases
+Always use path aliases instead of relative `../` imports:
+- `@actions/*` → `src/actions/*`
+- `@components/*` → `src/components/*`
+- `@containers/*` → `src/containers/*`
+- `@layouts/*` → `src/layouts/*`
+- `@lib/*` → `src/lib/*`
+
+Example: `import Box from "@components/elements/Box.astro"` not `import Box from "../../components/elements/Box.astro"`.
+
+The only exception is same-directory imports (e.g. `./AudioPlayer.astro`) and imports outside `src/` (e.g. `../../package.json`).
+
 ### Philosophy
 - Don't duplicate logic, if there are commonalities, extract it into a shared utility in `src/lib/`
 - Keep the frontmatter Astro files light, most server logic should be in `src/lib/` files

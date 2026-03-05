@@ -7,7 +7,7 @@ import {
   markTaskComplete,
   markTaskIncomplete,
   getTaskEnsembleId,
-} from '../lib/tasks';
+} from '@lib/tasks';
 import { assertEnsembleAdmin } from './utils';
 
 export const tasks = {

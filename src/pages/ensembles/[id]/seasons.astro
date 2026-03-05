@@ -1,13 +1,13 @@
 ---
-import EnsemblePageLayout from "../../../layouts/EnsemblePageLayout.astro";
-import Table from "../../../components/elements/Table.astro";
-import Modal from "../../../components/Modal.astro";
-import Button from "../../../components/elements/Button.astro";
-import Icon from "../../../components/elements/Icon.astro";
-import TextInput from "../../../components/forms/TextInput.astro";
-import Checkbox from "../../../components/forms/Checkbox.astro";
-import Notification from "../../../components/elements/Notification.astro";
-import Tag from "../../../components/elements/Tag.astro";
+import EnsemblePageLayout from "@layouts/EnsemblePageLayout.astro";
+import Table from "@components/elements/Table.astro";
+import Modal from "@components/Modal.astro";
+import Button from "@components/elements/Button.astro";
+import Icon from "@components/elements/Icon.astro";
+import TextInput from "@components/forms/TextInput.astro";
+import Checkbox from "@components/forms/Checkbox.astro";
+import Notification from "@components/elements/Notification.astro";
+import Tag from "@components/elements/Tag.astro";
 import {
   db,
   eq,
@@ -22,8 +22,8 @@ import {
 import {
   getEnsembleBySlugOrId,
   getEnsembleAccess,
-} from "../../../lib/ensemble";
-import { getEnsembleUrlId } from "../../../lib/slug";
+} from "@lib/ensemble";
+import { getEnsembleUrlId } from "@lib/slug";
 
 const user = Astro.locals.user!;
 

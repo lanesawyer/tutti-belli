@@ -8,7 +8,7 @@ import {
   updateParts,
   deleteAccount,
   initiateEmailChange,
-} from '../lib/profile';
+} from '@lib/profile';
 
 export const profile = {
   register: defineAction({
