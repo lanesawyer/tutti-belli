@@ -27,6 +27,11 @@ export function validateSongFile(file: File): { valid: boolean; error?: string }
 }
 
 export async function uploadSongFile(file: File, ensembleId: string): Promise<string> {
+  if (import.meta.env.STORAGE_DISABLED ?? process.env.STORAGE_DISABLED) {
+    console.log(`[storage] disabled — skipping upload of "${file.name}"`);
+    return `https://storage.example.com/${ensembleId}/songs/${file.name}`;
+  }
+
   const sanitizedName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
   const key = `${ensembleId}/songs/${crypto.randomUUID()}-${sanitizedName}`;
 
@@ -50,6 +55,11 @@ export function keyFromUrl(url: string): string {
 }
 
 export async function deleteStorageFile(url: string): Promise<void> {
+  if (import.meta.env.STORAGE_DISABLED ?? process.env.STORAGE_DISABLED) {
+    console.log(`[storage] disabled — skipping delete of "${url}"`);
+    return;
+  }
+
   const key = keyFromUrl(url);
   await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));
 }

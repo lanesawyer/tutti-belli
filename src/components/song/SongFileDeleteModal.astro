@@ -1,0 +1,56 @@
+---
+/**
+ * Renders a delete (trash) button that opens a confirmation modal.
+ * The form submits to actions.songs.deleteFile on confirm.
+ */
+import Button from "../elements/Button.astro";
+import Modal from "../Modal.astro";
+import { actions } from "astro:actions";
+
+interface Props {
+  fileId: string;
+  ensembleId: string;
+  fileName: string;
+}
+
+const { fileId, ensembleId, fileName } = Astro.props;
+const modalId = `delete-file-${fileId}`;
+---
+
+<button
+  type="button"
+  class="button is-danger is-small"
+  data-open-modal={modalId}
+  aria-label="Delete"
+>
+  <span class="icon is-small"><i class="fas fa-trash"></i></span>
+</button>
+
+<Modal id={modalId} title="Delete Resource">
+  <p>
+    Are you sure you want to delete <strong>{fileName}</strong>? This cannot be
+    undone.
+  </p>
+  <form
+    slot="footer"
+    method="POST"
+    action={actions.songs.deleteFile}
+    style="display: contents;"
+  >
+    <input type="hidden" name="ensembleId" value={ensembleId} />
+    <input type="hidden" name="fileId" value={fileId} />
+    <Button type="submit" color="danger">Delete</Button>
+    <Button type="button" data-modal-close>Cancel</Button>
+  </form>
+</Modal>
+
+<script>
+  document.addEventListener("click", (e) => {
+    const btn = (e.target as HTMLElement).closest<HTMLElement>(
+      "[data-open-modal]",
+    );
+    if (!btn) return;
+    const id = btn.dataset.openModal;
+    if (id) document.getElementById(id)?.classList.add("is-active");
+  });
+</script>

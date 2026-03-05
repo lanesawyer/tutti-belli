@@ -1,0 +1,81 @@
+---
+import Button from "../elements/Button.astro";
+import Icon from "../elements/Icon.astro";
+import SongFileHeader from "./SongFileHeader.astro";
+import SongFileDeleteModal from "./SongFileDeleteModal.astro";
+import { getYouTubeId } from "../../lib/songs";
+
+interface Props {
+  id: string;
+  name: string;
+  category: string;
+  url: string;
+  uploaderName: string;
+  uploadedAt: string | Date;
+  ensembleId: string;
+  isAdmin: boolean;
+}
+
+const {
+  id,
+  name,
+  category,
+  url,
+  uploaderName,
+  uploadedAt,
+  ensembleId,
+  isAdmin,
+} = Astro.props;
+const youtubeId = getYouTubeId(url);
+---
+
+<div class="mb-4">
+  <SongFileHeader {name} {category} {uploaderName} {uploadedAt} href={url}>
+    <Button
+      href={url}
+      color="info"
+      size="small"
+      light
+      target="_blank"
+      rel="noopener noreferrer"
+      title="Open link"
+    >
+      <Icon icon="fa-external-link-alt" size="small" />
+    </Button>
+    {
+      isAdmin && (
+        <SongFileDeleteModal fileId={id} {ensembleId} fileName={name} />
+      )
+    }
+  </SongFileHeader>
+  {
+    youtubeId && (
+      <details class="mt-2">
+        <summary
+          class="is-clickable has-text-grey is-size-7"
+          style="list-style: none; display: flex; align-items: center; gap: 0.3rem; width: fit-content;"
+        >
+          <span
+            class="pdf-arrow"
+            style="display: inline-block; transition: transform 0.15s;"
+          >
+            ▶
+          </span>
+          <span>Show Video</span>
+        </summary>
+        <div
+          class="mt-2"
+          style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden;"
+        >
+          <iframe
+            src={`https://www.youtube.com/embed/${youtubeId}`}
+            title={name}
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowfullscreen
+            style="border: 0; position: absolute; top: 0; left: 0; width: 100%; height: 100%;"
+          />
+        </div>
+      </details>
+    )
+  }
+</div>
