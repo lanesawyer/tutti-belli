@@ -1,7 +1,7 @@
 ---
-import Layout from "../layouts/Layout.astro";
-import Button from "../components/elements/Button.astro";
-import Notification from "../components/elements/Notification.astro";
+import Layout from "@layouts/Layout.astro";
+import Button from "@components/elements/Button.astro";
+import Notification from "@components/elements/Notification.astro";
 import {
   db,
   eq,
@@ -11,8 +11,8 @@ import {
   User,
   EmailVerificationToken,
 } from "astro:db";
-import { createSession } from "../lib/session";
-import { getRedirectUrl } from "../lib/redirect";
+import { createSession } from "@lib/session";
+import { getRedirectUrl } from "@lib/redirect";
 
 const token = Astro.url.searchParams.get("token");
 const customRedirect = Astro.url.searchParams.get("redirect");

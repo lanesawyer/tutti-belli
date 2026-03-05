@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro';
 import { db, eq, and, SongFile, Song, EnsembleMember } from 'astro:db';
-import { getFileStream } from '../../lib/storage';
+import { getFileStream } from '@lib/storage';
 
 export const GET: APIRoute = async ({ params, locals, url, request }) => {
   const user = locals.user;

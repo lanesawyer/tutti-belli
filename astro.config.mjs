@@ -2,6 +2,7 @@
 import { defineConfig } from 'astro/config';
 import db from '@astrojs/db';
 import node from '@astrojs/node';
+import path from 'path';
 
 // https://astro.build/config
 export default defineConfig({
@@ -13,5 +14,16 @@ export default defineConfig({
   }),
   security: {
     checkOrigin: false
+  },
+  vite: {
+    resolve: {
+      alias: {
+        '@actions': path.resolve('./src/actions'),
+        '@components': path.resolve('./src/components'),
+        '@containers': path.resolve('./src/containers'),
+        '@layouts': path.resolve('./src/layouts'),
+        '@lib': path.resolve('./src/lib'),
+      }
+    }
   }
 });

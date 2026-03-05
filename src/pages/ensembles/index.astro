@@ -1,12 +1,12 @@
 ---
-import PageLayout from "../../layouts/PageLayout.astro";
-import Button from "../../components/elements/Button.astro";
-import Card from "../../components/Card.astro";
-import Icon from "../../components/elements/Icon.astro";
-import Notification from "../../components/elements/Notification.astro";
-import Tag from "../../components/elements/Tag.astro";
+import PageLayout from "@layouts/PageLayout.astro";
+import Button from "@components/elements/Button.astro";
+import Card from "@components/Card.astro";
+import Icon from "@components/elements/Icon.astro";
+import Notification from "@components/elements/Notification.astro";
+import Tag from "@components/elements/Tag.astro";
 import { db, eq, Ensemble, EnsembleMember } from "astro:db";
-import { getEnsembleUrlId } from "../../lib/slug";
+import { getEnsembleUrlId } from "@lib/slug";
 
 const user = Astro.locals.user!;
 

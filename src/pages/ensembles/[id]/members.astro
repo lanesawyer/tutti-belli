@@ -1,7 +1,7 @@
 ---
-import Layout from "../../../layouts/Layout.astro";
-import Box from "../../../components/elements/Box.astro";
-import Table from "../../../components/elements/Table.astro";
+import Layout from "@layouts/Layout.astro";
+import Box from "@components/elements/Box.astro";
+import Table from "@components/elements/Table.astro";
 import {
   db,
   eq,
@@ -12,17 +12,17 @@ import {
   Part,
   MemberPart,
 } from "astro:db";
-import { ensembleAdminTools } from "../../../lib/config";
-import { getInitials, getColorFromInitials } from "../../../lib/avatar";
+import { ensembleAdminTools } from "@lib/config";
+import { getInitials, getColorFromInitials } from "@lib/avatar";
 import {
   getEnsembleBySlugOrId,
   getEnsembleAccess,
-} from "../../../lib/ensemble";
-import { getEnsembleUrlId } from "../../../lib/slug";
-import Button from "../../../components/elements/Button.astro";
-import Image from "../../../components/elements/Image.astro";
-import Icon from "../../../components/elements/Icon.astro";
-import Breadcrumb from "../../../components/Breadcrumb.astro";
+} from "@lib/ensemble";
+import { getEnsembleUrlId } from "@lib/slug";
+import Button from "@components/elements/Button.astro";
+import Image from "@components/elements/Image.astro";
+import Icon from "@components/elements/Icon.astro";
+import Breadcrumb from "@components/Breadcrumb.astro";
 
 const user = Astro.locals.user!;
 
