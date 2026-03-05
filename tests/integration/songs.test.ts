@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
-import { addSong, editSong, deleteSong, addSongFile } from '../../src/lib/songs.ts';
+import { addSong, editSong, deleteSong, addSongFile, deleteSongFile } from '../../src/lib/songs.ts';
 import { db, Song, SongPart, SeasonSong, SongFile, eq } from 'astro:db';
-import { createUser, createEnsemble, createSeason, createPart } from './fixtures.ts';
+import { createUser, createEnsemble, createSeason, createPart, createSong, createSongFile } from './fixtures.ts';
 
 // Mock storage — avoid real S3 calls
 vi.mock('../../src/lib/storage.ts', () => ({
@@ -258,5 +258,91 @@ describe('addSongFile', () => {
     );
 
     expect(result.error).toMatch(/URL/i);
+  });
+
+  it('uploads a file and inserts a SongFile row', async () => {
+    const admin = await createUser({ role: 'admin' });
+    const ensemble = await createEnsemble(admin!.id);
+    const song = await createSong(ensemble!.id, { name: 'Upload Test' });
+
+    const mockFile = new File(['pdf content'], 'sheet.pdf', { type: 'application/pdf' });
+    const result = await addSongFile(
+      { songId: song!.id, fileName: 'Sheet Music', category: 'sheet_music', file: mockFile },
+      admin!.id,
+      ensemble!.id
+    );
+
+    expect(result.error).toBeUndefined();
+    const files = await db.select().from(SongFile).where(eq(SongFile.songId, song!.id)).all();
+    expect(files).toHaveLength(1);
+    expect(files[0].name).toBe('Sheet Music');
+    expect(files[0].category).toBe('sheet_music');
+    expect(files[0].url).toBe('https://storage.example.com/test-file.pdf');
+  });
+
+  it('returns an error when no file and no URL are provided for a non-link category', async () => {
+    const admin = await createUser({ role: 'admin' });
+    const ensemble = await createEnsemble(admin!.id);
+    const song = await createSong(ensemble!.id);
+
+    const result = await addSongFile(
+      { songId: song!.id, fileName: 'Empty', category: 'sheet_music' },
+      admin!.id,
+      ensemble!.id
+    );
+
+    expect(result.error).toBeDefined();
+  });
+});
+
+describe('deleteSongFile', () => {
+  it('removes a link-type file row without calling storage', async () => {
+    const { deleteStorageFile } = await import('../../src/lib/storage.ts');
+    const admin = await createUser({ role: 'admin' });
+    const ensemble = await createEnsemble(admin!.id);
+    const song = await createSong(ensemble!.id);
+    const file = await createSongFile(song!.id, admin!.id, {
+      category: 'link',
+      url: 'https://youtu.be/test',
+    });
+
+    await deleteSongFile(file!.id);
+
+    expect(await db.select().from(SongFile).where(eq(SongFile.id, file!.id)).get()).toBeUndefined();
+    expect(deleteStorageFile).not.toHaveBeenCalled();
+  });
+
+  it('removes a file row and calls deleteStorageFile for non-link files', async () => {
+    const { deleteStorageFile } = await import('../../src/lib/storage.ts');
+    const admin = await createUser({ role: 'admin' });
+    const ensemble = await createEnsemble(admin!.id);
+    const song = await createSong(ensemble!.id);
+    const file = await createSongFile(song!.id, admin!.id, {
+      category: 'sheet_music',
+      url: 'https://storage.example.com/sheet.pdf',
+    });
+
+    await deleteSongFile(file!.id);
+
+    expect(await db.select().from(SongFile).where(eq(SongFile.id, file!.id)).get()).toBeUndefined();
+    expect(deleteStorageFile).toHaveBeenCalledWith('https://storage.example.com/sheet.pdf');
+  });
+
+  it('does nothing when given an empty fileId', async () => {
+    // Should not throw
+    await expect(deleteSongFile('')).resolves.toBeUndefined();
+  });
+
+  it('deletes all song files when the parent song is deleted', async () => {
+    const admin = await createUser({ role: 'admin' });
+    const ensemble = await createEnsemble(admin!.id);
+    const song = await createSong(ensemble!.id);
+    await createSongFile(song!.id, admin!.id, { category: 'link', url: 'https://youtu.be/a' });
+    await createSongFile(song!.id, admin!.id, { category: 'link', url: 'https://youtu.be/b' });
+
+    await deleteSong(song!.id);
+
+    const files = await db.select().from(SongFile).where(eq(SongFile.songId, song!.id)).all();
+    expect(files).toHaveLength(0);
   });
 });

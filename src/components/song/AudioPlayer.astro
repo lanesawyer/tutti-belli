@@ -1,0 +1,234 @@
+---
+interface Props {
+  src: string;
+  title?: string;
+  id?: string;
+}
+
+const {
+  src,
+  title,
+  id = `audio-player-${Math.random().toString(36).slice(2, 8)}`,
+} = Astro.props;
+---
+
+<div class="audio-player box p-4" data-audio-player data-id={id}>
+  <audio data-audio src={src} preload="metadata"></audio>
+
+  {
+    title && (
+      <p class="has-text-weight-semibold mb-3 has-text-centered">{title}</p>
+    )
+  }
+
+  <!-- Progress bar -->
+  <div class="mb-3">
+    <input
+      type="range"
+      class="audio-seek"
+      min="0"
+      max="100"
+      value="0"
+      step="0.1"
+      style="width: 100%; cursor: pointer;"
+      aria-label="Seek"
+    />
+    <div class="is-flex is-justify-content-space-between mt-1">
+      <span class="is-size-7 has-text-grey audio-current">0:00</span>
+      <span class="is-size-7 has-text-grey audio-duration">0:00</span>
+    </div>
+  </div>
+
+  <!-- Controls -->
+  <div
+    class="is-flex is-align-items-center is-justify-content-center"
+    style="gap: 0.75rem;"
+  >
+    <button
+      type="button"
+      class="button is-light is-rounded audio-back"
+      title="Back 15 seconds"
+      aria-label="Back 15 seconds"
+    >
+      <span class="icon is-small"><i class="fas fa-rotate-left"></i></span>
+      <span class="is-size-7">15</span>
+    </button>
+
+    <button
+      type="button"
+      class="button is-primary is-rounded audio-play-pause"
+      style="width: 3rem; height: 3rem;"
+      title="Play"
+      aria-label="Play"
+    >
+      <span class="icon"><i class="fas fa-play audio-play-icon"></i></span>
+    </button>
+
+    <button
+      type="button"
+      class="button is-light is-rounded audio-forward"
+      title="Forward 15 seconds"
+      aria-label="Forward 15 seconds"
+    >
+      <span class="is-size-7">15</span>
+      <span class="icon is-small"><i class="fas fa-rotate-right"></i></span>
+    </button>
+  </div>
+</div>
+
+<style>
+  .audio-player {
+    max-width: 100%;
+  }
+
+  input[type="range"].audio-seek {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--bulma-border);
+    outline: none;
+    --seek-pct: 0%;
+    background: linear-gradient(
+      to right,
+      var(--bulma-primary) var(--seek-pct),
+      var(--bulma-border) var(--seek-pct)
+    );
+  }
+
+  input[type="range"].audio-seek::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--bulma-primary);
+    cursor: pointer;
+  }
+
+  input[type="range"].audio-seek::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--bulma-primary);
+    cursor: pointer;
+    border: none;
+  }
+</style>
+
+<script>
+  function formatTime(seconds: number): string {
+    if (!isFinite(seconds) || isNaN(seconds)) return "0:00";
+    const m = Math.floor(seconds / 60);
+    const s = Math.floor(seconds % 60);
+    return `${m}:${s.toString().padStart(2, "0")}`;
+  }
+
+  function initPlayer(container: Element) {
+    const audio = container.querySelector<HTMLAudioElement>("[data-audio]");
+    const seekBar = container.querySelector<HTMLInputElement>(".audio-seek");
+    const currentEl = container.querySelector<HTMLElement>(".audio-current");
+    const durationEl = container.querySelector<HTMLElement>(".audio-duration");
+    const playPauseBtn =
+      container.querySelector<HTMLButtonElement>(".audio-play-pause");
+    const playIcon = container.querySelector<HTMLElement>(".audio-play-icon");
+    const backBtn = container.querySelector<HTMLButtonElement>(".audio-back");
+    const forwardBtn =
+      container.querySelector<HTMLButtonElement>(".audio-forward");
+
+    if (
+      !audio ||
+      !seekBar ||
+      !currentEl ||
+      !durationEl ||
+      !playPauseBtn ||
+      !playIcon ||
+      !backBtn ||
+      !forwardBtn
+    )
+      return;
+
+    // Re-load so the browser picks up the src after client-side navigation
+    audio.load();
+
+    function updatePlayIcon() {
+      if (audio!.paused) {
+        playIcon!.className = "fas fa-play audio-play-icon";
+        playPauseBtn!.setAttribute("title", "Play");
+        playPauseBtn!.setAttribute("aria-label", "Play");
+      } else {
+        playIcon!.className = "fas fa-pause audio-play-icon";
+        playPauseBtn!.setAttribute("title", "Pause");
+        playPauseBtn!.setAttribute("aria-label", "Pause");
+      }
+    }
+
+    audio.addEventListener("loadedmetadata", () => {
+      if (durationEl) durationEl.textContent = formatTime(audio.duration);
+      if (seekBar) seekBar.max = String(audio.duration);
+    });
+
+    audio.addEventListener("timeupdate", () => {
+      if (currentEl) currentEl.textContent = formatTime(audio.currentTime);
+      if (seekBar) seekBar.value = String(audio.currentTime);
+    });
+
+    audio.addEventListener("play", updatePlayIcon);
+    audio.addEventListener("pause", updatePlayIcon);
+    audio.addEventListener("ended", updatePlayIcon);
+
+    playPauseBtn.addEventListener("click", () => {
+      if (audio.paused) {
+        audio.play();
+      } else {
+        audio.pause();
+      }
+    });
+
+    backBtn.addEventListener("click", () => {
+      audio.currentTime = Math.max(0, audio.currentTime - 15);
+    });
+
+    forwardBtn.addEventListener("click", () => {
+      audio.currentTime = Math.min(audio.duration || 0, audio.currentTime + 15);
+    });
+
+    function updateSeekTrack() {
+      if (!seekBar) return;
+      const max = Number(seekBar.max) || 1;
+      const pct = (Number(seekBar.value) / max) * 100;
+      seekBar.style.setProperty("--seek-pct", `${pct}%`);
+    }
+
+    let isSeeking = false;
+
+    seekBar.addEventListener("mousedown", () => {
+      isSeeking = true;
+    });
+    seekBar.addEventListener("touchstart", () => {
+      isSeeking = true;
+    });
+
+    seekBar.addEventListener("input", () => {
+      if (currentEl) currentEl.textContent = formatTime(Number(seekBar.value));
+      updateSeekTrack();
+    });
+
+    seekBar.addEventListener("change", () => {
+      audio.currentTime = Number(seekBar.value);
+      isSeeking = false;
+    });
+
+    // While dragging, pause timeupdate from overwriting the seek bar
+    audio.addEventListener("timeupdate", () => {
+      if (!isSeeking && seekBar) {
+        seekBar.value = String(audio.currentTime);
+        updateSeekTrack();
+      }
+    });
+  }
+
+  document.addEventListener("astro:page-load", () => {
+    document.querySelectorAll("[data-audio-player]").forEach(initPlayer);
+  });
+</script>

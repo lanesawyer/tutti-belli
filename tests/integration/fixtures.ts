@@ -2,7 +2,7 @@
  * Test data factory helpers for integration tests.
  * Each function inserts a row and returns the created record.
  */
-import { db, User, Ensemble, EnsembleMember, MemberPart, Season, Event, Part, Song, SeasonSong, EventProgram, Task, TaskCompletion, Group, GroupMembership, eq } from 'astro:db';
+import { db, User, Ensemble, EnsembleMember, MemberPart, Season, Event, Part, Song, SeasonSong, SongFile, EventProgram, Task, TaskCompletion, Group, GroupMembership, eq } from 'astro:db';
 import { hashPassword } from '../../src/lib/auth.ts';
 
 export async function createUser(overrides: {
@@ -154,6 +154,27 @@ export async function createSong(
     composer: overrides.composer,
   });
   return db.select().from(Song).where(eq(Song.id, id)).get() as Promise<typeof Song.$inferSelect>;
+}
+
+export async function createSongFile(
+  songId: string,
+  uploadedBy: string,
+  overrides: {
+    name?: string;
+    url?: string;
+    category?: 'link' | 'sheet_music' | 'rehearsal_track' | 'other';
+  } = {}
+) {
+  const id = crypto.randomUUID();
+  await db.insert(SongFile).values({
+    id,
+    songId,
+    uploadedBy,
+    name: overrides.name ?? 'Test File',
+    url: overrides.url ?? 'https://storage.example.com/test.pdf',
+    category: overrides.category ?? 'sheet_music',
+  });
+  return db.select().from(SongFile).where(eq(SongFile.id, id)).get() as Promise<typeof SongFile.$inferSelect>;
 }
 
 export async function createSeasonSong(

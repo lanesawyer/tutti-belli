@@ -1,0 +1,52 @@
+---
+import Button from "../elements/Button.astro";
+import Icon from "../elements/Icon.astro";
+import SongFileHeader from "./SongFileHeader.astro";
+import SongFileDeleteModal from "./SongFileDeleteModal.astro";
+
+interface Props {
+  id: string;
+  name: string;
+  category: string;
+  uploaderName: string;
+  uploadedAt: string | Date;
+  ensembleId: string;
+  isAdmin: boolean;
+}
+
+const { id, name, category, uploaderName, uploadedAt, ensembleId, isAdmin } =
+  Astro.props;
+---
+
+<div class="box mb-3">
+  <div class="mb-2">
+    <SongFileHeader {name} {category} {uploaderName} {uploadedAt}>
+      <Button href={`/files/${id}`} size="small" title="Download">
+        <Icon icon="fa-download" size="small" />
+      </Button>
+      {
+        isAdmin && (
+          <SongFileDeleteModal fileId={id} {ensembleId} fileName={name} />
+        )
+      }
+    </SongFileHeader>
+  </div>
+  <details>
+    <summary
+      class="is-clickable has-text-grey is-size-7"
+      style="list-style: none; display: flex; align-items: center; gap: 0.3rem; width: fit-content;"
+    >
+      <span
+        class="pdf-arrow"
+        style="display: inline-block; transition: transform 0.15s;">▶</span
+      >
+      <span>Show PDF</span>
+    </summary>
+    <embed
+      src={`/files/${id}?inline`}
+      type="application/pdf"
+      class="mt-2"
+      style="width: 100%; height: 80vh; min-height: 600px;"
+    />
+  </details>
+</div>

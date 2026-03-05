@@ -1,0 +1,59 @@
+---
+/**
+ * Shared row header for a song file: category tag, name, uploader/date, and action buttons.
+ * The action buttons (download/open + delete) are passed via a slot.
+ */
+import { categoryLabel, categoryTagClass } from "../../lib/songs";
+
+interface Props {
+  name: string;
+  category: string;
+  uploaderName: string;
+  uploadedAt: string | Date;
+  /** When true, renders the name as a link (for external URLs) */
+  href?: string;
+}
+
+const { name, category, uploaderName, uploadedAt, href } = Astro.props;
+---
+
+<div class="is-flex is-align-items-center" style="gap: 0.75rem;">
+  <span
+    class={`tag ${categoryTagClass(category)} is-normal`}
+    style="flex-shrink:0; min-width: 7rem; justify-content: center;"
+  >
+    {categoryLabel(category)}
+  </span>
+  {
+    href ? (
+      <a
+        href={href}
+        class="has-text-weight-medium"
+        style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        {name}
+      </a>
+    ) : (
+      <span
+        class="has-text-weight-medium"
+        style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"
+      >
+        {name}
+      </span>
+    )
+  }
+  <span
+    class="has-text-grey is-size-7"
+    style="flex-shrink:0; white-space:nowrap;"
+  >
+    {uploaderName} &middot; {new Date(uploadedAt).toLocaleDateString()}
+  </span>
+  <div
+    class="is-flex is-align-items-center"
+    style="gap: 0.5rem; flex-shrink: 0;"
+  >
+    <slot />
+  </div>
+</div>

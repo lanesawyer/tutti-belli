@@ -4,9 +4,6 @@ import {
   getSongDetailData,
   getMembership,
   formatRuntime,
-  categoryLabel,
-  categoryTagClass,
-  getYouTubeId,
 } from "../../../../lib/songs";
 import { canManageEnsemble } from "../../../../lib/permissions";
 import Button from "../../../../components/elements/Button.astro";
@@ -15,6 +12,9 @@ import TextInput from "../../../../components/forms/TextInput.astro";
 import Tag from "../../../../components/elements/Tag.astro";
 import FileInput from "../../../../components/forms/FileInput.astro";
 import Notification from "../../../../components/elements/Notification.astro";
+import SongPdfFile from "../../../../components/song/SongPdfFile.astro";
+import SongAudioFile from "../../../../components/song/SongAudioFile.astro";
+import SongLinkFile from "../../../../components/song/SongLinkFile.astro";
 import { getEnsembleUrlId } from "../../../../lib/slug";
 import { actions } from "astro:actions";
 
@@ -47,7 +47,6 @@ const membership = await getMembership(ensemble.id, user.id);
 const isAdmin = canManageEnsemble(user, membership);
 
 const deleteFileResult = Astro.getActionResult(actions.songs.deleteFile);
-
 if (deleteFileResult && !deleteFileResult.error) {
   return Astro.redirect(`/ensembles/${canonicalId}/songs/${songId}`);
 }
@@ -60,6 +59,14 @@ const songParts = songPartsData
 const songSeasons = seasonSongsData
   .map((ss) => seasons.find((s) => s.id === ss.seasonId))
   .filter(Boolean);
+
+const pdfFiles = songFiles.filter(
+  (f) => f.category !== "link" && f.url.match(/\.(pdf)$/i),
+);
+const audioFiles = songFiles.filter(
+  (f) => f.category !== "link" && f.url.match(/\.(mp3)$/i),
+);
+const linkFiles = songFiles.filter((f) => f.category === "link");
 ---
 
 <EnsemblePageLayout
@@ -138,152 +145,77 @@ const songSeasons = seasonSongsData
   </h2>
 
   {
-    songFiles.length === 0 ? (
+    songFiles.length === 0 && (
       <Notification color="info" light>
         No resources attached to this song yet.
       </Notification>
-    ) : (
+    )
+  }
+
+  {
+    (pdfFiles.length > 0 || audioFiles.length > 0) && (
+      <div class="columns mb-5">
+        {pdfFiles.length > 0 && (
+          <div
+            class={
+              audioFiles.length > 0
+                ? "column is-two-thirds-tablet is-three-quarters-desktop"
+                : "column"
+            }
+          >
+            {pdfFiles.map((file) => (
+              <SongPdfFile
+                id={file.id}
+                name={file.name}
+                category={file.category}
+                uploaderName={file.uploaderName ?? ""}
+                uploadedAt={file.uploadedAt}
+                ensembleId={ensemble.id}
+                {isAdmin}
+              />
+            ))}
+          </div>
+        )}
+        {audioFiles.length > 0 && (
+          <div
+            class={
+              pdfFiles.length > 0
+                ? "column is-one-third-tablet is-one-quarter-desktop"
+                : "column"
+            }
+          >
+            {audioFiles.map((file) => (
+              <SongAudioFile
+                id={file.id}
+                name={file.name}
+                category={file.category}
+                uploaderName={file.uploaderName ?? ""}
+                uploadedAt={file.uploadedAt}
+                ensembleId={ensemble.id}
+                {isAdmin}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  {
+    linkFiles.length > 0 && (
       <div class="box mb-5">
-        {songFiles.map((file) => {
-          const isLink = (file.category as string) === "link";
-          const isAudio = !isLink && file.url.match(/\.(mp3)$/i);
-          const isPdf = !isLink && file.url.match(/\.(pdf)$/i);
-          const youtubeId = isLink ? getYouTubeId(file.url) : null;
-          return (
-            <div class="mb-4">
-              <div class="is-flex is-align-items-center" style="gap: 0.75rem;">
-                <span
-                  class={`tag ${categoryTagClass(file.category)} is-normal`}
-                  style="flex-shrink:0; min-width: 7rem; justify-content: center;"
-                >
-                  {categoryLabel(file.category)}
-                </span>
-                {isLink ? (
-                  <a
-                    href={file.url}
-                    class="has-text-weight-medium"
-                    style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    {file.name}
-                  </a>
-                ) : (
-                  <span
-                    class="has-text-weight-medium"
-                    style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"
-                  >
-                    {file.name}
-                  </span>
-                )}
-                <span
-                  class="has-text-grey is-size-7"
-                  style="flex-shrink:0; white-space:nowrap;"
-                >
-                  {file.uploaderName} &middot;{" "}
-                  {new Date(file.uploadedAt).toLocaleDateString()}
-                </span>
-                {isLink ? (
-                  <Button
-                    href={file.url}
-                    color="info"
-                    size="small"
-                    light
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    title="Open link"
-                  >
-                    <Icon icon="fa-external-link-alt" size="small" />
-                  </Button>
-                ) : (
-                  <Button
-                    href={`/files/${file.id}`}
-                    size="small"
-                    title="Download"
-                  >
-                    <Icon icon="fa-download" size="small" />
-                  </Button>
-                )}
-                {isAdmin && (
-                  <form
-                    method="POST"
-                    action={actions.songs.deleteFile}
-                    style="flex-shrink:0;"
-                    onsubmit="return confirm('Delete this resource?');"
-                  >
-                    <input
-                      type="hidden"
-                      name="ensembleId"
-                      value={ensemble.id}
-                    />
-                    <input type="hidden" name="fileId" value={file.id} />
-                    <Button type="submit" color="danger" size="small">
-                      <Icon icon="fa-trash" size="small" />
-                    </Button>
-                  </form>
-                )}
-              </div>
-              {isAudio && (
-                <audio
-                  controls
-                  class="mt-2"
-                  style="width: 100%;"
-                  src={`/files/${file.id}?inline`}
-                />
-              )}
-              {isPdf && (
-                <details class="mt-2">
-                  <summary
-                    class="is-clickable has-text-grey is-size-7"
-                    style="list-style: none; display: flex; align-items: center; gap: 0.3rem; width: fit-content;"
-                  >
-                    <span
-                      class="pdf-arrow"
-                      style="display: inline-block; transition: transform 0.15s;"
-                    >
-                      ▶
-                    </span>
-                    <span>Show PDF</span>
-                  </summary>
-                  <embed
-                    src={`/files/${file.id}?inline`}
-                    type="application/pdf"
-                    class="mt-2"
-                    style="width: 100%; height: 600px;"
-                  />
-                </details>
-              )}
-              {youtubeId && (
-                <details class="mt-2">
-                  <summary
-                    class="is-clickable has-text-grey is-size-7"
-                    style="list-style: none; display: flex; align-items: center; gap: 0.3rem; width: fit-content;"
-                  >
-                    <span
-                      class="pdf-arrow"
-                      style="display: inline-block; transition: transform 0.15s;"
-                    >
-                      ▶
-                    </span>
-                    <span>Show Video</span>
-                  </summary>
-                  <div
-                    class="mt-2"
-                    style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden;"
-                  >
-                    <iframe
-                      src={`https://www.youtube.com/embed/${youtubeId}`}
-                      title={file.name}
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowfullscreen
-                      style="border: 0; position: absolute; top: 0; left: 0; width: 100%; height: 100%;"
-                    />
-                  </div>
-                </details>
-              )}
-            </div>
-          );
-        })}
+        {linkFiles.map((file) => (
+          <SongLinkFile
+            id={file.id}
+            name={file.name}
+            category={file.category}
+            url={file.url}
+            uploaderName={file.uploaderName ?? ""}
+            uploadedAt={file.uploadedAt}
+            ensembleId={ensemble.id}
+            {isAdmin}
+          />
+        ))}
       </div>
     )
   }
@@ -464,12 +396,6 @@ const songSeasons = seasonSongsData
         details.addEventListener("toggle", () => {
           arrow.style.transform = details.open ? "rotate(90deg)" : "";
         });
-      });
-
-      // Re-load audio elements after client-side navigation — the browser may
-      // leave them in a broken/empty state when the DOM is swapped.
-      document.querySelectorAll("audio").forEach((audio) => {
-        audio.load();
       });
     });
   </script>

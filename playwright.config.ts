@@ -65,6 +65,11 @@ export default defineConfig({
     timeout: 60_000,
     env: {
       EMAIL_DISABLED: 'true',
+      STORAGE_DISABLED: 'true',
+      STORAGE_ENDPOINT: 'https://s3.us-west-004.backblazeb2.com',
+      STORAGE_BUCKET: 'test-bucket',
+      STORAGE_KEY_ID: 'test-key-id',
+      STORAGE_KEY: 'test-key',
     },
   },
 });

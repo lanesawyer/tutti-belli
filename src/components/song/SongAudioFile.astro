@@ -1,0 +1,56 @@
+---
+import Button from "../elements/Button.astro";
+import Icon from "../elements/Icon.astro";
+import AudioPlayer from "./AudioPlayer.astro";
+import SongFileDeleteModal from "./SongFileDeleteModal.astro";
+import { categoryLabel, categoryTagClass } from "../../lib/songs";
+
+interface Props {
+  id: string;
+  name: string;
+  category: string;
+  uploaderName: string;
+  uploadedAt: string | Date;
+  ensembleId: string;
+  isAdmin: boolean;
+}
+
+const { id, name, category, uploaderName, uploadedAt, ensembleId, isAdmin } =
+  Astro.props;
+---
+
+<div class="mb-4">
+  <p
+    class="has-text-weight-medium mb-1"
+    style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"
+    title={name}
+  >
+    {name}
+  </p>
+  <div
+    class="is-flex is-align-items-center mb-2"
+    style="gap: 0.5rem; flex-wrap: wrap;"
+  >
+    <span
+      class={`tag ${categoryTagClass(category)} is-normal`}
+      style="flex-shrink:0;"
+    >
+      {categoryLabel(category)}
+    </span>
+    <span
+      class="has-text-grey is-size-7"
+      style="flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"
+    >
+      {uploaderName} &middot; {new Date(uploadedAt).toLocaleDateString()}
+    </span>
+    <Button href={`/files/${id}`} size="small" title="Download">
+      <Icon icon="fa-download" size="small" />
+    </Button>
+    {
+      isAdmin && (
+        <SongFileDeleteModal fileId={id} {ensembleId} fileName={name} />
+      )
+    }
+  </div>
+  <AudioPlayer src={`/files/${id}?inline`} id={`audio-${id}`} />
+</div>
