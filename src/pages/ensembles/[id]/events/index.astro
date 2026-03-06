@@ -9,10 +9,7 @@ import Select from "@components/forms/Select.astro";
 import Tag from "@components/elements/Tag.astro";
 import Notification from "@components/elements/Notification.astro";
 import { actions } from "astro:actions";
-import {
-  getEnsembleBySlugOrId,
-  getEnsembleAccess,
-} from "@lib/ensemble";
+import { getEnsembleBySlugOrId, getEnsembleAccess } from "@lib/ensemble";
 import { getEnsembleUrlId } from "@lib/slug";
 import { formatDuration } from "@lib/format";
 import { getEventsPageData, isRsvpEnabled } from "@lib/events";

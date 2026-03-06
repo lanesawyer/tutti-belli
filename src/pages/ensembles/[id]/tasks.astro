@@ -13,10 +13,7 @@ import { actions } from "astro:actions";
 import { canManageEnsemble } from "@lib/permissions";
 import { getEnsembleBySlugOrId } from "@lib/ensemble";
 import { getEnsembleUrlId } from "@lib/slug";
-import {
-  getEnsembleTasks,
-  getTaskCompletionsForEnsemble,
-} from "@lib/tasks";
+import { getEnsembleTasks, getTaskCompletionsForEnsemble } from "@lib/tasks";
 
 const user = Astro.locals.user!;
 

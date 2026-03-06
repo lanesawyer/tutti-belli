@@ -113,6 +113,7 @@ const CREATE_STATEMENTS = [
     "id" TEXT PRIMARY KEY,
     "groupId" TEXT NOT NULL REFERENCES "Group"("id"),
     "userId" TEXT NOT NULL REFERENCES "User"("id"),
+    "role" TEXT,
     "addedAt" TEXT DEFAULT CURRENT_TIMESTAMP
   )`,
   `CREATE TABLE IF NOT EXISTS "Event" (
