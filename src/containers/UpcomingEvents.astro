@@ -6,7 +6,6 @@ import {
   Event,
   EventProgram,
   Song,
-  Group,
   GroupMembership,
 } from "astro:db";
 import DashboardSection from "@components/DashboardSection.astro";
@@ -31,12 +30,6 @@ const allEvents = await db
   .from(Event)
   .where(eq(Event.ensembleId, ensembleId))
   .orderBy(Event.scheduledAt);
-
-const groups = await db
-  .select()
-  .from(Group)
-  .where(eq(Group.ensembleId, ensembleId))
-  .all();
 
 const groupMemberships = await db
   .select({ groupId: GroupMembership.groupId, userId: GroupMembership.userId })

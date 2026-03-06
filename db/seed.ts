@@ -559,15 +559,16 @@ The Chamber Orchestra Leadership Team`,
 
   // Add season songs to the spring concert program
   await db.insert(EventProgram).values([
-    { id: crypto.randomUUID(), eventId: performanceId, songId: song3Id, sortOrder: 1 }, // Lux Aurumque
-    { id: crypto.randomUUID(), eventId: performanceId, songId: song2Id, sortOrder: 2 }, // Shenandoah
-    { id: crypto.randomUUID(), eventId: performanceId, songId: song1Id, sortOrder: 3 }, // Ave Maria
+    { id: crypto.randomUUID(), eventId: performanceId, type: 'song', songId: song3Id, sortOrder: 1 }, // Lux Aurumque
+    { id: crypto.randomUUID(), eventId: performanceId, type: 'song', songId: song2Id, sortOrder: 2 }, // Shenandoah
+    { id: crypto.randomUUID(), eventId: performanceId, type: 'song', songId: song1Id, sortOrder: 3 }, // Ave Maria
   ]);
 
-  // Add season songs to the current rehearsal plan
+  // Add season songs and a break to the current rehearsal plan
   await db.insert(EventProgram).values([
-    { id: crypto.randomUUID(), eventId: currentRehearsalId, songId: song1Id, sortOrder: 1, practiceMinutes: 10 }, // Ave Maria
-    { id: crypto.randomUUID(), eventId: currentRehearsalId, songId: song2Id, sortOrder: 2 }, // Shenandoah
+    { id: crypto.randomUUID(), eventId: currentRehearsalId, type: 'song', songId: song1Id, sortOrder: 1, length: 10 }, // Ave Maria
+    { id: crypto.randomUUID(), eventId: currentRehearsalId, type: 'break', label: 'Break', sortOrder: 2, length: 10 },
+    { id: crypto.randomUUID(), eventId: currentRehearsalId, type: 'song', songId: song2Id, sortOrder: 3, length: 10 }, // Shenandoah
   ]);
 
   console.log('✓ Seeded database successfully!');

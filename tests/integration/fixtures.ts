@@ -206,7 +206,7 @@ export async function createSeasonSong(
 export async function createEventProgramEntry(
   eventId: string,
   songId: string,
-  overrides: { id?: string; sortOrder?: number; practiceMinutes?: number; notes?: string } = {}
+  overrides: { id?: string; sortOrder?: number; length?: number; notes?: string } = {}
 ) {
   const id = overrides.id ?? crypto.randomUUID();
   await db.insert(EventProgram).values({
@@ -214,7 +214,7 @@ export async function createEventProgramEntry(
     eventId,
     songId,
     sortOrder: overrides.sortOrder ?? 1,
-    practiceMinutes: overrides.practiceMinutes,
+    length: overrides.length,
     notes: overrides.notes,
   });
   return db.select().from(EventProgram).where(eq(EventProgram.id, id)).get() as Promise<typeof EventProgram.$inferSelect>;

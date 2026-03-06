@@ -95,19 +95,21 @@ export async function getEventPageData(ensembleId: string, eventId: string) {
 }
 
 export async function getEventProgramData(eventId: string, seasonId: string) {
-  const [programSongs, allSeasonSongs] = await Promise.all([
+  const [programEntries, allSeasonSongs] = await Promise.all([
     db
       .select({
         entryId: EventProgram.id,
-        id: Song.id,
+        type: EventProgram.type,
+        songId: Song.id,
         name: Song.name,
         composer: Song.composer,
+        label: EventProgram.label,
         sortOrder: EventProgram.sortOrder,
-        practiceMinutes: EventProgram.practiceMinutes,
+        length: EventProgram.length,
         notes: EventProgram.notes,
       })
       .from(EventProgram)
-      .innerJoin(Song, eq(EventProgram.songId, Song.id))
+      .leftJoin(Song, eq(EventProgram.songId, Song.id))
       .where(eq(EventProgram.eventId, eventId))
       .orderBy(EventProgram.sortOrder)
       .all(),
@@ -120,10 +122,10 @@ export async function getEventProgramData(eventId: string, seasonId: string) {
       .all(),
   ]);
 
-  const programSongIds = new Set(programSongs.map(s => s.id));
+  const programSongIds = new Set(programEntries.map(e => e.songId).filter(Boolean));
   const availableSeasonSongs = allSeasonSongs.filter(s => !programSongIds.has(s.id));
 
-  return { programSongs, availableSeasonSongs };
+  return { programEntries, availableSeasonSongs };
 }
 
 export async function getEventsPageData(ensembleId: string, userId: string) {
@@ -401,23 +403,35 @@ export async function getRsvpForUser(eventId: string, userId: string): Promise<'
   return record ? (record.response as 'yes' | 'no') : null;
 }
 
-export async function addProgramSong(eventId: string, songId: string, practiceMinutes?: number, notes?: string) {
-  const currentProgram = await db
+async function nextSortOrder(eventId: string): Promise<number> {
+  const rows = await db
     .select({ sortOrder: EventProgram.sortOrder })
     .from(EventProgram)
     .where(eq(EventProgram.eventId, eventId))
     .all();
+  return rows.length > 0 ? Math.max(...rows.map(p => p.sortOrder)) + 1 : 1;
+}
 
-  const maxOrder = currentProgram.length > 0
-    ? Math.max(...currentProgram.map(p => p.sortOrder))
-    : 0;
-
+export async function addProgramSong(eventId: string, songId: string, length?: number, notes?: string) {
   await db.insert(EventProgram).values({
     id: crypto.randomUUID(),
     eventId,
+    type: 'song',
     songId,
-    sortOrder: maxOrder + 1,
-    practiceMinutes: practiceMinutes || undefined,
+    sortOrder: await nextSortOrder(eventId),
+    length: length || undefined,
+    notes: notes || undefined,
+  });
+}
+
+export async function addProgramItem(eventId: string, type: 'break' | 'other', label: string, durationMinutes?: number, notes?: string) {
+  await db.insert(EventProgram).values({
+    id: crypto.randomUUID(),
+    eventId,
+    type,
+    label: label.trim(),
+    sortOrder: await nextSortOrder(eventId),
+    length: durationMinutes || undefined,
     notes: notes || undefined,
   });
 }
@@ -429,10 +443,11 @@ export async function updateProgramSongNotes(programEntryId: string, notes: stri
     .where(eq(EventProgram.id, programEntryId));
 }
 
-export async function updateProgramEntry(programEntryId: string, params: { notes?: string; practiceMinutes?: number | null; sortOrder?: number }) {
+export async function updateProgramEntry(programEntryId: string, params: { label?: string; notes?: string; length?: number | null; sortOrder?: number }) {
   const updates: Record<string, unknown> = {};
+  if ('label' in params) updates.label = params.label?.trim() || null;
   if ('notes' in params) updates.notes = params.notes?.trim() || null;
-  if ('practiceMinutes' in params) updates.practiceMinutes = params.practiceMinutes ?? null;
+  if ('length' in params) updates.length = params.length ?? null;
   if ('sortOrder' in params) updates.sortOrder = params.sortOrder;
   await db.update(EventProgram).set(updates).where(eq(EventProgram.id, programEntryId));
 }
