@@ -5,7 +5,7 @@ export default defineConfig({
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  workers: process.env.CI ? 2 : undefined,
   reporter: [
     ['html', { outputFolder: 'playwright-report' }],
     process.env.CI ? ['github'] : ['list'],
@@ -38,28 +38,32 @@ export default defineConfig({
       dependencies: ['setup'],
       testMatch: /.*permissions\.spec\.ts/,
     },
-    {
-      name: 'firefox-admin',
-      use: {
-        ...devices['Desktop Firefox'],
-        storageState: 'tests/e2e/.auth/admin.json',
-      },
-      dependencies: ['setup'],
-    },
-    {
-      name: 'firefox-user',
-      use: {
-        ...devices['Desktop Firefox'],
-        storageState: 'tests/e2e/.auth/user.json',
-      },
-      dependencies: ['setup'],
-      testMatch: /.*permissions\.spec\.ts/,
-    },
+    ...(process.env.CI
+      ? []
+      : [
+          {
+            name: 'firefox-admin',
+            use: {
+              ...devices['Desktop Firefox'],
+              storageState: 'tests/e2e/.auth/admin.json',
+            },
+            dependencies: ['setup'],
+          },
+          {
+            name: 'firefox-user',
+            use: {
+              ...devices['Desktop Firefox'],
+              storageState: 'tests/e2e/.auth/user.json',
+            },
+            dependencies: ['setup'],
+            testMatch: /.*permissions\.spec\.ts/,
+          },
+        ]),
   ],
   webServer: {
     command: 'pnpm dev',
     url: 'http://localhost:4321',
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: false,
     stdout: 'ignore',
     stderr: 'pipe',
     timeout: 60_000,

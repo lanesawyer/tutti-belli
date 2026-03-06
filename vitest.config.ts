@@ -26,6 +26,7 @@ export default defineConfig({
           name: 'unit',
           include: ['tests/unit/**/*.test.ts'],
           environment: 'node',
+          env: { EMAIL_DISABLED: 'true' },
         },
       },
       {
@@ -36,6 +37,7 @@ export default defineConfig({
           environment: 'node',
           fileParallelism: false,
           setupFiles: ['tests/integration/setup.ts'],
+          env: { EMAIL_DISABLED: 'true' },
         },
       },
     ],

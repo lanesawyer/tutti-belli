@@ -34,6 +34,7 @@ test('admin can create a task via modal', async ({ page }) => {
   await page.locator('button[type="submit"][form="createForm"]').click();
 
   await expect(page).toHaveURL(/\/tasks$/);
+  await expect(page.locator('.notification.is-success')).toBeVisible();
   await expect(page.locator('body')).toContainText(taskTitle);
 });
 

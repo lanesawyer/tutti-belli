@@ -21,6 +21,7 @@ async function createSong(page: any, songName: string) {
   await expect(page).toHaveURL(/\/ensembles\/.+\/songs$/);
 
   await page.locator('a').filter({ hasText: songName }).first().click();
+  await expect(page.locator('a', { hasText: 'Back to Songs' })).toBeVisible();
   await expect(page).toHaveURL(/\/songs\/.+/);
   return page.url();
 }
@@ -125,6 +126,7 @@ test('delete modal appears when trash button is clicked', async ({ page }) => {
   await page.fill('input[name="fileName"]', 'File To Delete');
   await page.locator('button[type="submit"]').filter({ hasText: 'Upload' }).click();
   await expect(page).toHaveURL(songUrl);
+  await expect(page.getByRole('heading', { name: 'Upload Resource' })).toBeVisible();
 
   // Click the trash button
   await page.locator('button[aria-label="Delete"]').first().click();
@@ -145,6 +147,7 @@ test('delete modal can be cancelled without deleting', async ({ page }) => {
   await page.fill('input[name="fileName"]', 'Keep Me');
   await page.locator('button[type="submit"]').filter({ hasText: 'Upload' }).click();
   await expect(page).toHaveURL(songUrl);
+  await expect(page.getByRole('heading', { name: 'Upload Resource' })).toBeVisible();
 
   await page.locator('button[aria-label="Delete"]').first().click();
   await expect(page.locator('.modal.is-active')).toBeVisible();
@@ -164,6 +167,7 @@ test('admin can delete a resource via the modal', async ({ page }) => {
   await page.fill('input[name="fileName"]', 'Delete Me');
   await page.locator('button[type="submit"]').filter({ hasText: 'Upload' }).click();
   await expect(page).toHaveURL(songUrl);
+  await expect(page.getByRole('heading', { name: 'Upload Resource' })).toBeVisible();
   await expect(page.locator('body')).toContainText('Delete Me');
 
   // Open modal and confirm delete
@@ -194,6 +198,7 @@ test('audio player renders for MP3 resources', async ({ page }) => {
   await page.fill('input[name="fileName"]', 'Test Rehearsal Track');
   await page.locator('button[type="submit"]').filter({ hasText: 'Upload' }).click();
   await expect(page).toHaveURL(songUrl);
+  await expect(page.getByRole('heading', { name: 'Upload Resource' })).toBeVisible();
 
   // The custom audio player should be rendered (not a raw <audio> element)
   await expect(page.locator('[data-audio-player]')).toBeVisible();

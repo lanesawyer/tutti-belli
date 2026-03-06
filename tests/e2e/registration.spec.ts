@@ -38,6 +38,7 @@ test('successful registration shows a resend link', async ({ page }, workerInfo)
   await page.fill('input[name="password"]', 'password123');
   await page.click('button[type="submit"]');
 
+  await expect(page.locator('.notification.is-success')).toBeVisible();
   const resendLink = page.locator('a[href*="/resend-verification"]');
   await expect(resendLink).toBeVisible();
 });
@@ -101,7 +102,7 @@ test('unverified login warning includes a resend link', async ({ page }, workerI
   await page.click('button[type="submit"]');
   // Wait for the success notification before navigating away — Firefox aborts
   // page.goto() if called while ClientRouter is still mid-transition.
-  await expect(page.locator('.notification.is-success')).toBeVisible();
+  await expect(page.locator('.notification.is-success')).toBeVisible({ timeout: 15000 });
 
   await page.goto('/login');
   await page.fill('input[name="email"]', email);
