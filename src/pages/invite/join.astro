@@ -1,5 +1,5 @@
 ---
-import Layout from "@layouts/Layout.astro";
+import SingleColumnLayout from "@layouts/SingleColumnLayout.astro";
 import Box from "@components/elements/Box.astro";
 import Button from "@components/elements/Button.astro";
 import Icon from "@components/elements/Icon.astro";
@@ -23,9 +23,7 @@ const codeParam = Astro.url.searchParams.get("code");
 const ensemble = codeParam ? await getEnsembleByInviteCode(codeParam) : null;
 ---
 
-<Layout title="Join Ensemble">
-  <div class="columns is-centered">
-    <div class="column is-8-tablet is-7-desktop">
+<SingleColumnLayout title="Join Ensemble" width="wide">
       <h1 class="title">Join an Ensemble</h1>
       <p class="subtitle">
         {
@@ -152,6 +150,4 @@ const ensemble = codeParam ? await getEnsembleByInviteCode(codeParam) : null;
           </form>
         )
       }
-    </div>
-  </div>
-</Layout>
+</SingleColumnLayout>

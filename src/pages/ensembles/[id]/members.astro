@@ -1,5 +1,5 @@
 ---
-import Layout from "@layouts/Layout.astro";
+import BaseLayout from "@layouts/BaseLayout.astro";
 import Box from "@components/elements/Box.astro";
 import Table from "@components/elements/Table.astro";
 import {
@@ -132,7 +132,7 @@ if (Astro.request.method === "POST") {
 }
 ---
 
-<Layout title={`Manage Members - ${ensemble.name}`}>
+<BaseLayout title={`Manage Members - ${ensemble.name}`}>
   <div class="navbar-item has-dropdown is-hoverable" slot="navbar-start">
     <a class="navbar-link">{ensemble.name}</a>
     <div class="navbar-dropdown">
@@ -556,4 +556,4 @@ if (Astro.request.method === "POST") {
       </Box>
     </div>
   </section>
-</Layout>
+</BaseLayout>

@@ -1,0 +1,24 @@
+---
+import BaseLayout from "@layouts/BaseLayout.astro";
+
+interface Props {
+  title: string;
+  width?: "narrow" | "medium" | "wide";
+}
+
+const { title, width = "narrow" } = Astro.props;
+
+const columnClass = {
+  narrow: "is-5-tablet is-4-desktop",
+  medium: "is-6-tablet is-5-desktop",
+  wide: "is-8-tablet is-7-desktop",
+}[width];
+---
+
+<BaseLayout {title}>
+  <div class="columns is-centered">
+    <div class={`column ${columnClass}`}>
+      <slot />
+    </div>
+  </div>
+</BaseLayout>

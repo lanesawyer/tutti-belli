@@ -1,5 +1,5 @@
 ---
-import Layout from "./Layout.astro";
+import BaseLayout from "./BaseLayout.astro";
 import Notification from "@components/elements/Notification.astro";
 
 interface Props {
@@ -19,7 +19,7 @@ const {
 } = Astro.props;
 ---
 
-<Layout title={title}>
+<BaseLayout title={title}>
   <slot name="navbar-start" slot="navbar-start" />
 
   <slot name="before" />
@@ -50,4 +50,4 @@ const {
 
   <slot />
   <slot name="modals" />
-</Layout>
+</BaseLayout>

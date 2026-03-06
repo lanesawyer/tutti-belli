@@ -1,5 +1,5 @@
 ---
-import Layout from "@layouts/Layout.astro";
+import SingleColumnLayout from "@layouts/SingleColumnLayout.astro";
 import Button from "@components/elements/Button.astro";
 import TextInput from "@components/forms/TextInput.astro";
 import Notification from "@components/elements/Notification.astro";
@@ -17,9 +17,7 @@ const registeredEmail = result && !result.error ? result.data.email : null;
 const error = result?.error?.message ?? "";
 ---
 
-<Layout title="Sign Up">
-  <div class="columns is-centered">
-    <div class="column is-5-tablet is-4-desktop">
+<SingleColumnLayout title="Sign Up">
       <h1 class="title">Sign Up</h1>
 
       {
@@ -96,6 +94,4 @@ const error = result?.error?.message ?? "";
           </>
         )
       }
-    </div>
-  </div>
-</Layout>
+</SingleColumnLayout>

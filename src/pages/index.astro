@@ -1,5 +1,5 @@
 ---
-import Layout from "@layouts/Layout.astro";
+import BaseLayout from "@layouts/BaseLayout.astro";
 import Box from "@components/elements/Box.astro";
 import Button from "@components/elements/Button.astro";
 import Icon from "@components/elements/Icon.astro";
@@ -8,7 +8,7 @@ import { APP_NAME, APP_SLOGAN } from "@lib/config";
 const user = Astro.locals.user;
 ---
 
-<Layout title="Home">
+<BaseLayout title="Home">
   <section class="hero is-medium is-primary">
     <div class="hero-body">
       <p class="title">
@@ -300,4 +300,4 @@ const user = Astro.locals.user;
       </section>
     )
   }
-</Layout>
+</BaseLayout>

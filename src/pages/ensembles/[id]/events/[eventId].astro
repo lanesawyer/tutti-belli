@@ -1,5 +1,5 @@
 ---
-import Layout from "@layouts/Layout.astro";
+import BaseLayout from "@layouts/BaseLayout.astro";
 import Box from "@components/elements/Box.astro";
 import Button from "@components/elements/Button.astro";
 import Image from "@components/elements/Image.astro";
@@ -179,7 +179,7 @@ const categoryColor = isPerformance
 const programLabel = isPerformance ? "Set List" : "Rehearsal Plan";
 ---
 
-<Layout title={`${event.title} - ${ensemble.name}`}>
+<BaseLayout title={`${event.title} - ${ensemble.name}`}>
   {
     isAdmin && (
       <div class="navbar-item has-dropdown is-hoverable" slot="navbar-start">
@@ -1072,4 +1072,4 @@ const programLabel = isPerformance ? "Set List" : "Rehearsal Plan";
       }
     });
   </script>
-</Layout>
+</BaseLayout>
