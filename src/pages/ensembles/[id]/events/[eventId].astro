@@ -713,68 +713,66 @@ const programLabel = isPerformance ? "Set List" : "Rehearsal Plan";
               <th style="width: 40px;">#</th>
               <th>Song</th>
               <th>Composer</th>
+              {!isPerformance && <th style="width: 90px;">Minutes</th>}
               <th>Notes</th>
-              {isAdmin && <th style="width: 80px;" />}
+              {isAdmin && <th style="width: 100px;" />}
             </tr>
           </thead>
           <tbody>
             {programSongs.map((song, i) => (
               <tr>
-                <td class="has-text-grey">{i + 1}</td>
+                <td class="has-text-grey">{song.sortOrder}</td>
                 <td>
                   <strong>{song.name}</strong>
                 </td>
                 <td class="has-text-grey">{song.composer ?? "—"}</td>
+                {!isPerformance && (
+                  <td class="has-text-grey">
+                    {song.practiceMinutes ? `${song.practiceMinutes} min` : "—"}
+                  </td>
+                )}
                 <td>
-                  {isAdmin ? (
+                  <span class="has-text-grey is-size-7">
+                    {song.notes ?? "—"}
+                  </span>
+                </td>
+                {isAdmin && (
+                  <td>
                     <span
                       class="is-flex is-align-items-center"
                       style="gap: 0.4rem;"
                     >
-                      <span class="has-text-grey is-size-7">
-                        {song.notes ? (
-                          song.notes
-                        ) : (
-                          <em class="has-text-grey-light">No notes</em>
-                        )}
-                      </span>
                       <button
                         type="button"
-                        class="button is-small edit-notes-btn"
-                        title="Edit notes"
+                        class="button is-small edit-entry-btn"
+                        title="Edit entry"
                         data-entry-id={song.entryId}
                         data-notes={song.notes ?? ""}
+                        data-practice-minutes={song.practiceMinutes ?? ""}
+                        data-sort-order={song.sortOrder}
                       >
                         <Icon icon="fa-pencil" size="small" />
                       </button>
+                      <form
+                        method="POST"
+                        action={actions.events.removeProgramSong}
+                        style="display: inline;"
+                      >
+                        <input
+                          type="hidden"
+                          name="ensembleId"
+                          value={ensemble.id}
+                        />
+                        <input
+                          type="hidden"
+                          name="programEntryId"
+                          value={song.entryId}
+                        />
+                        <Button type="submit" color="danger" size="small">
+                          <Icon icon="fa-times" size="small" />
+                        </Button>
+                      </form>
                     </span>
-                  ) : (
-                    <span class="has-text-grey is-size-7">
-                      {song.notes ?? "—"}
-                    </span>
-                  )}
-                </td>
-                {isAdmin && (
-                  <td>
-                    <form
-                      method="POST"
-                      action={actions.events.removeProgramSong}
-                      style="display: inline;"
-                    >
-                      <input
-                        type="hidden"
-                        name="ensembleId"
-                        value={ensemble.id}
-                      />
-                      <input
-                        type="hidden"
-                        name="programEntryId"
-                        value={song.entryId}
-                      />
-                      <Button type="submit" color="danger" size="small">
-                        <Icon icon="fa-times" size="small" />
-                      </Button>
-                    </form>
                   </td>
                 )}
               </tr>
@@ -798,6 +796,18 @@ const programLabel = isPerformance ? "Set List" : "Rehearsal Plan";
               </option>
             ))}
           </Select>
+
+          {!isPerformance && (
+            <TextInput
+              name="practiceMinutes"
+              label="Minutes (optional)"
+              type="number"
+              size="small"
+              min="1"
+              max="480"
+              placeholder="e.g. 15"
+            />
+          )}
 
           <div class="field">
             <label class="label is-small">Notes (optional)</label>
@@ -971,36 +981,51 @@ const programLabel = isPerformance ? "Set List" : "Rehearsal Plan";
     )
   }
 
-  <!-- Edit Notes Modal -->
+  <!-- Edit Entry Modal -->
   {
     isAdmin && (
-      <div class="modal" id="edit-notes-modal">
+      <div class="modal" id="edit-entry-modal">
         <div class="modal-background" />
         <div class="modal-card">
           <header class="modal-card-head">
-            <p class="modal-card-title">Edit Notes</p>
-            <button class="delete" aria-label="close" data-close-notes-modal />
+            <p class="modal-card-title">Edit Entry</p>
+            <button class="delete" aria-label="close" data-close-entry-modal />
           </header>
           <form
-            id="edit-notes-form"
+            id="edit-entry-form"
             method="POST"
-            action={actions.events.updateProgramSongNotes}
+            action={actions.events.updateProgramEntry}
           >
             <section class="modal-card-body">
               <input type="hidden" name="ensembleId" value={ensemble.id} />
-              <input
-                type="hidden"
-                name="programEntryId"
-                id="edit-notes-entry-id"
+              <input type="hidden" name="programEntryId" id="edit-entry-id" />
+              <TextInput
+                name="sortOrder"
+                label="Order"
+                type="number"
+                id="edit-entry-sort-order"
+                min="1"
+                placeholder="1"
               />
+              {!isPerformance && (
+                <TextInput
+                  name="practiceMinutes"
+                  label="Practice time (minutes)"
+                  type="number"
+                  id="edit-entry-practice-minutes"
+                  min="1"
+                  max="480"
+                  placeholder="e.g. 15"
+                />
+              )}
               <div class="field">
-                <label class="label" for="edit-notes-text">
+                <label class="label" for="edit-entry-notes">
                   Notes
                 </label>
                 <div class="control">
                   <textarea
                     class="textarea"
-                    id="edit-notes-text"
+                    id="edit-entry-notes"
                     name="notes"
                     rows="4"
                     placeholder="Rehearsal focus, cues, timing notes..."
@@ -1011,9 +1036,9 @@ const programLabel = isPerformance ? "Set List" : "Rehearsal Plan";
             </section>
             <footer class="modal-card-foot">
               <Button type="submit" color="primary">
-                Save Notes
+                Save
               </Button>
-              <Button type="button" data-close-notes-modal>
+              <Button type="button" data-close-entry-modal>
                 Cancel
               </Button>
             </footer>
@@ -1040,34 +1065,44 @@ const programLabel = isPerformance ? "Set List" : "Rehearsal Plan";
         ?.querySelector(".modal-background")
         ?.addEventListener("click", closeModal);
 
-      // Notes modal
-      const notesModal = document.getElementById("edit-notes-modal");
-      if (notesModal) {
+      // Edit entry modal
+      const entryModal = document.getElementById("edit-entry-modal");
+      if (entryModal) {
         const entryIdInput = document.getElementById(
-          "edit-notes-entry-id",
+          "edit-entry-id",
+        ) as HTMLInputElement | null;
+        const sortOrderInput = document.getElementById(
+          "edit-entry-sort-order",
+        ) as HTMLInputElement | null;
+        const practiceMinutesInput = document.getElementById(
+          "edit-entry-practice-minutes",
         ) as HTMLInputElement | null;
         const notesTextarea = document.getElementById(
-          "edit-notes-text",
+          "edit-entry-notes",
         ) as HTMLTextAreaElement | null;
 
-        const closeNotesModal = () => notesModal.classList.remove("is-active");
+        const closeEntryModal = () => entryModal.classList.remove("is-active");
 
-        document.querySelectorAll(".edit-notes-btn").forEach((btn) => {
+        document.querySelectorAll(".edit-entry-btn").forEach((btn) => {
           btn.addEventListener("click", () => {
             const el = btn as HTMLElement;
             if (entryIdInput) entryIdInput.value = el.dataset.entryId ?? "";
+            if (sortOrderInput)
+              sortOrderInput.value = el.dataset.sortOrder ?? "";
+            if (practiceMinutesInput)
+              practiceMinutesInput.value = el.dataset.practiceMinutes ?? "";
             if (notesTextarea) notesTextarea.value = el.dataset.notes ?? "";
-            notesModal.classList.add("is-active");
+            entryModal.classList.add("is-active");
           });
         });
 
-        notesModal
+        entryModal
           .querySelector(".modal-background")
-          ?.addEventListener("click", closeNotesModal);
-        notesModal
-          .querySelectorAll("[data-close-notes-modal]")
+          ?.addEventListener("click", closeEntryModal);
+        entryModal
+          .querySelectorAll("[data-close-entry-modal]")
           .forEach((btn) => {
-            btn.addEventListener("click", closeNotesModal);
+            btn.addEventListener("click", closeEntryModal);
           });
       }
     });

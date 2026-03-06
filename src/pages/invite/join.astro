@@ -24,40 +24,97 @@ const ensemble = codeParam ? await getEnsembleByInviteCode(codeParam) : null;
 ---
 
 <SingleColumnLayout title="Join Ensemble" width="wide">
-      <h1 class="title">Join an Ensemble</h1>
-      <p class="subtitle">
-        {
-          user
-            ? "Enter your invite code to join an ensemble"
-            : "Sign in or create an account to join"
-        }
-      </p>
+  <h1 class="title">Join an Ensemble</h1>
+  <p class="subtitle">
+    {
+      user
+        ? "Enter your invite code to join an ensemble"
+        : "Sign in or create an account to join"
+    }
+  </p>
 
-      {
-        error && (
-          <Notification color="danger" light>
-            {error}
-          </Notification>
-        )
-      }
+  {
+    error && (
+      <Notification color="danger" light>
+        {error}
+      </Notification>
+    )
+  }
 
-      {
-        !user && ensemble && (
-          <Box class="mb-5">
-            <h2 class="title is-4">{ensemble.name}</h2>
-            <p class="subtitle is-6">
-              You've been invited to join this ensemble
-            </p>
-          </Box>
-        )
-      }
+  {
+    !user && ensemble && (
+      <Box class="mb-5">
+        <h2 class="title is-4">{ensemble.name}</h2>
+        <p class="subtitle is-6">You've been invited to join this ensemble</p>
+      </Box>
+    )
+  }
 
-      {
-        !user && ensemble?.codeOfConduct && (
-          <Box class="mb-5">
+  {
+    !user && ensemble?.codeOfConduct && (
+      <Box class="mb-5">
+        <h2 class="title is-5">Code of Conduct</h2>
+        <p class="subtitle is-6 mb-4">
+          This ensemble requires agreement to its code of conduct
+        </p>
+        <div
+          class="content"
+          style="max-height: 400px; overflow-y: auto; border: 1px solid #4a4a4a; border-radius: 4px; padding: 1.25rem; background-color: #363636; color: #f5f5f5;"
+        >
+          <div style="white-space: pre-wrap;">{ensemble.codeOfConduct}</div>
+        </div>
+      </Box>
+    )
+  }
+
+  {
+    !user ? (
+      <Box>
+        <div class="content has-text-centered mb-5">
+          <p class="is-size-5">You need a {APP_NAME} account to join</p>
+        </div>
+        <div class="buttons is-centered">
+          <Button
+            href={`/register?redirect=${encodeURIComponent(Astro.url.pathname + Astro.url.search)}`}
+            color="primary"
+            size="large"
+          >
+            <Icon icon="fa-user-plus" />
+            <span>Create Account</span>
+          </Button>
+          <Button
+            href={`/login?redirect=${encodeURIComponent(Astro.url.pathname + Astro.url.search)}`}
+            color="light"
+            size="large"
+          >
+            <Icon icon="fa-sign-in-alt" />
+            <span>Sign In</span>
+          </Button>
+        </div>
+        <p class="has-text-centered mt-4 help">
+          Already have an account? Click "Sign In" to continue
+        </p>
+      </Box>
+    ) : (
+      <form method="POST" action={actions.ensembles.join}>
+        <TextInput
+          name="code"
+          label="Invite Code"
+          value={codeParam || ""}
+          placeholder="ABCD1234"
+          size="large"
+          iconLeft="fa-ticket"
+          style="text-transform: uppercase;"
+          required
+          autofocus
+          help="Enter the 8-character code provided by your ensemble admin"
+        />
+
+        {ensemble?.codeOfConduct && (
+          <Box class="mt-5">
             <h2 class="title is-5">Code of Conduct</h2>
             <p class="subtitle is-6 mb-4">
-              This ensemble requires agreement to its code of conduct
+              Please review and agree to the {ensemble.name} code of conduct
             </p>
             <div
               class="content"
@@ -65,89 +122,28 @@ const ensemble = codeParam ? await getEnsembleByInviteCode(codeParam) : null;
             >
               <div style="white-space: pre-wrap;">{ensemble.codeOfConduct}</div>
             </div>
+            <Checkbox name="agreedToCodeOfConduct" required class="mt-4">
+              <strong class="ml-2">
+                I have read and agree to the code of conduct
+              </strong>
+            </Checkbox>
           </Box>
-        )
-      }
+        )}
 
-      {
-        !user ? (
-          <Box>
-            <div class="content has-text-centered mb-5">
-              <p class="is-size-5">You need a {APP_NAME} account to join</p>
-            </div>
-            <div class="buttons is-centered">
-              <Button
-                href={`/register?redirect=${encodeURIComponent(Astro.url.pathname + Astro.url.search)}`}
-                color="primary"
-                size="large"
-              >
-                <Icon icon="fa-user-plus" />
-                <span>Create Account</span>
-              </Button>
-              <Button
-                href={`/login?redirect=${encodeURIComponent(Astro.url.pathname + Astro.url.search)}`}
-                color="light"
-                size="large"
-              >
-                <Icon icon="fa-sign-in-alt" />
-                <span>Sign In</span>
-              </Button>
-            </div>
-            <p class="has-text-centered mt-4 help">
-              Already have an account? Click "Sign In" to continue
-            </p>
-          </Box>
-        ) : (
-          <form method="POST" action={actions.ensembles.join}>
-            <TextInput
-              name="code"
-              label="Invite Code"
-              value={codeParam || ""}
-              placeholder="ABCD1234"
-              size="large"
-              iconLeft="fa-ticket"
-              style="text-transform: uppercase;"
-              required
-              autofocus
-              help="Enter the 8-character code provided by your ensemble admin"
-            />
-
-            {ensemble?.codeOfConduct && (
-              <Box class="mt-5">
-                <h2 class="title is-5">Code of Conduct</h2>
-                <p class="subtitle is-6 mb-4">
-                  Please review and agree to the {ensemble.name} code of conduct
-                </p>
-                <div
-                  class="content"
-                  style="max-height: 400px; overflow-y: auto; border: 1px solid #4a4a4a; border-radius: 4px; padding: 1.25rem; background-color: #363636; color: #f5f5f5;"
-                >
-                  <div style="white-space: pre-wrap;">
-                    {ensemble.codeOfConduct}
-                  </div>
-                </div>
-                <Checkbox name="agreedToCodeOfConduct" required class="mt-4">
-                  <strong class="ml-2">
-                    I have read and agree to the code of conduct
-                  </strong>
-                </Checkbox>
-              </Box>
-            )}
-
-            <div class="field is-grouped mt-5">
-              <div class="control">
-                <Button type="submit" color="primary" size="large">
-                  <Icon icon="fa-check" />
-                  <span>Join Ensemble</span>
-                </Button>
-              </div>
-              <div class="control">
-                <Button href="/ensembles" color="light" size="large">
-                  Cancel
-                </Button>
-              </div>
-            </div>
-          </form>
-        )
-      }
+        <div class="field is-grouped mt-5">
+          <div class="control">
+            <Button type="submit" color="primary" size="large">
+              <Icon icon="fa-check" />
+              <span>Join Ensemble</span>
+            </Button>
+          </div>
+          <div class="control">
+            <Button href="/ensembles" color="light" size="large">
+              Cancel
+            </Button>
+          </div>
+        </div>
+      </form>
+    )
+  }
 </SingleColumnLayout>

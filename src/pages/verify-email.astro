@@ -33,18 +33,18 @@ if (!token) {
 ---
 
 <SingleColumnLayout title="Verify Email">
-      <h1 class="title">Email Verification</h1>
+  <h1 class="title">Email Verification</h1>
 
-      {
-        error && (
-          <Notification color="danger" light>
-            <p>{error}</p>
-            <p class="mt-3">
-              <Button href="/resend-verification" color="light">
-                Resend verification email
-              </Button>
-            </p>
-          </Notification>
-        )
-      }
+  {
+    error && (
+      <Notification color="danger" light>
+        <p>{error}</p>
+        <p class="mt-3">
+          <Button href="/resend-verification" color="light">
+            Resend verification email
+          </Button>
+        </p>
+      </Notification>
+    )
+  }
 </SingleColumnLayout>

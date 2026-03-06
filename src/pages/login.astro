@@ -54,63 +54,63 @@ if (Astro.locals.user) {
 ---
 
 <SingleColumnLayout title="Log In">
-      <h1 class="title">Log In</h1>
+  <h1 class="title">Log In</h1>
 
-      {
-        unverifiedEmail && (
-          <Notification color="warning" light>
-            <p>
-              <strong>Email not verified.</strong> Please check your inbox for a
-              verification link.
-            </p>
-            <p class="mt-2 is-size-7">
-              <a
-                href={`/resend-verification?email=${encodeURIComponent(unverifiedEmail)}`}
-              >
-                Resend verification email
-              </a>
-            </p>
-          </Notification>
-        )
-      }
-
-      {
-        error && (
-          <Notification color="danger" light>
-            {error}
-          </Notification>
-        )
-      }
-
-      <form method="POST">
-        <TextInput
-          name="email"
-          label="Email"
-          type="email"
-          placeholder="you@example.com"
-          iconLeft="fa-envelope"
-          required
-        />
-        <TextInput
-          name="password"
-          label="Password"
-          type="password"
-          placeholder="••••••••"
-          iconLeft="fa-lock"
-          required
-        />
-
-        <div class="field">
-          <div class="control">
-            <Button color="primary" fullwidth type="submit"> Log In </Button>
-          </div>
-        </div>
-      </form>
-
-      <div class="has-text-centered mt-4">
-        <p><a href="/forgot-password">Forgot your password?</a></p>
-        <p class="mt-2">
-          Don't have an account? <a href="/register">Sign up</a>
+  {
+    unverifiedEmail && (
+      <Notification color="warning" light>
+        <p>
+          <strong>Email not verified.</strong> Please check your inbox for a
+          verification link.
         </p>
+        <p class="mt-2 is-size-7">
+          <a
+            href={`/resend-verification?email=${encodeURIComponent(unverifiedEmail)}`}
+          >
+            Resend verification email
+          </a>
+        </p>
+      </Notification>
+    )
+  }
+
+  {
+    error && (
+      <Notification color="danger" light>
+        {error}
+      </Notification>
+    )
+  }
+
+  <form method="POST">
+    <TextInput
+      name="email"
+      label="Email"
+      type="email"
+      placeholder="you@example.com"
+      iconLeft="fa-envelope"
+      required
+    />
+    <TextInput
+      name="password"
+      label="Password"
+      type="password"
+      placeholder="••••••••"
+      iconLeft="fa-lock"
+      required
+    />
+
+    <div class="field">
+      <div class="control">
+        <Button color="primary" fullwidth type="submit"> Log In </Button>
       </div>
+    </div>
+  </form>
+
+  <div class="has-text-centered mt-4">
+    <p><a href="/forgot-password">Forgot your password?</a></p>
+    <p class="mt-2">
+      Don't have an account? <a href="/register">Sign up</a>
+    </p>
+  </div>
 </SingleColumnLayout>

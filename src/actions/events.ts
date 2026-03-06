@@ -15,6 +15,8 @@ import {
   addProgramSong,
   removeProgramSong,
   updateProgramSongNotes,
+  updateProgramEntry,
+  reorderProgramSongs,
 } from '@lib/events';
 
 export const events = {
@@ -165,13 +167,14 @@ export const events = {
       ensembleId: z.string(),
       eventId: z.string(),
       songId: z.string(),
+      practiceMinutes: z.coerce.number().int().min(1).max(480).optional(),
       notes: z.string().optional(),
     }),
-    handler: async ({ ensembleId, eventId, songId, notes }, context) => {
+    handler: async ({ ensembleId, eventId, songId, practiceMinutes, notes }, context) => {
       const user = context.locals.user;
       if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
       await assertEnsembleAdmin(ensembleId, user);
-      await addProgramSong(eventId, songId, notes);
+      await addProgramSong(eventId, songId, practiceMinutes, notes);
     },
   }),
 
@@ -201,6 +204,44 @@ export const events = {
       if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
       await assertEnsembleAdmin(ensembleId, user);
       await updateProgramSongNotes(programEntryId, notes);
+    },
+  }),
+
+  updateProgramEntry: defineAction({
+    accept: 'form',
+    input: z.object({
+      ensembleId: z.string(),
+      programEntryId: z.string(),
+      notes: z.string().optional(),
+      practiceMinutes: z.coerce.number().int().min(1).max(480).optional(),
+      sortOrder: z.coerce.number().int().min(1).optional(),
+    }),
+    handler: async ({ ensembleId, programEntryId, notes, practiceMinutes, sortOrder }, context) => {
+      const user = context.locals.user;
+      if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
+      await assertEnsembleAdmin(ensembleId, user);
+      await updateProgramEntry(programEntryId, { notes, practiceMinutes: practiceMinutes ?? null, sortOrder });
+    },
+  }),
+
+  reorderProgramSongs: defineAction({
+    accept: 'form',
+    input: z.object({
+      ensembleId: z.string(),
+      eventId: z.string(),
+      orderedEntryIds: z.string(), // JSON array of entry IDs in order
+    }),
+    handler: async ({ ensembleId, eventId, orderedEntryIds }, context) => {
+      const user = context.locals.user;
+      if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
+      await assertEnsembleAdmin(ensembleId, user);
+      let ids: string[];
+      try {
+        ids = JSON.parse(orderedEntryIds);
+      } catch {
+        throw new ActionError({ code: 'BAD_REQUEST', message: 'Invalid order data.' });
+      }
+      await reorderProgramSongs(eventId, ids);
     },
   }),
 
