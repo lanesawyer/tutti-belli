@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { registerUser, resendVerificationEmail, updateName, updatePhone, deleteAccount, updateParts } from '../../src/lib/profile.ts';
+import { registerUser, resendVerificationEmail, updateName, updatePhone, deleteAccount, updateParts, verifyEmailToken } from '../../src/lib/profile.ts';
 import { db, User, EnsembleMember, MemberPart, EmailVerificationToken, eq } from 'astro:db';
 import { createUser, createEnsemble, createMembership, createPart, createMemberPart } from './fixtures.ts';
 
@@ -138,6 +138,80 @@ describe('resendVerificationEmail', () => {
       .where(eq(EmailVerificationToken.userId, user!.id))
       .all();
     expect(tokens).toHaveLength(0);
+  });
+});
+
+describe('verifyEmailToken', () => {
+  it('returns the userId and marks user as verified on a valid token', async () => {
+    const { userId } = await registerUser({
+      name: 'Verify User',
+      email: 'verify-valid@test.com',
+      password: 'password123',
+    });
+    const tokenRow = await db
+      .select()
+      .from(EmailVerificationToken)
+      .where(eq(EmailVerificationToken.userId, userId))
+      .get();
+
+    const result = await verifyEmailToken(tokenRow!.token);
+
+    expect(result).not.toBeNull();
+    expect(result!.userId).toBe(userId);
+
+    const user = await db.select().from(User).where(eq(User.id, userId)).get();
+    expect(user!.emailVerifiedAt).not.toBeNull();
+
+    const updatedToken = await db
+      .select()
+      .from(EmailVerificationToken)
+      .where(eq(EmailVerificationToken.id, tokenRow!.id))
+      .get();
+    expect(updatedToken!.usedAt).not.toBeNull();
+  });
+
+  it('returns null for a token that does not exist', async () => {
+    const result = await verifyEmailToken('nonexistent-token');
+    expect(result).toBeNull();
+  });
+
+  it('returns null for a token that has already been used', async () => {
+    const { userId } = await registerUser({
+      name: 'Used Token User',
+      email: 'verify-used@test.com',
+      password: 'password123',
+    });
+    const tokenRow = await db
+      .select()
+      .from(EmailVerificationToken)
+      .where(eq(EmailVerificationToken.userId, userId))
+      .get();
+
+    await verifyEmailToken(tokenRow!.token);
+    const result = await verifyEmailToken(tokenRow!.token);
+    expect(result).toBeNull();
+  });
+
+  it('returns null for an expired token', async () => {
+    const { userId } = await registerUser({
+      name: 'Expired Token User',
+      email: 'verify-expired@test.com',
+      password: 'password123',
+    });
+    const tokenRow = await db
+      .select()
+      .from(EmailVerificationToken)
+      .where(eq(EmailVerificationToken.userId, userId))
+      .get();
+
+    // Backdate the expiry
+    await db
+      .update(EmailVerificationToken)
+      .set({ expiresAt: new Date(Date.now() - 1000) })
+      .where(eq(EmailVerificationToken.id, tokenRow!.id));
+
+    const result = await verifyEmailToken(tokenRow!.token);
+    expect(result).toBeNull();
   });
 });
 

@@ -255,6 +255,28 @@ export async function resendVerificationEmail(email: string): Promise<void> {
   sendEmailVerificationEmail(email, user.name, token).catch(() => {});
 }
 
+export async function verifyEmailToken(token: string): Promise<{ userId: string } | null> {
+  const now = new Date();
+  const record = await db
+    .select()
+    .from(EmailVerificationToken)
+    .where(
+      and(
+        eq(EmailVerificationToken.token, token),
+        gt(EmailVerificationToken.expiresAt, now),
+        isNull(EmailVerificationToken.usedAt),
+      ),
+    )
+    .get();
+
+  if (!record) return null;
+
+  await db.update(User).set({ emailVerifiedAt: now }).where(eq(User.id, record.userId));
+  await db.update(EmailVerificationToken).set({ usedAt: now }).where(eq(EmailVerificationToken.id, record.id));
+
+  return { userId: record.userId };
+}
+
 async function deleteUserData(userId: string): Promise<void> {
   const memberships = await db
     .select({ id: EnsembleMember.id })
