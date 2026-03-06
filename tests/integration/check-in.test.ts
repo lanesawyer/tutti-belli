@@ -98,7 +98,7 @@ describe('getCheckInPageData', () => {
       checkInEndMinutes: 10,
     });
     const season = await createSeason(ensemble!.id);
-    const event = await createEvent(ensemble!.id, season!.id, {
+    await createEvent(ensemble!.id, season!.id, {
       checkInCode: 'DATACHECK',
       title: 'Spring Concert',
       category: 'performance',

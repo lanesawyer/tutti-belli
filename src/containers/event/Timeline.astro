@@ -1,0 +1,184 @@
+---
+import { db, eq, EventProgram, Song } from "astro:db";
+
+interface Props {
+  eventId: string;
+  isPerformance: boolean;
+  scheduledAt: Date;
+  durationMinutes: number;
+}
+
+const { eventId, isPerformance, scheduledAt, durationMinutes } = Astro.props;
+
+const timedEntries = isPerformance
+  ? []
+  : await db
+      .select({
+        type: EventProgram.type,
+        label: EventProgram.label,
+        songName: Song.name,
+        sortOrder: EventProgram.sortOrder,
+        length: EventProgram.length,
+      })
+      .from(EventProgram)
+      .leftJoin(Song, eq(EventProgram.songId, Song.id))
+      .where(eq(EventProgram.eventId, eventId))
+      .orderBy(EventProgram.sortOrder)
+      .all()
+      .then((rows) =>
+        rows
+          .filter((r) => r.length != null)
+          .map((r) => ({
+            ...r,
+            displayName:
+              r.type === "song" ? (r.songName ?? "") : (r.label ?? r.type),
+          })),
+      );
+
+// Time markers: start, middle, end
+const markers = [0, durationMinutes / 2, durationMinutes].map((offset) => {
+  const d = new Date(scheduledAt.getTime() + offset * 60 * 1000);
+  return {
+    pct: ((offset / durationMinutes) * 100).toFixed(2),
+    label: d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }),
+  };
+});
+---
+
+{
+  timedEntries.length > 0 && (
+    <div class="rehearsal-timeline-wrap mb-5">
+      <div class="rehearsal-timeline">
+        {timedEntries.map((entry) => {
+          const pct = ((entry.length! / durationMinutes) * 100).toFixed(2);
+          const isBreak = entry.type === "break";
+          const isOther = entry.type === "other";
+          return (
+            <div
+              class:list={[
+                "rehearsal-timeline-segment",
+                isBreak && "is-break",
+                isOther && "is-other",
+              ]}
+              style={`width: ${pct}%`}
+              title={`${entry.displayName} — ${entry.length} min`}
+            >
+              <span class="rehearsal-timeline-label">{entry.displayName}</span>
+              <span class="rehearsal-timeline-minutes">{entry.length}m</span>
+            </div>
+          );
+        })}
+      </div>
+      <div class="rehearsal-timeline-ruler">
+        {markers.map((m) => (
+          <div class="rehearsal-timeline-marker" style={`left: ${m.pct}%`}>
+            <div class="rehearsal-timeline-tick" />
+            <span class="rehearsal-timeline-time">{m.label}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+<style>
+  .rehearsal-timeline-wrap {
+    position: relative;
+  }
+
+  .rehearsal-timeline {
+    display: flex;
+    width: 100%;
+    height: 3rem;
+    border-radius: 4px;
+    background: var(--bulma-border-weak);
+    gap: 2px;
+  }
+
+  .rehearsal-timeline-segment {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-width: 2rem;
+    overflow: hidden;
+    background: var(--bulma-primary-80);
+    border-radius: 2px;
+    padding: 0 4px;
+    cursor: default;
+  }
+
+  .rehearsal-timeline-segment:nth-child(even) {
+    background: var(--bulma-primary-70);
+  }
+
+  .rehearsal-timeline-segment.is-break {
+    background: var(--bulma-warning-80);
+  }
+
+  .rehearsal-timeline-segment.is-break:nth-child(even) {
+    background: var(--bulma-warning-70);
+  }
+
+  .rehearsal-timeline-segment.is-other {
+    background: var(--bulma-info-80);
+  }
+
+  .rehearsal-timeline-segment.is-other:nth-child(even) {
+    background: var(--bulma-info-70);
+  }
+
+  .rehearsal-timeline-label {
+    font-size: 0.65rem;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+    line-height: 1.2;
+  }
+
+  .rehearsal-timeline-minutes {
+    font-size: 0.6rem;
+    opacity: 0.75;
+    white-space: nowrap;
+  }
+
+  .rehearsal-timeline-ruler {
+    position: relative;
+    width: 100%;
+    height: 1.25rem;
+    margin-top: 2px;
+  }
+
+  .rehearsal-timeline-marker {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transform: translateX(-50%);
+  }
+
+  /* Pin start marker to left edge, end marker to right edge */
+  .rehearsal-timeline-marker:first-child {
+    transform: translateX(0);
+    align-items: flex-start;
+  }
+
+  .rehearsal-timeline-marker:last-child {
+    transform: translateX(-100%);
+    align-items: flex-end;
+  }
+
+  .rehearsal-timeline-tick {
+    width: 1px;
+    height: 4px;
+    background: var(--bulma-text-weak);
+  }
+
+  .rehearsal-timeline-time {
+    font-size: 0.6rem;
+    color: var(--bulma-text-weak);
+    white-space: nowrap;
+  }
+</style>

@@ -7,16 +7,6 @@
  */
 import { test, expect } from '@playwright/test';
 
-async function navigateToSongs(page: ReturnType<typeof test['info']>['project']['use'] & any) {
-  await page.goto('/ensembles');
-  await page.locator('.card').filter({ hasText: 'Chamber Orchestra' }).locator('a').first().click();
-  await expect(page).toHaveURL(/\/ensembles\/.+/);
-  // Navigate directly via URL rather than clicking the navbar dropdown (which requires hover)
-  const ensembleUrl = page.url();
-  await page.goto(ensembleUrl + '/songs');
-  await expect(page).toHaveURL(/\/songs/);
-}
-
 test('songs page loads for an ensemble admin', async ({ page }) => {
   await page.goto('/ensembles');
   await page.locator('.card').filter({ hasText: 'Chamber Orchestra' }).locator('a').first().click();

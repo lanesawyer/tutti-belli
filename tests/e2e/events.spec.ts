@@ -103,7 +103,7 @@ test('admin can add a song to the rehearsal plan with practice minutes', async (
   }
 
   // Fill in practice minutes
-  await addForm.locator('input[name="practiceMinutes"]').fill('15');
+  await addForm.locator('input[name="length"]').fill('15');
 
   // Submit
   await addForm.locator('button[type="submit"]').click();

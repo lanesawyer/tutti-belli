@@ -21,6 +21,7 @@ import {
   getRsvpForUser,
 } from "@lib/events";
 import { formatDuration } from "@lib/format";
+import Timeline from "@containers/event/Timeline.astro";
 
 const user = Astro.locals.user!;
 
@@ -154,7 +155,7 @@ const dateValue = scheduledDate.toISOString().split("T")[0];
 const timeValue = scheduledDate.toTimeString().slice(0, 5);
 
 // Fetch program data for all event types (rehearsal + performance)
-const { programSongs, availableSeasonSongs } = await getEventProgramData(
+const { programEntries, availableSeasonSongs } = await getEventProgramData(
   eventId,
   event.seasonId,
 );
@@ -701,17 +702,24 @@ const programLabel = isPerformance ? "Set List" : "Rehearsal Plan";
       </span>
     </h2>
 
+    <Timeline
+      eventId={event.id}
+      isPerformance={isPerformance}
+      scheduledAt={scheduledDate}
+      durationMinutes={event.durationMinutes}
+    />
+
     {
-      programSongs.length === 0 ? (
+      programEntries.length === 0 ? (
         <Notification color="info" light>
-          No songs added yet.
+          No items added yet.
         </Notification>
       ) : (
         <table class="table is-fullwidth is-striped">
           <thead>
             <tr>
               <th style="width: 40px;">#</th>
-              <th>Song</th>
+              <th>Item</th>
               <th>Composer</th>
               {!isPerformance && <th style="width: 90px;">Minutes</th>}
               <th>Notes</th>
@@ -719,64 +727,81 @@ const programLabel = isPerformance ? "Set List" : "Rehearsal Plan";
             </tr>
           </thead>
           <tbody>
-            {programSongs.map((song, i) => (
-              <tr>
-                <td class="has-text-grey">{song.sortOrder}</td>
-                <td>
-                  <strong>{song.name}</strong>
-                </td>
-                <td class="has-text-grey">{song.composer ?? "—"}</td>
-                {!isPerformance && (
-                  <td class="has-text-grey">
-                    {song.practiceMinutes ? `${song.practiceMinutes} min` : "—"}
-                  </td>
-                )}
-                <td>
-                  <span class="has-text-grey is-size-7">
-                    {song.notes ?? "—"}
-                  </span>
-                </td>
-                {isAdmin && (
+            {programEntries.map((entry) => {
+              const isSong = entry.type === "song";
+              const displayName = isSong ? entry.name : entry.label;
+              return (
+                <tr>
+                  <td class="has-text-grey">{entry.sortOrder}</td>
                   <td>
-                    <span
-                      class="is-flex is-align-items-center"
-                      style="gap: 0.4rem;"
-                    >
-                      <button
-                        type="button"
-                        class="button is-small edit-entry-btn"
-                        title="Edit entry"
-                        data-entry-id={song.entryId}
-                        data-notes={song.notes ?? ""}
-                        data-practice-minutes={song.practiceMinutes ?? ""}
-                        data-sort-order={song.sortOrder}
+                    <strong>{displayName}</strong>
+                    {!isSong && (
+                      <Tag
+                        size="small"
+                        color={entry.type === "break" ? "warning" : "info"}
+                        class="ml-2"
                       >
-                        <Icon icon="fa-pencil" size="small" />
-                      </button>
-                      <form
-                        method="POST"
-                        action={actions.events.removeProgramSong}
-                        style="display: inline;"
-                      >
-                        <input
-                          type="hidden"
-                          name="ensembleId"
-                          value={ensemble.id}
-                        />
-                        <input
-                          type="hidden"
-                          name="programEntryId"
-                          value={song.entryId}
-                        />
-                        <Button type="submit" color="danger" size="small">
-                          <Icon icon="fa-times" size="small" />
-                        </Button>
-                      </form>
+                        {entry.type === "break" ? "Break" : "Other"}
+                      </Tag>
+                    )}
+                  </td>
+                  <td class="has-text-grey">
+                    {isSong ? (entry.composer ?? "—") : ""}
+                  </td>
+                  {!isPerformance && (
+                    <td class="has-text-grey">
+                      {entry.length ? `${entry.length} min` : "—"}
+                    </td>
+                  )}
+                  <td>
+                    <span class="has-text-grey is-size-7">
+                      {entry.notes ?? "—"}
                     </span>
                   </td>
-                )}
-              </tr>
-            ))}
+                  {isAdmin && (
+                    <td>
+                      <span
+                        class="is-flex is-align-items-center"
+                        style="gap: 0.4rem;"
+                      >
+                        <button
+                          type="button"
+                          class="button is-small edit-entry-btn"
+                          title="Edit entry"
+                          data-entry-id={entry.entryId}
+                          data-type={entry.type}
+                          data-label={entry.label ?? ""}
+                          data-notes={entry.notes ?? ""}
+                          data-practice-minutes={entry.length ?? ""}
+                          data-sort-order={entry.sortOrder}
+                        >
+                          <Icon icon="fa-pencil" size="small" />
+                        </button>
+                        <form
+                          method="POST"
+                          action={actions.events.removeProgramSong}
+                          style="display: inline;"
+                        >
+                          <input
+                            type="hidden"
+                            name="ensembleId"
+                            value={ensemble.id}
+                          />
+                          <input
+                            type="hidden"
+                            name="programEntryId"
+                            value={entry.entryId}
+                          />
+                          <Button type="submit" color="danger" size="small">
+                            <Icon icon="fa-times" size="small" />
+                          </Button>
+                        </form>
+                      </span>
+                    </td>
+                  )}
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       )
@@ -799,7 +824,7 @@ const programLabel = isPerformance ? "Set List" : "Rehearsal Plan";
 
           {!isPerformance && (
             <TextInput
-              name="practiceMinutes"
+              name="length"
               label="Minutes (optional)"
               type="number"
               size="small"
@@ -847,6 +872,57 @@ const programLabel = isPerformance ? "Set List" : "Rehearsal Plan";
           </a>{" "}
           to see them here.
         </p>
+      )
+    }
+
+    {
+      isAdmin && !isPerformance && (
+        <>
+          <hr />
+          <p class="label is-small">Add Break / Other Item</p>
+          <form method="POST" action={actions.events.addProgramItem}>
+            <input type="hidden" name="ensembleId" value={ensemble.id} />
+            <input type="hidden" name="eventId" value={event.id} />
+
+            <div class="field is-grouped">
+              <div class="control">
+                <Select name="type" label="Type" size="small" standalone>
+                  <option value="break">Break</option>
+                  <option value="other">Other</option>
+                </Select>
+              </div>
+              <div class="control is-expanded">
+                <TextInput
+                  name="label"
+                  label="Label"
+                  type="text"
+                  size="small"
+                  placeholder="e.g. 15-min break, Announcements"
+                  required
+                  standalone
+                />
+              </div>
+              <div class="control">
+                <TextInput
+                  name="length"
+                  label="Minutes (optional)"
+                  type="number"
+                  size="small"
+                  min="1"
+                  max="480"
+                  placeholder="e.g. 10"
+                  standalone
+                />
+              </div>
+              <div class="control" style="align-self: flex-end;">
+                <Button type="submit" color="info" size="small">
+                  <Icon icon="fa-plus" />
+                  <span>Add</span>
+                </Button>
+              </div>
+            </div>
+          </form>
+        </>
       )
     }
   </Box>
@@ -999,6 +1075,15 @@ const programLabel = isPerformance ? "Set List" : "Rehearsal Plan";
             <section class="modal-card-body">
               <input type="hidden" name="ensembleId" value={ensemble.id} />
               <input type="hidden" name="programEntryId" id="edit-entry-id" />
+              <div id="edit-entry-label-field">
+                <TextInput
+                  name="label"
+                  label="Label"
+                  type="text"
+                  id="edit-entry-label"
+                  placeholder="e.g. 15-min break, Announcements"
+                />
+              </div>
               <TextInput
                 name="sortOrder"
                 label="Order"
@@ -1009,8 +1094,8 @@ const programLabel = isPerformance ? "Set List" : "Rehearsal Plan";
               />
               {!isPerformance && (
                 <TextInput
-                  name="practiceMinutes"
-                  label="Practice time (minutes)"
+                  name="length"
+                  label="Minutes"
                   type="number"
                   id="edit-entry-practice-minutes"
                   min="1"
@@ -1031,7 +1116,7 @@ const programLabel = isPerformance ? "Set List" : "Rehearsal Plan";
                     placeholder="Rehearsal focus, cues, timing notes..."
                   />
                 </div>
-                <p class="help">Leave blank to clear notes for this song.</p>
+                <p class="help">Leave blank to clear notes.</p>
               </div>
             </section>
             <footer class="modal-card-foot">
@@ -1071,10 +1156,14 @@ const programLabel = isPerformance ? "Set List" : "Rehearsal Plan";
         const entryIdInput = document.getElementById(
           "edit-entry-id",
         ) as HTMLInputElement | null;
+        const labelField = document.getElementById("edit-entry-label-field");
+        const labelInput = document.getElementById(
+          "edit-entry-label",
+        ) as HTMLInputElement | null;
         const sortOrderInput = document.getElementById(
           "edit-entry-sort-order",
         ) as HTMLInputElement | null;
-        const practiceMinutesInput = document.getElementById(
+        const lengthInput = document.getElementById(
           "edit-entry-practice-minutes",
         ) as HTMLInputElement | null;
         const notesTextarea = document.getElementById(
@@ -1086,11 +1175,13 @@ const programLabel = isPerformance ? "Set List" : "Rehearsal Plan";
         document.querySelectorAll(".edit-entry-btn").forEach((btn) => {
           btn.addEventListener("click", () => {
             const el = btn as HTMLElement;
+            const isSong = el.dataset.type === "song";
             if (entryIdInput) entryIdInput.value = el.dataset.entryId ?? "";
+            if (labelField) labelField.style.display = isSong ? "none" : "";
+            if (labelInput) labelInput.value = el.dataset.label ?? "";
             if (sortOrderInput)
               sortOrderInput.value = el.dataset.sortOrder ?? "";
-            if (practiceMinutesInput)
-              practiceMinutesInput.value = el.dataset.practiceMinutes ?? "";
+            if (lengthInput) lengthInput.value = el.dataset.length ?? "";
             if (notesTextarea) notesTextarea.value = el.dataset.notes ?? "";
             entryModal.classList.add("is-active");
           });

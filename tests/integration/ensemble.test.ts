@@ -2,7 +2,6 @@ import { describe, it, expect } from 'vitest';
 import { getEnsembleBySlugOrId } from '../../src/lib/ensemble.ts';
 import { findUniqueSlug } from '../../src/lib/slug.ts';
 import { createUser, createEnsemble } from './fixtures.ts';
-import { db, Ensemble, eq } from 'astro:db';
 
 describe('getEnsembleBySlugOrId', () => {
   it('returns an ensemble when looked up by UUID id', async () => {
@@ -40,7 +39,6 @@ describe('getEnsembleBySlugOrId', () => {
 
 describe('findUniqueSlug', () => {
   it('returns the generated slug when it is not already taken', async () => {
-    const admin = await createUser({ role: 'admin' });
     const uuid = crypto.randomUUID();
 
     const slug = await findUniqueSlug('My Ensemble', uuid);

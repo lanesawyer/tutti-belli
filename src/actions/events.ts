@@ -13,6 +13,7 @@ import {
   setRsvp,
   removeRsvp,
   addProgramSong,
+  addProgramItem,
   removeProgramSong,
   updateProgramSongNotes,
   updateProgramEntry,
@@ -167,14 +168,32 @@ export const events = {
       ensembleId: z.string(),
       eventId: z.string(),
       songId: z.string(),
-      practiceMinutes: z.coerce.number().int().min(1).max(480).optional(),
+      length: z.coerce.number().int().min(1).max(480).optional(),
       notes: z.string().optional(),
     }),
-    handler: async ({ ensembleId, eventId, songId, practiceMinutes, notes }, context) => {
+    handler: async ({ ensembleId, eventId, songId, length, notes }, context) => {
       const user = context.locals.user;
       if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
       await assertEnsembleAdmin(ensembleId, user);
-      await addProgramSong(eventId, songId, practiceMinutes, notes);
+      await addProgramSong(eventId, songId, length, notes);
+    },
+  }),
+
+  addProgramItem: defineAction({
+    accept: 'form',
+    input: z.object({
+      ensembleId: z.string(),
+      eventId: z.string(),
+      type: z.enum(['break', 'other']),
+      label: z.string().min(1),
+      length: z.coerce.number().int().min(1).max(480).optional(),
+      notes: z.string().optional(),
+    }),
+    handler: async ({ ensembleId, eventId, type, label, length, notes }, context) => {
+      const user = context.locals.user;
+      if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
+      await assertEnsembleAdmin(ensembleId, user);
+      await addProgramItem(eventId, type, label, length, notes);
     },
   }),
 
@@ -212,15 +231,16 @@ export const events = {
     input: z.object({
       ensembleId: z.string(),
       programEntryId: z.string(),
+      label: z.string().optional(),
       notes: z.string().optional(),
-      practiceMinutes: z.coerce.number().int().min(1).max(480).optional(),
+      length: z.coerce.number().int().min(1).max(480).optional(),
       sortOrder: z.coerce.number().int().min(1).optional(),
     }),
-    handler: async ({ ensembleId, programEntryId, notes, practiceMinutes, sortOrder }, context) => {
+    handler: async ({ ensembleId, programEntryId, label, notes, length, sortOrder }, context) => {
       const user = context.locals.user;
       if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
       await assertEnsembleAdmin(ensembleId, user);
-      await updateProgramEntry(programEntryId, { notes, practiceMinutes: practiceMinutes ?? null, sortOrder });
+      await updateProgramEntry(programEntryId, { label, notes, length: length ?? null, sortOrder });
     },
   }),
 

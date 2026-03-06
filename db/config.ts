@@ -196,9 +196,11 @@ const EventProgram = defineTable({
   columns: {
     id: column.text({ primaryKey: true }),
     eventId: column.text({ references: () => Event.columns.id }),
-    songId: column.text({ references: () => Song.columns.id }),
+    type: column.text({ enum: ['song', 'break', 'other'], default: 'song' }),
+    songId: column.text({ optional: true, references: () => Song.columns.id }),
+    label: column.text({ optional: true }), // Display name for non-song entries (breaks, announcements, etc.)
     sortOrder: column.number({ default: 0 }),
-    practiceMinutes: column.number({ optional: true }), // Minutes allocated for practicing this song
+    length: column.number({ optional: true }), // Minutes allocated for this entry
     notes: column.text({ optional: true }),
     addedAt: column.date({ default: NOW }),
   }

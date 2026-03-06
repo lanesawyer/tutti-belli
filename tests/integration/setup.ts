@@ -186,9 +186,11 @@ const CREATE_STATEMENTS = [
   `CREATE TABLE IF NOT EXISTS "EventProgram" (
     "id" TEXT PRIMARY KEY,
     "eventId" TEXT NOT NULL REFERENCES "Event"("id"),
-    "songId" TEXT NOT NULL REFERENCES "Song"("id"),
+    "type" TEXT DEFAULT 'song' NOT NULL,
+    "songId" TEXT REFERENCES "Song"("id"),
+    "label" TEXT,
     "sortOrder" INTEGER DEFAULT 0 NOT NULL,
-    "practiceMinutes" INTEGER,
+    "length" INTEGER,
     "notes" TEXT,
     "addedAt" TEXT DEFAULT CURRENT_TIMESTAMP
   )`,

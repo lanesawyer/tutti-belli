@@ -5,7 +5,6 @@ import {
   checkInByCode,
   addAttendance,
   removeAttendance,
-  getEvent,
   addProgramSong,
   removeProgramSong,
   updateProgramSongNotes,
@@ -16,7 +15,7 @@ import {
   removeRsvp,
   isRsvpEnabled,
 } from '../../src/lib/events.ts';
-import { db, Attendance, Event, EventProgram, EventRsvp, GroupMembership, eq, and } from 'astro:db';
+import { db, Attendance, Event, EventProgram, EventRsvp, eq, and } from 'astro:db';
 import {
   createUser,
   createEnsemble,
@@ -334,7 +333,7 @@ describe('addProgramSong', () => {
     expect(rows[0].songId).toBe(song!.id);
   });
 
-  it('adds a song with practiceMinutes', async () => {
+  it('adds a song with length', async () => {
     const admin = await createUser({ role: 'admin' });
     const ensemble = await createEnsemble(admin!.id);
     const season = await createSeason(ensemble!.id);
@@ -344,7 +343,7 @@ describe('addProgramSong', () => {
     await addProgramSong(event!.id, song!.id, 20);
 
     const row = await db.select().from(EventProgram).where(eq(EventProgram.eventId, event!.id)).get();
-    expect(row!.practiceMinutes).toBe(20);
+    expect(row!.length).toBe(20);
   });
 
   it('adds a song with notes', async () => {
@@ -360,7 +359,7 @@ describe('addProgramSong', () => {
     expect(row!.notes).toBe('Focus on intonation in measures 12-16');
   });
 
-  it('adds a song with both practiceMinutes and notes', async () => {
+  it('adds a song with both length and notes', async () => {
     const admin = await createUser({ role: 'admin' });
     const ensemble = await createEnsemble(admin!.id);
     const season = await createSeason(ensemble!.id);
@@ -370,7 +369,7 @@ describe('addProgramSong', () => {
     await addProgramSong(event!.id, song!.id, 15, 'Work on dynamics');
 
     const row = await db.select().from(EventProgram).where(eq(EventProgram.eventId, event!.id)).get();
-    expect(row!.practiceMinutes).toBe(15);
+    expect(row!.length).toBe(15);
     expect(row!.notes).toBe('Work on dynamics');
   });
 
@@ -452,7 +451,7 @@ describe('removeProgramSong', () => {
 });
 
 describe('updateProgramEntry', () => {
-  it('updates practiceMinutes on an existing entry', async () => {
+  it('updates length on an existing entry', async () => {
     const admin = await createUser({ role: 'admin' });
     const ensemble = await createEnsemble(admin!.id);
     const season = await createSeason(ensemble!.id);
@@ -460,24 +459,24 @@ describe('updateProgramEntry', () => {
     const song = await createSong(ensemble!.id);
     const entry = await createEventProgramEntry(event!.id, song!.id);
 
-    await updateProgramEntry(entry!.id, { practiceMinutes: 30 });
+    await updateProgramEntry(entry!.id, { length: 30 });
 
     const row = await db.select().from(EventProgram).where(eq(EventProgram.id, entry!.id)).get();
-    expect(row!.practiceMinutes).toBe(30);
+    expect(row!.length).toBe(30);
   });
 
-  it('clears practiceMinutes when set to null', async () => {
+  it('clears length when set to null', async () => {
     const admin = await createUser({ role: 'admin' });
     const ensemble = await createEnsemble(admin!.id);
     const season = await createSeason(ensemble!.id);
     const event = await createEvent(ensemble!.id, season!.id);
     const song = await createSong(ensemble!.id);
-    const entry = await createEventProgramEntry(event!.id, song!.id, { practiceMinutes: 20 });
+    const entry = await createEventProgramEntry(event!.id, song!.id, { length: 20 });
 
-    await updateProgramEntry(entry!.id, { practiceMinutes: null });
+    await updateProgramEntry(entry!.id, { length: null });
 
     const row = await db.select().from(EventProgram).where(eq(EventProgram.id, entry!.id)).get();
-    expect(row!.practiceMinutes).toBeNull();
+    expect(row!.length).toBeNull();
   });
 
   it('updates sortOrder on an existing entry', async () => {
@@ -494,7 +493,7 @@ describe('updateProgramEntry', () => {
     expect(row!.sortOrder).toBe(5);
   });
 
-  it('updates notes and practiceMinutes together', async () => {
+  it('updates notes and length together', async () => {
     const admin = await createUser({ role: 'admin' });
     const ensemble = await createEnsemble(admin!.id);
     const season = await createSeason(ensemble!.id);
@@ -502,11 +501,11 @@ describe('updateProgramEntry', () => {
     const song = await createSong(ensemble!.id);
     const entry = await createEventProgramEntry(event!.id, song!.id);
 
-    await updateProgramEntry(entry!.id, { notes: 'Watch the tempo', practiceMinutes: 25 });
+    await updateProgramEntry(entry!.id, { notes: 'Watch the tempo', length: 25 });
 
     const row = await db.select().from(EventProgram).where(eq(EventProgram.id, entry!.id)).get();
     expect(row!.notes).toBe('Watch the tempo');
-    expect(row!.practiceMinutes).toBe(25);
+    expect(row!.length).toBe(25);
   });
 
   it('trims whitespace-only notes to null', async () => {
