@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
-import { registerUser, resendVerificationEmail, updateName, updatePhone, deleteAccount, updateParts, verifyEmailToken, verifyEmailChangeToken } from '../../src/lib/profile.ts';
-import { db, User, EnsembleMember, MemberPart, EmailVerificationToken, EmailChangeToken, eq } from 'astro:db';
+import { registerUser, resendVerificationEmail, updateName, updatePhone, deleteAccount, updateParts, verifyEmailToken, verifyEmailChangeToken, validatePasswordResetToken, resetPassword } from '../../src/lib/profile.ts';
+import { db, User, EnsembleMember, MemberPart, EmailVerificationToken, EmailChangeToken, PasswordResetToken, eq } from 'astro:db';
 import { createUser, createEnsemble, createMembership, createPart, createMemberPart } from './fixtures.ts';
 
 // Mock email module — we don't want to call the real Resend API in tests
@@ -277,6 +277,95 @@ describe('verifyEmailChangeToken', () => {
     expect(unchanged!.email).toBe('changer@test.com');
     const tokenRow = await db.select().from(EmailChangeToken).where(eq(EmailChangeToken.token, token)).get();
     expect(tokenRow!.usedAt).not.toBeNull();
+  });
+});
+
+describe('validatePasswordResetToken', () => {
+  async function insertResetToken(userId: string, overrides: { usedAt?: Date; expiresAt?: Date } = {}) {
+    const token = crypto.randomUUID();
+    await db.insert(PasswordResetToken).values({
+      id: crypto.randomUUID(),
+      userId,
+      token,
+      expiresAt: overrides.expiresAt ?? new Date(Date.now() + 60 * 60 * 1000),
+      usedAt: overrides.usedAt,
+    });
+    return token;
+  }
+
+  it('returns true for a valid unused unexpired token', async () => {
+    const user = await createUser();
+    const token = await insertResetToken(user!.id);
+    expect(await validatePasswordResetToken(token)).toBe(true);
+  });
+
+  it('returns false for a nonexistent token', async () => {
+    expect(await validatePasswordResetToken('nonexistent-token')).toBe(false);
+  });
+
+  it('returns false for an expired token', async () => {
+    const user = await createUser();
+    const token = await insertResetToken(user!.id, { expiresAt: new Date(Date.now() - 1000) });
+    expect(await validatePasswordResetToken(token)).toBe(false);
+  });
+
+  it('returns false for an already-used token', async () => {
+    const user = await createUser();
+    const token = await insertResetToken(user!.id, { usedAt: new Date() });
+    expect(await validatePasswordResetToken(token)).toBe(false);
+  });
+});
+
+describe('resetPassword', () => {
+  async function insertResetToken(userId: string, overrides: { usedAt?: Date; expiresAt?: Date } = {}) {
+    const token = crypto.randomUUID();
+    await db.insert(PasswordResetToken).values({
+      id: crypto.randomUUID(),
+      userId,
+      token,
+      expiresAt: overrides.expiresAt ?? new Date(Date.now() + 60 * 60 * 1000),
+      usedAt: overrides.usedAt,
+    });
+    return token;
+  }
+
+  it('updates the password hash and marks the token used on success', async () => {
+    const user = await createUser({ password: 'old-password' });
+    const token = await insertResetToken(user!.id);
+
+    const result = await resetPassword(token, 'new-password-123');
+
+    expect(result).toEqual({ type: 'success' });
+    const updated = await db.select().from(User).where(eq(User.id, user!.id)).get();
+    expect(updated!.passwordHash).not.toBe(user!.passwordHash);
+    const tokenRow = await db.select().from(PasswordResetToken).where(eq(PasswordResetToken.token, token)).get();
+    expect(tokenRow!.usedAt).not.toBeNull();
+  });
+
+  it('returns error for a password shorter than 6 characters', async () => {
+    const user = await createUser();
+    const token = await insertResetToken(user!.id);
+    const result = await resetPassword(token, 'abc');
+    expect(result).toEqual({ type: 'error', message: 'Password must be at least 6 characters.' });
+  });
+
+  it('returns invalid for a nonexistent token', async () => {
+    const result = await resetPassword('nonexistent-token', 'validpassword123');
+    expect(result).toEqual({ type: 'invalid' });
+  });
+
+  it('returns invalid for an expired token', async () => {
+    const user = await createUser();
+    const token = await insertResetToken(user!.id, { expiresAt: new Date(Date.now() - 1000) });
+    const result = await resetPassword(token, 'validpassword123');
+    expect(result).toEqual({ type: 'invalid' });
+  });
+
+  it('returns invalid for an already-used token', async () => {
+    const user = await createUser();
+    const token = await insertResetToken(user!.id, { usedAt: new Date() });
+    const result = await resetPassword(token, 'validpassword123');
+    expect(result).toEqual({ type: 'invalid' });
   });
 });
 

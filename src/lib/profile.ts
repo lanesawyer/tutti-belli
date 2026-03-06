@@ -310,6 +310,50 @@ export async function verifyEmailToken(token: string): Promise<{ userId: string 
   return { userId: record.userId };
 }
 
+export async function validatePasswordResetToken(token: string): Promise<boolean> {
+  const now = new Date();
+  const [record] = await db
+    .select({ id: PasswordResetToken.id })
+    .from(PasswordResetToken)
+    .where(
+      and(
+        eq(PasswordResetToken.token, token),
+        gt(PasswordResetToken.expiresAt, now),
+        isNull(PasswordResetToken.usedAt),
+      ),
+    );
+  return !!record;
+}
+
+export async function resetPassword(
+  token: string,
+  password: string,
+): Promise<{ type: 'success' } | { type: 'invalid' } | { type: 'error'; message: string }> {
+  if (!password || password.length < 6) {
+    return { type: 'error', message: 'Password must be at least 6 characters.' };
+  }
+
+  const now = new Date();
+  const [record] = await db
+    .select()
+    .from(PasswordResetToken)
+    .where(
+      and(
+        eq(PasswordResetToken.token, token),
+        gt(PasswordResetToken.expiresAt, now),
+        isNull(PasswordResetToken.usedAt),
+      ),
+    );
+
+  if (!record) return { type: 'invalid' };
+
+  const passwordHash = await hashPassword(password);
+  await db.update(User).set({ passwordHash }).where(eq(User.id, record.userId));
+  await db.update(PasswordResetToken).set({ usedAt: now }).where(eq(PasswordResetToken.id, record.id));
+
+  return { type: 'success' };
+}
+
 async function deleteUserData(userId: string): Promise<void> {
   const memberships = await db
     .select({ id: EnsembleMember.id })
