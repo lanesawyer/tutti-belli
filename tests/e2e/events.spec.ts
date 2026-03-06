@@ -44,25 +44,25 @@ test('/checkin/[code] page loads for a valid-format code', async ({ page }) => {
   expect(response?.status()).toBeLessThan(500);
 });
 
-async function navigateToPerformanceEvent(page: ReturnType<typeof test['info']>['project']['use'] & any) {
+async function navigateToRehearsalEvent(page: ReturnType<typeof test['info']>['project']['use'] & any) {
   await page.goto('/ensembles');
   await page.locator('.card').filter({ hasText: 'Chamber Orchestra' }).locator('a').first().click();
   await expect(page).toHaveURL(/\/ensembles\/.+/);
   const ensembleUrl = page.url();
   await page.goto(ensembleUrl + '/events');
   await expect(page).toHaveURL(/\/events/);
-  // Navigate to the Spring Concert performance which has program songs in seed data
-  await page.locator('a').filter({ hasText: 'Spring Concert 2026' }).first().click();
+  // Navigate to the Current Rehearsal which has program songs in seed data and is a rehearsal (not performance)
+  await page.locator('tr').filter({ hasText: 'Current Rehearsal' }).locator('a', { hasText: 'View' }).click();
   await expect(page).toHaveURL(/\/events\/.+/);
 }
 
 test('rehearsal plan table shows Minutes column', async ({ page }) => {
-  await navigateToPerformanceEvent(page);
+  await navigateToRehearsalEvent(page);
   await expect(page.locator('th').filter({ hasText: 'Minutes' })).toBeVisible();
 });
 
 test('admin can edit a program entry to set practice minutes and order', async ({ page }) => {
-  await navigateToPerformanceEvent(page);
+  await navigateToRehearsalEvent(page);
 
   // Click the first edit (pencil) button in the program table
   await page.locator('.edit-entry-btn').first().click();
@@ -91,7 +91,7 @@ test('admin can add a song to the rehearsal plan with practice minutes', async (
   await expect(page).toHaveURL(/\/events/);
 
   // Navigate to Weekly Rehearsal which has no program songs but season songs available
-  await page.locator('a').filter({ hasText: 'Weekly Rehearsal' }).first().click();
+  await page.locator('tr').filter({ hasText: 'Weekly Rehearsal' }).locator('a', { hasText: 'View' }).click();
   await expect(page).toHaveURL(/\/events\/.+/);
 
   // If there's an "Add to" form visible (songs available to add), test it

@@ -398,10 +398,11 @@ The Chamber Orchestra Leadership Team`,
 
   // Current time rehearsal (happening right now - for testing check-in)
   const currentDate = new Date();
+  const currentRehearsalId = crypto.randomUUID();
 
   await db.insert(Event).values([
     {
-      id: crypto.randomUUID(),
+      id: currentRehearsalId,
       ensembleId: ensembleId,
       seasonId: seasonId,
       category: 'rehearsal',
@@ -561,6 +562,12 @@ The Chamber Orchestra Leadership Team`,
     { id: crypto.randomUUID(), eventId: performanceId, songId: song3Id, sortOrder: 1 }, // Lux Aurumque
     { id: crypto.randomUUID(), eventId: performanceId, songId: song2Id, sortOrder: 2 }, // Shenandoah
     { id: crypto.randomUUID(), eventId: performanceId, songId: song1Id, sortOrder: 3 }, // Ave Maria
+  ]);
+
+  // Add season songs to the current rehearsal plan
+  await db.insert(EventProgram).values([
+    { id: crypto.randomUUID(), eventId: currentRehearsalId, songId: song1Id, sortOrder: 1, practiceMinutes: 10 }, // Ave Maria
+    { id: crypto.randomUUID(), eventId: currentRehearsalId, songId: song2Id, sortOrder: 2 }, // Shenandoah
   ]);
 
   console.log('✓ Seeded database successfully!');
