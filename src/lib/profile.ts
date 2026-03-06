@@ -255,6 +255,39 @@ export async function resendVerificationEmail(email: string): Promise<void> {
   sendEmailVerificationEmail(email, user.name, token).catch(() => {});
 }
 
+export type VerifyEmailChangeResult =
+  | { type: 'success'; newEmail: string }
+  | { type: 'conflict' }
+  | { type: 'invalid' };
+
+export async function verifyEmailChangeToken(token: string): Promise<VerifyEmailChangeResult> {
+  const now = new Date();
+  const [record] = await db
+    .select()
+    .from(EmailChangeToken)
+    .where(
+      and(
+        eq(EmailChangeToken.token, token),
+        gt(EmailChangeToken.expiresAt, now),
+        isNull(EmailChangeToken.usedAt),
+      ),
+    );
+
+  if (!record) return { type: 'invalid' };
+
+  const [conflict] = await db.select({ id: User.id }).from(User).where(eq(User.email, record.newEmail));
+
+  if (conflict) {
+    await db.update(EmailChangeToken).set({ usedAt: now }).where(eq(EmailChangeToken.id, record.id));
+    return { type: 'conflict' };
+  }
+
+  await db.update(User).set({ email: record.newEmail }).where(eq(User.id, record.userId));
+  await db.update(EmailChangeToken).set({ usedAt: now }).where(eq(EmailChangeToken.id, record.id));
+
+  return { type: 'success', newEmail: record.newEmail };
+}
+
 export async function verifyEmailToken(token: string): Promise<{ userId: string } | null> {
   const now = new Date();
   const record = await db

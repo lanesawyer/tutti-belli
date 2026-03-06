@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
-import { registerUser, resendVerificationEmail, updateName, updatePhone, deleteAccount, updateParts, verifyEmailToken } from '../../src/lib/profile.ts';
-import { db, User, EnsembleMember, MemberPart, EmailVerificationToken, eq } from 'astro:db';
+import { registerUser, resendVerificationEmail, updateName, updatePhone, deleteAccount, updateParts, verifyEmailToken, verifyEmailChangeToken } from '../../src/lib/profile.ts';
+import { db, User, EnsembleMember, MemberPart, EmailVerificationToken, EmailChangeToken, eq } from 'astro:db';
 import { createUser, createEnsemble, createMembership, createPart, createMemberPart } from './fixtures.ts';
 
 // Mock email module — we don't want to call the real Resend API in tests
@@ -212,6 +212,71 @@ describe('verifyEmailToken', () => {
 
     const result = await verifyEmailToken(tokenRow!.token);
     expect(result).toBeNull();
+  });
+});
+
+describe('verifyEmailChangeToken', () => {
+  async function insertChangeToken(userId: string, newEmail: string, overrides: { usedAt?: Date; expiresAt?: Date } = {}) {
+    const token = crypto.randomUUID();
+    await db.insert(EmailChangeToken).values({
+      id: crypto.randomUUID(),
+      userId,
+      token,
+      newEmail,
+      expiresAt: overrides.expiresAt ?? new Date(Date.now() + 60 * 60 * 1000),
+      usedAt: overrides.usedAt,
+    });
+    return token;
+  }
+
+  it('updates the user email and marks the token used on success', async () => {
+    const user = await createUser({ email: 'old-email@test.com' });
+    const token = await insertChangeToken(user!.id, 'new-email@test.com');
+
+    const result = await verifyEmailChangeToken(token);
+
+    expect(result).toEqual({ type: 'success', newEmail: 'new-email@test.com' });
+    const updated = await db.select().from(User).where(eq(User.id, user!.id)).get();
+    expect(updated!.email).toBe('new-email@test.com');
+    const tokenRow = await db.select().from(EmailChangeToken).where(eq(EmailChangeToken.token, token)).get();
+    expect(tokenRow!.usedAt).not.toBeNull();
+  });
+
+  it('returns invalid for a nonexistent token', async () => {
+    const result = await verifyEmailChangeToken('nonexistent-token');
+    expect(result).toEqual({ type: 'invalid' });
+  });
+
+  it('returns invalid for an expired token', async () => {
+    const user = await createUser({ email: 'expired-change@test.com' });
+    const token = await insertChangeToken(user!.id, 'expired-new@test.com', {
+      expiresAt: new Date(Date.now() - 1000),
+    });
+    const result = await verifyEmailChangeToken(token);
+    expect(result).toEqual({ type: 'invalid' });
+  });
+
+  it('returns invalid for an already-used token', async () => {
+    const user = await createUser({ email: 'used-change@test.com' });
+    const token = await insertChangeToken(user!.id, 'used-new@test.com', {
+      usedAt: new Date(),
+    });
+    const result = await verifyEmailChangeToken(token);
+    expect(result).toEqual({ type: 'invalid' });
+  });
+
+  it('returns conflict and marks token used when the new email is already taken', async () => {
+    const user = await createUser({ email: 'changer@test.com' });
+    await createUser({ email: 'already-taken@test.com' });
+    const token = await insertChangeToken(user!.id, 'already-taken@test.com');
+
+    const result = await verifyEmailChangeToken(token);
+
+    expect(result).toEqual({ type: 'conflict' });
+    const unchanged = await db.select().from(User).where(eq(User.id, user!.id)).get();
+    expect(unchanged!.email).toBe('changer@test.com');
+    const tokenRow = await db.select().from(EmailChangeToken).where(eq(EmailChangeToken.token, token)).get();
+    expect(tokenRow!.usedAt).not.toBeNull();
   });
 });
 
