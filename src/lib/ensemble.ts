@@ -1,4 +1,4 @@
-import { db, eq, or, and, Ensemble, EnsembleMember } from 'astro:db';
+import { db, eq, or, and, Ensemble, EnsembleMember, EnsembleInvite } from 'astro:db';
 import { canManageEnsemble, isSiteAdmin } from './permissions';
 
 /**
@@ -34,4 +34,73 @@ export async function getEnsembleAccess(
   if (!membership && !isSiteAdmin(user)) return null;
   const isAdmin = canManageEnsemble(user, membership);
   return { membership, isAdmin };
+}
+
+/**
+ * Look up an invite by code (case-insensitive). Returns null if not found.
+ */
+export async function getInviteByCode(code: string) {
+  return await db
+    .select()
+    .from(EnsembleInvite)
+    .where(eq(EnsembleInvite.code, code.toUpperCase()))
+    .get() ?? null;
+}
+
+/**
+ * Look up the ensemble associated with an invite code. Returns null if the code is invalid.
+ */
+export async function getEnsembleByInviteCode(code: string) {
+  const invite = await getInviteByCode(code);
+  if (!invite) return null;
+  return await db
+    .select()
+    .from(Ensemble)
+    .where(eq(Ensemble.id, invite.ensembleId))
+    .get() ?? null;
+}
+
+export type JoinResult =
+  | { ok: true; ensembleId: string }
+  | { ok: false; error: string };
+
+/**
+ * Attempt to join an ensemble using an invite code.
+ * Validates the code, expiry, code-of-conduct agreement, and duplicate membership.
+ * On success, inserts a pending EnsembleMember and returns the ensembleId.
+ */
+export async function joinEnsembleWithCode(
+  userId: string,
+  code: string,
+  agreedToCodeOfConduct: boolean,
+): Promise<JoinResult> {
+  const invite = await getInviteByCode(code);
+  if (!invite) return { ok: false, error: 'Invalid invite code' };
+  if (invite.expiresAt && new Date(invite.expiresAt) < new Date()) {
+    return { ok: false, error: 'This invite code has expired' };
+  }
+
+  const ensemble = await db
+    .select()
+    .from(Ensemble)
+    .where(eq(Ensemble.id, invite.ensembleId))
+    .get() ?? null;
+
+  if (ensemble?.codeOfConduct && !agreedToCodeOfConduct) {
+    return { ok: false, error: 'You must agree to the code of conduct to join this ensemble' };
+  }
+
+  const existing = await getEnsembleMembership(invite.ensembleId, userId);
+  if (existing) return { ok: false, error: 'You are already a member of this ensemble' };
+
+  await db.insert(EnsembleMember).values({
+    id: crypto.randomUUID(),
+    ensembleId: invite.ensembleId,
+    userId,
+    role: 'member',
+    status: 'pending',
+    agreedToCodeOfConductAt: ensemble?.codeOfConduct ? new Date() : null,
+  });
+
+  return { ok: true, ensembleId: invite.ensembleId };
 }
