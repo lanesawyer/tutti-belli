@@ -5,7 +5,7 @@ import Button from "@components/elements/Button.astro";
 import Icon from "@components/elements/Icon.astro";
 import Notification from "@components/elements/Notification.astro";
 import { actions } from "astro:actions";
-import { db, eq, Event, Ensemble } from "astro:db";
+import { getCheckInPageData } from "@lib/ensemble/check-in";
 
 const user = Astro.locals.user;
 if (!user) {
@@ -17,41 +17,13 @@ if (!code) {
   return Astro.redirect("/ensembles");
 }
 
-// Find event by check-in code
-const event = await db
-  .select()
-  .from(Event)
-  .where(eq(Event.checkInCode, code.toUpperCase()))
-  .get();
+const checkInData = await getCheckInPageData(code);
 
-if (!event) {
+if (!checkInData) {
   return new Response("Invalid check-in code", { status: 404 });
 }
 
-// Get ensemble with check-in window settings
-const ensemble = await db
-  .select()
-  .from(Ensemble)
-  .where(eq(Ensemble.id, event.ensembleId))
-  .get();
-
-if (!ensemble) {
-  return new Response("Ensemble not found", { status: 404 });
-}
-
-// Calculate check-in window
-const now = new Date();
-const scheduledTime = new Date(event.scheduledAt);
-const checkInStartTime = new Date(
-  scheduledTime.getTime() - ensemble.checkInStartMinutes * 60 * 1000,
-);
-const checkInEndTime = new Date(
-  scheduledTime.getTime() + ensemble.checkInEndMinutes * 60 * 1000,
-);
-
-const canCheckIn = now >= checkInStartTime && now <= checkInEndTime;
-const isTooEarly = now < checkInStartTime;
-const isTooLate = now > checkInEndTime;
+const { event, ensemble, canCheckIn, isTooEarly, isTooLate } = checkInData;
 
 const result = Astro.getActionResult(actions.events.checkInByCode);
 const success = result && !result.error;

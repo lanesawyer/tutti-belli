@@ -6,106 +6,21 @@ import Icon from "@components/elements/Icon.astro";
 import TextInput from "@components/forms/TextInput.astro";
 import Checkbox from "@components/forms/Checkbox.astro";
 import Notification from "@components/elements/Notification.astro";
-import {
-  db,
-  eq,
-  and,
-  EnsembleInvite,
-  EnsembleMember,
-  Ensemble,
-} from "astro:db";
+import { actions } from "astro:actions";
+import { getEnsembleByInviteCode } from "@lib/ensemble";
 import { APP_NAME } from "@lib/config";
 
 const user = Astro.locals.user;
 
-let error = "";
-let success = false;
-let ensemble = null;
+const result = Astro.getActionResult(actions.ensembles.join);
+if (result && !result.error) {
+  return Astro.redirect(`/ensembles/${result.data.ensembleId}?joined=pending`);
+}
+
+const error = result?.error?.message ?? "";
 
 const codeParam = Astro.url.searchParams.get("code");
-if (codeParam) {
-  // Pre-fetch ensemble info if code is in URL
-  const [invite] = await db
-    .select()
-    .from(EnsembleInvite)
-    .where(eq(EnsembleInvite.code, codeParam.toUpperCase()));
-
-  if (invite) {
-    [ensemble] = await db
-      .select()
-      .from(Ensemble)
-      .where(eq(Ensemble.id, invite.ensembleId));
-  }
-}
-
-if (Astro.request.method === "POST") {
-  if (!user) {
-    return Astro.redirect("/login");
-  }
-
-  const formData = await Astro.request.formData();
-  const code = formData.get("code")?.toString()?.trim().toUpperCase();
-  const agreedToCodeOfConduct =
-    formData.get("agreedToCodeOfConduct")?.toString() === "on";
-
-  if (!code) {
-    error = "Please enter an invite code";
-  } else {
-    // Check if invite exists and is valid
-    const [invite] = await db
-      .select()
-      .from(EnsembleInvite)
-      .where(eq(EnsembleInvite.code, code));
-
-    if (!invite) {
-      error = "Invalid invite code";
-    } else if (invite.expiresAt && new Date(invite.expiresAt) < new Date()) {
-      error = "This invite code has expired";
-    } else {
-      // Fetch ensemble to check for code of conduct
-      [ensemble] = await db
-        .select()
-        .from(Ensemble)
-        .where(eq(Ensemble.id, invite.ensembleId));
-
-      // Check if code of conduct agreement is required
-      if (ensemble?.codeOfConduct && !agreedToCodeOfConduct) {
-        error = "You must agree to the code of conduct to join this ensemble";
-      } else {
-        // Check if already a member
-        const [existing] = await db
-          .select()
-          .from(EnsembleMember)
-          .where(
-            and(
-              eq(EnsembleMember.ensembleId, invite.ensembleId),
-              eq(EnsembleMember.userId, user.id),
-            ),
-          );
-
-        if (existing) {
-          error = "You are already a member of this ensemble";
-        } else {
-          // Add user to ensemble with pending status
-          await db.insert(EnsembleMember).values({
-            id: crypto.randomUUID(),
-            ensembleId: invite.ensembleId,
-            userId: user.id,
-            role: "member",
-            status: "pending",
-            agreedToCodeOfConductAt: ensemble?.codeOfConduct
-              ? new Date()
-              : null,
-          });
-
-          return Astro.redirect(
-            `/ensembles/${invite.ensembleId}?joined=pending`,
-          );
-        }
-      }
-    }
-  }
-}
+const ensemble = codeParam ? await getEnsembleByInviteCode(codeParam) : null;
 ---
 
 <Layout title="Join Ensemble">
@@ -124,14 +39,6 @@ if (Astro.request.method === "POST") {
         error && (
           <Notification color="danger" light>
             {error}
-          </Notification>
-        )
-      }
-
-      {
-        success && (
-          <Notification color="success" light>
-            Successfully joined the ensemble!
           </Notification>
         )
       }
@@ -193,7 +100,7 @@ if (Astro.request.method === "POST") {
             </p>
           </Box>
         ) : (
-          <form method="POST">
+          <form method="POST" action={actions.ensembles.join}>
             <TextInput
               name="code"
               label="Invite Code"

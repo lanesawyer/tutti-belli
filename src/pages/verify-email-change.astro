@@ -2,7 +2,7 @@
 import Layout from "@layouts/Layout.astro";
 import Button from "@components/elements/Button.astro";
 import Notification from "@components/elements/Notification.astro";
-import { db, eq, and, gt, isNull, User, EmailChangeToken } from "astro:db";
+import { verifyEmailChangeToken } from "@lib/profile";
 
 const token = Astro.url.searchParams.get("token");
 let error = "";
@@ -12,50 +12,17 @@ let newEmailDisplay = "";
 if (!token) {
   error = "Invalid verification link.";
 } else {
-  const now = new Date();
+  const result = await verifyEmailChangeToken(token);
 
-  const [changeToken] = await db
-    .select()
-    .from(EmailChangeToken)
-    .where(
-      and(
-        eq(EmailChangeToken.token, token),
-        gt(EmailChangeToken.expiresAt, now),
-        isNull(EmailChangeToken.usedAt),
-      ),
-    );
-
-  if (!changeToken) {
+  if (result.type === "invalid") {
     error =
       "This email verification link is invalid or has expired. Please request a new one from your profile.";
+  } else if (result.type === "conflict") {
+    error =
+      "That email address has since been taken by another account. Please go back to your profile and request a new email change.";
   } else {
-    const [conflict] = await db
-      .select({ id: User.id })
-      .from(User)
-      .where(eq(User.email, changeToken.newEmail));
-
-    if (conflict) {
-      await db
-        .update(EmailChangeToken)
-        .set({ usedAt: new Date() })
-        .where(eq(EmailChangeToken.id, changeToken.id));
-
-      error =
-        "That email address has since been taken by another account. Please go back to your profile and request a new email change.";
-    } else {
-      await db
-        .update(User)
-        .set({ email: changeToken.newEmail })
-        .where(eq(User.id, changeToken.userId));
-
-      await db
-        .update(EmailChangeToken)
-        .set({ usedAt: new Date() })
-        .where(eq(EmailChangeToken.id, changeToken.id));
-
-      newEmailDisplay = changeToken.newEmail;
-      success = true;
-    }
+    newEmailDisplay = result.newEmail;
+    success = true;
   }
 }
 ---
