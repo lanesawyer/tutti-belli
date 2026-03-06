@@ -39,6 +39,7 @@ test('admin can add a new song via the modal form', async ({ page }) => {
 
   // After submission the action redirects back to the songs page (no _action param)
   await expect(page).toHaveURL(/\/ensembles\/.+\/songs$/);
+  await expect(page.getByRole('button', { name: 'Add Song' }).first()).toBeVisible();
   await expect(page.locator('body')).toContainText(songName);
 });
 
