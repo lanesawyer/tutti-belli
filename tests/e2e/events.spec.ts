@@ -44,7 +44,7 @@ test('/checkin/[code] page loads for a valid-format code', async ({ page }) => {
   expect(response?.status()).toBeLessThan(500);
 });
 
-async function navigateToPerformanceEvent(page: Parameters<Parameters<typeof test>[1]>[0]) {
+async function navigateToPerformanceEvent(page: ReturnType<typeof test['info']>['project']['use'] & any) {
   await page.goto('/ensembles');
   await page.locator('.card').filter({ hasText: 'Chamber Orchestra' }).locator('a').first().click();
   await expect(page).toHaveURL(/\/ensembles\/.+/);
