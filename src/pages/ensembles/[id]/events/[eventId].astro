@@ -12,10 +12,7 @@ import { db, eq, Event, Group } from "astro:db";
 import { actions } from "astro:actions";
 import QRCode from "qrcode";
 import { ensembleAdminTools } from "@lib/config";
-import {
-  getEnsembleBySlugOrId,
-  getEnsembleAccess,
-} from "@lib/ensemble";
+import { getEnsembleBySlugOrId, getEnsembleAccess } from "@lib/ensemble";
 import { getEnsembleUrlId } from "@lib/slug";
 import {
   getEventProgramData,

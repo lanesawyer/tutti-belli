@@ -247,17 +247,24 @@ Thank you for being part of our musical community!`,
     },
   ]);
 
-  // Add some members to groups
+  // Add some members to groups (with roles)
   await db.insert(GroupMembership).values([
     {
       id: crypto.randomUUID(),
       groupId: sectionLeadersGroupId,
       userId: adminId,
+      role: 'lead',
+    },
+    {
+      id: crypto.randomUUID(),
+      groupId: sectionLeadersGroupId,
+      userId: testUserId,
     },
     {
       id: crypto.randomUUID(),
       groupId: boardMembersGroupId,
       userId: adminId,
+      role: 'lead',
     },
     {
       id: crypto.randomUUID(),

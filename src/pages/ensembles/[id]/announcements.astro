@@ -19,10 +19,7 @@ import {
 import { sendAnnouncementEmail } from "@lib/email";
 import { postAnnouncementToDiscord } from "@lib/discord";
 import Checkbox from "@components/forms/Checkbox.astro";
-import {
-  getEnsembleBySlugOrId,
-  getEnsembleAccess,
-} from "@lib/ensemble";
+import { getEnsembleBySlugOrId, getEnsembleAccess } from "@lib/ensemble";
 import { getEnsembleUrlId } from "@lib/slug";
 const user = Astro.locals.user!;
 

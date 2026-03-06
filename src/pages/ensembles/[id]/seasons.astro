@@ -19,10 +19,7 @@ import {
   User,
   Event,
 } from "astro:db";
-import {
-  getEnsembleBySlugOrId,
-  getEnsembleAccess,
-} from "@lib/ensemble";
+import { getEnsembleBySlugOrId, getEnsembleAccess } from "@lib/ensemble";
 import { getEnsembleUrlId } from "@lib/slug";
 
 const user = Astro.locals.user!;

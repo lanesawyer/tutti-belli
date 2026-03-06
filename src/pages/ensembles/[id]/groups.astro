@@ -20,10 +20,7 @@ import {
   GroupMembership,
   User,
 } from "astro:db";
-import {
-  getEnsembleBySlugOrId,
-  getEnsembleAccess,
-} from "@lib/ensemble";
+import { getEnsembleBySlugOrId, getEnsembleAccess } from "@lib/ensemble";
 import { getEnsembleUrlId } from "@lib/slug";
 
 const user = Astro.locals.user!;
@@ -134,6 +131,22 @@ if (Astro.request.method === "POST") {
         });
       }
     }
+  } else if (action === "set-role") {
+    const groupId = formData.get("groupId")?.toString();
+    const userId = formData.get("userId")?.toString();
+    const role = formData.get("role")?.toString() || null;
+
+    if (groupId && userId) {
+      await db
+        .update(GroupMembership)
+        .set({ role: role || null })
+        .where(
+          and(
+            eq(GroupMembership.groupId, groupId),
+            eq(GroupMembership.userId, userId),
+          ),
+        );
+    }
   }
 }
 
@@ -156,6 +169,7 @@ const groupMemberships = await db
   .select({
     groupId: GroupMembership.groupId,
     userId: GroupMembership.userId,
+    role: GroupMembership.role,
     userName: User.name,
   })
   .from(GroupMembership)
@@ -217,6 +231,8 @@ const colorOptions = [
         <tbody>
           {groups.map((group) => {
             const members = membershipsByGroupId[group.id] || [];
+            const leads = members.filter((m) => m.role === "lead");
+            const regulars = members.filter((m) => m.role !== "lead");
             return (
               <tr>
                 <td>
@@ -227,10 +243,24 @@ const colorOptions = [
                 <td>{group.description || "-"}</td>
                 <td>
                   {members.length > 0 ? (
-                    <div class="tags are-small">
-                      {members.map((m) => (
-                        <Tag>{m.userName}</Tag>
-                      ))}
+                    <div>
+                      {leads.length > 0 && (
+                        <div class="tags are-small mb-1">
+                          {leads.map((m) => (
+                            <Tag color="warning">
+                              <Icon icon="fa-star is-size-7 mr-1" />
+                              {m.userName}
+                            </Tag>
+                          ))}
+                        </div>
+                      )}
+                      {regulars.length > 0 && (
+                        <div class="tags are-small">
+                          {regulars.map((m) => (
+                            <Tag>{m.userName}</Tag>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <span class="has-text-grey-light is-italic">None</span>
@@ -384,16 +414,25 @@ const colorOptions = [
       isAdmin && (
         <Modal id="members-modal" title="Manage Group Members">
           <input type="hidden" id="members-groupId" />
-          <p class="mb-3">Select which members belong to this group:</p>
+          <p class="mb-3">
+            Select which members belong to this group and assign roles:
+          </p>
           {allMembers.map((member) => (
             <div class="field">
-              <div class="control">
+              <div class="is-flex is-align-items-center" style="gap: 0.75rem;">
                 <Checkbox
                   name="member"
                   class="member-checkbox"
                   data-user-id={member.id}
                   label={member.name}
+                  standalone
                 />
+                <span class="member-role-select" style="display: none;">
+                  <Select name="role" standalone size="small">
+                    <option value="">Member</option>
+                    <option value="lead">Lead</option>
+                  </Select>
+                </span>
               </div>
             </div>
           ))}
@@ -460,14 +499,28 @@ const colorOptions = [
             document.getElementById("members-groupId").value = groupId;
 
             const groupMembers = membershipsByGroupId[groupId] || [];
-            const memberUserIds = new Set(groupMembers.map((m) => m.userId));
+            const memberMap = new Map(groupMembers.map((m) => [m.userId, m]));
 
             document
               .querySelectorAll(".member-checkbox")
               .forEach((checkbox) => {
-                checkbox.checked = memberUserIds.has(
-                  checkbox.getAttribute("data-user-id"),
-                );
+                const userId = checkbox.getAttribute("data-user-id");
+                const membership = memberMap.get(userId);
+                checkbox.querySelector("input").checked = !!membership;
+
+                const roleSelect = checkbox
+                  .closest(".is-flex")
+                  ?.querySelector(".member-role-select");
+                if (roleSelect) {
+                  if (membership) {
+                    roleSelect.style.display = "";
+                    roleSelect.querySelector("select").value =
+                      membership.role || "";
+                  } else {
+                    roleSelect.style.display = "none";
+                    roleSelect.querySelector("select").value = "";
+                  }
+                }
               });
 
             document
@@ -480,6 +533,9 @@ const colorOptions = [
           checkbox.addEventListener("change", async () => {
             const groupId = document.getElementById("members-groupId").value;
             const userId = checkbox.getAttribute("data-user-id");
+            const roleSelect = checkbox
+              .closest(".is-flex")
+              ?.querySelector(".member-role-select");
 
             const formData = new FormData();
             formData.append("action", "toggle-member");
@@ -487,7 +543,38 @@ const colorOptions = [
             formData.append("userId", userId);
 
             await fetch("", { method: "POST", body: formData });
+
+            if (roleSelect) {
+              if (checkbox.querySelector("input").checked) {
+                roleSelect.style.display = "";
+                roleSelect.querySelector("select").value = "";
+              } else {
+                roleSelect.style.display = "none";
+                roleSelect.querySelector("select").value = "";
+              }
+            }
           });
+        });
+
+        document.querySelectorAll(".member-role-select").forEach((wrapper) => {
+          wrapper
+            .querySelector("select")
+            .addEventListener("change", async (e) => {
+              const groupId = document.getElementById("members-groupId").value;
+              const userId = wrapper
+                .closest(".is-flex")
+                ?.querySelector(".member-checkbox")
+                ?.getAttribute("data-user-id");
+              const role = e.target.value;
+
+              const formData = new FormData();
+              formData.append("action", "set-role");
+              formData.append("groupId", groupId);
+              formData.append("userId", userId);
+              formData.append("role", role);
+
+              await fetch("", { method: "POST", body: formData });
+            });
         });
 
         document

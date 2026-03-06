@@ -135,10 +135,10 @@ export async function createGroup(
 export async function createGroupMembership(
   groupId: string,
   userId: string,
-  overrides: { id?: string } = {}
+  overrides: { id?: string; role?: string } = {}
 ) {
   const id = overrides.id ?? crypto.randomUUID();
-  await db.insert(GroupMembership).values({ id, groupId, userId });
+  await db.insert(GroupMembership).values({ id, groupId, userId, role: overrides.role });
   return db.select().from(GroupMembership).where(eq(GroupMembership.id, id)).get() as Promise<typeof GroupMembership.$inferSelect>;
 }
 

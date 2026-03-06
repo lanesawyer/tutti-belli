@@ -146,6 +146,7 @@ const GroupMembership = defineTable({
     id: column.text({ primaryKey: true }),
     groupId: column.text({ references: () => Group.columns.id }),
     userId: column.text({ references: () => User.columns.id }),
+    role: column.text({ optional: true }), // e.g. 'lead', null for regular member
     addedAt: column.date({ default: NOW }),
   }
 });
