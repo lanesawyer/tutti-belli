@@ -1,5 +1,5 @@
 ---
-import Layout from "@layouts/Layout.astro";
+import SingleColumnLayout from "@layouts/SingleColumnLayout.astro";
 import Button from "@components/elements/Button.astro";
 import TextInput from "@components/forms/TextInput.astro";
 import Notification from "@components/elements/Notification.astro";
@@ -13,9 +13,7 @@ if (result && !result.error) {
 const error = result?.error?.message ?? "";
 ---
 
-<Layout title="Create Ensemble">
-  <div class="columns is-centered">
-    <div class="column is-6-tablet is-5-desktop">
+<SingleColumnLayout title="Create Ensemble" width="medium">
       <h1 class="title">Create Ensemble</h1>
       <p class="subtitle">
         Start your own ensemble. You'll be added as an admin automatically.
@@ -61,6 +59,4 @@ const error = result?.error?.message ?? "";
           </div>
         </div>
       </form>
-    </div>
-  </div>
-</Layout>
+</SingleColumnLayout>

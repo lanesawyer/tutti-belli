@@ -1,5 +1,5 @@
 ---
-import Layout from "@layouts/Layout.astro";
+import SingleColumnLayout from "@layouts/SingleColumnLayout.astro";
 import Button from "@components/elements/Button.astro";
 import Notification from "@components/elements/Notification.astro";
 import { verifyEmailChangeToken } from "@lib/profile";
@@ -27,10 +27,7 @@ if (!token) {
 }
 ---
 
-<Layout title="Verify Email Change">
-  <section class="section">
-    <div class="columns is-centered">
-      <div class="column is-5-tablet is-4-desktop">
+<SingleColumnLayout title="Verify Email Change">
         <h1 class="title">Email Change Verification</h1>
 
         {
@@ -65,7 +62,4 @@ if (!token) {
             </Notification>
           )
         }
-      </div>
-    </div>
-  </section>
-</Layout>
+</SingleColumnLayout>

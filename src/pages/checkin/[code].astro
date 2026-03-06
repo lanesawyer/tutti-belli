@@ -1,5 +1,5 @@
 ---
-import Layout from "@layouts/Layout.astro";
+import SingleColumnLayout from "@layouts/SingleColumnLayout.astro";
 import Box from "@components/elements/Box.astro";
 import Button from "@components/elements/Button.astro";
 import Icon from "@components/elements/Icon.astro";
@@ -34,9 +34,7 @@ const scheduledDate = new Date(event.scheduledAt);
 const isPerformance = event.category === "performance";
 ---
 
-<Layout title="Check In">
-  <div class="columns is-centered">
-    <div class="column is-6-tablet is-5-desktop">
+<SingleColumnLayout title="Check In" width="medium">
       <Box class="has-text-centered">
         <Icon
           icon="fa-qrcode fa-3x"
@@ -153,6 +151,4 @@ const isPerformance = event.category === "performance";
           )
         }
       </Box>
-    </div>
-  </div>
-</Layout>
+</SingleColumnLayout>

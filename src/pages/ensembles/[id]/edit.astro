@@ -1,5 +1,5 @@
 ---
-import Layout from "@layouts/Layout.astro";
+import BaseLayout from "@layouts/BaseLayout.astro";
 import {
   db,
   eq,
@@ -196,7 +196,7 @@ if (Astro.request.method === "POST") {
 }
 ---
 
-<Layout title={`Edit ${ensemble.name}`}>
+<BaseLayout title={`Edit ${ensemble.name}`}>
   <div class="navbar-item has-dropdown is-hoverable" slot="navbar-start">
     <a class="navbar-link">{ensemble.name}</a>
     <div class="navbar-dropdown">
@@ -511,4 +511,4 @@ if (Astro.request.method === "POST") {
       </div>
     </div>
   </section>
-</Layout>
+</BaseLayout>

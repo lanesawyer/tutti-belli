@@ -1,5 +1,5 @@
 ---
-import Layout from "@layouts/Layout.astro";
+import BaseLayout from "@layouts/BaseLayout.astro";
 import InviteCodeWidget from "@containers/InviteCodeWidget.astro";
 import PendingMembers from "@containers/PendingMembers.astro";
 import Button from "@components/elements/Button.astro";
@@ -47,7 +47,7 @@ const [currentSeason] = await db
   .where(and(eq(Season.ensembleId, ensemble.id), eq(Season.isActive, 1)));
 ---
 
-<Layout title={ensemble.name}>
+<BaseLayout title={ensemble.name}>
   {
     isAdmin && (
       <div class="navbar-item has-dropdown is-hoverable" slot="navbar-start">
@@ -197,4 +197,4 @@ const [currentSeason] = await db
       </div>
     )
   }
-</Layout>
+</BaseLayout>
