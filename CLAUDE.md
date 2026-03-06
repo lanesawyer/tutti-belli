@@ -21,7 +21,7 @@ pnpm astro:db:push    # Push schema changes to remote Turso DB
 
 ### Key Technology Choices
 - **Astro 5** with `output: 'server'` — all pages are server-rendered, no client-side JS frameworks
-- **Astro DB** (LibSQL/Turso) — queried directly in page components via `import { db, eq, ... } from 'astro:db'`
+- **Astro DB** (LibSQL/Turso) — all queries go through `src/lib/` functions or Astro Actions; never import `astro:db` directly in page frontmatter
 - **Bulma 1.0** for CSS (dark mode supported via CSS custom properties + localStorage toggle)
 - **Zero client-side JS framework** — all interactions are HTML form POSTs handled via Astro Actions (`src/actions/`)
 
@@ -41,6 +41,7 @@ The only exception is same-directory imports (e.g. `./AudioPlayer.astro`) and im
 ### Philosophy
 - Don't duplicate logic, if there are commonalities, extract it into a shared utility in `src/lib/`
 - Keep the frontmatter Astro files light, most server logic should be in `src/lib/` files
+- **Never import `astro:db` in page frontmatter.** All database queries must live in `src/lib/` functions or Astro Actions (`src/actions/`). Pages call lib functions and pass the results to the template.
 - **Always use components from `src/components/` instead of writing raw HTML equivalents.** Before writing a `<button>`, `<a class="button">`, or modal, check if a component exists: `Button.astro`, `Modal.astro`, `Table.astro`, `InviteCodeWidget.astro`, etc. Prefer extending a component over one-off inline markup. This includes icons — always use `Icon.astro` instead of raw `<i class="fas ...">` tags. Extra classes can be appended to the `icon` prop string (e.g. `icon="fa-moon my-class"`).
 - **Never write `<div class="box">`.** Always use `Box.astro` (`src/components/elements/Box.astro`). Props: `class`, `id`, plus any HTML div attributes. Example: `<Box class="mb-5">...</Box>`.
 - **Never write raw `<img>` tags or `<figure class="image">` wrappers.** Always use `Image.astro` (`src/components/elements/Image.astro`). It wraps Bulma's image element, uses Astro's `<Image>` component for real URLs, and falls back to a plain `<img>` for data URIs. Props: `src`, `alt`, `size` (e.g. `"96x96"`), `ratio`, `rounded`, `fullwidth`, `class` (on the figure), `style` (on the figure), `imgStyle` (on the img).
