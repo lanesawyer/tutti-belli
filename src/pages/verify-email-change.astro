@@ -28,38 +28,37 @@ if (!token) {
 ---
 
 <SingleColumnLayout title="Verify Email Change">
-        <h1 class="title">Email Change Verification</h1>
+  <h1 class="title">Email Change Verification</h1>
 
-        {
-          error && (
-            <Notification color="danger" light>
-              <p>{error}</p>
-              <p class="mt-3">
-                <Button href="/profile" color="light">
-                  Back to Profile
-                </Button>
-              </p>
-            </Notification>
-          )
-        }
+  {
+    error && (
+      <Notification color="danger" light>
+        <p>{error}</p>
+        <p class="mt-3">
+          <Button href="/profile" color="light">
+            Back to Profile
+          </Button>
+        </p>
+      </Notification>
+    )
+  }
 
-        {
-          success && (
-            <Notification color="success" light>
-              <p>
-                <strong>Email address updated!</strong>
-              </p>
-              <p class="mt-2">
-                Your email has been changed to{" "}
-                <strong>{newEmailDisplay}</strong>. Please use this address to
-                log in going forward.
-              </p>
-              <p class="mt-3">
-                <Button href="/profile" color="primary">
-                  Go to Profile
-                </Button>
-              </p>
-            </Notification>
-          )
-        }
+  {
+    success && (
+      <Notification color="success" light>
+        <p>
+          <strong>Email address updated!</strong>
+        </p>
+        <p class="mt-2">
+          Your email has been changed to <strong>{newEmailDisplay}</strong>.
+          Please use this address to log in going forward.
+        </p>
+        <p class="mt-3">
+          <Button href="/profile" color="primary">
+            Go to Profile
+          </Button>
+        </p>
+      </Notification>
+    )
+  }
 </SingleColumnLayout>

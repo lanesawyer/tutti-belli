@@ -18,80 +18,80 @@ const error = result?.error?.message ?? "";
 ---
 
 <SingleColumnLayout title="Sign Up">
-      <h1 class="title">Sign Up</h1>
+  <h1 class="title">Sign Up</h1>
 
-      {
-        registeredEmail ? (
-          <Notification color="success" light>
-            <p>
-              <strong>Check your inbox!</strong>
-            </p>
-            <p class="mt-2">
-              We sent a verification link to <strong>{registeredEmail}</strong>.
-              Click the link to activate your account.
-            </p>
-            <p class="mt-2 is-size-7">
-              Didn't get it?{" "}
-              <a
-                href={`/resend-verification?email=${encodeURIComponent(registeredEmail)}`}
-              >
-                Resend verification email
-              </a>
-            </p>
+  {
+    registeredEmail ? (
+      <Notification color="success" light>
+        <p>
+          <strong>Check your inbox!</strong>
+        </p>
+        <p class="mt-2">
+          We sent a verification link to <strong>{registeredEmail}</strong>.
+          Click the link to activate your account.
+        </p>
+        <p class="mt-2 is-size-7">
+          Didn't get it?{" "}
+          <a
+            href={`/resend-verification?email=${encodeURIComponent(registeredEmail)}`}
+          >
+            Resend verification email
+          </a>
+        </p>
+      </Notification>
+    ) : (
+      <>
+        {error && (
+          <Notification color="danger" light>
+            {error}
           </Notification>
-        ) : (
-          <>
-            {error && (
-              <Notification color="danger" light>
-                {error}
-              </Notification>
-            )}
+        )}
 
-            <form method="POST" action={actions.profile.register}>
-              {customRedirect && (
-                <input type="hidden" name="redirect" value={customRedirect} />
-              )}
-              <TextInput
-                name="name"
-                label="Full Name"
-                placeholder="John Doe"
-                iconLeft="fa-user"
-                required
-              />
-              <TextInput
-                name="email"
-                label="Email"
-                type="email"
-                placeholder="you@example.com"
-                iconLeft="fa-envelope"
-                required
-              />
-              <TextInput
-                name="password"
-                label="Password"
-                type="password"
-                placeholder="••••••••"
-                iconLeft="fa-lock"
-                minlength="6"
-                required
-                help="Must be at least 6 characters"
-              />
+        <form method="POST" action={actions.profile.register}>
+          {customRedirect && (
+            <input type="hidden" name="redirect" value={customRedirect} />
+          )}
+          <TextInput
+            name="name"
+            label="Full Name"
+            placeholder="John Doe"
+            iconLeft="fa-user"
+            required
+          />
+          <TextInput
+            name="email"
+            label="Email"
+            type="email"
+            placeholder="you@example.com"
+            iconLeft="fa-envelope"
+            required
+          />
+          <TextInput
+            name="password"
+            label="Password"
+            type="password"
+            placeholder="••••••••"
+            iconLeft="fa-lock"
+            minlength="6"
+            required
+            help="Must be at least 6 characters"
+          />
 
-              <div class="field">
-                <div class="control">
-                  <Button color="primary" fullwidth type="submit">
-                    Sign Up
-                  </Button>
-                </div>
-              </div>
-            </form>
-
-            <div class="has-text-centered mt-4">
-              <p>
-                Already have an account? <a href="/login">Log in</a>
-              </p>
+          <div class="field">
+            <div class="control">
+              <Button color="primary" fullwidth type="submit">
+                Sign Up
+              </Button>
             </div>
-          </>
-        )
-      }
+          </div>
+        </form>
+
+        <div class="has-text-centered mt-4">
+          <p>
+            Already have an account? <a href="/login">Log in</a>
+          </p>
+        </div>
+      </>
+    )
+  }
 </SingleColumnLayout>

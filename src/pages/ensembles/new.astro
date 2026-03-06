@@ -14,49 +14,48 @@ const error = result?.error?.message ?? "";
 ---
 
 <SingleColumnLayout title="Create Ensemble" width="medium">
-      <h1 class="title">Create Ensemble</h1>
-      <p class="subtitle">
-        Start your own ensemble. You'll be added as an admin automatically.
-      </p>
+  <h1 class="title">Create Ensemble</h1>
+  <p class="subtitle">
+    Start your own ensemble. You'll be added as an admin automatically.
+  </p>
 
-      {
-        error && (
-          <Notification color="danger" light>
-            {error}
-          </Notification>
-        )
-      }
+  {
+    error && (
+      <Notification color="danger" light>
+        {error}
+      </Notification>
+    )
+  }
 
-      <form method="POST" action={actions.admin.createEnsemble}>
-        <TextInput
-          name="name"
-          label="Ensemble Name"
-          placeholder="e.g. Chamber Orchestra"
-          required
-        />
+  <form method="POST" action={actions.admin.createEnsemble}>
+    <TextInput
+      name="name"
+      label="Ensemble Name"
+      placeholder="e.g. Chamber Orchestra"
+      required
+    />
 
-        <div class="field">
-          <label class="label" for="description"
-            >Description <span class="has-text-grey-light">(optional)</span
-            ></label
-          >
-          <div class="control">
-            <textarea
-              class="textarea"
-              id="description"
-              name="description"
-              placeholder="A brief description of your ensemble"
-              rows="3"></textarea>
-          </div>
-        </div>
+    <div class="field">
+      <label class="label" for="description"
+        >Description <span class="has-text-grey-light">(optional)</span></label
+      >
+      <div class="control">
+        <textarea
+          class="textarea"
+          id="description"
+          name="description"
+          placeholder="A brief description of your ensemble"
+          rows="3"></textarea>
+      </div>
+    </div>
 
-        <div class="field is-grouped">
-          <div class="control">
-            <Button color="primary" type="submit">Create Ensemble</Button>
-          </div>
-          <div class="control">
-            <Button href="/ensembles" color="light">Cancel</Button>
-          </div>
-        </div>
-      </form>
+    <div class="field is-grouped">
+      <div class="control">
+        <Button color="primary" type="submit">Create Ensemble</Button>
+      </div>
+      <div class="control">
+        <Button href="/ensembles" color="light">Cancel</Button>
+      </div>
+    </div>
+  </form>
 </SingleColumnLayout>

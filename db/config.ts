@@ -198,6 +198,7 @@ const EventProgram = defineTable({
     eventId: column.text({ references: () => Event.columns.id }),
     songId: column.text({ references: () => Song.columns.id }),
     sortOrder: column.number({ default: 0 }),
+    practiceMinutes: column.number({ optional: true }), // Minutes allocated for practicing this song
     notes: column.text({ optional: true }),
     addedAt: column.date({ default: NOW }),
   }

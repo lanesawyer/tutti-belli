@@ -103,6 +103,7 @@ export async function getEventProgramData(eventId: string, seasonId: string) {
         name: Song.name,
         composer: Song.composer,
         sortOrder: EventProgram.sortOrder,
+        practiceMinutes: EventProgram.practiceMinutes,
         notes: EventProgram.notes,
       })
       .from(EventProgram)
@@ -400,7 +401,7 @@ export async function getRsvpForUser(eventId: string, userId: string): Promise<'
   return record ? (record.response as 'yes' | 'no') : null;
 }
 
-export async function addProgramSong(eventId: string, songId: string, notes?: string) {
+export async function addProgramSong(eventId: string, songId: string, practiceMinutes?: number, notes?: string) {
   const currentProgram = await db
     .select({ sortOrder: EventProgram.sortOrder })
     .from(EventProgram)
@@ -416,6 +417,7 @@ export async function addProgramSong(eventId: string, songId: string, notes?: st
     eventId,
     songId,
     sortOrder: maxOrder + 1,
+    practiceMinutes: practiceMinutes || undefined,
     notes: notes || undefined,
   });
 }
@@ -425,6 +427,22 @@ export async function updateProgramSongNotes(programEntryId: string, notes: stri
     .update(EventProgram)
     .set({ notes: notes.trim() || null })
     .where(eq(EventProgram.id, programEntryId));
+}
+
+export async function updateProgramEntry(programEntryId: string, params: { notes?: string; practiceMinutes?: number | null; sortOrder?: number }) {
+  const updates: Record<string, unknown> = {};
+  if ('notes' in params) updates.notes = params.notes?.trim() || null;
+  if ('practiceMinutes' in params) updates.practiceMinutes = params.practiceMinutes ?? null;
+  if ('sortOrder' in params) updates.sortOrder = params.sortOrder;
+  await db.update(EventProgram).set(updates).where(eq(EventProgram.id, programEntryId));
+}
+
+export async function reorderProgramSongs(eventId: string, orderedEntryIds: string[]) {
+  await Promise.all(
+    orderedEntryIds.map((id, index) =>
+      db.update(EventProgram).set({ sortOrder: index + 1 }).where(and(eq(EventProgram.id, id), eq(EventProgram.eventId, eventId)))
+    )
+  );
 }
 
 export async function removeProgramSong(programEntryId: string) {

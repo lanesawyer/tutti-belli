@@ -9,6 +9,8 @@ import {
   addProgramSong,
   removeProgramSong,
   updateProgramSongNotes,
+  updateProgramEntry,
+  reorderProgramSongs,
   getEventPageData,
   setRsvp,
   removeRsvp,
@@ -332,6 +334,19 @@ describe('addProgramSong', () => {
     expect(rows[0].songId).toBe(song!.id);
   });
 
+  it('adds a song with practiceMinutes', async () => {
+    const admin = await createUser({ role: 'admin' });
+    const ensemble = await createEnsemble(admin!.id);
+    const season = await createSeason(ensemble!.id);
+    const event = await createEvent(ensemble!.id, season!.id);
+    const song = await createSong(ensemble!.id);
+
+    await addProgramSong(event!.id, song!.id, 20);
+
+    const row = await db.select().from(EventProgram).where(eq(EventProgram.eventId, event!.id)).get();
+    expect(row!.practiceMinutes).toBe(20);
+  });
+
   it('adds a song with notes', async () => {
     const admin = await createUser({ role: 'admin' });
     const ensemble = await createEnsemble(admin!.id);
@@ -339,10 +354,24 @@ describe('addProgramSong', () => {
     const event = await createEvent(ensemble!.id, season!.id);
     const song = await createSong(ensemble!.id);
 
-    await addProgramSong(event!.id, song!.id, 'Focus on intonation in measures 12-16');
+    await addProgramSong(event!.id, song!.id, undefined, 'Focus on intonation in measures 12-16');
 
     const row = await db.select().from(EventProgram).where(eq(EventProgram.eventId, event!.id)).get();
     expect(row!.notes).toBe('Focus on intonation in measures 12-16');
+  });
+
+  it('adds a song with both practiceMinutes and notes', async () => {
+    const admin = await createUser({ role: 'admin' });
+    const ensemble = await createEnsemble(admin!.id);
+    const season = await createSeason(ensemble!.id);
+    const event = await createEvent(ensemble!.id, season!.id);
+    const song = await createSong(ensemble!.id);
+
+    await addProgramSong(event!.id, song!.id, 15, 'Work on dynamics');
+
+    const row = await db.select().from(EventProgram).where(eq(EventProgram.eventId, event!.id)).get();
+    expect(row!.practiceMinutes).toBe(15);
+    expect(row!.notes).toBe('Work on dynamics');
   });
 
   it('assigns ascending sortOrder for multiple songs', async () => {
@@ -419,6 +448,124 @@ describe('removeProgramSong', () => {
 
     const row = await db.select().from(EventProgram).where(eq(EventProgram.id, entry!.id)).get();
     expect(row).toBeUndefined();
+  });
+});
+
+describe('updateProgramEntry', () => {
+  it('updates practiceMinutes on an existing entry', async () => {
+    const admin = await createUser({ role: 'admin' });
+    const ensemble = await createEnsemble(admin!.id);
+    const season = await createSeason(ensemble!.id);
+    const event = await createEvent(ensemble!.id, season!.id);
+    const song = await createSong(ensemble!.id);
+    const entry = await createEventProgramEntry(event!.id, song!.id);
+
+    await updateProgramEntry(entry!.id, { practiceMinutes: 30 });
+
+    const row = await db.select().from(EventProgram).where(eq(EventProgram.id, entry!.id)).get();
+    expect(row!.practiceMinutes).toBe(30);
+  });
+
+  it('clears practiceMinutes when set to null', async () => {
+    const admin = await createUser({ role: 'admin' });
+    const ensemble = await createEnsemble(admin!.id);
+    const season = await createSeason(ensemble!.id);
+    const event = await createEvent(ensemble!.id, season!.id);
+    const song = await createSong(ensemble!.id);
+    const entry = await createEventProgramEntry(event!.id, song!.id, { practiceMinutes: 20 });
+
+    await updateProgramEntry(entry!.id, { practiceMinutes: null });
+
+    const row = await db.select().from(EventProgram).where(eq(EventProgram.id, entry!.id)).get();
+    expect(row!.practiceMinutes).toBeNull();
+  });
+
+  it('updates sortOrder on an existing entry', async () => {
+    const admin = await createUser({ role: 'admin' });
+    const ensemble = await createEnsemble(admin!.id);
+    const season = await createSeason(ensemble!.id);
+    const event = await createEvent(ensemble!.id, season!.id);
+    const song = await createSong(ensemble!.id);
+    const entry = await createEventProgramEntry(event!.id, song!.id, { sortOrder: 1 });
+
+    await updateProgramEntry(entry!.id, { sortOrder: 5 });
+
+    const row = await db.select().from(EventProgram).where(eq(EventProgram.id, entry!.id)).get();
+    expect(row!.sortOrder).toBe(5);
+  });
+
+  it('updates notes and practiceMinutes together', async () => {
+    const admin = await createUser({ role: 'admin' });
+    const ensemble = await createEnsemble(admin!.id);
+    const season = await createSeason(ensemble!.id);
+    const event = await createEvent(ensemble!.id, season!.id);
+    const song = await createSong(ensemble!.id);
+    const entry = await createEventProgramEntry(event!.id, song!.id);
+
+    await updateProgramEntry(entry!.id, { notes: 'Watch the tempo', practiceMinutes: 25 });
+
+    const row = await db.select().from(EventProgram).where(eq(EventProgram.id, entry!.id)).get();
+    expect(row!.notes).toBe('Watch the tempo');
+    expect(row!.practiceMinutes).toBe(25);
+  });
+
+  it('trims whitespace-only notes to null', async () => {
+    const admin = await createUser({ role: 'admin' });
+    const ensemble = await createEnsemble(admin!.id);
+    const season = await createSeason(ensemble!.id);
+    const event = await createEvent(ensemble!.id, season!.id);
+    const song = await createSong(ensemble!.id);
+    const entry = await createEventProgramEntry(event!.id, song!.id, { notes: 'Old notes' });
+
+    await updateProgramEntry(entry!.id, { notes: '   ' });
+
+    const row = await db.select().from(EventProgram).where(eq(EventProgram.id, entry!.id)).get();
+    expect(row!.notes).toBeNull();
+  });
+});
+
+describe('reorderProgramSongs', () => {
+  it('updates sortOrder for all entries in the given order', async () => {
+    const admin = await createUser({ role: 'admin' });
+    const ensemble = await createEnsemble(admin!.id);
+    const season = await createSeason(ensemble!.id);
+    const event = await createEvent(ensemble!.id, season!.id);
+    const song1 = await createSong(ensemble!.id, { name: 'Song A' });
+    const song2 = await createSong(ensemble!.id, { name: 'Song B' });
+    const song3 = await createSong(ensemble!.id, { name: 'Song C' });
+    const entry1 = await createEventProgramEntry(event!.id, song1!.id, { sortOrder: 1 });
+    const entry2 = await createEventProgramEntry(event!.id, song2!.id, { sortOrder: 2 });
+    const entry3 = await createEventProgramEntry(event!.id, song3!.id, { sortOrder: 3 });
+
+    // Reverse the order: C, A, B
+    await reorderProgramSongs(event!.id, [entry3!.id, entry1!.id, entry2!.id]);
+
+    const rows = await db.select().from(EventProgram).where(eq(EventProgram.eventId, event!.id)).all();
+    const orderById = Object.fromEntries(rows.map(r => [r.id, r.sortOrder]));
+    expect(orderById[entry3!.id]).toBe(1);
+    expect(orderById[entry1!.id]).toBe(2);
+    expect(orderById[entry2!.id]).toBe(3);
+  });
+
+  it('only updates entries belonging to the given event', async () => {
+    const admin = await createUser({ role: 'admin' });
+    const ensemble = await createEnsemble(admin!.id);
+    const season = await createSeason(ensemble!.id);
+    const event1 = await createEvent(ensemble!.id, season!.id);
+    const event2 = await createEvent(ensemble!.id, season!.id);
+    const song = await createSong(ensemble!.id);
+    const entryOnEvent1 = await createEventProgramEntry(event1!.id, song!.id, { sortOrder: 1 });
+    const entryOnEvent2 = await createEventProgramEntry(event2!.id, song!.id, { sortOrder: 1 });
+
+    // Try to reorder event2's entry via event1's reorder call
+    await reorderProgramSongs(event1!.id, [entryOnEvent2!.id]);
+
+    // event2's entry should be unchanged
+    const row = await db.select().from(EventProgram).where(eq(EventProgram.id, entryOnEvent2!.id)).get();
+    expect(row!.sortOrder).toBe(1);
+    // event1's entry should also be unchanged (it wasn't in the list)
+    const row1 = await db.select().from(EventProgram).where(eq(EventProgram.id, entryOnEvent1!.id)).get();
+    expect(row1!.sortOrder).toBe(1);
   });
 });
 
