@@ -74,6 +74,27 @@ export async function getMembership(ensembleId: string, userId: string) {
     .get();
 }
 
+export async function getSongFileWithAccess(fileId: string, userId: string) {
+  const row = await db
+    .select({ url: SongFile.url, name: SongFile.name, ensembleId: Song.ensembleId })
+    .from(SongFile)
+    .innerJoin(Song, eq(SongFile.songId, Song.id))
+    .where(eq(SongFile.id, fileId))
+    .get();
+
+  if (!row) return null;
+
+  const membership = await db
+    .select()
+    .from(EnsembleMember)
+    .where(and(eq(EnsembleMember.ensembleId, row.ensembleId), eq(EnsembleMember.userId, userId)))
+    .get();
+
+  if (!membership) return null;
+
+  return { url: row.url, name: row.name };
+}
+
 // ─── Map builders ───────────────────────────────────────────────────────────
 
 export function buildSongPartsMap(songPartsData: { songId: string; partId: string }[]) {

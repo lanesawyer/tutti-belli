@@ -6,6 +6,10 @@ import { members } from './members';
 import { events } from './events';
 import { songs } from './songs';
 import { tasks } from './tasks';
+import { auth } from './auth';
+import { groups } from './groups';
+import { seasons } from './seasons';
+import { announcements } from './announcements';
 
 export const server = {
   profile,
@@ -16,4 +20,8 @@ export const server = {
   events,
   songs,
   tasks,
+  auth,
+  groups,
+  seasons,
+  announcements,
 };

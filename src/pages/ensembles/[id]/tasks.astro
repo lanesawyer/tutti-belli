@@ -8,10 +8,9 @@ import Icon from "@components/elements/Icon.astro";
 import TextInput from "@components/forms/TextInput.astro";
 import Tag from "@components/elements/Tag.astro";
 import Notification from "@components/elements/Notification.astro";
-import { db, eq, and, EnsembleMember, User, Season } from "astro:db";
 import { actions } from "astro:actions";
 import { canManageEnsemble } from "@lib/permissions";
-import { getEnsembleBySlugOrId } from "@lib/ensemble";
+import { getEnsembleBySlugOrId, getEnsembleMembership, getActiveSeasonForEnsemble, getActiveEnsembleMembers } from "@lib/ensemble";
 import { getEnsembleUrlId } from "@lib/slug";
 import { getEnsembleTasks, getTaskCompletionsForEnsemble } from "@lib/tasks";
 
@@ -32,16 +31,7 @@ if (Astro.request.method === "GET" && id !== canonicalId) {
   );
 }
 
-const membership = await db
-  .select()
-  .from(EnsembleMember)
-  .where(
-    and(
-      eq(EnsembleMember.ensembleId, ensemble.id),
-      eq(EnsembleMember.userId, user.id),
-    ),
-  )
-  .get();
+const membership = await getEnsembleMembership(ensemble.id, user.id);
 
 const isAdmin = canManageEnsemble(user, membership);
 
@@ -99,12 +89,7 @@ if (createResult) {
   }
 }
 
-// Get active season
-const currentSeason = await db
-  .select()
-  .from(Season)
-  .where(and(eq(Season.ensembleId, ensemble.id), eq(Season.isActive, 1)))
-  .get();
+const currentSeason = await getActiveSeasonForEnsemble(ensemble.id);
 
 const seasonTasks = await getEnsembleTasks(ensemble.id, currentSeason?.id);
 const allCompletions = await getTaskCompletionsForEnsemble(
@@ -120,18 +105,7 @@ for (const c of allCompletions) {
   completionsByTask.get(c.taskId)!.add(c.userId);
 }
 
-// Get active members
-const activeMembers = await db
-  .select({ id: User.id, name: User.name, avatarUrl: User.avatarUrl })
-  .from(EnsembleMember)
-  .innerJoin(User, eq(EnsembleMember.userId, User.id))
-  .where(
-    and(
-      eq(EnsembleMember.ensembleId, ensemble.id),
-      eq(EnsembleMember.status, "active"),
-    ),
-  )
-  .all();
+const activeMembers = await getActiveEnsembleMembers(ensemble.id);
 
 const nextSortOrder =
   seasonTasks.length > 0
