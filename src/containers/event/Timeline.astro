@@ -43,13 +43,40 @@ const markers = [0, durationMinutes / 2, durationMinutes].map((offset) => {
     label: d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }),
   };
 });
+
+// Build segment data for the live needle/countdown (cumulative offsets in minutes)
+let cumulative = 0;
+const segmentData = timedEntries.map((e) => {
+  const startMin = cumulative;
+  cumulative += e.length!;
+  return { name: e.displayName, startMin, endMin: cumulative };
+});
+
+const startMs = scheduledAt.getTime();
+const endMs = startMs + durationMinutes * 60 * 1000;
 ---
 
 {
   timedEntries.length > 0 && (
     <div class="rehearsal-timeline-wrap mb-5">
-      <div class="rehearsal-timeline">
-        {timedEntries.map((entry) => {
+      <div
+        id="live-countdown"
+        class="live-countdown is-hidden"
+        aria-live="polite"
+      >
+        <div class="live-countdown-badge">
+          <span class="live-dot" />
+          <span>LIVE</span>
+        </div>
+        <div class="live-countdown-body">
+          <div id="live-segment-name" class="live-segment-name" />
+          <div id="live-time-remaining" class="live-time-remaining">0:00</div>
+          <div class="live-segment-label">remaining</div>
+        </div>
+      </div>
+      <div style="position: relative;">
+        <div class="rehearsal-timeline">
+          {timedEntries.map((entry) => {
           const pct = ((entry.length! / durationMinutes) * 100).toFixed(2);
           const isBreak = entry.type === "break";
           const isOther = entry.type === "other";
@@ -68,6 +95,8 @@ const markers = [0, durationMinutes / 2, durationMinutes].map((offset) => {
             </div>
           );
         })}
+        </div>
+        <div id="now-needle" class="now-needle is-hidden" aria-hidden="true" />
       </div>
       <div class="rehearsal-timeline-ruler">
         {markers.map((m) => (
@@ -80,6 +109,63 @@ const markers = [0, durationMinutes / 2, durationMinutes].map((offset) => {
     </div>
   )
 }
+
+<script
+  is:inline
+  define:vars={{ startMs, endMs, durationMinutes, segmentData }}
+>
+  document.addEventListener("astro:page-load", () => {
+    const needle = document.getElementById("now-needle");
+    const countdown = document.getElementById("live-countdown");
+    const segmentName = document.getElementById("live-segment-name");
+    const timeRemaining = document.getElementById("live-time-remaining");
+    if (!needle || !countdown || !segmentName || !timeRemaining) return;
+
+    let intervalId = null;
+
+    function tick() {
+      const now = Date.now();
+      const isLive = now >= startMs && now < endMs;
+
+      if (!isLive) {
+        needle.classList.add("is-hidden");
+        countdown.classList.add("is-hidden");
+        if (intervalId !== null) {
+          clearInterval(intervalId);
+          intervalId = null;
+        }
+        return;
+      }
+
+      const elapsedMs = now - startMs;
+      const elapsedMin = elapsedMs / 60000;
+      const pct = (elapsedMin / durationMinutes) * 100;
+      needle.style.left = `${pct}%`;
+      needle.classList.remove("is-hidden");
+
+      // Find current segment
+      const seg = segmentData.find(
+        (s) => elapsedMin >= s.startMin && elapsedMin < s.endMin,
+      );
+      if (seg) {
+        const remainingMs = (seg.endMin - elapsedMin) * 60000;
+        const remainingSec = Math.ceil(remainingMs / 1000);
+        const m = Math.floor(remainingSec / 60);
+        const s = remainingSec % 60;
+        segmentName.textContent = seg.name;
+        timeRemaining.textContent = `${m}:${String(s).padStart(2, "0")}`;
+        countdown.classList.remove("is-hidden");
+      } else {
+        countdown.classList.add("is-hidden");
+      }
+    }
+
+    tick();
+    if (Date.now() >= startMs && Date.now() < endMs) {
+      intervalId = setInterval(tick, 1000);
+    }
+  });
+</script>
 
 <style>
   .rehearsal-timeline-wrap {
@@ -180,5 +266,94 @@ const markers = [0, durationMinutes / 2, durationMinutes].map((offset) => {
     font-size: 0.6rem;
     color: var(--bulma-text-weak);
     white-space: nowrap;
+  }
+
+  /* Now needle */
+  .now-needle {
+    position: absolute;
+    top: 0;
+    width: 2px;
+    height: 3rem;
+    background: var(--bulma-danger);
+    transform: translateX(-50%);
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  .now-needle::before {
+    content: "";
+    position: absolute;
+    top: -4px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--bulma-danger);
+  }
+
+  /* Live countdown box */
+  .live-countdown {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    background: var(--bulma-scheme-main-bis);
+    border: 1px solid var(--bulma-danger-30);
+    border-radius: 6px;
+    padding: 0.6rem 1rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .live-countdown-badge {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    color: var(--bulma-danger);
+    flex-shrink: 0;
+  }
+
+  .live-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--bulma-danger);
+    animation: live-pulse 1.4s ease-in-out infinite;
+  }
+
+  @keyframes live-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  .live-countdown-body {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .live-segment-name {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--bulma-text);
+  }
+
+  .live-time-remaining {
+    font-size: 2rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--bulma-danger);
+    line-height: 1;
+  }
+
+  .live-segment-label {
+    font-size: 0.75rem;
+    color: var(--bulma-text-weak);
+    align-self: flex-end;
+    padding-bottom: 0.2rem;
   }
 </style>
