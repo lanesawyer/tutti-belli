@@ -3,6 +3,22 @@
  */
 import { test, expect } from '@playwright/test';
 
+test('updateParts rejects a membershipId that does not belong to the current user', async ({ page }) => {
+  // Navigate first to pick up the session cookie
+  await page.goto('/profile');
+
+  const foreignMembershipId = crypto.randomUUID();
+
+  const response = await page.evaluate(async (membershipId) => {
+    const formData = new FormData();
+    formData.append('membershipId', membershipId);
+    const res = await fetch('/_actions/profile.updateParts', { method: 'POST', body: formData });
+    return res.status;
+  }, foreignMembershipId);
+
+  expect(response).toBe(403);
+});
+
 test('user can update name and phone via the combined info form', async ({ page }) => {
   await page.goto('/profile');
   await expect(page).toHaveURL('/profile');
