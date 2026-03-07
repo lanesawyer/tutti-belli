@@ -2,19 +2,16 @@
 import BaseLayout from "@layouts/BaseLayout.astro";
 import Box from "@components/elements/Box.astro";
 import Table from "@components/elements/Table.astro";
-import {
-  db,
-  eq,
-  and,
-  inArray,
-  EnsembleMember,
-  User,
-  Part,
-  MemberPart,
-} from "astro:db";
+import { actions } from "astro:actions";
 import { ensembleAdminTools } from "@lib/config";
 import { getInitials, getColorFromInitials } from "@lib/avatar";
-import { getEnsembleBySlugOrId, getEnsembleAccess } from "@lib/ensemble";
+import {
+  getEnsembleBySlugOrId,
+  getEnsembleAccess,
+  getEnsembleMembersWithUsers,
+  getEnsembleParts,
+  getMemberPartAssignments,
+} from "@lib/ensemble";
 import { getEnsembleUrlId } from "@lib/slug";
 import Button from "@components/elements/Button.astro";
 import Image from "@components/elements/Image.astro";
@@ -45,49 +42,19 @@ if (!isAdmin) {
   return new Response("Unauthorized", { status: 403 });
 }
 
-// Get all active members
-const membersData = await db
-  .select({
-    id: User.id,
-    name: User.name,
-    email: User.email,
-    avatarUrl: User.avatarUrl,
-    role: EnsembleMember.role,
-    status: EnsembleMember.status,
-    joinedAt: EnsembleMember.joinedAt,
-    membershipId: EnsembleMember.id,
-  })
-  .from(EnsembleMember)
-  .innerJoin(User, eq(EnsembleMember.userId, User.id))
-  .where(
-    and(
-      eq(EnsembleMember.ensembleId, ensemble.id),
-      eq(EnsembleMember.status, "active"),
-    ),
-  );
+const removeResult = Astro.getActionResult(actions.members.remove);
+const promoteResult = Astro.getActionResult(actions.members.promote);
+const demoteResult = Astro.getActionResult(actions.members.demote);
 
-// Get all parts for this ensemble
-const allParts = await db
-  .select()
-  .from(Part)
-  .where(eq(Part.ensembleId, ensemble.id))
-  .all();
+if ((removeResult || promoteResult || demoteResult) && !removeResult?.error && !promoteResult?.error && !demoteResult?.error) {
+  return Astro.redirect(`/ensembles/${canonicalId}/members`);
+}
 
-// Sort parts by sortOrder
-allParts.sort((a, b) => a.sortOrder - b.sortOrder);
-
-// Fetch MemberPart rows for these memberships
+const membersData = await getEnsembleMembersWithUsers(ensemble.id);
+const allParts = await getEnsembleParts(ensemble.id);
 const membershipIds = membersData.map((m) => m.membershipId);
-const memberPartRows =
-  membershipIds.length > 0
-    ? await db
-        .select()
-        .from(MemberPart)
-        .where(inArray(MemberPart.membershipId, membershipIds))
-        .all()
-    : [];
+const memberPartRows = await getMemberPartAssignments(membershipIds);
 
-// Group members by part (a multi-part member appears in each of their sections)
 const membersByPart = new Map<string, typeof membersData>();
 const membersWithPartIds = new Set<string>();
 
@@ -106,30 +73,6 @@ const membersWithoutPart = membersData.filter(
 );
 
 const members = membersData;
-
-// Handle member actions
-if (Astro.request.method === "POST") {
-  const formData = await Astro.request.formData();
-  const action = formData.get("action")?.toString();
-  const membershipId = formData.get("membershipId")?.toString();
-
-  if (action === "remove" && membershipId) {
-    await db.delete(EnsembleMember).where(eq(EnsembleMember.id, membershipId));
-    return Astro.redirect(`/ensembles/${canonicalId}/members`);
-  } else if (action === "promote" && membershipId) {
-    await db
-      .update(EnsembleMember)
-      .set({ role: "admin" })
-      .where(eq(EnsembleMember.id, membershipId));
-    return Astro.redirect(`/ensembles/${canonicalId}/members`);
-  } else if (action === "demote" && membershipId) {
-    await db
-      .update(EnsembleMember)
-      .set({ role: "member" })
-      .where(eq(EnsembleMember.id, membershipId));
-    return Astro.redirect(`/ensembles/${canonicalId}/members`);
-  }
-}
 ---
 
 <BaseLayout title={`Manage Members - ${ensemble.name}`}>
@@ -253,12 +196,13 @@ if (Astro.request.method === "POST") {
                                   {member.role === "member" ? (
                                     <form
                                       method="POST"
+                                      action={actions.members.promote}
                                       style="display: inline;"
                                     >
                                       <input
                                         type="hidden"
-                                        name="action"
-                                        value="promote"
+                                        name="ensembleId"
+                                        value={ensemble.id}
                                       />
                                       <input
                                         type="hidden"
@@ -276,12 +220,13 @@ if (Astro.request.method === "POST") {
                                   ) : (
                                     <form
                                       method="POST"
+                                      action={actions.members.demote}
                                       style="display: inline;"
                                     >
                                       <input
                                         type="hidden"
-                                        name="action"
-                                        value="demote"
+                                        name="ensembleId"
+                                        value={ensemble.id}
                                       />
                                       <input
                                         type="hidden"
@@ -297,11 +242,11 @@ if (Astro.request.method === "POST") {
                                       </Button>
                                     </form>
                                   )}
-                                  <form method="POST" style="display: inline;">
+                                  <form method="POST" action={actions.members.remove} style="display: inline;">
                                     <input
                                       type="hidden"
-                                      name="action"
-                                      value="remove"
+                                      name="ensembleId"
+                                      value={ensemble.id}
                                     />
                                     <input
                                       type="hidden"
@@ -380,11 +325,11 @@ if (Astro.request.method === "POST") {
                             <td>
                               <div class="buttons are-small">
                                 {member.role === "member" ? (
-                                  <form method="POST" style="display: inline;">
+                                  <form method="POST" action={actions.members.promote} style="display: inline;">
                                     <input
                                       type="hidden"
-                                      name="action"
-                                      value="promote"
+                                      name="ensembleId"
+                                      value={ensemble.id}
                                     />
                                     <input
                                       type="hidden"
@@ -400,11 +345,11 @@ if (Astro.request.method === "POST") {
                                     </Button>
                                   </form>
                                 ) : (
-                                  <form method="POST" style="display: inline;">
+                                  <form method="POST" action={actions.members.demote} style="display: inline;">
                                     <input
                                       type="hidden"
-                                      name="action"
-                                      value="demote"
+                                      name="ensembleId"
+                                      value={ensemble.id}
                                     />
                                     <input
                                       type="hidden"
@@ -420,11 +365,11 @@ if (Astro.request.method === "POST") {
                                     </Button>
                                   </form>
                                 )}
-                                <form method="POST" style="display: inline;">
+                                <form method="POST" action={actions.members.remove} style="display: inline;">
                                   <input
                                     type="hidden"
-                                    name="action"
-                                    value="remove"
+                                    name="ensembleId"
+                                    value={ensemble.id}
                                   />
                                   <input
                                     type="hidden"
@@ -497,11 +442,11 @@ if (Astro.request.method === "POST") {
                       <td>
                         <div class="buttons are-small">
                           {member.role === "member" ? (
-                            <form method="POST" style="display: inline;">
+                            <form method="POST" action={actions.members.promote} style="display: inline;">
                               <input
                                 type="hidden"
-                                name="action"
-                                value="promote"
+                                name="ensembleId"
+                                value={ensemble.id}
                               />
                               <input
                                 type="hidden"
@@ -517,11 +462,11 @@ if (Astro.request.method === "POST") {
                               </Button>
                             </form>
                           ) : (
-                            <form method="POST" style="display: inline;">
+                            <form method="POST" action={actions.members.demote} style="display: inline;">
                               <input
                                 type="hidden"
-                                name="action"
-                                value="demote"
+                                name="ensembleId"
+                                value={ensemble.id}
                               />
                               <input
                                 type="hidden"
@@ -533,8 +478,12 @@ if (Astro.request.method === "POST") {
                               </Button>
                             </form>
                           )}
-                          <form method="POST" style="display: inline;">
-                            <input type="hidden" name="action" value="remove" />
+                          <form method="POST" action={actions.members.remove} style="display: inline;">
+                            <input
+                              type="hidden"
+                              name="ensembleId"
+                              value={ensemble.id}
+                            />
                             <input
                               type="hidden"
                               name="membershipId"

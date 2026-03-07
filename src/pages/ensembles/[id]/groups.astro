@@ -10,18 +10,14 @@ import Checkbox from "@components/forms/Checkbox.astro";
 import Notification from "@components/elements/Notification.astro";
 import Tag from "@components/elements/Tag.astro";
 import type { Color } from "@lib/bulma";
-import {
-  db,
-  eq,
-  and,
-  desc,
-  EnsembleMember,
-  Group,
-  GroupMembership,
-  User,
-} from "astro:db";
+import { actions } from "astro:actions";
 import { getEnsembleBySlugOrId, getEnsembleAccess } from "@lib/ensemble";
 import { getEnsembleUrlId } from "@lib/slug";
+import {
+  getEnsembleGroups,
+  getGroupMembershipsWithUsers,
+  getEnsembleMembersBasic,
+} from "@lib/groups";
 
 const user = Astro.locals.user!;
 
@@ -45,135 +41,36 @@ if (!access)
   return new Response("Unauthorized - Not a member", { status: 403 });
 const { isAdmin } = access;
 
+const createResult = Astro.getActionResult(actions.groups.create);
+const updateResult = Astro.getActionResult(actions.groups.update);
+const deleteResult = Astro.getActionResult(actions.groups.delete);
+
 let message = "";
 let messageType: "success" | "danger" | undefined;
 
-// Handle form submission
-if (Astro.request.method === "POST") {
-  if (!isAdmin) {
-    return new Response("Unauthorized", { status: 403 });
-  }
-
-  const formData = await Astro.request.formData();
-  const action = formData.get("action")?.toString();
-
-  if (action === "create") {
-    const name = formData.get("name")?.toString();
-    const description = formData.get("description")?.toString();
-    const color = formData.get("color")?.toString() || "info";
-
-    if (!name || !name.trim()) {
-      message = "Group name is required";
-      messageType = "danger";
-    } else {
-      await db.insert(Group).values({
-        id: crypto.randomUUID(),
-        ensembleId: ensemble.id,
-        name: name.trim(),
-        description: description?.trim() || null,
-        color,
-      });
-      message = "Group created successfully!";
-      messageType = "success";
-    }
-  } else if (action === "edit") {
-    const groupId = formData.get("groupId")?.toString();
-    const name = formData.get("name")?.toString();
-    const description = formData.get("description")?.toString();
-    const color = formData.get("color")?.toString() || "info";
-
-    if (groupId && name && name.trim()) {
-      await db
-        .update(Group)
-        .set({
-          name: name.trim(),
-          description: description?.trim() || null,
-          color,
-        })
-        .where(eq(Group.id, groupId));
-      message = "Group updated successfully!";
-      messageType = "success";
-    }
-  } else if (action === "delete") {
-    const groupId = formData.get("groupId")?.toString();
-    if (groupId) {
-      await db
-        .delete(GroupMembership)
-        .where(eq(GroupMembership.groupId, groupId));
-      await db.delete(Group).where(eq(Group.id, groupId));
-      message = "Group deleted successfully!";
-      messageType = "success";
-    }
-  } else if (action === "toggle-member") {
-    const groupId = formData.get("groupId")?.toString();
-    const userId = formData.get("userId")?.toString();
-
-    if (groupId && userId) {
-      const [existing] = await db
-        .select()
-        .from(GroupMembership)
-        .where(
-          and(
-            eq(GroupMembership.groupId, groupId),
-            eq(GroupMembership.userId, userId),
-          ),
-        );
-
-      if (existing) {
-        await db
-          .delete(GroupMembership)
-          .where(eq(GroupMembership.id, existing.id));
-      } else {
-        await db.insert(GroupMembership).values({
-          id: crypto.randomUUID(),
-          groupId,
-          userId,
-        });
-      }
-    }
-  } else if (action === "set-role") {
-    const groupId = formData.get("groupId")?.toString();
-    const userId = formData.get("userId")?.toString();
-    const role = formData.get("role")?.toString() || null;
-
-    if (groupId && userId) {
-      await db
-        .update(GroupMembership)
-        .set({ role: role || null })
-        .where(
-          and(
-            eq(GroupMembership.groupId, groupId),
-            eq(GroupMembership.userId, userId),
-          ),
-        );
-    }
-  }
+if (createResult?.error) {
+  message = createResult.error.message ?? "Failed to create group.";
+  messageType = "danger";
+} else if (createResult) {
+  message = "Group created successfully!";
+  messageType = "success";
+} else if (updateResult?.error) {
+  message = updateResult.error.message ?? "Failed to update group.";
+  messageType = "danger";
+} else if (updateResult) {
+  message = "Group updated successfully!";
+  messageType = "success";
+} else if (deleteResult?.error) {
+  message = deleteResult.error.message ?? "Failed to delete group.";
+  messageType = "danger";
+} else if (deleteResult) {
+  message = "Group deleted successfully!";
+  messageType = "success";
 }
 
-// Get all groups
-const groups = await db
-  .select()
-  .from(Group)
-  .where(eq(Group.ensembleId, ensemble.id))
-  .orderBy(desc(Group.createdAt));
-
-// Get all ensemble members
-const allMembers = await db
-  .select({ id: User.id, name: User.name, email: User.email })
-  .from(EnsembleMember)
-  .innerJoin(User, eq(EnsembleMember.userId, User.id))
-  .where(eq(EnsembleMember.ensembleId, ensemble.id));
-
-// Get group memberships
-const groupMemberships = await db
-  .select({
-    groupId: GroupMembership.groupId,
-    userId: GroupMembership.userId,
-    role: GroupMembership.role,
-    userName: User.name,
-  })
-  .from(GroupMembership)
-  .innerJoin(User, eq(GroupMembership.userId, User.id));
+const groups = await getEnsembleGroups(ensemble.id);
+const allMembers = await getEnsembleMembersBasic(ensemble.id);
+const groupMemberships = await getGroupMembershipsWithUsers(ensemble.id);
 
 const membershipsByGroupId = groupMemberships.reduce(
   (acc, m) => {
@@ -309,8 +206,8 @@ const colorOptions = [
     {
       isAdmin && (
         <Modal id="create-modal" title="Create Group">
-          <form id="createForm" method="POST">
-            <input type="hidden" name="action" value="create" />
+          <form id="createForm" method="POST" action={actions.groups.create}>
+            <input type="hidden" name="ensembleId" value={ensemble.id} />
 
             <TextInput
               name="name"
@@ -365,8 +262,8 @@ const colorOptions = [
     {
       isAdmin && (
         <Modal id="edit-modal" title="Edit Group">
-          <form id="editForm" method="POST">
-            <input type="hidden" name="action" value="edit" />
+          <form id="editForm" method="POST" action={actions.groups.update}>
+            <input type="hidden" name="ensembleId" value={ensemble.id} />
             <input type="hidden" name="groupId" id="edit-groupId" />
 
             <TextInput
@@ -454,8 +351,8 @@ const colorOptions = [
             Are you sure you want to delete this group? This action cannot be
             undone.
           </p>
-          <form id="deleteForm" method="POST">
-            <input type="hidden" name="action" value="delete" />
+          <form id="deleteForm" method="POST" action={actions.groups.delete}>
+            <input type="hidden" name="ensembleId" value={ensemble.id} />
             <input type="hidden" name="groupId" id="delete-groupId" />
           </form>
 
@@ -471,7 +368,7 @@ const colorOptions = [
       )
     }
 
-    <script is:inline define:vars={{ membershipsByGroupId }}>
+    <script is:inline define:vars={{ membershipsByGroupId, ensembleId: ensemble.id }}>
       document.addEventListener("astro:page-load", () => {
         document
           .getElementById("create-group-btn")
@@ -538,11 +435,11 @@ const colorOptions = [
               ?.querySelector(".member-role-select");
 
             const formData = new FormData();
-            formData.append("action", "toggle-member");
+            formData.append("ensembleId", ensembleId);
             formData.append("groupId", groupId);
             formData.append("userId", userId);
 
-            await fetch("", { method: "POST", body: formData });
+            await fetch("/_actions/groups.toggleMember", { method: "POST", body: formData });
 
             if (roleSelect) {
               if (checkbox.querySelector("input").checked) {
@@ -568,12 +465,12 @@ const colorOptions = [
               const role = e.target.value;
 
               const formData = new FormData();
-              formData.append("action", "set-role");
+              formData.append("ensembleId", ensembleId);
               formData.append("groupId", groupId);
               formData.append("userId", userId);
               formData.append("role", role);
 
-              await fetch("", { method: "POST", body: formData });
+              await fetch("/_actions/groups.setMemberRole", { method: "POST", body: formData });
             });
         });
 

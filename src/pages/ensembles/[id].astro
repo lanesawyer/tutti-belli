@@ -13,9 +13,8 @@ import SeasonRepertoire from "@containers/SeasonRepertoire.astro";
 import EnsembleLinks from "@containers/EnsembleLinks.astro";
 import MyTasks from "@containers/MyTasks.astro";
 import AdminTools from "@containers/AdminTools.astro";
-import { db, eq, and, Season } from "astro:db";
 import { ensembleAdminTools } from "@lib/config";
-import { getEnsembleBySlugOrId, getEnsembleAccess } from "@lib/ensemble";
+import { getEnsembleBySlugOrId, getEnsembleAccess, getActiveSeasonForEnsemble } from "@lib/ensemble";
 import { getEnsembleUrlId } from "@lib/slug";
 
 const user = Astro.locals.user!;
@@ -40,11 +39,7 @@ if (!access) return Astro.redirect("/ensembles");
 const { membership, isAdmin } = access;
 const isPending = !isAdmin && membership?.status === "pending";
 
-// Get the current active season
-const [currentSeason] = await db
-  .select()
-  .from(Season)
-  .where(and(eq(Season.ensembleId, ensemble.id), eq(Season.isActive, 1)));
+const currentSeason = await getActiveSeasonForEnsemble(ensemble.id);
 ---
 
 <BaseLayout title={ensemble.name}>

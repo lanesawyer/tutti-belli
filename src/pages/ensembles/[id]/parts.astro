@@ -6,10 +6,9 @@ import Button from "@components/elements/Button.astro";
 import Icon from "@components/elements/Icon.astro";
 import TextInput from "@components/forms/TextInput.astro";
 import Notification from "@components/elements/Notification.astro";
-import { db, eq, and, EnsembleMember, Part } from "astro:db";
 import { actions } from "astro:actions";
 import { canManageEnsemble } from "@lib/permissions";
-import { getEnsembleBySlugOrId } from "@lib/ensemble";
+import { getEnsembleBySlugOrId, getEnsembleMembership, getEnsembleParts } from "@lib/ensemble";
 import { getEnsembleUrlId } from "@lib/slug";
 const user = Astro.locals.user!;
 
@@ -28,18 +27,7 @@ if (Astro.request.method === "GET" && id !== canonicalId) {
   );
 }
 
-// Check if user is an admin of this ensemble
-const membership = await db
-  .select()
-  .from(EnsembleMember)
-  .where(
-    and(
-      eq(EnsembleMember.ensembleId, ensemble.id),
-      eq(EnsembleMember.userId, user.id),
-    ),
-  )
-  .get();
-
+const membership = await getEnsembleMembership(ensemble.id, user.id);
 const isAdmin = canManageEnsemble(user, membership);
 
 if (!isAdmin) {
@@ -79,13 +67,7 @@ if (addResult) {
   }
 }
 
-// Get all parts for this ensemble, sorted
-const parts = await db
-  .select()
-  .from(Part)
-  .where(eq(Part.ensembleId, ensemble.id))
-  .all();
-
+const parts = await getEnsembleParts(ensemble.id);
 parts.sort((a, b) => a.sortOrder - b.sortOrder);
 
 const nextSortOrder =

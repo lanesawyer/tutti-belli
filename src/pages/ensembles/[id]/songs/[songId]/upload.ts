@@ -1,8 +1,7 @@
 import type { APIRoute } from 'astro';
-import { db, eq, and, EnsembleMember } from 'astro:db';
 import { canManageEnsemble } from '@lib/permissions';
 import { addSongFile } from '@lib/songs';
-import { getEnsembleBySlugOrId } from '@lib/ensemble';
+import { getEnsembleBySlugOrId, getEnsembleMembership } from '@lib/ensemble';
 
 export const POST: APIRoute = async ({ params, locals, request, redirect }) => {
   const user = locals.user;
@@ -14,11 +13,7 @@ export const POST: APIRoute = async ({ params, locals, request, redirect }) => {
   const ensemble = await getEnsembleBySlugOrId(id);
   if (!ensemble) return new Response('Ensemble not found', { status: 404 });
 
-  const membership = await db
-    .select()
-    .from(EnsembleMember)
-    .where(and(eq(EnsembleMember.ensembleId, ensemble.id), eq(EnsembleMember.userId, user.id)))
-    .get();
+  const membership = await getEnsembleMembership(ensemble.id, user.id);
 
   if (!canManageEnsemble(user, membership)) {
     return new Response('Forbidden', { status: 403 });

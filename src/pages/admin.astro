@@ -8,9 +8,9 @@ import TextInput from "@components/forms/TextInput.astro";
 import Select from "@components/forms/Select.astro";
 import Modal from "@components/Modal.astro";
 import Notification from "@components/elements/Notification.astro";
-import { db, Ensemble, User } from "astro:db";
 import { actions } from "astro:actions";
 import { getActiveBanner } from "@lib/banner";
+import { getAllEnsembles, getAllUsers } from "@lib/admin";
 
 const user = Astro.locals.user;
 
@@ -63,12 +63,8 @@ if (createResult?.data) {
   messageType = "danger";
 }
 
-// Get all ensembles
-const allEnsembles = await db.select().from(Ensemble);
-
-// Get all users
-const allUsers = await db.select().from(User);
-
+const allEnsembles = await getAllEnsembles();
+const allUsers = await getAllUsers();
 const activeBanner = await getActiveBanner();
 ---
 

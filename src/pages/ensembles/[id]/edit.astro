@@ -1,19 +1,10 @@
 ---
 import BaseLayout from "@layouts/BaseLayout.astro";
-import {
-  db,
-  eq,
-  and,
-  ne,
-  Ensemble,
-  EnsembleMember,
-  EnsembleLink,
-} from "astro:db";
-import { fileToDataUri, validateImageFile } from "@lib/upload";
+import { actions } from "astro:actions";
 import { canManageEnsemble } from "@lib/permissions";
 import { ensembleAdminTools } from "@lib/config";
-import { getEnsembleBySlugOrId } from "@lib/ensemble";
-import { generateSlug, getEnsembleUrlId } from "@lib/slug";
+import { getEnsembleBySlugOrId, getEnsembleMembership, getEnsembleLinks } from "@lib/ensemble";
+import { getEnsembleUrlId } from "@lib/slug";
 import Box from "@components/elements/Box.astro";
 import Button from "@components/elements/Button.astro";
 import Image from "@components/elements/Image.astro";
@@ -38,161 +29,41 @@ if (Astro.request.method === "GET" && id !== canonicalId) {
   return Astro.redirect(`/ensembles/${canonicalId}/edit`, 301);
 }
 
-// Check if user is an admin of this ensemble
-const membership = await db
-  .select()
-  .from(EnsembleMember)
-  .where(
-    and(
-      eq(EnsembleMember.ensembleId, ensemble.id),
-      eq(EnsembleMember.userId, user.id),
-    ),
-  )
-  .get();
-
+const membership = await getEnsembleMembership(ensemble.id, user.id);
 const isAdmin = canManageEnsemble(user, membership);
 
 if (!isAdmin) {
   return new Response("Unauthorized", { status: 403 });
 }
 
-// Get ensemble links
-const ensembleLinks = await db
-  .select()
-  .from(EnsembleLink)
-  .where(eq(EnsembleLink.ensembleId, ensemble.id))
-  .orderBy(EnsembleLink.sortOrder, EnsembleLink.createdAt);
+const updateResult = Astro.getActionResult(actions.ensembles.update);
+const addLinkResult = Astro.getActionResult(actions.ensembles.addLink);
+const deleteLinkResult = Astro.getActionResult(actions.ensembles.deleteLink);
+
+if (updateResult?.data) {
+  const newSlug = updateResult.data.newSlug;
+  return Astro.redirect(`/ensembles/${newSlug || ensemble.id}`);
+}
+if (addLinkResult && !addLinkResult.error) {
+  return Astro.redirect(`/ensembles/${canonicalId}/edit`);
+}
+if (deleteLinkResult && !deleteLinkResult.error) {
+  return Astro.redirect(`/ensembles/${canonicalId}/edit`);
+}
+
+const ensembleLinks = await getEnsembleLinks(ensemble.id);
 
 let message = "";
 let messageType = "";
-
-// Handle form submission
-if (Astro.request.method === "POST") {
-  const formData = await Astro.request.formData();
-  const action = formData.get("action")?.toString();
-
-  if (action === "add-link") {
-    const label = formData.get("label")?.toString()?.trim();
-    const url = formData.get("url")?.toString()?.trim();
-    if (label && url) {
-      await db.insert(EnsembleLink).values({
-        id: crypto.randomUUID(),
-        ensembleId: ensemble.id,
-        label,
-        url,
-        sortOrder: ensembleLinks.length,
-      });
-    }
-    return Astro.redirect(`/ensembles/${canonicalId}/edit`);
-  }
-
-  if (action === "delete-link") {
-    const linkId = formData.get("linkId")?.toString();
-    if (linkId) {
-      await db
-        .delete(EnsembleLink)
-        .where(
-          and(
-            eq(EnsembleLink.id, linkId),
-            eq(EnsembleLink.ensembleId, ensemble.id),
-          ),
-        );
-    }
-    return Astro.redirect(`/ensembles/${canonicalId}/edit`);
-  }
-
-  const name = formData.get("name")?.toString();
-  const description = formData.get("description")?.toString();
-  const discordLink = formData.get("discordLink")?.toString();
-  const discordWebhookUrl = formData.get("discordWebhookUrl")?.toString();
-  const codeOfConduct = formData.get("codeOfConduct")?.toString();
-  const imageFile = formData.get("image") as File;
-  const removeImage = formData.get("removeImage")?.toString() === "true";
-  const checkInStartMinutes = parseInt(
-    formData.get("checkInStartMinutes")?.toString() || "30",
-  );
-  const checkInEndMinutes = parseInt(
-    formData.get("checkInEndMinutes")?.toString() || "15",
-  );
-
-  // Handle slug
-  const rawSlug = formData.get("slug")?.toString()?.trim();
-  let newSlug = ensemble.slug ?? null;
-
-  if (rawSlug !== undefined) {
-    if (rawSlug === "") {
-      newSlug = null;
-    } else {
-      const normalized = generateSlug(rawSlug);
-      if (!normalized) {
-        message = "Invalid slug — use only letters, numbers, and hyphens.";
-        messageType = "danger";
-      } else {
-        // Check if taken by a different ensemble
-        const conflict = await db
-          .select({ id: Ensemble.id })
-          .from(Ensemble)
-          .where(
-            and(eq(Ensemble.slug, normalized), ne(Ensemble.id, ensemble.id)),
-          )
-          .get();
-        if (conflict) {
-          message = `The slug "${normalized}" is already taken by another ensemble.`;
-          messageType = "danger";
-        } else {
-          newSlug = normalized;
-        }
-      }
-    }
-  }
-
-  if (!name || !name.trim()) {
-    message = "Ensemble name is required";
-    messageType = "danger";
-  } else if (!message) {
-    try {
-      let imageUrl = ensemble.imageUrl;
-
-      // Handle image removal
-      if (removeImage && imageUrl) {
-        imageUrl = null;
-      }
-
-      // Handle new image upload
-      if (imageFile && imageFile.size > 0) {
-        const validation = validateImageFile(imageFile, 5);
-        if (!validation.valid) {
-          message = validation.error!;
-          messageType = "danger";
-        } else {
-          imageUrl = await fileToDataUri(imageFile);
-        }
-      }
-
-      if (!message) {
-        await db
-          .update(Ensemble)
-          .set({
-            name: name.trim(),
-            slug: newSlug,
-            description: description?.trim() || null,
-            discordLink: discordLink?.trim() || null,
-            discordWebhookUrl: discordWebhookUrl?.trim() || null,
-            codeOfConduct: codeOfConduct?.trim() || null,
-            imageUrl,
-            checkInStartMinutes,
-            checkInEndMinutes,
-          })
-          .where(eq(Ensemble.id, ensemble.id));
-
-        return Astro.redirect(`/ensembles/${newSlug || ensemble.id}`);
-      }
-    } catch (error) {
-      console.error("Error updating ensemble:", error);
-      message = "Failed to update ensemble";
-      messageType = "danger";
-    }
-  }
+if (updateResult?.error) {
+  message = updateResult.error.message ?? "Failed to update ensemble.";
+  messageType = "danger";
+} else if (addLinkResult?.error) {
+  message = addLinkResult.error.message ?? "Failed to add link.";
+  messageType = "danger";
+} else if (deleteLinkResult?.error) {
+  message = deleteLinkResult.error.message ?? "Failed to delete link.";
+  messageType = "danger";
 }
 ---
 
@@ -241,7 +112,9 @@ if (Astro.request.method === "POST") {
       <div class="columns">
         <div class="column is-two-thirds">
           <Box>
-            <form method="POST" enctype="multipart/form-data">
+            <form method="POST" enctype="multipart/form-data" action={actions.ensembles.update}>
+              <input type="hidden" name="ensembleId" value={ensemble.id} />
+              <input type="hidden" name="currentImageUrl" value={ensemble.imageUrl ?? ""} />
               <TextInput
                 name="name"
                 label="Ensemble Name"
@@ -478,13 +351,13 @@ if (Astro.request.method === "POST") {
             </form>
 
             <!-- Out-of-band forms for links (nested forms are invalid HTML) -->
-            <form id="add-link-form" method="POST">
-              <input type="hidden" name="action" value="add-link" />
+            <form id="add-link-form" method="POST" action={actions.ensembles.addLink}>
+              <input type="hidden" name="ensembleId" value={ensemble.id} />
             </form>
             {
               ensembleLinks.map((link) => (
-                <form id={`delete-link-${link.id}`} method="POST">
-                  <input type="hidden" name="action" value="delete-link" />
+                <form id={`delete-link-${link.id}`} method="POST" action={actions.ensembles.deleteLink}>
+                  <input type="hidden" name="ensembleId" value={ensemble.id} />
                   <input type="hidden" name="linkId" value={link.id} />
                 </form>
               ))

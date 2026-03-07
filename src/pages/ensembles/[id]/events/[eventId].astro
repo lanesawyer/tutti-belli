@@ -8,18 +8,19 @@ import TextInput from "@components/forms/TextInput.astro";
 import Select from "@components/forms/Select.astro";
 import Tag from "@components/elements/Tag.astro";
 import Notification from "@components/elements/Notification.astro";
-import { db, eq, Event, Group } from "astro:db";
 import { actions } from "astro:actions";
 import QRCode from "qrcode";
 import { ensembleAdminTools } from "@lib/config";
 import { getEnsembleBySlugOrId, getEnsembleAccess } from "@lib/ensemble";
 import { getEnsembleUrlId } from "@lib/slug";
 import {
+  getEvent,
   getEventProgramData,
   getEventPageData,
   isRsvpEnabled,
   getRsvpForUser,
 } from "@lib/events";
+import { getEnsembleGroups } from "@lib/groups";
 import { formatDuration } from "@lib/format";
 import Timeline from "@containers/event/Timeline.astro";
 
@@ -47,8 +48,7 @@ const access = await getEnsembleAccess(user, ensemble.id);
 if (!access) return Astro.redirect("/ensembles");
 const { isAdmin } = access;
 
-// Get event details
-const [event] = await db.select().from(Event).where(eq(Event.id, eventId));
+const event = await getEvent(eventId);
 if (!event) {
   return Astro.redirect(`/ensembles/${canonicalId}/events`);
 }
@@ -70,10 +70,7 @@ const isTooLate = now > checkInEndTime;
 // Re-fetch event after a potential edit so the page reflects the latest values
 const editResult = Astro.getActionResult(actions.events.edit);
 if (editResult && !editResult.error) {
-  const [updatedEvent] = await db
-    .select()
-    .from(Event)
-    .where(eq(Event.id, eventId));
+  const updatedEvent = await getEvent(eventId);
   if (updatedEvent) Object.assign(event, updatedEvent);
 }
 
@@ -119,12 +116,7 @@ const rsvpOn = isRsvpEnabled(event);
 const userRsvp = rsvpOn ? await getRsvpForUser(event.id, user.id) : null;
 
 // Fetch groups for the edit modal selector
-const groups = await db
-  .select({ id: Group.id, name: Group.name, color: Group.color })
-  .from(Group)
-  .where(eq(Group.ensembleId, ensemble.id))
-  .orderBy(Group.name)
-  .all();
+const groups = await getEnsembleGroups(ensemble.id);
 
 const attendedUserIds = new Set(attendanceRecords.map((a) => a.userId));
 const attendanceByUserId = new Map(attendanceRecords.map((a) => [a.userId, a]));

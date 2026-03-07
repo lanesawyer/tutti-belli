@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro';
-import { db, eq, and, SongFile, Song, EnsembleMember } from 'astro:db';
 import { getFileStream } from '@lib/storage';
+import { getSongFileWithAccess } from '@lib/songs';
 
 export const GET: APIRoute = async ({ params, locals, url, request }) => {
   const user = locals.user;
@@ -12,28 +12,8 @@ export const GET: APIRoute = async ({ params, locals, url, request }) => {
   const inline = url.searchParams.has('inline');
   const range = request.headers.get('range') ?? undefined;
 
-  // Load the file record and join through to the ensemble
-  const row = await db
-    .select({
-      url: SongFile.url,
-      name: SongFile.name,
-      ensembleId: Song.ensembleId,
-    })
-    .from(SongFile)
-    .innerJoin(Song, eq(SongFile.songId, Song.id))
-    .where(eq(SongFile.id, fileId))
-    .get();
-
+  const row = await getSongFileWithAccess(fileId, user.id);
   if (!row) return new Response('Not found', { status: 404 });
-
-  // Verify the requesting user is a member of the ensemble
-  const membership = await db
-    .select()
-    .from(EnsembleMember)
-    .where(and(eq(EnsembleMember.ensembleId, row.ensembleId), eq(EnsembleMember.userId, user.id)))
-    .get();
-
-  if (!membership) return new Response('Forbidden', { status: 403 });
 
   const { body, contentType, contentLength, contentRange, status } = await getFileStream(row.url, range);
 
