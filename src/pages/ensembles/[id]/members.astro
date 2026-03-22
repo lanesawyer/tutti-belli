@@ -145,17 +145,15 @@ const members = membersData;
                     <Table
                       title={`${part.name} (${partMembers.length})`}
                       className="has-text-primary"
+                      columns={[
+                        { label: "", style: "width: 60px;" },
+                        "Name",
+                        "Email",
+                        "Role",
+                        "Joined",
+                        "Actions",
+                      ]}
                     >
-                      <thead>
-                        <tr>
-                          <th style="width: 60px;" />
-                          <th>Name</th>
-                          <th>Email</th>
-                          <th>Role</th>
-                          <th>Joined</th>
-                          <th>Actions</th>
-                        </tr>
-                      </thead>
                       <tbody>
                         {partMembers.map((member: any) => (
                           <tr>
@@ -276,17 +274,15 @@ const members = membersData;
                 <div class="mb-5">
                   <Table
                     title={`No Part Assigned (${membersWithoutPart.length})`}
+                    columns={[
+                      { label: "", style: "width: 60px;" },
+                      "Name",
+                      "Email",
+                      "Role",
+                      "Joined",
+                      "Actions",
+                    ]}
                   >
-                    <thead>
-                      <tr>
-                        <th style="width: 60px;" />
-                        <th>Name</th>
-                        <th>Email</th>
-                        <th>Role</th>
-                        <th>Joined</th>
-                        <th>Actions</th>
-                      </tr>
-                    </thead>
                     <tbody>
                       {membersWithoutPart.map((member) => (
                         <tr>
@@ -395,17 +391,16 @@ const members = membersData;
               )}
             </>
           ) : (
-            <Table>
-              <thead>
-                <tr>
-                  <th style="width: 60px;" />
-                  <th>Name</th>
-                  <th>Email</th>
-                  <th>Role</th>
-                  <th>Joined</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
+            <Table
+            columns={[
+              { label: "", style: "width: 60px;" },
+              "Name",
+              "Email",
+              "Role",
+              "Joined",
+              "Actions",
+            ]}
+          >
               <tbody>
                 {members.map((member) => (
                   <tr>

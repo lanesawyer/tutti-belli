@@ -95,14 +95,13 @@ const nextSortOrder =
         No parts defined yet. Click "Add Part" to create one.
       </Notification>
     ) : (
-      <Table>
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Sort Order</th>
-            <th style="width: 120px;">Actions</th>
-          </tr>
-        </thead>
+      <Table
+        columns={[
+          "Name",
+          "Sort Order",
+          { label: "Actions", style: "width: 120px;" },
+        ]}
+      >
         <tbody>
           {parts.map((part) => (
             <tr>

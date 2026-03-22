@@ -151,16 +151,16 @@ const nextSortOrder =
       </Notification>
     ) : (
       <>
-        <Table title="Tasks">
-          <thead>
-            <tr>
-              <th>Title</th>
-              <th>Description</th>
-              <th>Sort Order</th>
-              <th>Completions</th>
-              <th style="width: 120px;">Actions</th>
-            </tr>
-          </thead>
+        <Table
+          title="Tasks"
+          columns={[
+            "Title",
+            "Description",
+            "Sort Order",
+            "Completions",
+            { label: "Actions", style: "width: 120px;" },
+          ]}
+        >
           <tbody>
             {seasonTasks.map((task) => {
               const completedCount = completionsByTask.get(task.id)?.size ?? 0;

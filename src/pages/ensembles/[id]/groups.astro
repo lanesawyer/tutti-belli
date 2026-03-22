@@ -116,15 +116,14 @@ const colorOptions = [
         No groups yet. {isAdmin && "Create one to organize your members!"}
       </Notification>
     ) : (
-      <Table>
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Description</th>
-            <th>Members</th>
-            {isAdmin && <th style="width: 160px;">Actions</th>}
-          </tr>
-        </thead>
+      <Table
+        columns={[
+          "Name",
+          "Description",
+          "Members",
+          isAdmin && { label: "Actions", style: "width: 160px;" },
+        ]}
+      >
         <tbody>
           {groups.map((group) => {
             const members = membershipsByGroupId[group.id] || [];

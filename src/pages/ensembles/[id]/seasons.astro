@@ -104,16 +104,15 @@ const membershipsBySeasonId = seasonMemberships.reduce(
         No seasons yet. {isAdmin && "Create one to get started!"}
       </Notification>
     ) : (
-      <Table>
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Dates</th>
-            <th>Members</th>
-            <th>Status</th>
-            {isAdmin && <th style="width: 160px;">Actions</th>}
-          </tr>
-        </thead>
+      <Table
+        columns={[
+          "Name",
+          "Dates",
+          "Members",
+          "Status",
+          isAdmin && { label: "Actions", style: "width: 160px;" },
+        ]}
+      >
         <tbody>
           {seasons.map((season) => {
             const members = membershipsBySeasonId[season.id] || [];

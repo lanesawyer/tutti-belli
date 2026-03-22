@@ -147,20 +147,19 @@ const pastEvents = allEvents.filter((e) => {
         {upcomingEvents.length > 0 && (
           <div class="mb-5">
             <h2 class="title is-5 mb-3">Upcoming</h2>
-            <Table>
-              <thead>
-                <tr>
-                  <th>Title</th>
-                  <th>Type</th>
-                  <th>Group</th>
-                  <th>Date</th>
-                  <th>Time</th>
-                  <th>Location</th>
-                  <th>Duration</th>
-                  <th>RSVP</th>
-                  <th style="width: 160px;">Actions</th>
-                </tr>
-              </thead>
+            <Table
+              columns={[
+                "Title",
+                "Type",
+                "Group",
+                "Date",
+                "Time",
+                "Location",
+                "Duration",
+                "RSVP",
+                { label: "Actions", style: "width: 160px;" },
+              ]}
+            >
               <tbody>
                 {upcomingEvents.map((event) => {
                   const scheduledDate = new Date(event.scheduledAt);
@@ -365,18 +364,17 @@ const pastEvents = allEvents.filter((e) => {
         {pastEvents.length > 0 && (
           <div>
             <h2 class="title is-5 mb-3">Past</h2>
-            <Table>
-              <thead>
-                <tr>
-                  <th>Title</th>
-                  <th>Type</th>
-                  <th>Group</th>
-                  <th>Date</th>
-                  <th>Time</th>
-                  <th>Location</th>
-                  <th style="width: 100px;">Actions</th>
-                </tr>
-              </thead>
+            <Table
+              columns={[
+                "Title",
+                "Type",
+                "Group",
+                "Date",
+                "Time",
+                "Location",
+                { label: "Actions", style: "width: 100px;" },
+              ]}
+            >
               <tbody>
                 {pastEvents.map((event) => {
                   const scheduledDate = new Date(event.scheduledAt);

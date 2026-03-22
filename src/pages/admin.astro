@@ -88,15 +88,7 @@ const activeBanner = await getActiveBanner();
         No ensembles created yet.
       </Notification>
     ) : (
-      <Table>
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Description</th>
-            <th>Created</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
+      <Table columns={["Name", "Description", "Created", "Actions"]}>
         <tbody>
           {allEnsembles.map((ensemble) => (
             <tr>
@@ -145,16 +137,7 @@ const activeBanner = await getActiveBanner();
   <!-- Users -->
   <h2 class="title is-4 mt-5">Users ({allUsers.length})</h2>
 
-  <Table>
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Email</th>
-        <th>Role</th>
-        <th>Joined</th>
-        <th>Actions</th>
-      </tr>
-    </thead>
+  <Table columns={["Name", "Email", "Role", "Joined", "Actions"]}>
     <tbody>
       {
         allUsers.map((u) => (

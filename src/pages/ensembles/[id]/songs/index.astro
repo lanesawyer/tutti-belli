@@ -104,18 +104,17 @@ const songFilesMap = buildSongFilesMap(ensembleSongIds, songFilesData);
         No songs added yet. Click "Add Song" to get started.
       </Notification>
     ) : (
-      <Table>
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Composer</th>
-            <th>Arranger</th>
-            <th>Runtime</th>
-            <th>Parts</th>
-            <th>Seasons</th>
-            <th style={isAdmin ? "width: 130px;" : "width: 50px;"}>Files</th>
-          </tr>
-        </thead>
+      <Table
+        columns={[
+          "Name",
+          "Composer",
+          "Arranger",
+          "Runtime",
+          "Parts",
+          "Seasons",
+          { label: "Files", style: isAdmin ? "width: 130px;" : "width: 50px;" },
+        ]}
+      >
         <tbody>
           {songs.map((song) => {
             const songParts = songPartsMap.get(song.id) || [];

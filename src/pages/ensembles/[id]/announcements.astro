@@ -90,15 +90,14 @@ const announcements = await getEnsembleAnnouncements(ensemble.id);
         {isAdmin && ' Click "New Announcement" to post one.'}
       </Notification>
     ) : (
-      <Table>
-        <thead>
-          <tr>
-            <th>Title</th>
-            <th>Posted By</th>
-            <th>Date</th>
-            {isAdmin && <th style="width: 110px;">Actions</th>}
-          </tr>
-        </thead>
+      <Table
+        columns={[
+          "Title",
+          "Posted By",
+          "Date",
+          isAdmin && { label: "Actions", style: "width: 110px;" },
+        ]}
+      >
         <tbody>
           {announcements.map((announcement) => (
             <tr>

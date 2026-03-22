@@ -1,16 +1,44 @@
 ---
+type Column =
+  | string
+  | { label: string; style?: string }
+  | null
+  | undefined
+  | false;
+
 interface Props {
   title?: string;
   className?: string;
+  columns?: Column[];
 }
 
-const { title, className } = Astro.props;
+const { title, className, columns } = Astro.props;
+
+const resolvedColumns = (columns ?? []).filter(Boolean) as (
+  | string
+  | { label: string; style?: string }
+)[];
 ---
 
 {title && <h3 class="title is-5 mb-3">{title}</h3>}
 
 <div class="table-container">
   <table class={`table is-fullwidth is-striped ${className || ""}`}>
+    {
+      resolvedColumns.length > 0 && (
+        <thead>
+          <tr>
+            {resolvedColumns.map((col) =>
+              typeof col === "string" ? (
+                <th>{col}</th>
+              ) : (
+                <th style={col.style}>{col.label}</th>
+              )
+            )}
+          </tr>
+        </thead>
+      )
+    }
     <slot />
   </table>
 </div>
