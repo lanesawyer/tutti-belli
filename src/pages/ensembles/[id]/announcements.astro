@@ -1,14 +1,16 @@
 ---
 import EnsemblePageLayout from "@layouts/EnsemblePageLayout.astro";
-import Table from "@components/elements/Table.astro";
-import Modal from "@components/Modal.astro";
-import Button from "@components/elements/Button.astro";
-import Icon from "@components/elements/Icon.astro";
-import TextInput from "@components/forms/TextInput.astro";
-import Notification from "@components/elements/Notification.astro";
-import Tag from "@components/elements/Tag.astro";
+import {
+  Table,
+  Modal,
+  Button,
+  Icon,
+  TextInput,
+  Notification,
+  Tag,
+  Checkbox,
+} from "astro-bulma";
 import { actions } from "astro:actions";
-import Checkbox from "@components/forms/Checkbox.astro";
 import { getEnsembleBySlugOrId, getEnsembleAccess } from "@lib/ensemble";
 import { getEnsembleUrlId } from "@lib/slug";
 import { getEnsembleAnnouncements } from "@lib/announcements";
@@ -155,12 +157,20 @@ const announcements = await getEnsembleAnnouncements(ensemble.id);
     {
       isAdmin && (
         <Modal id="create-modal" title="New Announcement">
-          <form id="createForm" method="POST" action={actions.announcements.create}>
+          <form
+            id="createForm"
+            method="POST"
+            action={actions.announcements.create}
+          >
             <input type="hidden" name="ensembleId" value={ensemble.id} />
             <input type="hidden" name="ensembleName" value={ensemble.name} />
             <input type="hidden" name="canonicalId" value={canonicalId} />
             {ensemble.discordWebhookUrl && (
-              <input type="hidden" name="discordWebhookUrl" value={ensemble.discordWebhookUrl} />
+              <input
+                type="hidden"
+                name="discordWebhookUrl"
+                value={ensemble.discordWebhookUrl}
+              />
             )}
 
             <TextInput
@@ -207,12 +217,20 @@ const announcements = await getEnsembleAnnouncements(ensemble.id);
     {
       isAdmin && (
         <Modal id="edit-modal" title="Edit Announcement">
-          <form id="editForm" method="POST" action={actions.announcements.update}>
+          <form
+            id="editForm"
+            method="POST"
+            action={actions.announcements.update}
+          >
             <input type="hidden" name="ensembleId" value={ensemble.id} />
             <input type="hidden" name="ensembleName" value={ensemble.name} />
             <input type="hidden" name="canonicalId" value={canonicalId} />
             {ensemble.discordWebhookUrl && (
-              <input type="hidden" name="discordWebhookUrl" value={ensemble.discordWebhookUrl} />
+              <input
+                type="hidden"
+                name="discordWebhookUrl"
+                value={ensemble.discordWebhookUrl}
+              />
             )}
             <input
               type="hidden"
@@ -262,7 +280,11 @@ const announcements = await getEnsembleAnnouncements(ensemble.id);
             Are you sure you want to delete this announcement? This action
             cannot be undone.
           </p>
-          <form id="deleteForm" method="POST" action={actions.announcements.delete}>
+          <form
+            id="deleteForm"
+            method="POST"
+            action={actions.announcements.delete}
+          >
             <input type="hidden" name="ensembleId" value={ensemble.id} />
             <input
               type="hidden"

@@ -1,7 +1,7 @@
 ---
 import SingleColumnLayout from "@layouts/SingleColumnLayout.astro";
-import Button from "@components/elements/Button.astro";
-import Notification from "@components/elements/Notification.astro";
+import { Button } from "astro-bulma";
+import { Notification } from "astro-bulma";
 import { verifyEmailChangeToken } from "@lib/profile";
 
 const token = Astro.url.searchParams.get("token");

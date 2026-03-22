@@ -1,8 +1,8 @@
 ---
 import { db, eq, Season, SeasonSong, Song, and } from "astro:db";
 import DashboardSection from "@components/DashboardSection.astro";
-import Notification from "@components/elements/Notification.astro";
-import Button from "@components/elements/Button.astro";
+import { Notification } from "astro-bulma";
+import { Button } from "astro-bulma";
 
 interface Props {
   ensembleId: string;

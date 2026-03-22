@@ -1,10 +1,7 @@
 ---
 import { db, eq, desc, Announcement, User } from "astro:db";
 import DashboardSection from "@components/DashboardSection.astro";
-import Message from "@components/Message.astro";
-import Notification from "@components/elements/Notification.astro";
-import Button from "@components/elements/Button.astro";
-import Icon from "@components/elements/Icon.astro";
+import { Message, Notification, Button, Icon } from "astro-bulma";
 
 interface Props {
   ensembleId: string;

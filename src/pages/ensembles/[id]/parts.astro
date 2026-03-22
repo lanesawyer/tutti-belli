@@ -1,14 +1,20 @@
 ---
 import EnsemblePageLayout from "@layouts/EnsemblePageLayout.astro";
-import Table from "@components/elements/Table.astro";
-import Modal from "@components/Modal.astro";
-import Button from "@components/elements/Button.astro";
-import Icon from "@components/elements/Icon.astro";
-import TextInput from "@components/forms/TextInput.astro";
-import Notification from "@components/elements/Notification.astro";
+import {
+  Table,
+  Modal,
+  Button,
+  Icon,
+  TextInput,
+  Notification,
+} from "astro-bulma";
 import { actions } from "astro:actions";
 import { canManageEnsemble } from "@lib/permissions";
-import { getEnsembleBySlugOrId, getEnsembleMembership, getEnsembleParts } from "@lib/ensemble";
+import {
+  getEnsembleBySlugOrId,
+  getEnsembleMembership,
+  getEnsembleParts,
+} from "@lib/ensemble";
 import { getEnsembleUrlId } from "@lib/slug";
 const user = Astro.locals.user!;
 

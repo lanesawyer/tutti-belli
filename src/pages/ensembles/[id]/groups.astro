@@ -1,14 +1,16 @@
 ---
 import EnsemblePageLayout from "@layouts/EnsemblePageLayout.astro";
-import Table from "@components/elements/Table.astro";
-import Modal from "@components/Modal.astro";
-import Button from "@components/elements/Button.astro";
-import Icon from "@components/elements/Icon.astro";
-import TextInput from "@components/forms/TextInput.astro";
-import Select from "@components/forms/Select.astro";
-import Checkbox from "@components/forms/Checkbox.astro";
-import Notification from "@components/elements/Notification.astro";
-import Tag from "@components/elements/Tag.astro";
+import {
+  Table,
+  Modal,
+  Button,
+  Icon,
+  TextInput,
+  Select,
+  Checkbox,
+  Notification,
+  Tag,
+} from "astro-bulma";
 import type { Color } from "@lib/bulma";
 import { actions } from "astro:actions";
 import { getEnsembleBySlugOrId, getEnsembleAccess } from "@lib/ensemble";
@@ -368,7 +370,10 @@ const colorOptions = [
       )
     }
 
-    <script is:inline define:vars={{ membershipsByGroupId, ensembleId: ensemble.id }}>
+    <script
+      is:inline
+      define:vars={{ membershipsByGroupId, ensembleId: ensemble.id }}
+    >
       document.addEventListener("astro:page-load", () => {
         document
           .getElementById("create-group-btn")
@@ -439,7 +444,10 @@ const colorOptions = [
             formData.append("groupId", groupId);
             formData.append("userId", userId);
 
-            await fetch("/_actions/groups.toggleMember", { method: "POST", body: formData });
+            await fetch("/_actions/groups.toggleMember", {
+              method: "POST",
+              body: formData,
+            });
 
             if (roleSelect) {
               if (checkbox.querySelector("input").checked) {
@@ -470,7 +478,10 @@ const colorOptions = [
               formData.append("userId", userId);
               formData.append("role", role);
 
-              await fetch("/_actions/groups.setMemberRole", { method: "POST", body: formData });
+              await fetch("/_actions/groups.setMemberRole", {
+                method: "POST",
+                body: formData,
+              });
             });
         });
 

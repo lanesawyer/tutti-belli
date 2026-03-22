@@ -1,8 +1,6 @@
 ---
 import SingleColumnLayout from "@layouts/SingleColumnLayout.astro";
-import Button from "@components/elements/Button.astro";
-import TextInput from "@components/forms/TextInput.astro";
-import Notification from "@components/elements/Notification.astro";
+import { Button, TextInput, Notification } from "astro-bulma";
 import { actions } from "astro:actions";
 import { getRedirectUrl } from "@lib/redirect";
 
@@ -62,7 +60,11 @@ if (result?.error) {
   }
 
   <form method="POST" action={actions.auth.login}>
-    {customRedirect && <input type="hidden" name="redirect" value={customRedirect} />}
+    {
+      customRedirect && (
+        <input type="hidden" name="redirect" value={customRedirect} />
+      )
+    }
     <TextInput
       name="email"
       label="Email"
