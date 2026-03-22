@@ -3,8 +3,7 @@
  * Renders a delete (trash) button that opens a confirmation modal.
  * The form submits to actions.songs.deleteFile on confirm.
  */
-import Button from "@components/elements/Button.astro";
-import Modal from "@components/Modal.astro";
+import { Button, Modal } from "astro-bulma";
 import { actions } from "astro:actions";
 
 interface Props {

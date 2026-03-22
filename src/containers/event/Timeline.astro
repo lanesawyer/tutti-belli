@@ -70,31 +70,35 @@ const endMs = startMs + durationMinutes * 60 * 1000;
         </div>
         <div class="live-countdown-body">
           <div id="live-segment-name" class="live-segment-name" />
-          <div id="live-time-remaining" class="live-time-remaining">0:00</div>
+          <div id="live-time-remaining" class="live-time-remaining">
+            0:00
+          </div>
           <div class="live-segment-label">remaining</div>
         </div>
       </div>
       <div style="position: relative;">
         <div class="rehearsal-timeline">
           {timedEntries.map((entry) => {
-          const pct = ((entry.length! / durationMinutes) * 100).toFixed(2);
-          const isBreak = entry.type === "break";
-          const isOther = entry.type === "other";
-          return (
-            <div
-              class:list={[
-                "rehearsal-timeline-segment",
-                isBreak && "is-break",
-                isOther && "is-other",
-              ]}
-              style={`width: ${pct}%`}
-              title={`${entry.displayName} — ${entry.length} min`}
-            >
-              <span class="rehearsal-timeline-label">{entry.displayName}</span>
-              <span class="rehearsal-timeline-minutes">{entry.length}m</span>
-            </div>
-          );
-        })}
+            const pct = ((entry.length! / durationMinutes) * 100).toFixed(2);
+            const isBreak = entry.type === "break";
+            const isOther = entry.type === "other";
+            return (
+              <div
+                class:list={[
+                  "rehearsal-timeline-segment",
+                  isBreak && "is-break",
+                  isOther && "is-other",
+                ]}
+                style={`width: ${pct}%`}
+                title={`${entry.displayName} — ${entry.length} min`}
+              >
+                <span class="rehearsal-timeline-label">
+                  {entry.displayName}
+                </span>
+                <span class="rehearsal-timeline-minutes">{entry.length}m</span>
+              </div>
+            );
+          })}
         </div>
         <div id="now-needle" class="now-needle is-hidden" aria-hidden="true" />
       </div>
@@ -110,9 +114,7 @@ const endMs = startMs + durationMinutes * 60 * 1000;
   )
 }
 
-<script
-  is:inline
-  define:vars={{ startMs, endMs, durationMinutes, segmentData }}
+<script is:inline define:vars={{ startMs, endMs, durationMinutes, segmentData }}
 >
   document.addEventListener("astro:page-load", () => {
     const needle = document.getElementById("now-needle");
@@ -325,8 +327,13 @@ const endMs = startMs + durationMinutes * 60 * 1000;
   }
 
   @keyframes live-pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.3; }
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.3;
+    }
   }
 
   .live-countdown-body {

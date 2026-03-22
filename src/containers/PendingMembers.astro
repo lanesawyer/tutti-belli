@@ -1,10 +1,7 @@
 ---
 import { db, eq, and, EnsembleMember, User } from "astro:db";
 import { actions } from "astro:actions";
-import Box from "@components/elements/Box.astro";
-import Button from "@components/elements/Button.astro";
-import Icon from "@components/elements/Icon.astro";
-import Image from "@components/elements/Image.astro";
+import { Box, Button, Icon, Image } from "astro-bulma";
 import { getInitials, getColorFromInitials } from "@lib/avatar";
 
 interface Props {
