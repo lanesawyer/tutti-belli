@@ -87,7 +87,8 @@ test('attendance CSV export is forbidden for non-admins', async ({ page }) => {
 
   const anonContext = await page.context().browser()!.newContext();
   const anonPage = await anonContext.newPage();
-  const response = await anonPage.request.get(`/ensembles/${ensembleId}/export/attendance`);
+  // Use maxRedirects: 0 so we see the redirect itself rather than the 200 login page it lands on
+  const response = await anonPage.request.get(`/ensembles/${ensembleId}/export/attendance`, { maxRedirects: 0 });
   expect([401, 403, 302]).toContain(response.status());
   await anonContext.close();
 });
