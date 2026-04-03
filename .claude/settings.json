@@ -13,14 +13,12 @@
             "type": "command",
             "command": "cd /home/lane/Dev/tutti-belli && output=$(pnpm check 2>&1); exit_code=$?; if [ $exit_code -ne 0 ]; then printf \"%s\" \"$output\" | jq -Rs '{\"hookSpecificOutput\":{\"hookEventName\":\"PostToolUse\",\"additionalContext\":(\"pnpm check failed:\\n\" + .)}}'; exit 2; else echo '{\"hookSpecificOutput\":{\"hookEventName\":\"PostToolUse\",\"additionalContext\":\"pnpm check: no type errors\"}}'; fi",
             "statusMessage": "Type checking...",
-            "asyncRewake": true,
             "timeout": 60
           },
           {
             "type": "command",
             "command": "cd /home/lane/Dev/tutti-belli && output=$(pnpm lint 2>&1); exit_code=$?; if [ $exit_code -ne 0 ]; then printf \"%s\" \"$output\" | jq -Rs '{\"hookSpecificOutput\":{\"hookEventName\":\"PostToolUse\",\"additionalContext\":(\"pnpm lint failed:\\n\" + .)}}'; exit 2; else echo '{\"hookSpecificOutput\":{\"hookEventName\":\"PostToolUse\",\"additionalContext\":\"pnpm lint: no issues\"}}'; fi",
             "statusMessage": "Linting...",
-            "asyncRewake": true,
             "timeout": 60
           }
         ]
