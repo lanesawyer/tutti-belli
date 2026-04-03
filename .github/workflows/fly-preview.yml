@@ -1,0 +1,122 @@
+name: PR Preview Deployment
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+
+concurrency:
+  group: preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+env:
+  APP_NAME: tutti-belli-pr-${{ github.event.pull_request.number }}
+
+jobs:
+  deploy-preview:
+    name: Deploy preview
+    if: github.event.action != 'closed'
+    runs-on: ubuntu-latest
+    environment:
+      name: preview
+      url: https://tutti-belli-pr-${{ github.event.pull_request.number }}.fly.dev
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Create app if it doesn't exist
+        run: |
+          flyctl apps list --json | jq -e ".[] | select(.Name == \"$APP_NAME\")" > /dev/null 2>&1 || \
+            flyctl apps create "$APP_NAME"
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+      - name: Set runtime secrets
+        run: |
+          flyctl secrets set \
+            JWT_SECRET="$JWT_SECRET" \
+            EMAIL_API_KEY="$EMAIL_API_KEY" \
+            EMAIL_FROM="$EMAIL_FROM" \
+            STORAGE_KEY_ID="$STORAGE_KEY_ID" \
+            STORAGE_KEY="$STORAGE_KEY" \
+            STORAGE_BUCKET="$STORAGE_BUCKET" \
+            STORAGE_ENDPOINT="$STORAGE_ENDPOINT" \
+            --app "$APP_NAME" --stage
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          EMAIL_API_KEY: ${{ secrets.EMAIL_API_KEY }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+          STORAGE_KEY_ID: ${{ secrets.STORAGE_KEY_ID }}
+          STORAGE_KEY: ${{ secrets.STORAGE_KEY }}
+          STORAGE_BUCKET: ${{ secrets.STORAGE_BUCKET }}
+          STORAGE_ENDPOINT: ${{ secrets.STORAGE_ENDPOINT }}
+
+      - name: Deploy to preview app
+        # Uses PREVIEW_ASTRO_DB_* secrets if set, otherwise falls back to the
+        # production DB secrets. Set up a separate Turso DB branch for previews
+        # if you want full isolation from production data.
+        run: |
+          flyctl deploy \
+            --app "$APP_NAME" \
+            --config fly.preview.toml \
+            --remote-only \
+            --build-arg ASTRO_DB_REMOTE_URL="$ASTRO_DB_REMOTE_URL" \
+            --build-arg ASTRO_DB_APP_TOKEN="$ASTRO_DB_APP_TOKEN"
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+          ASTRO_DB_REMOTE_URL: ${{ secrets.PREVIEW_ASTRO_DB_REMOTE_URL || secrets.ASTRO_DB_REMOTE_URL }}
+          ASTRO_DB_APP_TOKEN: ${{ secrets.PREVIEW_ASTRO_DB_APP_TOKEN || secrets.ASTRO_DB_APP_TOKEN }}
+
+      - name: Comment preview URL on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const appName = process.env.APP_NAME;
+            const url = `https://${appName}.fly.dev`;
+            const body = [
+              '## Preview Deployment',
+              '',
+              `:rocket: Preview available at: **${url}**`,
+              '',
+              `_Updated: ${new Date().toUTCString()}_`,
+            ].join('\n');
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const existing = comments.find(
+              c => c.user.login === 'github-actions[bot]' && c.body.includes('## Preview Deployment')
+            );
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
+
+  destroy-preview:
+    name: Destroy preview
+    if: github.event.action == 'closed'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Destroy preview app
+        # Ignore errors — the app may not exist if the deploy never ran
+        run: flyctl apps destroy "$APP_NAME" --yes || true
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
