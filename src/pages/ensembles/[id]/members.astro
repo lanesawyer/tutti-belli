@@ -124,6 +124,12 @@ const members = membersData;
         </div>
         <div class="level-right">
           <div class="level-item">
+            <Button href={`/ensembles/${canonicalId}/export/members`}>
+              <Icon icon="fa-download" />
+              <span>Export CSV</span>
+            </Button>
+          </div>
+          <div class="level-item">
             <Button href={`/ensembles/${canonicalId}`}>
               <Icon icon="fa-arrow-left" />
               <span>Back to Ensemble</span>
