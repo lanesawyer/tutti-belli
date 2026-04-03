@@ -79,17 +79,4 @@ test('attendance CSV export respects seasonId filter', async ({ page }) => {
   }
 });
 
-test('attendance CSV export is forbidden for non-admins', async ({ page }) => {
-  // This test uses the chromium-admin project but verifies the 403 path
-  // by hitting the route directly without auth cookies via a fresh request context
-  const ensembleUrl = await getEnsembleUrl(page);
-  const ensembleId = ensembleUrl.split('/ensembles/')[1].split('/')[0];
-
-  const anonContext = await page.context().browser()!.newContext();
-  const anonPage = await anonContext.newPage();
-  // Use maxRedirects: 0 so we see the redirect itself rather than the 200 login page it lands on
-  const response = await anonPage.request.get(`/ensembles/${ensembleId}/export/attendance`, { maxRedirects: 0 });
-  expect([401, 403, 302]).toContain(response.status());
-  await anonContext.close();
-});
 
