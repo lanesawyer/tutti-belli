@@ -3,9 +3,9 @@
  * Uses the admin auth state (chromium-admin project).
  * Relies on seed data: "Chamber Orchestra" ensemble with admin@example.com as admin.
  */
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 
-async function getEnsembleUrl(page: Parameters<Parameters<typeof test>[1]>[0]): Promise<string> {
+async function getEnsembleUrl(page: Page): Promise<string> {
   await page.goto('/ensembles');
   await page.locator('.card').filter({ hasText: 'Chamber Orchestra' }).locator('a').first().click();
   await expect(page).toHaveURL(/\/ensembles\/.+/);
