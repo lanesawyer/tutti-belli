@@ -1,7 +1,17 @@
 import { describe, it, expect } from 'vitest';
 import { db, Attendance } from 'astro:db';
 import { createUser, createEnsemble, createMembership, createSeason, createEvent } from './fixtures.ts';
-import { getMemberAttendanceStats } from '../../src/lib/member-attendance.ts';
+import { getMemberAttendanceStats, type MemberAttendanceStat } from '../../src/lib/member-attendance.ts';
+import { toCSV, type CsvColumn } from '../../src/lib/csv.ts';
+
+const attendanceColumns: CsvColumn<MemberAttendanceStat>[] = [
+  { header: 'Name', value: (r) => r.name },
+  { header: 'Email', value: (r) => r.email },
+  { header: 'Role', value: (r) => r.role },
+  { header: 'Attended', value: (r) => r.attended },
+  { header: 'Total Events', value: (r) => r.total },
+  { header: 'Attendance %', value: (r) => r.pct },
+];
 
 async function createAttendance(eventId: string, userId: string) {
   await db.insert(Attendance).values({
@@ -124,5 +134,62 @@ describe('member-attendance lib', () => {
       const stats = await getMemberAttendanceStats(ensemble!.id);
       expect(stats[0].pct).toBe(33);
     });
+  });
+});
+
+describe('attendance CSV export pipeline', () => {
+  it('produces a valid CSV with correct headers', async () => {
+    const admin = await createUser();
+    const ensemble = await createEnsemble(admin!.id);
+    const season = await createSeason(ensemble!.id);
+    const member = await createUser({ name: 'Jane Doe', email: 'jane@csv.test' });
+    await createMembership(ensemble!.id, member!.id, { status: 'active' });
+    const event = await createEvent(ensemble!.id, season!.id);
+    await createAttendance(event!.id, member!.id);
+
+    const stats = await getMemberAttendanceStats(ensemble!.id);
+    const csv = toCSV(stats, attendanceColumns);
+    const lines = csv.split('\r\n');
+
+    expect(lines[0]).toBe('Name,Email,Role,Attended,Total Events,Attendance %');
+    expect(lines).toHaveLength(2);
+    expect(lines[1]).toContain('Jane Doe');
+    expect(lines[1]).toContain('jane@csv.test');
+  });
+
+  it('CSV reflects correct attended, total, and pct values', async () => {
+    const admin = await createUser();
+    const ensemble = await createEnsemble(admin!.id);
+    const season = await createSeason(ensemble!.id);
+    const member = await createUser({ name: 'Count Tester' });
+    await createMembership(ensemble!.id, member!.id, { status: 'active' });
+    const e1 = await createEvent(ensemble!.id, season!.id);
+    const e2 = await createEvent(ensemble!.id, season!.id);
+    await createAttendance(e1!.id, member!.id);
+    void e2;
+
+    const stats = await getMemberAttendanceStats(ensemble!.id);
+    const csv = toCSV(stats, attendanceColumns);
+    // Name,Email,Role,Attended,Total Events,Attendance %
+    const fields = csv.split('\r\n')[1].split(',');
+    expect(fields[3]).toBe('1');  // Attended
+    expect(fields[4]).toBe('2');  // Total Events
+    expect(fields[5]).toBe('50'); // Attendance %
+  });
+
+  it('produces one row per active member', async () => {
+    const admin = await createUser();
+    const ensemble = await createEnsemble(admin!.id);
+    const season = await createSeason(ensemble!.id);
+    for (let i = 0; i < 3; i++) {
+      const u = await createUser();
+      await createMembership(ensemble!.id, u!.id, { status: 'active' });
+    }
+    await createEvent(ensemble!.id, season!.id);
+
+    const stats = await getMemberAttendanceStats(ensemble!.id);
+    const csv = toCSV(stats, attendanceColumns);
+    const lines = csv.split('\r\n');
+    expect(lines).toHaveLength(4); // header + 3 members
   });
 });
