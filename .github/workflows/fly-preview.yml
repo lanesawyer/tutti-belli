@@ -62,12 +62,15 @@ jobs:
           echo "db_token=$TOKEN" >> "$GITHUB_OUTPUT"
 
       # ── Fly.io app ───────────────────────────────────────────────────────────
+      # ── Fly.io app ───────────────────────────────────────────────────────────
+      # FLY_ORG_TOKEN must be an org-level token, not a deploy token.
+      # Generate one with: fly tokens create org -o <your-org-slug>
       - name: Create Fly app if it doesn't exist
         run: |
           flyctl apps list --json | jq -e ".[] | select(.Name == \"$APP_NAME\")" > /dev/null 2>&1 || \
             flyctl apps create "$APP_NAME"
         env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+          FLY_API_TOKEN: ${{ secrets.FLY_ORG_TOKEN }}
 
       - name: Set runtime secrets
         run: |
@@ -81,7 +84,7 @@ jobs:
             STORAGE_ENDPOINT="$STORAGE_ENDPOINT" \
             --app "$APP_NAME" --stage
         env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+          FLY_API_TOKEN: ${{ secrets.FLY_ORG_TOKEN }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
           EMAIL_API_KEY: ${{ secrets.EMAIL_API_KEY }}
           EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
@@ -99,7 +102,7 @@ jobs:
             --build-arg ASTRO_DB_REMOTE_URL="$ASTRO_DB_REMOTE_URL" \
             --build-arg ASTRO_DB_APP_TOKEN="$ASTRO_DB_APP_TOKEN"
         env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+          FLY_API_TOKEN: ${{ secrets.FLY_ORG_TOKEN }}
           ASTRO_DB_REMOTE_URL: ${{ steps.turso.outputs.db_url }}
           ASTRO_DB_APP_TOKEN: ${{ steps.turso.outputs.db_token }}
 
