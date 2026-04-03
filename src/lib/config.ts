@@ -10,6 +10,7 @@ export type AdminTool = {
 export const ensembleAdminTools: AdminTool[] = [
   { href: (id) => `/ensembles/${id}/edit`, icon: 'fa-edit', label: 'Settings' },
   { href: (id) => `/ensembles/${id}/members`, icon: 'fa-users', label: 'Members' },
+  { href: (id) => `/ensembles/${id}/member-attendance`, icon: 'fa-chart-bar', label: 'Attendance' },
   { href: (id) => `/ensembles/${id}/songs`, icon: 'fa-music', label: 'Songs' },
   { href: (id) => `/ensembles/${id}/events`, icon: 'fa-calendar-check', label: 'Events' },
   { href: (id) => `/ensembles/${id}/announcements`, icon: 'fa-bullhorn', label: 'Announcements' },

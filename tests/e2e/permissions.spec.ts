@@ -24,6 +24,15 @@ test('regular user can access the create ensemble page', async ({ page }) => {
   await expect(page.locator('input[name="name"]')).toBeVisible();
 });
 
+test('non-admin member gets 403 on member-attendance page', async ({ page }) => {
+  await page.goto('/ensembles');
+  await page.locator('.card').filter({ hasText: 'Chamber Orchestra' }).locator('a').first().click();
+  await expect(page).toHaveURL(/\/ensembles\/.+/);
+  const ensembleUrl = page.url();
+  await page.goto(ensembleUrl + '/member-attendance');
+  await expect(page.locator('body')).toContainText('Unauthorized');
+});
+
 test('unauthenticated access to a protected API route redirects to login', async ({ page }) => {
   // Use a new context without any auth cookies
   await page.context().clearCookies();
