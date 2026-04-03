@@ -58,14 +58,7 @@ Rules:
 - `<audio>` elements must have `audio.load()` called inside `astro:page-load` so the browser re-fetches the source after navigation.
 
 ### Request Handling Pattern
-Form mutations use **Astro Actions** (`src/actions/`). Do not use the old pattern of checking `Astro.request.method === 'POST'` in page frontmatter.
-
-- Define actions in `src/actions/<feature>.ts` using `defineAction` with `accept: 'form'` and a Zod input schema
-- Export them from `src/actions/index.ts` under the `server` object
-- In pages, use `action={actions.feature.actionName}` on `<form>` elements and `Astro.getActionResult(actions.feature.actionName)` to read results
-- Throw `ActionError` (from `astro:actions`) for validation/auth failures instead of returning error objects
-- Business logic still lives in `src/lib/` — actions are thin wrappers that call lib functions and translate errors into `ActionError`
-- Redirects on success happen in page frontmatter after checking `getActionResult`; the session cookie can be cleared inside the action handler via `context.cookies`
+Form mutations use **Astro Actions** (`src/actions/`). Do not use the old pattern of checking `Astro.request.method === 'POST'` in page frontmatter. Actions use `defineAction` with `accept: 'form'` and a Zod schema, throw `ActionError` for failures, and delegate business logic to `src/lib/`. Pages read results via `Astro.getActionResult()` and redirect on success.
 
 ### Authentication & Authorization
 - **Middleware** (`src/middleware.ts`): Runs on every request, extracts JWT from `session` cookie, populates `Astro.locals.user` and `Astro.locals.session`. Redirects unauthenticated users to `/login` for protected routes.
