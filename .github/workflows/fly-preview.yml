@@ -10,6 +10,7 @@ concurrency:
 
 env:
   APP_NAME: tutti-belli-pr-${{ github.event.pull_request.number }}
+  DB_NAME: tutti-belli-pr-${{ github.event.pull_request.number }}
 
 jobs:
   deploy-preview:
@@ -24,7 +25,44 @@ jobs:
 
       - uses: superfly/flyctl-actions/setup-flyctl@master
 
-      - name: Create app if it doesn't exist
+      # ── Turso branch DB ──────────────────────────────────────────────────────
+      # Creates a new Turso database seeded from the main DB on first run;
+      # subsequent pushes to the same PR reuse the existing branch.
+      - name: Create Turso branch DB if it doesn't exist
+        id: turso
+        env:
+          TURSO_API_TOKEN: ${{ secrets.TURSO_API_TOKEN }}
+          TURSO_ORG: ${{ secrets.TURSO_ORG }}
+          TURSO_MAIN_DB: ${{ secrets.TURSO_MAIN_DB }}
+        run: |
+          BASE_URL="https://api.turso.tech/v1/organizations/$TURSO_ORG"
+
+          # Check whether the branch DB already exists
+          STATUS=$(curl -sf -o /dev/null -w "%{http_code}" \
+            -H "Authorization: Bearer $TURSO_API_TOKEN" \
+            "$BASE_URL/databases/$DB_NAME" || echo "000")
+
+          if [ "$STATUS" != "200" ]; then
+            echo "Creating Turso branch DB: $DB_NAME (seeded from $TURSO_MAIN_DB)"
+            curl -sf -X POST \
+              -H "Authorization: Bearer $TURSO_API_TOKEN" \
+              -H "Content-Type: application/json" \
+              -d "{\"name\":\"$DB_NAME\",\"group\":\"default\",\"seed\":{\"type\":\"database\",\"name\":\"$TURSO_MAIN_DB\"}}" \
+              "$BASE_URL/databases" | jq .
+          else
+            echo "Turso branch DB $DB_NAME already exists, reusing."
+          fi
+
+          # Generate a fresh auth token for this deploy
+          TOKEN=$(curl -sf -X POST \
+            -H "Authorization: Bearer $TURSO_API_TOKEN" \
+            "$BASE_URL/databases/$DB_NAME/auth/tokens" | jq -r '.jwt')
+
+          echo "db_url=libsql://$DB_NAME-$TURSO_ORG.turso.io" >> "$GITHUB_OUTPUT"
+          echo "db_token=$TOKEN" >> "$GITHUB_OUTPUT"
+
+      # ── Fly.io app ───────────────────────────────────────────────────────────
+      - name: Create Fly app if it doesn't exist
         run: |
           flyctl apps list --json | jq -e ".[] | select(.Name == \"$APP_NAME\")" > /dev/null 2>&1 || \
             flyctl apps create "$APP_NAME"
@@ -53,9 +91,6 @@ jobs:
           STORAGE_ENDPOINT: ${{ secrets.STORAGE_ENDPOINT }}
 
       - name: Deploy to preview app
-        # Uses PREVIEW_ASTRO_DB_* secrets if set, otherwise falls back to the
-        # production DB secrets. Set up a separate Turso DB branch for previews
-        # if you want full isolation from production data.
         run: |
           flyctl deploy \
             --app "$APP_NAME" \
@@ -65,8 +100,8 @@ jobs:
             --build-arg ASTRO_DB_APP_TOKEN="$ASTRO_DB_APP_TOKEN"
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
-          ASTRO_DB_REMOTE_URL: ${{ secrets.PREVIEW_ASTRO_DB_REMOTE_URL || secrets.ASTRO_DB_REMOTE_URL }}
-          ASTRO_DB_APP_TOKEN: ${{ secrets.PREVIEW_ASTRO_DB_APP_TOKEN || secrets.ASTRO_DB_APP_TOKEN }}
+          ASTRO_DB_REMOTE_URL: ${{ steps.turso.outputs.db_url }}
+          ASTRO_DB_APP_TOKEN: ${{ steps.turso.outputs.db_token }}
 
       - name: Comment preview URL on PR
         uses: actions/github-script@v7
@@ -115,8 +150,18 @@ jobs:
     steps:
       - uses: superfly/flyctl-actions/setup-flyctl@master
 
-      - name: Destroy preview app
+      - name: Destroy Fly preview app
         # Ignore errors — the app may not exist if the deploy never ran
         run: flyctl apps destroy "$APP_NAME" --yes || true
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+      - name: Destroy Turso branch DB
+        # Ignore errors — the DB may not exist if the deploy never ran
+        run: |
+          curl -sf -X DELETE \
+            -H "Authorization: Bearer $TURSO_API_TOKEN" \
+            "https://api.turso.tech/v1/organizations/$TURSO_ORG/databases/$DB_NAME" || true
+        env:
+          TURSO_API_TOKEN: ${{ secrets.TURSO_API_TOKEN }}
+          TURSO_ORG: ${{ secrets.TURSO_ORG }}
