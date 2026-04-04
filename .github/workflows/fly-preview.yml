@@ -17,6 +17,9 @@ jobs:
     name: Deploy preview
     if: github.event.action != 'closed'
     runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: write
     environment:
       name: preview
       url: https://tutti-belli-pr-${{ github.event.pull_request.number }}.fly.dev
