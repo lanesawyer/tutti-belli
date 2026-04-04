@@ -1,23 +1,17 @@
 import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 
 const endpoint = (import.meta.env.STORAGE_ENDPOINT ?? process.env.STORAGE_ENDPOINT) as string;
+const region = endpoint.replace('https://s3.', '').replace('.backblazeb2.com', '');
 const bucket = (import.meta.env.STORAGE_BUCKET ?? process.env.STORAGE_BUCKET) as string;
 
-let _client: S3Client | null = null;
-function getClient(): S3Client {
-  if (!_client) {
-    const region = endpoint.replace('https://s3.', '').replace('.backblazeb2.com', '');
-    _client = new S3Client({
-      endpoint,
-      region,
-      credentials: {
-        accessKeyId: (import.meta.env.STORAGE_KEY_ID ?? process.env.STORAGE_KEY_ID) as string,
-        secretAccessKey: (import.meta.env.STORAGE_KEY ?? process.env.STORAGE_KEY) as string,
-      },
-    });
-  }
-  return _client;
-}
+const client = new S3Client({
+  endpoint,
+  region,
+  credentials: {
+    accessKeyId: (import.meta.env.STORAGE_KEY_ID ?? process.env.STORAGE_KEY_ID) as string,
+    secretAccessKey: (import.meta.env.STORAGE_KEY ?? process.env.STORAGE_KEY) as string,
+  },
+});
 
 const ALLOWED_TYPES = ['application/pdf', 'audio/mpeg', 'audio/mp3'];
 const MAX_SIZE_BYTES = 50 * 1024 * 1024; // 50 MB
@@ -43,7 +37,7 @@ export async function uploadSongFile(file: File, ensembleId: string): Promise<st
 
   const buffer = await file.arrayBuffer();
 
-  await getClient().send(
+  await client.send(
     new PutObjectCommand({
       Bucket: bucket,
       Key: key,
@@ -67,7 +61,7 @@ export async function deleteStorageFile(url: string): Promise<void> {
   }
 
   const key = keyFromUrl(url);
-  await getClient().send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));
+  await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));
 }
 
 export async function getFileStream(
@@ -75,7 +69,7 @@ export async function getFileStream(
   range?: string
 ): Promise<{ body: ReadableStream; contentType: string; contentLength?: number; contentRange?: string; status: number }> {
   const key = keyFromUrl(url);
-  const response = await getClient().send(
+  const response = await client.send(
     new GetObjectCommand({ Bucket: bucket, Key: key, Range: range })
   );
 
