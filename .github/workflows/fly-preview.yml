@@ -112,7 +112,7 @@ jobs:
             STORAGE_KEY="$STORAGE_KEY" \
             STORAGE_BUCKET="$STORAGE_BUCKET" \
             STORAGE_ENDPOINT="$STORAGE_ENDPOINT" \
-            --app "$APP_NAME" --stage
+            --app "$APP_NAME"
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_ORG_TOKEN }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
