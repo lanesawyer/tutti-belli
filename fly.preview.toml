@@ -1,0 +1,24 @@
+# Fly.io config for PR preview deployments.
+# The app name is overridden at deploy time via --app, so the value here
+# is just a placeholder. See .github/workflows/fly-preview.yml.
+app = 'tutti-belli-preview'
+primary_region = 'sjc'
+
+[build]
+
+[env]
+  PORT = "8080"
+  HOST = "0.0.0.0"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = 'stop'
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ['app']
+
+[[vm]]
+  memory = '512mb'
+  cpu_kind = 'shared'
+  cpus = 1

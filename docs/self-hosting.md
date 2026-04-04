@@ -149,6 +149,27 @@ The repo includes a `fly.toml` and a helper script:
    ./deploy.sh
    ```
 
+## GitHub Actions / PR Preview Deployments
+
+The workflow in `.github/workflows/fly-preview.yml` automatically deploys a preview app on Fly.io and a branch database on Turso for every PR. It requires the following secrets in **GitHub → Settings → Secrets and variables → Actions**:
+
+| Secret | Description | How to get it |
+|---|---|---|
+| `TURSO_API_TOKEN` | Turso platform API token (not a DB token) | `turso auth token` or Turso dashboard → Settings → API Tokens → Create token |
+| `TURSO_ORG` | Your Turso organization slug | `turso org list` — use the `Name` column value |
+| `TURSO_MAIN_DB` | Name of the production database to seed previews from | `turso db list` — use the `Name` column value (e.g. `tutti-belli`) |
+| `FLY_ORG_TOKEN` | Fly.io org-level token (needed to create/destroy apps) | `fly tokens create org -o <your-org-slug>` |
+| `FLY_API_TOKEN` | Fly.io deploy token (used by the destroy-preview job) | `fly tokens create deploy -a <app-name>` or reuse `FLY_ORG_TOKEN` |
+| `JWT_SECRET` | Same value as your production secret | — |
+| `EMAIL_API_KEY` | Same value as your production secret | — |
+| `EMAIL_FROM` | Same value as your production secret | — |
+| `STORAGE_KEY_ID` | Same value as your production secret | — |
+| `STORAGE_KEY` | Same value as your production secret | — |
+| `STORAGE_BUCKET` | Same value as your production secret | — |
+| `STORAGE_ENDPOINT` | Same value as your production secret | — |
+
+Each preview app is named `tutti-belli-pr-<number>` and its Turso DB is named the same. Both are automatically destroyed when the PR is closed.
+
 ## First Login
 
 On first run there is no seed data in production. Use the `/register` page to create your account, then promote it to site admin directly in the database:
