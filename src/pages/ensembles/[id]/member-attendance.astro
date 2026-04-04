@@ -1,6 +1,6 @@
 ---
 import BaseLayout from "@layouts/BaseLayout.astro";
-import { Box, Table, Image, Icon, Breadcrumb } from "astro-bulma";
+import { Box, Table, Button, Image, Icon, Breadcrumb } from "astro-bulma";
 import { ensembleAdminTools } from "@lib/config";
 import { getInitials, getColorFromInitials } from "@lib/avatar";
 import { getEnsembleBySlugOrId, getEnsembleAccess } from "@lib/ensemble";
@@ -113,6 +113,12 @@ const selectedSeason = seasons.find((s) => s.id === seasonId);
               </div>
             )
           }
+          <div class="level-item">
+            <Button href={`/ensembles/${canonicalId}/export/attendance${seasonId ? `?seasonId=${seasonId}` : ""}`}>
+              <Icon icon="fa-download" />
+              <span>Export CSV</span>
+            </Button>
+          </div>
         </div>
       </div>
 
