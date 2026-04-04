@@ -44,11 +44,22 @@ jobs:
           echo "GET $DB_NAME → HTTP $GET_STATUS"
 
           if [ "$GET_STATUS" != "200" ]; then
-            echo "Creating Turso DB: $DB_NAME (seeded from $TURSO_MAIN_DB)"
+            # Derive the group from the main DB so the branch lands in the same region
+            MAIN_DB_INFO=$(curl -s \
+              -H "Authorization: Bearer $TURSO_API_TOKEN" \
+              "$BASE_URL/databases/$TURSO_MAIN_DB")
+            GROUP=$(echo "$MAIN_DB_INFO" | jq -r '.database.group // empty')
+            if [ -z "$GROUP" ]; then
+              echo "Could not determine group from main DB; response: $MAIN_DB_INFO"
+              exit 1
+            fi
+            echo "Using group: $GROUP"
+
+            echo "Creating Turso DB: $DB_NAME (group: $GROUP, seeded from $TURSO_MAIN_DB)"
             CREATE_BODY=$(curl -s -w '\n%{http_code}' -X POST \
               -H "Authorization: Bearer $TURSO_API_TOKEN" \
               -H "Content-Type: application/json" \
-              -d "{\"name\":\"$DB_NAME\",\"seed\":{\"type\":\"database\",\"name\":\"$TURSO_MAIN_DB\"}}" \
+              -d "{\"name\":\"$DB_NAME\",\"group\":\"$GROUP\",\"seed\":{\"type\":\"database\",\"name\":\"$TURSO_MAIN_DB\"}}" \
               "$BASE_URL/databases")
             CREATE_STATUS=$(echo "$CREATE_BODY" | tail -1)
             CREATE_JSON=$(echo "$CREATE_BODY" | head -n -1)
