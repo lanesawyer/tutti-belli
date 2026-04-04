@@ -38,25 +38,41 @@ jobs:
           BASE_URL="https://api.turso.tech/v1/organizations/$TURSO_ORG"
 
           # Check whether the branch DB already exists
-          STATUS=$(curl -sf -o /dev/null -w "%{http_code}" \
+          GET_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
             -H "Authorization: Bearer $TURSO_API_TOKEN" \
-            "$BASE_URL/databases/$DB_NAME" || echo "000")
+            "$BASE_URL/databases/$DB_NAME")
+          echo "GET $DB_NAME → HTTP $GET_STATUS"
 
-          if [ "$STATUS" != "200" ]; then
-            echo "Creating Turso branch DB: $DB_NAME (seeded from $TURSO_MAIN_DB)"
-            curl -sf -X POST \
+          if [ "$GET_STATUS" != "200" ]; then
+            echo "Creating Turso DB: $DB_NAME (seeded from $TURSO_MAIN_DB)"
+            CREATE_BODY=$(curl -s -w '\n%{http_code}' -X POST \
               -H "Authorization: Bearer $TURSO_API_TOKEN" \
               -H "Content-Type: application/json" \
-              -d "{\"name\":\"$DB_NAME\",\"group\":\"default\",\"seed\":{\"type\":\"database\",\"name\":\"$TURSO_MAIN_DB\"}}" \
-              "$BASE_URL/databases" | jq .
+              -d "{\"name\":\"$DB_NAME\",\"seed\":{\"type\":\"database\",\"name\":\"$TURSO_MAIN_DB\"}}" \
+              "$BASE_URL/databases")
+            CREATE_STATUS=$(echo "$CREATE_BODY" | tail -1)
+            CREATE_JSON=$(echo "$CREATE_BODY" | head -n -1)
+            echo "Create → HTTP $CREATE_STATUS"
+            echo "$CREATE_JSON" | jq . || echo "$CREATE_JSON"
+            if [ "$CREATE_STATUS" != "200" ] && [ "$CREATE_STATUS" != "201" ]; then
+              echo "Failed to create Turso DB (HTTP $CREATE_STATUS)"
+              exit 1
+            fi
           else
-            echo "Turso branch DB $DB_NAME already exists, reusing."
+            echo "Turso DB $DB_NAME already exists, reusing."
           fi
 
           # Generate a fresh auth token for this deploy
-          TOKEN=$(curl -sf -X POST \
+          TOKEN_BODY=$(curl -s -w '\n%{http_code}' -X POST \
             -H "Authorization: Bearer $TURSO_API_TOKEN" \
-            "$BASE_URL/databases/$DB_NAME/auth/tokens" | jq -r '.jwt')
+            "$BASE_URL/databases/$DB_NAME/auth/tokens")
+          TOKEN_STATUS=$(echo "$TOKEN_BODY" | tail -1)
+          TOKEN=$(echo "$TOKEN_BODY" | head -n -1 | jq -r '.jwt')
+          echo "Token → HTTP $TOKEN_STATUS"
+          if [ "$TOKEN_STATUS" != "200" ] || [ -z "$TOKEN" ] || [ "$TOKEN" = "null" ]; then
+            echo "Failed to generate Turso auth token (HTTP $TOKEN_STATUS)"
+            exit 1
+          fi
 
           echo "db_url=libsql://$DB_NAME-$TURSO_ORG.turso.io" >> "$GITHUB_OUTPUT"
           echo "db_token=$TOKEN" >> "$GITHUB_OUTPUT"
