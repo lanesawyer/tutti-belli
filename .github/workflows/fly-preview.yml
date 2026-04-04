@@ -41,14 +41,14 @@ jobs:
           BASE_URL="https://api.turso.tech/v1/organizations/$TURSO_ORG"
 
           # Check whether the branch DB already exists
-          GET_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+          GET_STATUS=$(curl -sL -o /dev/null -w "%{http_code}" \
             -H "Authorization: Bearer $TURSO_API_TOKEN" \
             "$BASE_URL/databases/$DB_NAME")
           echo "GET $DB_NAME → HTTP $GET_STATUS"
 
           if [ "$GET_STATUS" != "200" ]; then
             # Derive the group from the main DB so the branch lands in the same region
-            MAIN_DB_INFO=$(curl -s \
+            MAIN_DB_INFO=$(curl -sL \
               -H "Authorization: Bearer $TURSO_API_TOKEN" \
               "$BASE_URL/databases/$TURSO_MAIN_DB")
             GROUP=$(echo "$MAIN_DB_INFO" | jq -r '.database.group // empty')
@@ -59,7 +59,7 @@ jobs:
             echo "Using group: $GROUP"
 
             echo "Creating Turso DB: $DB_NAME (group: $GROUP, seeded from $TURSO_MAIN_DB)"
-            CREATE_BODY=$(curl -s -w '\n%{http_code}' -X POST \
+            CREATE_BODY=$(curl -sL -w '\n%{http_code}' -X POST \
               -H "Authorization: Bearer $TURSO_API_TOKEN" \
               -H "Content-Type: application/json" \
               -d "{\"name\":\"$DB_NAME\",\"group\":\"$GROUP\",\"seed\":{\"type\":\"database\",\"name\":\"$TURSO_MAIN_DB\"}}" \
@@ -77,7 +77,7 @@ jobs:
           fi
 
           # Generate a fresh auth token for this deploy
-          TOKEN_BODY=$(curl -s -w '\n%{http_code}' -X POST \
+          TOKEN_BODY=$(curl -sL -w '\n%{http_code}' -X POST \
             -H "Authorization: Bearer $TURSO_API_TOKEN" \
             "$BASE_URL/databases/$DB_NAME/auth/tokens")
           TOKEN_STATUS=$(echo "$TOKEN_BODY" | tail -1)
