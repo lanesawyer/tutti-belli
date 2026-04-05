@@ -205,6 +205,19 @@ const activeBanner = await getActiveBanner();
         background-color: #485fc7;
         color: #fff;
       }
+
+      @media screen and (max-width: 768px) {
+        .breadcrumb {
+          white-space: normal;
+          overflow-x: visible;
+        }
+        .breadcrumb ul {
+          flex-wrap: wrap;
+        }
+        .breadcrumb li + li::before {
+          padding-inline: 0.25em;
+        }
+      }
     </style>
   </head>
   <body style="min-height: 100vh; display: flex; flex-direction: column;">
