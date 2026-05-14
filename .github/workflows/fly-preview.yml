@@ -24,7 +24,7 @@ jobs:
       name: preview
       url: https://tutti-belli-pr-${{ github.event.pull_request.number }}.fly.dev
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - uses: superfly/flyctl-actions/setup-flyctl@master
 

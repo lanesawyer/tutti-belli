@@ -1,5 +1,6 @@
 ---
 import { ClientRouter } from "astro:transitions";
+import "bulma/css/bulma.min.css";
 import Header from "@components/Header.astro";
 import Footer from "@components/Footer.astro";
 import { APP_NAME } from "@lib/config";
@@ -21,10 +22,6 @@ const activeBanner = await getActiveBanner();
     <meta name="description" content={APP_NAME} />
     <meta name="viewport" content="width=device-width" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link
-      rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/bulma@1.0.0/css/bulma.min.css"
-    />
     <link
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
