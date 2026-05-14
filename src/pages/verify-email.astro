@@ -1,33 +1,37 @@
 ---
 import SingleColumnLayout from "@layouts/SingleColumnLayout.astro";
-import { Button } from "astro-bulma";
-import { Notification } from "astro-bulma";
-import { verifyEmailToken } from "@lib/profile";
-import { createSession } from "@lib/session";
+import { Button, Notification } from "astro-bulma";
+import { auth } from "@lib/auth";
 import { getRedirectUrl } from "@lib/redirect";
 
 const token = Astro.url.searchParams.get("token");
-const customRedirect = Astro.url.searchParams.get("redirect");
+const callbackURL = Astro.url.searchParams.get("callbackURL") ?? "/ensembles";
 let error = "";
 
 if (!token) {
   error = "Invalid verification link.";
 } else {
-  const result = await verifyEmailToken(token);
-
-  if (!result) {
-    error = "This verification link is invalid or has expired.";
-  } else {
-    const sessionToken = createSession(result.userId);
-    Astro.cookies.set("session", sessionToken, {
-      path: "/",
-      httpOnly: true,
-      secure: import.meta.env.PROD,
-      sameSite: "lax",
-      maxAge: 60 * 60 * 24 * 30,
+  try {
+    const result = await auth.api.verifyEmail({
+      query: { token, callbackURL },
+      headers: Astro.request.headers,
+      asResponse: true,
     });
 
-    return Astro.redirect(await getRedirectUrl(result.userId, customRedirect));
+    if (result.ok) {
+      // Forward Set-Cookie if present then redirect
+      const setCookie = result.headers.get("set-cookie");
+      if (setCookie) {
+        Astro.response.headers.append("Set-Cookie", setCookie);
+      }
+      // Better Auth may redirect; if not, do it ourselves
+      const location = result.headers.get("location");
+      return Astro.redirect(location ?? callbackURL);
+    } else {
+      error = "This verification link is invalid or has expired.";
+    }
+  } catch {
+    error = "This verification link is invalid or has expired.";
   }
 }
 ---

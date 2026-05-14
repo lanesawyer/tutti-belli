@@ -1,8 +1,8 @@
 import { defineAction, ActionError } from 'astro:actions';
 import { z } from 'astro/zod';
 import { db, eq, EnsembleMember } from 'astro:db';
+import { auth as betterAuth } from '@lib/auth';
 import {
-  registerUser,
   updateName,
   updatePhone,
   updateAvatar,
@@ -19,12 +19,21 @@ export const profile = {
       email: z.string().email('Invalid email address.'),
       password: z.string().min(6, 'Password must be at least 6 characters.'),
     }),
-    handler: async ({ name, email, password }) => {
-      try {
-        await registerUser({ name, email, password });
-      } catch (e) {
-        throw new ActionError({ code: 'CONFLICT', message: (e as Error).message });
+    handler: async ({ name, email, password }, context) => {
+      const result = await betterAuth.api.signUpEmail({
+        body: { name, email, password },
+        headers: context.request.headers,
+        asResponse: true,
+      });
+
+      if (!result.ok) {
+        const body = await result.json().catch(() => ({})) as { message?: string };
+        const message = (body.message ?? '').toLowerCase().includes('already exists')
+          ? 'An account with this email already exists.'
+          : (body.message ?? 'An error occurred. Please try again.');
+        throw new ActionError({ code: 'CONFLICT', message });
       }
+
       return { email };
     },
   }),
@@ -158,7 +167,8 @@ export const profile = {
       if (result.type === 'error') {
         throw new ActionError({ code: 'BAD_REQUEST', message: result.message });
       }
-      context.cookies.delete('session', { path: '/' });
+      context.cookies.delete('better-auth.session_token', { path: '/' });
+      context.cookies.delete('better-auth.session_data', { path: '/' });
     },
   }),
 };

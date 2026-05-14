@@ -54,7 +54,8 @@ cp .env.example .env
 |---|---|
 | `ASTRO_DB_REMOTE_URL` | Turso database URL |
 | `ASTRO_DB_APP_TOKEN` | Turso auth token |
-| `JWT_SECRET` | Secret used to sign session tokens — use a long random string |
+| `BETTER_AUTH_SECRET` | Secret used to sign sessions — use a long random string |
+| `BETTER_AUTH_URL` | Full public URL of the app (e.g. `https://yourapp.fly.dev`) |
 | `EMAIL_API_KEY` | Resend API key |
 | `EMAIL_FROM` | Verified sender email address |
 | `STORAGE_KEY_ID` | Backblaze B2 application key ID |
@@ -62,7 +63,7 @@ cp .env.example .env
 | `STORAGE_BUCKET` | Backblaze B2 bucket name |
 | `STORAGE_ENDPOINT` | Backblaze B2 S3-compatible endpoint URL |
 
-Generate a strong `JWT_SECRET`:
+Generate a strong `BETTER_AUTH_SECRET`:
 ```bash
 openssl rand -base64 48
 ```
@@ -89,7 +90,8 @@ docker build \
 
 docker run -d \
   -p 8080:8080 \
-  -e JWT_SECRET="$JWT_SECRET" \
+  -e BETTER_AUTH_SECRET="$BETTER_AUTH_SECRET" \
+  -e BETTER_AUTH_URL="$BETTER_AUTH_URL" \
   -e EMAIL_API_KEY="$EMAIL_API_KEY" \
   -e EMAIL_FROM="$EMAIL_FROM" \
   -e STORAGE_KEY_ID="$STORAGE_KEY_ID" \
@@ -114,7 +116,8 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - JWT_SECRET=${JWT_SECRET}
+      - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
+      - BETTER_AUTH_URL=${BETTER_AUTH_URL}
       - EMAIL_API_KEY=${EMAIL_API_KEY}
       - EMAIL_FROM=${EMAIL_FROM}
       - STORAGE_KEY_ID=${STORAGE_KEY_ID}
@@ -136,7 +139,8 @@ The repo includes a `fly.toml` and a helper script:
 3. Set secrets (runtime env vars):
    ```bash
    fly secrets set \
-     JWT_SECRET="..." \
+     BETTER_AUTH_SECRET="..." \
+     BETTER_AUTH_URL="https://your-app.fly.dev" \
      EMAIL_API_KEY="..." \
      EMAIL_FROM="..." \
      STORAGE_KEY_ID="..." \
@@ -160,7 +164,8 @@ The workflow in `.github/workflows/fly-preview.yml` automatically deploys a prev
 | `TURSO_MAIN_DB` | Name of the production database to seed previews from | `turso db list` — use the `Name` column value (e.g. `tutti-belli`) |
 | `FLY_ORG_TOKEN` | Fly.io org-level token (needed to create/destroy apps) | `fly tokens create org -o <your-org-slug>` |
 | `FLY_API_TOKEN` | Fly.io deploy token (used by the destroy-preview job) | `fly tokens create deploy -a <app-name>` or reuse `FLY_ORG_TOKEN` |
-| `JWT_SECRET` | Same value as your production secret | — |
+| `BETTER_AUTH_SECRET` | Same value as your production secret | — |
+| `BETTER_AUTH_URL` | The preview app's public URL (set to the Fly preview URL pattern) | — |
 | `EMAIL_API_KEY` | Same value as your production secret | — |
 | `EMAIL_FROM` | Same value as your production secret | — |
 | `STORAGE_KEY_ID` | Same value as your production secret | — |

@@ -5,7 +5,7 @@ import { actions } from "astro:actions";
 
 // Redirect if already logged in
 if (Astro.locals.user) {
-  return Astro.redirect("/dashboard");
+  return Astro.redirect("/ensembles");
 }
 
 const customRedirect = Astro.url.searchParams.get("redirect");

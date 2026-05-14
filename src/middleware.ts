@@ -1,5 +1,5 @@
 import { defineMiddleware } from 'astro:middleware';
-import { getSession, getUserFromSession } from './lib/session';
+import { auth } from './lib/auth';
 
 // Public routes that don't require authentication
 const PUBLIC_ROUTES = [
@@ -9,34 +9,38 @@ const PUBLIC_ROUTES = [
   '/forgot-password',
   '/reset-password',
   '/invite/join',
-  '/verify-email',
-  '/verify-email-change',
   '/resend-verification',
+  '/verify-email',
+  '/api/auth',
+  '/_actions',
 ];
 
-// Check if a path matches any public route
 function isPublicRoute(pathname: string): boolean {
   return PUBLIC_ROUTES.some(route => {
-    if (route === '/') {
-      return pathname === '/';
-    }
+    if (route === '/') return pathname === '/';
     return pathname === route || pathname.startsWith(route + '/') || pathname.startsWith(route + '?');
   });
 }
 
 export const onRequest = defineMiddleware(async (context, next) => {
-  const sessionId = context.cookies.get('session')?.value;
-  const session = getSession(sessionId);
-  const user = await getUserFromSession(sessionId);
+  const session = await auth.api.getSession({ headers: context.request.headers });
 
-  context.locals.session = session;
-  context.locals.user = user;
+  context.locals.session = session?.session ?? null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const u = session?.user as any;
+  context.locals.user = u
+    ? {
+        ...u,
+        image: u.image ?? null,
+        role: u.role ?? 'user',
+        avatarUrl: u.avatarUrl ?? null,
+        phone: u.phone ?? null,
+      }
+    : null;
 
-  // Redirect to login if accessing protected route without authentication
-  if (!user && !isPublicRoute(context.url.pathname)) {
+  if (!session?.user && !isPublicRoute(context.url.pathname)) {
     return context.redirect(`/login?redirect=${encodeURIComponent(context.url.pathname)}`);
   }
 
   return next();
 });
-

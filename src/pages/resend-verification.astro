@@ -1,7 +1,7 @@
 ---
 import SingleColumnLayout from "@layouts/SingleColumnLayout.astro";
 import { Button, TextInput, Notification } from "astro-bulma";
-import { resendVerificationEmail } from "@lib/profile";
+import { auth } from "@lib/auth";
 
 const prefillEmail = Astro.url.searchParams.get("email") ?? "";
 let sent = false;
@@ -10,7 +10,14 @@ if (Astro.request.method === "POST") {
   const formData = await Astro.request.formData();
   const email = formData.get("email")?.toString().trim().toLowerCase() ?? "";
   if (email) {
-    await resendVerificationEmail(email);
+    // Fire-and-forget: don't reveal whether the email exists
+    auth.api
+      .sendVerificationEmail({
+        body: { email, callbackURL: "/ensembles" },
+        headers: Astro.request.headers,
+        asResponse: false,
+      })
+      .catch(() => {});
   }
   sent = true;
 }

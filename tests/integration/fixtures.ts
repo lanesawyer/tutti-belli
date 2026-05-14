@@ -2,8 +2,8 @@
  * Test data factory helpers for integration tests.
  * Each function inserts a row and returns the created record.
  */
-import { db, User, Ensemble, EnsembleMember, EnsembleInvite, MemberPart, Season, Event, Part, Song, SeasonSong, SongFile, EventProgram, Task, TaskCompletion, Group, GroupMembership, eq } from 'astro:db';
-import { hashPassword } from '../../src/lib/auth.ts';
+import { db, User, Account, Ensemble, EnsembleMember, EnsembleInvite, MemberPart, Season, Event, Part, Song, SeasonSong, SongFile, EventProgram, Task, TaskCompletion, Group, GroupMembership, eq } from 'astro:db';
+import { hashPassword } from '../../src/lib/bcrypt.ts';
 
 export async function createUser(overrides: {
   id?: string;
@@ -17,9 +17,17 @@ export async function createUser(overrides: {
   await db.insert(User).values({
     id,
     email: overrides.email ?? `user-${id.slice(0, 8)}@test.com`,
-    passwordHash,
     name: overrides.name ?? 'Test User',
     role: overrides.role ?? 'user',
+    emailVerified: true,
+  });
+  // Better Auth stores passwords in the Account table
+  await db.insert(Account).values({
+    id: crypto.randomUUID(),
+    accountId: id,
+    providerId: 'credential',
+    userId: id,
+    password: passwordHash,
   });
   return db.select().from(User).where(eq(User.id, id)).get() as Promise<typeof User.$inferSelect>;
 }

@@ -2,10 +2,9 @@ import {
   db,
   eq,
   and,
-  gt,
-  isNull,
   inArray,
   User,
+  Account,
   Ensemble,
   EnsembleMember,
   Part,
@@ -13,44 +12,12 @@ import {
   Attendance,
   SeasonMembership,
   GroupMembership,
-  PasswordResetToken,
-  EmailChangeToken,
-  EmailVerificationToken,
   TaskCompletion,
 } from 'astro:db';
 import { fileToDataUri, validateImageFile } from './upload';
-import { hashPassword, verifyPassword } from './auth';
-import { sendEmailChangeVerificationEmail, sendEmailVerificationEmail } from './email';
-
-export async function registerUser(params: {
-  name: string;
-  email: string;
-  password: string;
-}): Promise<{ userId: string }> {
-  const { name, email, password } = params;
-
-  const existing = await db.select({ id: User.id }).from(User).where(eq(User.email, email)).get();
-  if (existing) throw new Error('An account with this email already exists.');
-
-  const userId = crypto.randomUUID();
-  const passwordHash = await hashPassword(password);
-
-  await db.insert(User).values({ id: userId, email, passwordHash, name, role: 'user' });
-
-  const token = crypto.randomUUID();
-  const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
-  await db.insert(EmailVerificationToken).values({
-    id: crypto.randomUUID(),
-    userId,
-    token,
-    expiresAt,
-  });
-
-  // Fire-and-forget: don't block registration if email fails
-  sendEmailVerificationEmail(email, name, token).catch(() => {});
-
-  return { userId };
-}
+import { verifyPassword } from './bcrypt';
+import { sendEmailChangeVerificationEmail } from './email';
+import { auth } from './auth';
 
 export type ActionResult =
   | { type: 'redirect'; url: string }
@@ -197,27 +164,15 @@ export async function initiateEmailChange(
     return { type: 'error', message: 'That email address is already in use.' };
   }
 
-  // Invalidate any existing pending email change for this user
-  const now = new Date();
-  await db
-    .update(EmailChangeToken)
-    .set({ usedAt: now })
-    .where(
-      and(
-        eq(EmailChangeToken.userId, userId),
-        isNull(EmailChangeToken.usedAt),
-        gt(EmailChangeToken.expiresAt, now),
-      )
-    );
-
+  // Generate a verification token via Better Auth's verification table
   const token = crypto.randomUUID();
   const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
 
-  await db.insert(EmailChangeToken).values({
+  const { Verification } = await import('astro:db');
+  await db.insert(Verification).values({
     id: crypto.randomUUID(),
-    userId,
-    token,
-    newEmail: trimmedEmail,
+    identifier: `email-change:${userId}`,
+    value: JSON.stringify({ newEmail: trimmedEmail, token }),
     expiresAt,
   });
 
@@ -232,126 +187,45 @@ export async function initiateEmailChange(
   return { type: 'redirect', url: '/profile?emailChangePending=1' };
 }
 
-export async function resendVerificationEmail(email: string): Promise<void> {
-  const user = await db.select().from(User).where(eq(User.email, email)).get();
-  if (!user || user.emailVerifiedAt) return; // silent: prevent enumeration
-
-  // Invalidate any existing pending tokens
-  const now = new Date();
-  await db
-    .update(EmailVerificationToken)
-    .set({ usedAt: now })
-    .where(and(eq(EmailVerificationToken.userId, user.id), isNull(EmailVerificationToken.usedAt)));
-
-  const token = crypto.randomUUID();
-  const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
-  await db.insert(EmailVerificationToken).values({
-    id: crypto.randomUUID(),
-    userId: user.id,
-    token,
-    expiresAt,
-  });
-
-  sendEmailVerificationEmail(email, user.name, token).catch(() => {});
-}
-
 export type VerifyEmailChangeResult =
   | { type: 'success'; newEmail: string }
   | { type: 'conflict' }
   | { type: 'invalid' };
 
 export async function verifyEmailChangeToken(token: string): Promise<VerifyEmailChangeResult> {
+  const { Verification } = await import('astro:db');
   const now = new Date();
-  const [record] = await db
+
+  const records = await db
     .select()
-    .from(EmailChangeToken)
-    .where(
-      and(
-        eq(EmailChangeToken.token, token),
-        gt(EmailChangeToken.expiresAt, now),
-        isNull(EmailChangeToken.usedAt),
-      ),
-    );
+    .from(Verification)
+    .all();
 
-  if (!record) return { type: 'invalid' };
+  // Find the record whose value contains our token
+  const record = records.find(r => {
+    try {
+      return JSON.parse(r.value)?.token === token;
+    } catch {
+      return false;
+    }
+  });
 
-  const [conflict] = await db.select({ id: User.id }).from(User).where(eq(User.email, record.newEmail));
+  if (!record || record.expiresAt < now) return { type: 'invalid' };
 
+  const { newEmail } = JSON.parse(record.value) as { newEmail: string };
+
+  const [conflict] = await db.select({ id: User.id }).from(User).where(eq(User.email, newEmail));
   if (conflict) {
-    await db.update(EmailChangeToken).set({ usedAt: now }).where(eq(EmailChangeToken.id, record.id));
+    await db.delete(Verification).where(eq(Verification.id, record.id));
     return { type: 'conflict' };
   }
 
-  await db.update(User).set({ email: record.newEmail }).where(eq(User.id, record.userId));
-  await db.update(EmailChangeToken).set({ usedAt: now }).where(eq(EmailChangeToken.id, record.id));
+  // Extract userId from identifier "email-change:<userId>"
+  const userId = record.identifier.replace('email-change:', '');
+  await db.update(User).set({ email: newEmail }).where(eq(User.id, userId));
+  await db.delete(Verification).where(eq(Verification.id, record.id));
 
-  return { type: 'success', newEmail: record.newEmail };
-}
-
-export async function verifyEmailToken(token: string): Promise<{ userId: string } | null> {
-  const now = new Date();
-  const record = await db
-    .select()
-    .from(EmailVerificationToken)
-    .where(
-      and(
-        eq(EmailVerificationToken.token, token),
-        gt(EmailVerificationToken.expiresAt, now),
-        isNull(EmailVerificationToken.usedAt),
-      ),
-    )
-    .get();
-
-  if (!record) return null;
-
-  await db.update(User).set({ emailVerifiedAt: now }).where(eq(User.id, record.userId));
-  await db.update(EmailVerificationToken).set({ usedAt: now }).where(eq(EmailVerificationToken.id, record.id));
-
-  return { userId: record.userId };
-}
-
-export async function validatePasswordResetToken(token: string): Promise<boolean> {
-  const now = new Date();
-  const [record] = await db
-    .select({ id: PasswordResetToken.id })
-    .from(PasswordResetToken)
-    .where(
-      and(
-        eq(PasswordResetToken.token, token),
-        gt(PasswordResetToken.expiresAt, now),
-        isNull(PasswordResetToken.usedAt),
-      ),
-    );
-  return !!record;
-}
-
-export async function resetPassword(
-  token: string,
-  password: string,
-): Promise<{ type: 'success' } | { type: 'invalid' } | { type: 'error'; message: string }> {
-  if (!password || password.length < 6) {
-    return { type: 'error', message: 'Password must be at least 6 characters.' };
-  }
-
-  const now = new Date();
-  const [record] = await db
-    .select()
-    .from(PasswordResetToken)
-    .where(
-      and(
-        eq(PasswordResetToken.token, token),
-        gt(PasswordResetToken.expiresAt, now),
-        isNull(PasswordResetToken.usedAt),
-      ),
-    );
-
-  if (!record) return { type: 'invalid' };
-
-  const passwordHash = await hashPassword(password);
-  await db.update(User).set({ passwordHash }).where(eq(User.id, record.userId));
-  await db.update(PasswordResetToken).set({ usedAt: now }).where(eq(PasswordResetToken.id, record.id));
-
-  return { type: 'success' };
+  return { type: 'success', newEmail };
 }
 
 async function deleteUserData(userId: string): Promise<void> {
@@ -364,14 +238,13 @@ async function deleteUserData(userId: string): Promise<void> {
   if (membershipIds.length > 0) {
     await db.delete(MemberPart).where(inArray(MemberPart.membershipId, membershipIds));
   }
-  await db.delete(EmailVerificationToken).where(eq(EmailVerificationToken.userId, userId));
-  await db.delete(EmailChangeToken).where(eq(EmailChangeToken.userId, userId));
-  await db.delete(PasswordResetToken).where(eq(PasswordResetToken.userId, userId));
   await db.delete(Attendance).where(eq(Attendance.userId, userId));
   await db.delete(SeasonMembership).where(eq(SeasonMembership.userId, userId));
   await db.delete(TaskCompletion).where(eq(TaskCompletion.userId, userId));
   await db.delete(GroupMembership).where(eq(GroupMembership.userId, userId));
   await db.delete(EnsembleMember).where(eq(EnsembleMember.userId, userId));
+  // Better Auth manages sessions/accounts — delete them too
+  await db.delete(Account).where(eq(Account.userId, userId));
   await db.delete(User).where(eq(User.id, userId));
 }
 
@@ -391,8 +264,14 @@ export async function deleteAccount(
     return { type: 'error', message: 'Password is required to delete your account.' };
   }
 
-  const fullUser = await db.select().from(User).where(eq(User.id, userId)).get();
-  const valid = fullUser ? await verifyPassword(password, fullUser.passwordHash) : false;
+  // Get the hashed password from the Account table (Better Auth stores it there)
+  const account = await db
+    .select({ password: Account.password })
+    .from(Account)
+    .where(and(eq(Account.userId, userId), eq(Account.providerId, 'credential')))
+    .get();
+
+  const valid = account?.password ? await verifyPassword(password, account.password) : false;
   if (!valid) {
     return { type: 'error', message: 'Incorrect password. Account not deleted.' };
   }
@@ -405,3 +284,6 @@ export async function deleteAccount(
 export async function adminDeleteUser(userId: string): Promise<void> {
   await deleteUserData(userId);
 }
+
+// Re-export for use in auth actions
+export { auth };

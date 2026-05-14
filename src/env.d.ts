@@ -5,15 +5,18 @@ declare module '@astrojs/db/dist/runtime/virtual.js';
 
 declare namespace App {
   interface Locals {
-    session: import('./lib/session').Session | null;
+    session: import('./lib/auth').Session | null;
     user: {
       id: string;
       email: string;
       name: string;
+      image: string | null;
+      emailVerified: boolean;
+      role: string;
       avatarUrl: string | null;
       phone: string | null;
-      role: string;
       createdAt: Date;
+      updatedAt: Date;
     } | null;
   }
 }

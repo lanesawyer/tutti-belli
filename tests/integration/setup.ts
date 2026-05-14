@@ -16,17 +16,53 @@ const client = createClient({ url: 'file::memory:?cache=shared' });
 // Tables in dependency order (children after parents) for CREATE,
 // and reversed for DROP to avoid foreign key violations.
 const CREATE_STATEMENTS = [
+  // Better Auth core tables
   `CREATE TABLE IF NOT EXISTS "User" (
     "id" TEXT PRIMARY KEY,
-    "email" TEXT UNIQUE NOT NULL,
-    "passwordHash" TEXT NOT NULL,
     "name" TEXT NOT NULL,
-    "avatarUrl" TEXT,
-    "phone" TEXT,
+    "email" TEXT UNIQUE NOT NULL,
+    "emailVerified" INTEGER DEFAULT 0 NOT NULL,
+    "image" TEXT,
+    "createdAt" TEXT DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TEXT DEFAULT CURRENT_TIMESTAMP,
     "role" TEXT DEFAULT 'user' NOT NULL,
-    "emailVerifiedAt" TEXT,
-    "createdAt" TEXT DEFAULT CURRENT_TIMESTAMP
+    "phone" TEXT,
+    "avatarUrl" TEXT
   )`,
+  `CREATE TABLE IF NOT EXISTS "Session" (
+    "id" TEXT PRIMARY KEY,
+    "expiresAt" TEXT NOT NULL,
+    "token" TEXT UNIQUE NOT NULL,
+    "createdAt" TEXT DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TEXT DEFAULT CURRENT_TIMESTAMP,
+    "ipAddress" TEXT,
+    "userAgent" TEXT,
+    "userId" TEXT NOT NULL REFERENCES "User"("id")
+  )`,
+  `CREATE TABLE IF NOT EXISTS "Account" (
+    "id" TEXT PRIMARY KEY,
+    "accountId" TEXT NOT NULL,
+    "providerId" TEXT NOT NULL,
+    "userId" TEXT NOT NULL REFERENCES "User"("id"),
+    "accessToken" TEXT,
+    "refreshToken" TEXT,
+    "idToken" TEXT,
+    "accessTokenExpiresAt" TEXT,
+    "refreshTokenExpiresAt" TEXT,
+    "scope" TEXT,
+    "password" TEXT,
+    "createdAt" TEXT DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TEXT DEFAULT CURRENT_TIMESTAMP
+  )`,
+  `CREATE TABLE IF NOT EXISTS "Verification" (
+    "id" TEXT PRIMARY KEY,
+    "identifier" TEXT NOT NULL,
+    "value" TEXT NOT NULL,
+    "expiresAt" TEXT NOT NULL,
+    "createdAt" TEXT,
+    "updatedAt" TEXT
+  )`,
+  // App tables
   `CREATE TABLE IF NOT EXISTS "Ensemble" (
     "id" TEXT PRIMARY KEY,
     "name" TEXT NOT NULL,
@@ -202,31 +238,6 @@ const CREATE_STATEMENTS = [
     "sortOrder" INTEGER DEFAULT 0 NOT NULL,
     "createdAt" TEXT DEFAULT CURRENT_TIMESTAMP
   )`,
-  `CREATE TABLE IF NOT EXISTS "PasswordResetToken" (
-    "id" TEXT PRIMARY KEY,
-    "userId" TEXT NOT NULL REFERENCES "User"("id"),
-    "token" TEXT UNIQUE NOT NULL,
-    "expiresAt" TEXT NOT NULL,
-    "usedAt" TEXT,
-    "createdAt" TEXT DEFAULT CURRENT_TIMESTAMP
-  )`,
-  `CREATE TABLE IF NOT EXISTS "EmailChangeToken" (
-    "id" TEXT PRIMARY KEY,
-    "userId" TEXT NOT NULL REFERENCES "User"("id"),
-    "token" TEXT UNIQUE NOT NULL,
-    "newEmail" TEXT NOT NULL,
-    "expiresAt" TEXT NOT NULL,
-    "usedAt" TEXT,
-    "createdAt" TEXT DEFAULT CURRENT_TIMESTAMP
-  )`,
-  `CREATE TABLE IF NOT EXISTS "EmailVerificationToken" (
-    "id" TEXT PRIMARY KEY,
-    "userId" TEXT NOT NULL REFERENCES "User"("id"),
-    "token" TEXT UNIQUE NOT NULL,
-    "expiresAt" TEXT NOT NULL,
-    "usedAt" TEXT,
-    "createdAt" TEXT DEFAULT CURRENT_TIMESTAMP
-  )`,
   `CREATE TABLE IF NOT EXISTS "SiteBanner" (
     "id" TEXT PRIMARY KEY,
     "message" TEXT NOT NULL,
@@ -238,11 +249,11 @@ const CREATE_STATEMENTS = [
 ];
 
 const TABLE_NAMES = [
-  'SiteBanner', 'EmailVerificationToken', 'EmailChangeToken', 'PasswordResetToken', 'EventProgram', 'SongFile',
-  'SeasonSong', 'SongPart', 'Song', 'GroupMembership', 'Group',
-  'Announcement', 'EventRsvp', 'Attendance', 'Event', 'TaskCompletion', 'Task',
-  'SeasonMembership', 'EnsembleInvite',
-  'Season', 'EnsembleLink', 'MemberPart', 'EnsembleMember', 'Part', 'Ensemble', 'User',
+  'SiteBanner', 'EventProgram', 'SongFile', 'SeasonSong', 'SongPart', 'Song',
+  'GroupMembership', 'Group', 'Announcement', 'EventRsvp', 'Attendance', 'Event',
+  'TaskCompletion', 'Task', 'SeasonMembership', 'EnsembleInvite',
+  'Season', 'EnsembleLink', 'MemberPart', 'EnsembleMember', 'Part', 'Ensemble',
+  'Verification', 'Account', 'Session', 'User',
 ];
 
 async function recreateSchema() {

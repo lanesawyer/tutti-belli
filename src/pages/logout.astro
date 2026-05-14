@@ -1,9 +1,5 @@
 ---
-import { deleteSession } from "@lib/session";
-
-deleteSession();
-
-Astro.cookies.delete("session", { path: "/" });
-
+// Logout is handled via the auth.logout action (POST form)
+// This page handles direct GET navigations gracefully
 return Astro.redirect("/");
 ---

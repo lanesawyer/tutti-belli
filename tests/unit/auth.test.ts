@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { hashPassword, verifyPassword } from '../../src/lib/auth.ts';
+import { hashPassword, verifyPassword } from '../../src/lib/bcrypt.ts';
 
 describe('hashPassword', () => {
   it('returns a bcrypt hash string', async () => {

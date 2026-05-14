@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
-import { registerUser, resendVerificationEmail, updateName, updatePhone, deleteAccount, updateParts, verifyEmailToken, verifyEmailChangeToken, validatePasswordResetToken, resetPassword } from '../../src/lib/profile.ts';
-import { db, User, EnsembleMember, MemberPart, EmailVerificationToken, EmailChangeToken, PasswordResetToken, eq } from 'astro:db';
+import { updateName, updatePhone, deleteAccount, updateParts, verifyEmailChangeToken, initiateEmailChange } from '../../src/lib/profile.ts';
+import { db, User, Account, Verification, EnsembleMember, MemberPart, eq } from 'astro:db';
 import { createUser, createEnsemble, createMembership, createPart, createMemberPart } from './fixtures.ts';
 
 // Mock email module — we don't want to call the real Resend API in tests
@@ -11,363 +11,14 @@ vi.mock('../../src/lib/email.ts', () => ({
   sendAnnouncementEmail: vi.fn().mockResolvedValue({ success: true }),
 }));
 
-describe('registerUser', () => {
-  it('creates a new user and returns their userId', async () => {
-    const result = await registerUser({
-      name: 'Alice Smith',
-      email: 'alice@test.com',
-      password: 'password123',
-    });
-    expect(result.userId).toBeDefined();
-
-    const user = await db.select().from(User).where(eq(User.id, result.userId)).get();
-    expect(user).not.toBeNull();
-    expect(user!.email).toBe('alice@test.com');
-    expect(user!.name).toBe('Alice Smith');
-  });
-
-  it('hashes the password (does not store plaintext)', async () => {
-    const result = await registerUser({
-      name: 'Bob Jones',
-      email: 'bob@test.com',
-      password: 'secret123',
-    });
-    const user = await db.select().from(User).where(eq(User.id, result.userId)).get();
-    expect(user!.passwordHash).not.toBe('secret123');
-    expect(user!.passwordHash).toMatch(/^\$2[aby]\$/);
-  });
-
-  it('throws an error if the email is already in use', async () => {
-    await registerUser({ name: 'First', email: 'dup@test.com', password: 'pass1' });
-    await expect(
-      registerUser({ name: 'Second', email: 'dup@test.com', password: 'pass2' })
-    ).rejects.toThrow('already exists');
-  });
-
-  it('creates an email verification token for the new user', async () => {
-    const { userId } = await registerUser({
-      name: 'Carol White',
-      email: 'carol@test.com',
-      password: 'password123',
-    });
-    const token = await db
-      .select()
-      .from(EmailVerificationToken)
-      .where(eq(EmailVerificationToken.userId, userId))
-      .get();
-    expect(token).not.toBeNull();
-    expect(token!.usedAt).toBeNull();
-    expect(token!.expiresAt.getTime()).toBeGreaterThan(Date.now());
-  });
-
-  it('leaves the new user unverified (emailVerifiedAt is null)', async () => {
-    const { userId } = await registerUser({
-      name: 'Dan Brown',
-      email: 'dan@test.com',
-      password: 'password123',
-    });
-    const user = await db.select().from(User).where(eq(User.id, userId)).get();
-    expect(user!.emailVerifiedAt).toBeNull();
-  });
-});
-
-describe('resendVerificationEmail', () => {
-  it('creates a new verification token for an unverified user', async () => {
-    const { userId } = await registerUser({
-      name: 'Eve Green',
-      email: 'eve@test.com',
-      password: 'password123',
-    });
-
-    // Mark the original token as used to simulate an expired/used token
-    await db
-      .update(EmailVerificationToken)
-      .set({ usedAt: new Date() })
-      .where(eq(EmailVerificationToken.userId, userId));
-
-    await resendVerificationEmail('eve@test.com');
-
-    const tokens = await db
-      .select()
-      .from(EmailVerificationToken)
-      .where(eq(EmailVerificationToken.userId, userId))
-      .all();
-    const activeToken = tokens.find(t => t.usedAt === null);
-    expect(activeToken).toBeDefined();
-  });
-
-  it('invalidates the previous pending token when resending', async () => {
-    const { userId } = await registerUser({
-      name: 'Frank Black',
-      email: 'frank@test.com',
-      password: 'password123',
-    });
-
-    await resendVerificationEmail('frank@test.com');
-
-    const tokens = await db
-      .select()
-      .from(EmailVerificationToken)
-      .where(eq(EmailVerificationToken.userId, userId))
-      .all();
-    // Only the newest token should be active (usedAt = null)
-    const activeTokens = tokens.filter(t => t.usedAt === null);
-    expect(activeTokens).toHaveLength(1);
-  });
-
-  it('does nothing silently for an unknown email', async () => {
-    await expect(
-      resendVerificationEmail('nobody@test.com')
-    ).resolves.toBeUndefined();
-  });
-
-  it('does nothing silently for an already-verified user', async () => {
-    const user = await createUser();
-    await db
-      .update(User)
-      .set({ emailVerifiedAt: new Date() })
-      .where(eq(User.id, user!.id));
-
-    await expect(
-      resendVerificationEmail(user!.email)
-    ).resolves.toBeUndefined();
-
-    const tokens = await db
-      .select()
-      .from(EmailVerificationToken)
-      .where(eq(EmailVerificationToken.userId, user!.id))
-      .all();
-    expect(tokens).toHaveLength(0);
-  });
-});
-
-describe('verifyEmailToken', () => {
-  it('returns the userId and marks user as verified on a valid token', async () => {
-    const { userId } = await registerUser({
-      name: 'Verify User',
-      email: 'verify-valid@test.com',
-      password: 'password123',
-    });
-    const tokenRow = await db
-      .select()
-      .from(EmailVerificationToken)
-      .where(eq(EmailVerificationToken.userId, userId))
-      .get();
-
-    const result = await verifyEmailToken(tokenRow!.token);
-
-    expect(result).not.toBeNull();
-    expect(result!.userId).toBe(userId);
-
-    const user = await db.select().from(User).where(eq(User.id, userId)).get();
-    expect(user!.emailVerifiedAt).not.toBeNull();
-
-    const updatedToken = await db
-      .select()
-      .from(EmailVerificationToken)
-      .where(eq(EmailVerificationToken.id, tokenRow!.id))
-      .get();
-    expect(updatedToken!.usedAt).not.toBeNull();
-  });
-
-  it('returns null for a token that does not exist', async () => {
-    const result = await verifyEmailToken('nonexistent-token');
-    expect(result).toBeNull();
-  });
-
-  it('returns null for a token that has already been used', async () => {
-    const { userId } = await registerUser({
-      name: 'Used Token User',
-      email: 'verify-used@test.com',
-      password: 'password123',
-    });
-    const tokenRow = await db
-      .select()
-      .from(EmailVerificationToken)
-      .where(eq(EmailVerificationToken.userId, userId))
-      .get();
-
-    await verifyEmailToken(tokenRow!.token);
-    const result = await verifyEmailToken(tokenRow!.token);
-    expect(result).toBeNull();
-  });
-
-  it('returns null for an expired token', async () => {
-    const { userId } = await registerUser({
-      name: 'Expired Token User',
-      email: 'verify-expired@test.com',
-      password: 'password123',
-    });
-    const tokenRow = await db
-      .select()
-      .from(EmailVerificationToken)
-      .where(eq(EmailVerificationToken.userId, userId))
-      .get();
-
-    // Backdate the expiry
-    await db
-      .update(EmailVerificationToken)
-      .set({ expiresAt: new Date(Date.now() - 1000) })
-      .where(eq(EmailVerificationToken.id, tokenRow!.id));
-
-    const result = await verifyEmailToken(tokenRow!.token);
-    expect(result).toBeNull();
-  });
-});
-
-describe('verifyEmailChangeToken', () => {
-  async function insertChangeToken(userId: string, newEmail: string, overrides: { usedAt?: Date; expiresAt?: Date } = {}) {
-    const token = crypto.randomUUID();
-    await db.insert(EmailChangeToken).values({
-      id: crypto.randomUUID(),
-      userId,
-      token,
-      newEmail,
-      expiresAt: overrides.expiresAt ?? new Date(Date.now() + 60 * 60 * 1000),
-      usedAt: overrides.usedAt,
-    });
-    return token;
-  }
-
-  it('updates the user email and marks the token used on success', async () => {
-    const user = await createUser({ email: 'old-email@test.com' });
-    const token = await insertChangeToken(user!.id, 'new-email@test.com');
-
-    const result = await verifyEmailChangeToken(token);
-
-    expect(result).toEqual({ type: 'success', newEmail: 'new-email@test.com' });
-    const updated = await db.select().from(User).where(eq(User.id, user!.id)).get();
-    expect(updated!.email).toBe('new-email@test.com');
-    const tokenRow = await db.select().from(EmailChangeToken).where(eq(EmailChangeToken.token, token)).get();
-    expect(tokenRow!.usedAt).not.toBeNull();
-  });
-
-  it('returns invalid for a nonexistent token', async () => {
-    const result = await verifyEmailChangeToken('nonexistent-token');
-    expect(result).toEqual({ type: 'invalid' });
-  });
-
-  it('returns invalid for an expired token', async () => {
-    const user = await createUser({ email: 'expired-change@test.com' });
-    const token = await insertChangeToken(user!.id, 'expired-new@test.com', {
-      expiresAt: new Date(Date.now() - 1000),
-    });
-    const result = await verifyEmailChangeToken(token);
-    expect(result).toEqual({ type: 'invalid' });
-  });
-
-  it('returns invalid for an already-used token', async () => {
-    const user = await createUser({ email: 'used-change@test.com' });
-    const token = await insertChangeToken(user!.id, 'used-new@test.com', {
-      usedAt: new Date(),
-    });
-    const result = await verifyEmailChangeToken(token);
-    expect(result).toEqual({ type: 'invalid' });
-  });
-
-  it('returns conflict and marks token used when the new email is already taken', async () => {
-    const user = await createUser({ email: 'changer@test.com' });
-    await createUser({ email: 'already-taken@test.com' });
-    const token = await insertChangeToken(user!.id, 'already-taken@test.com');
-
-    const result = await verifyEmailChangeToken(token);
-
-    expect(result).toEqual({ type: 'conflict' });
-    const unchanged = await db.select().from(User).where(eq(User.id, user!.id)).get();
-    expect(unchanged!.email).toBe('changer@test.com');
-    const tokenRow = await db.select().from(EmailChangeToken).where(eq(EmailChangeToken.token, token)).get();
-    expect(tokenRow!.usedAt).not.toBeNull();
-  });
-});
-
-describe('validatePasswordResetToken', () => {
-  async function insertResetToken(userId: string, overrides: { usedAt?: Date; expiresAt?: Date } = {}) {
-    const token = crypto.randomUUID();
-    await db.insert(PasswordResetToken).values({
-      id: crypto.randomUUID(),
-      userId,
-      token,
-      expiresAt: overrides.expiresAt ?? new Date(Date.now() + 60 * 60 * 1000),
-      usedAt: overrides.usedAt,
-    });
-    return token;
-  }
-
-  it('returns true for a valid unused unexpired token', async () => {
-    const user = await createUser();
-    const token = await insertResetToken(user!.id);
-    expect(await validatePasswordResetToken(token)).toBe(true);
-  });
-
-  it('returns false for a nonexistent token', async () => {
-    expect(await validatePasswordResetToken('nonexistent-token')).toBe(false);
-  });
-
-  it('returns false for an expired token', async () => {
-    const user = await createUser();
-    const token = await insertResetToken(user!.id, { expiresAt: new Date(Date.now() - 1000) });
-    expect(await validatePasswordResetToken(token)).toBe(false);
-  });
-
-  it('returns false for an already-used token', async () => {
-    const user = await createUser();
-    const token = await insertResetToken(user!.id, { usedAt: new Date() });
-    expect(await validatePasswordResetToken(token)).toBe(false);
-  });
-});
-
-describe('resetPassword', () => {
-  async function insertResetToken(userId: string, overrides: { usedAt?: Date; expiresAt?: Date } = {}) {
-    const token = crypto.randomUUID();
-    await db.insert(PasswordResetToken).values({
-      id: crypto.randomUUID(),
-      userId,
-      token,
-      expiresAt: overrides.expiresAt ?? new Date(Date.now() + 60 * 60 * 1000),
-      usedAt: overrides.usedAt,
-    });
-    return token;
-  }
-
-  it('updates the password hash and marks the token used on success', async () => {
-    const user = await createUser({ password: 'old-password' });
-    const token = await insertResetToken(user!.id);
-
-    const result = await resetPassword(token, 'new-password-123');
-
-    expect(result).toEqual({ type: 'success' });
-    const updated = await db.select().from(User).where(eq(User.id, user!.id)).get();
-    expect(updated!.passwordHash).not.toBe(user!.passwordHash);
-    const tokenRow = await db.select().from(PasswordResetToken).where(eq(PasswordResetToken.token, token)).get();
-    expect(tokenRow!.usedAt).not.toBeNull();
-  });
-
-  it('returns error for a password shorter than 6 characters', async () => {
-    const user = await createUser();
-    const token = await insertResetToken(user!.id);
-    const result = await resetPassword(token, 'abc');
-    expect(result).toEqual({ type: 'error', message: 'Password must be at least 6 characters.' });
-  });
-
-  it('returns invalid for a nonexistent token', async () => {
-    const result = await resetPassword('nonexistent-token', 'validpassword123');
-    expect(result).toEqual({ type: 'invalid' });
-  });
-
-  it('returns invalid for an expired token', async () => {
-    const user = await createUser();
-    const token = await insertResetToken(user!.id, { expiresAt: new Date(Date.now() - 1000) });
-    const result = await resetPassword(token, 'validpassword123');
-    expect(result).toEqual({ type: 'invalid' });
-  });
-
-  it('returns invalid for an already-used token', async () => {
-    const user = await createUser();
-    const token = await insertResetToken(user!.id, { usedAt: new Date() });
-    const result = await resetPassword(token, 'validpassword123');
-    expect(result).toEqual({ type: 'invalid' });
-  });
-});
+// Mock Better Auth — tests run without a full auth server
+vi.mock('../../src/lib/auth.ts', () => ({
+  auth: {
+    api: {
+      getSession: vi.fn().mockResolvedValue(null),
+    },
+  },
+}));
 
 describe('updateName', () => {
   it('updates the user name in the DB', async () => {
@@ -531,5 +182,95 @@ describe('updateParts', () => {
 
     const result = await updateParts(membership!.id, []);
     expect(result).toEqual({ type: 'redirect', url: '/profile' });
+  });
+});
+
+describe('initiateEmailChange', () => {
+  it('returns error for empty email', async () => {
+    const user = await createUser();
+    const result = await initiateEmailChange(user!.id, user!.name, user!.email, '');
+    expect(result.type).toBe('error');
+  });
+
+  it('returns error when new email matches current email', async () => {
+    const user = await createUser({ email: 'same@test.com' });
+    const result = await initiateEmailChange(user!.id, user!.name, 'same@test.com', 'same@test.com');
+    expect(result.type).toBe('error');
+  });
+
+  it('returns error when new email is already in use', async () => {
+    const user = await createUser({ email: 'original@test.com' });
+    await createUser({ email: 'taken@test.com' });
+    const result = await initiateEmailChange(user!.id, user!.name, 'original@test.com', 'taken@test.com');
+    expect(result.type).toBe('error');
+    expect((result as { type: 'error'; message: string }).message).toMatch(/already in use/i);
+  });
+
+  it('creates a Verification record and returns redirect on success', async () => {
+    const user = await createUser({ email: 'changer@test.com' });
+    const result = await initiateEmailChange(user!.id, user!.name, 'changer@test.com', 'new@test.com');
+    expect(result.type).toBe('redirect');
+
+    const records = await db
+      .select()
+      .from(Verification)
+      .where(eq(Verification.identifier, `email-change:${user!.id}`))
+      .all();
+    expect(records).toHaveLength(1);
+    const parsed = JSON.parse(records[0].value) as { newEmail: string; token: string };
+    expect(parsed.newEmail).toBe('new@test.com');
+    expect(parsed.token).toBeDefined();
+  });
+});
+
+describe('verifyEmailChangeToken', () => {
+  async function insertVerificationRecord(userId: string, newEmail: string, overrides: { expiresAt?: Date } = {}) {
+    const token = crypto.randomUUID();
+    await db.insert(Verification).values({
+      id: crypto.randomUUID(),
+      identifier: `email-change:${userId}`,
+      value: JSON.stringify({ newEmail, token }),
+      expiresAt: overrides.expiresAt ?? new Date(Date.now() + 60 * 60 * 1000),
+    });
+    return token;
+  }
+
+  it('updates the user email and removes the record on success', async () => {
+    const user = await createUser({ email: 'old-email@test.com' });
+    const token = await insertVerificationRecord(user!.id, 'new-email@test.com');
+
+    const result = await verifyEmailChangeToken(token);
+
+    expect(result).toEqual({ type: 'success', newEmail: 'new-email@test.com' });
+    const updated = await db.select().from(User).where(eq(User.id, user!.id)).get();
+    expect(updated!.email).toBe('new-email@test.com');
+    const records = await db.select().from(Verification).where(eq(Verification.identifier, `email-change:${user!.id}`)).all();
+    expect(records).toHaveLength(0);
+  });
+
+  it('returns invalid for a nonexistent token', async () => {
+    const result = await verifyEmailChangeToken('nonexistent-token');
+    expect(result).toEqual({ type: 'invalid' });
+  });
+
+  it('returns invalid for an expired token', async () => {
+    const user = await createUser({ email: 'expired-change@test.com' });
+    const token = await insertVerificationRecord(user!.id, 'expired-new@test.com', {
+      expiresAt: new Date(Date.now() - 1000),
+    });
+    const result = await verifyEmailChangeToken(token);
+    expect(result).toEqual({ type: 'invalid' });
+  });
+
+  it('returns conflict when the new email is already taken', async () => {
+    const user = await createUser({ email: 'changer2@test.com' });
+    await createUser({ email: 'already-taken@test.com' });
+    const token = await insertVerificationRecord(user!.id, 'already-taken@test.com');
+
+    const result = await verifyEmailChangeToken(token);
+
+    expect(result).toEqual({ type: 'conflict' });
+    const unchanged = await db.select().from(User).where(eq(User.id, user!.id)).get();
+    expect(unchanged!.email).toBe('changer2@test.com');
   });
 });

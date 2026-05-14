@@ -114,7 +114,9 @@ const selectedSeason = seasons.find((s) => s.id === seasonId);
             )
           }
           <div class="level-item">
-            <Button href={`/ensembles/${canonicalId}/export/attendance${seasonId ? `?seasonId=${seasonId}` : ""}`}>
+            <Button
+              href={`/ensembles/${canonicalId}/export/attendance${seasonId ? `?seasonId=${seasonId}` : ""}`}
+            >
               <Icon icon="fa-download" />
               <span>Export CSV</span>
             </Button>

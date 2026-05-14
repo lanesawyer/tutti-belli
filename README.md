@@ -53,10 +53,10 @@ pnpm install
 cp .env.example .env
 ```
 
-Edit `.env` and add your Astro DB connection details:
+Edit `.env` with your values (only `BETTER_AUTH_SECRET` and `BETTER_AUTH_URL` are required for local dev — the rest enable email and file storage features):
 ```
-ASTRO_DB_REMOTE_URL=your_database_url
-ASTRO_DB_APP_TOKEN=your_app_token
+BETTER_AUTH_SECRET=any-long-random-string
+BETTER_AUTH_URL=http://localhost:4321
 ```
 
 4. Start the development server:
@@ -68,8 +68,18 @@ The application will be available at `http://localhost:4321/`
 
 ### Environment Variables
 
-- `ASTRO_DB_REMOTE_URL`: The remote database URL for Astro DB
-- `ASTRO_DB_APP_TOKEN`: Authentication token for connecting to the remote Astro DB
+| Variable | Required | Description |
+|---|---|---|
+| `BETTER_AUTH_SECRET` | Yes | Secret used to sign sessions — use a long random string |
+| `BETTER_AUTH_URL` | Yes | Full URL of the app (e.g. `http://localhost:4321` locally) |
+| `ASTRO_DB_REMOTE_URL` | Production only | Turso database URL |
+| `ASTRO_DB_APP_TOKEN` | Production only | Turso auth token |
+| `EMAIL_API_KEY` | For email features | Resend API key |
+| `EMAIL_FROM` | For email features | Verified sender address |
+| `STORAGE_KEY_ID` | For file uploads | Backblaze B2 application key ID |
+| `STORAGE_KEY` | For file uploads | Backblaze B2 application key |
+| `STORAGE_BUCKET` | For file uploads | Backblaze B2 bucket name |
+| `STORAGE_ENDPOINT` | For file uploads | Backblaze B2 S3-compatible endpoint URL |
 
 ### Default Admin Account
 
@@ -261,23 +271,25 @@ pnpm fmt        # Auto-fix linting issues
 ## Technology Stack
 
 - **Framework**: [Astro](https://astro.build/) v5
-- **Database**: [Astro DB](https://docs.astro.build/en/guides/astro-db/)
+- **Database**: [Astro DB](https://docs.astro.build/en/guides/astro-db/) (LibSQL/Turso)
+- **Authentication**: [Better Auth](https://www.better-auth.com/) — email/password with email verification, session management
 - **CSS Framework**: [Bulma](https://bulma.io/) v1.0
 - **Icons**: [Font Awesome](https://fontawesome.com/) v6
 - **QR Codes**: qrcode package
-- **Authentication**: bcryptjs for password hashing
+- **Email**: [Resend](https://resend.com) for verification and password reset emails
+- **File Storage**: Backblaze B2 (S3-compatible) for avatars and ensemble images
 - **SSR Adapter**: @astrojs/node
-- **Linting**: Oxlint for TypeScript files
+- **Linting**: Oxlint
 
 ## Security Notes
 
-- Passwords are hashed using bcrypt (10 rounds)
-- Sessions are stored server-side with HTTP-only cookies
+- Passwords are hashed using bcrypt (10 rounds) via Better Auth
+- Sessions use signed HTTP-only cookies managed by Better Auth
+- Email verification is required before a new account can log in
 - Ensembles are private and require invite codes
 - Check-in codes are unique per rehearsal
-- CSRF protection should be added for production use
 - Always use HTTPS in production
-- Change the default admin password immediately
+- Change the default seed passwords immediately (`admin123`, `test123`)
 
 ## Self-Hosting
 
