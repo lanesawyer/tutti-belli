@@ -4,6 +4,8 @@
  */
 import { test, expect } from '@playwright/test';
 
+test.skip(() => true, 'Registration is temporarily disabled');
+
 test.use({ storageState: { cookies: [], origins: [] } });
 
 // Unique suffix per worker+run so registrations don't collide across parallel
