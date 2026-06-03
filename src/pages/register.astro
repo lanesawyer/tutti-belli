@@ -1,23 +1,38 @@
 ---
 import SingleColumnLayout from "@layouts/SingleColumnLayout.astro";
-import { Button, TextInput, Notification } from "astro-bulma";
-import { actions } from "astro:actions";
+import { Notification } from "astro-bulma";
+// import { Button, TextInput, Notification } from "astro-bulma";
+// import { actions } from "astro:actions";
 
 // Redirect if already logged in
 if (Astro.locals.user) {
   return Astro.redirect("/dashboard");
 }
 
-const customRedirect = Astro.url.searchParams.get("redirect");
+// const customRedirect = Astro.url.searchParams.get("redirect");
 
-const result = Astro.getActionResult(actions.profile.register);
-const registeredEmail = result && !result.error ? result.data.email : null;
-const error = result?.error?.message ?? "";
+// const result = Astro.getActionResult(actions.profile.register);
+// const registeredEmail = result && !result.error ? result.data.email : null;
+// const error = result?.error?.message ?? "";
 ---
 
 <SingleColumnLayout title="Sign Up">
   <h1 class="title">Sign Up</h1>
 
+  <Notification color="warning" light>
+    <p><strong>Registration is currently invite-only.</strong></p>
+    <p class="mt-2">
+      New accounts can only be created via an invite link. If you have an
+      invite, use the link provided in your invitation email.
+    </p>
+  </Notification>
+
+  <div class="has-text-centered mt-4">
+    <p>Already have an account? <a href="/login">Log in</a></p>
+  </div>
+
+  {
+    /*
   {
     registeredEmail ? (
       <Notification color="success" light>
@@ -91,5 +106,7 @@ const error = result?.error?.message ?? "";
         </div>
       </>
     )
+  }
+  */
   }
 </SingleColumnLayout>

@@ -19,13 +19,17 @@ export const profile = {
       email: z.string().email('Invalid email address.'),
       password: z.string().min(6, 'Password must be at least 6 characters.'),
     }),
-    handler: async ({ name, email, password }) => {
-      try {
-        await registerUser({ name, email, password });
-      } catch (e) {
-        throw new ActionError({ code: 'CONFLICT', message: (e as Error).message });
-      }
-      return { email };
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    handler: async (_input) => {
+      throw new ActionError({ code: 'FORBIDDEN', message: 'Registration is currently disabled.' });
+      // handler: async ({ name, email, password }) => {
+      //   try {
+      //     await registerUser({ name, email, password });
+      //   } catch (e) {
+      //     throw new ActionError({ code: 'CONFLICT', message: (e as Error).message });
+      //   }
+      //   return { email };
+      // },
     },
   }),
 
