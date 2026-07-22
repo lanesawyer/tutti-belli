@@ -15,7 +15,7 @@ import {
   removeRsvp,
   isRsvpEnabled,
 } from '../../src/lib/events.ts';
-import { db, Attendance, Event, EventProgram, EventRsvp, eq, and } from 'astro:db';
+import { db, Attendance, Event, EventProgram, EventRsvp, eq, and } from '@db';
 import {
   createUser,
   createEnsemble,

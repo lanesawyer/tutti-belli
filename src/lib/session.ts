@@ -1,4 +1,4 @@
-import { db, eq, User } from 'astro:db';
+import { db, eq, User } from '@db';
 import jwt from 'jsonwebtoken';
 
 const JWT_SECRET = import.meta.env.JWT_SECRET || process.env.JWT_SECRET || 'fallback-secret-change-me';

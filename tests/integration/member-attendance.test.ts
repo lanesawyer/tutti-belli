@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { db, Attendance } from 'astro:db';
+import { db, Attendance } from '@db';
 import { createUser, createEnsemble, createMembership, createSeason, createEvent } from './fixtures.ts';
 import { getMemberAttendanceStats, type MemberAttendanceStat } from '../../src/lib/member-attendance.ts';
 import { toCSV, type CsvColumn } from '../../src/lib/csv.ts';

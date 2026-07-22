@@ -1,4 +1,4 @@
-import { db, eq, SiteBanner } from 'astro:db';
+import { db, eq, SiteBanner } from '@db';
 
 export type BannerColor = 'primary' | 'link' | 'info' | 'success' | 'warning' | 'danger';
 

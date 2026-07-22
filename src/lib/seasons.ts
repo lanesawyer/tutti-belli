@@ -1,4 +1,4 @@
-import { db, eq, and, desc, Season, SeasonMembership, EnsembleMember, Event, User } from 'astro:db';
+import { db, eq, and, desc, Season, SeasonMembership, EnsembleMember, Event, User } from '@db';
 
 export async function getEnsembleSeasons(ensembleId: string) {
   return await db

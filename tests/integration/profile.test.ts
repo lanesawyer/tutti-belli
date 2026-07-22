@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { registerUser, resendVerificationEmail, updateName, updatePhone, deleteAccount, updateParts, verifyEmailToken, verifyEmailChangeToken, validatePasswordResetToken, resetPassword } from '../../src/lib/profile.ts';
-import { db, User, EnsembleMember, MemberPart, EmailVerificationToken, EmailChangeToken, PasswordResetToken, eq } from 'astro:db';
+import { db, User, EnsembleMember, MemberPart, EmailVerificationToken, EmailChangeToken, PasswordResetToken, eq } from '@db';
 import { createUser, createEnsemble, createMembership, createPart, createMemberPart } from './fixtures.ts';
 
 // Mock email module — we don't want to call the real Resend API in tests

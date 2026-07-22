@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { db, Announcement, eq } from 'astro:db';
+import { db, Announcement, eq } from '@db';
 import {
   getEnsembleAnnouncements,
   createAnnouncement,

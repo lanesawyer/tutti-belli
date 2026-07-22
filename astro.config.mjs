@@ -1,13 +1,11 @@
 // @ts-check
 import { defineConfig } from 'astro/config';
-import db from '@astrojs/db';
 import node from '@astrojs/node';
 import path from 'path';
 
 // https://astro.build/config
 export default defineConfig({
   site: 'https://tuttibelli.org',
-  integrations: [db()],
   output: 'server',
   adapter: node({
     mode: 'standalone',
@@ -18,6 +16,7 @@ export default defineConfig({
   vite: {
     resolve: {
       alias: {
+        '@db': path.resolve('./db/index.ts'),
         '@actions': path.resolve('./src/actions'),
         '@components': path.resolve('./src/components'),
         '@containers': path.resolve('./src/containers'),

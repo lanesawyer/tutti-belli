@@ -1,4 +1,4 @@
-import { db, eq, and, desc, Group, GroupMembership, EnsembleMember, User } from 'astro:db';
+import { db, eq, and, desc, Group, GroupMembership, EnsembleMember, User } from '@db';
 
 export async function getEnsembleGroups(ensembleId: string) {
   return await db

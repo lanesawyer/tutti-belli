@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { getInviteByCode, joinEnsembleWithCode } from '../../src/lib/ensemble.ts';
 import { createUser, createEnsemble, createInvite, createMembership } from './fixtures.ts';
-import { db, EnsembleMember, eq, Ensemble } from 'astro:db';
+import { db, EnsembleMember, eq, Ensemble } from '@db';
 // The ensembles.join action is a thin wrapper around joinEnsembleWithCode — all business
 // logic is covered by the tests below. Auth enforcement (UNAUTHORIZED) is a framework
 // concern handled uniformly across all actions.

@@ -1,4 +1,4 @@
-import { db, eq, and, inArray, Ensemble, Event, EventProgram, Attendance, EventRsvp, Season, User, EnsembleMember, Song, SeasonSong, Group, GroupMembership } from 'astro:db';
+import { db, eq, and, inArray, Ensemble, Event, EventProgram, Attendance, EventRsvp, Season, User, EnsembleMember, Song, SeasonSong, Group, GroupMembership } from '@db';
 
 // ─── RSVP Helpers ───────────────────────────────────────────────────────────
 

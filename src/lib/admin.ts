@@ -1,4 +1,4 @@
-import { db, Ensemble, User } from 'astro:db';
+import { db, Ensemble, User } from '@db';
 
 export async function getAllEnsembles() {
   return await db.select().from(Ensemble).all();

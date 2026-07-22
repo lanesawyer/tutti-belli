@@ -1,7 +1,8 @@
-import { db, User, Ensemble, EnsembleMember, Part, MemberPart, EnsembleInvite, Season, SeasonMembership, Event, EventProgram, Announcement, Group, GroupMembership, Song, SongPart, SeasonSong } from 'astro:db';
+import type { LibSQLDatabase } from 'drizzle-orm/libsql';
 import bcrypt from 'bcryptjs';
+import { User, Ensemble, EnsembleMember, Part, MemberPart, EnsembleInvite, Season, SeasonMembership, Event, EventProgram, Announcement, Group, GroupMembership, Song, SongPart, SeasonSong } from './schema.ts';
 
-export default async function seed() {
+export default async function seed(db: LibSQLDatabase) {
   // Create a default admin user
   // Password: admin123
   const adminId = crypto.randomUUID();

@@ -1,6 +1,6 @@
 import { defineAction, ActionError } from 'astro:actions';
 import { z } from 'astro/zod';
-import { db, eq, Ensemble, User, EnsembleMember } from 'astro:db';
+import { db, eq, Ensemble, User, EnsembleMember } from '@db';
 import { adminDeleteUser } from '@lib/profile';
 import { findUniqueSlug, getEnsembleUrlId } from '@lib/slug';
 import { assertSiteAdmin } from './utils';

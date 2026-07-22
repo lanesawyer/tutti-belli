@@ -2,7 +2,7 @@
  * Integration tests for task lib functions.
  */
 import { describe, it, expect } from 'vitest';
-import { db, Task, TaskCompletion, eq } from 'astro:db';
+import { db, Task, TaskCompletion, eq } from '@db';
 import {
   getEnsembleTasks,
   getTasksWithCompletionsForUser,

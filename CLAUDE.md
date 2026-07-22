@@ -5,14 +5,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Build & Development Commands
 
 ```bash
-pnpm dev              # Local dev server on port 4321 (uses local SQLite DB)
+pnpm dev              # Local dev server on port 4321 (migrates + seeds local SQLite DB at .astro/content.db)
 pnpm dev:remote       # Dev server connected to remote Turso DB
-pnpm build --remote   # Production build (requires remote DB connection)
+pnpm build            # Production build (no DB connection needed)
 pnpm preview          # Preview the production build locally
 pnpm check            # TypeScript type checking via astro check
 pnpm lint             # Oxlint on src/lib and db directories + astro check
 pnpm fmt              # Auto-fix lint issues
-pnpm astro:db:push    # Push schema changes to remote Turso DB
+pnpm db:generate      # Generate a drizzle migration from db/schema.ts changes
+pnpm db:migrate       # Apply migrations to the remote Turso DB (reads .env)
 ```
 
 ## Architecture
@@ -21,13 +22,14 @@ pnpm astro:db:push    # Push schema changes to remote Turso DB
 
 ### Key Technology Choices
 - **Astro 5** with `output: 'server'` — all pages are server-rendered, no client-side JS frameworks
-- **Astro DB** (LibSQL/Turso) — all queries go through `src/lib/` functions or Astro Actions; never import `astro:db` directly in page frontmatter
+- **Drizzle ORM** (LibSQL/Turso) — schema in `db/schema.ts`, client + query helpers re-exported from the `@db` alias (`db/index.ts`); all queries go through `src/lib/` functions or Astro Actions; never import `@db` directly in page frontmatter
 - **Bulma 1.0** for CSS (dark mode supported via CSS custom properties + localStorage toggle)
 - **Zero client-side JS framework** — all interactions are HTML form POSTs handled via Astro Actions (`src/actions/`)
 
 
 ### Import Aliases
 Always use path aliases instead of relative `../` imports:
+- `@db` → `db/index.ts` (drizzle client, tables, and query operators like `eq`, `and`, `desc`)
 - `@actions/*` → `src/actions/*`
 - `@components/*` → `src/components/*`
 - `@containers/*` → `src/containers/*`
@@ -41,7 +43,7 @@ The only exception is same-directory imports (e.g. `./AudioPlayer.astro`) and im
 ### Philosophy
 - Don't duplicate logic, if there are commonalities, extract it into a shared utility in `src/lib/`
 - Keep the frontmatter Astro files light, most server logic should be in `src/lib/` files
-- **Never import `astro:db` in page frontmatter.** All database queries must live in `src/lib/` functions or Astro Actions (`src/actions/`). Pages call lib functions and pass the results to the template.
+- **Never import `@db` in page frontmatter.** All database queries must live in `src/lib/` functions or Astro Actions (`src/actions/`). Pages call lib functions and pass the results to the template.
 - **Always use components from `src/components/` instead of writing raw HTML equivalents.** Before writing a `<button>`, `<a class="button">`, or modal, check if a component exists: `Button.astro`, `Modal.astro`, `Table.astro`, `InviteCodeWidget.astro`, etc. Prefer extending a component over one-off inline markup. This includes icons — always use `Icon.astro` instead of raw `<i class="fas ...">` tags. Extra classes can be appended to the `icon` prop string (e.g. `icon="fa-moon my-class"`).
 - **Never write `<div class="box">`.** Always use `Box.astro` (`src/components/elements/Box.astro`). Props: `class`, `id`, plus any HTML div attributes. Example: `<Box class="mb-5">...</Box>`.
 - **Never write raw `<img>` tags or `<figure class="image">` wrappers.** Always use `Image.astro` (`src/components/elements/Image.astro`). It wraps Bulma's image element, uses Astro's `<Image>` component for real URLs, and falls back to a plain `<img>` for data URIs. Props: `src`, `alt`, `size` (e.g. `"96x96"`), `ratio`, `rounded`, `fullwidth`, `class` (on the figure), `style` (on the figure), `imgStyle` (on the img).
@@ -68,7 +70,7 @@ Form mutations use **Astro Actions** (`src/actions/`). Do not use the old patter
 - Passwords hashed with bcryptjs (10 rounds)
 
 ### Database Schema
-Defined in `db/config.ts` with 16 tables. Seed data in `db/seed.ts`. Key relationships:
+Defined in `db/schema.ts` (drizzle `sqliteTable` definitions, 26 tables). Seed data in `db/seed.ts`. Key relationships:
 - **User** → **EnsembleMember** → **Ensemble** (many-to-many with role/status)
 - **Ensemble** → **Part** (voice parts like Soprano, Alto, etc.)
 - **Ensemble** → **Season** → **Rehearsal** → **Attendance**
@@ -78,7 +80,15 @@ Defined in `db/config.ts` with 16 tables. Seed data in `db/seed.ts`. Key relatio
 - **Ensemble** → **Announcement**, **EnsembleInvite**
 - **User** → **PasswordResetToken**
 
-All primary keys are text UUIDs generated with `crypto.randomUUID()`.
+All primary keys are text UUIDs generated with `crypto.randomUUID()`. Date columns are TEXT storing ISO-8601 strings, surfaced as `Date` via a drizzle `customType` (matching the old Astro DB storage format — do not change to integer timestamps).
+
+### Schema Migrations
+Migrations live in `drizzle/` and are applied with `migrate()` from `drizzle-orm/libsql/migrator` — never `drizzle-kit push`. Workflow for a schema change:
+1. Edit `db/schema.ts`
+2. `pnpm db:generate` — creates a new SQL file in `drizzle/` (rename it to something descriptive and update `drizzle/meta/_journal.json` to match)
+3. `pnpm dev` applies it to the local DB automatically (via `db/dev-setup.ts`); deploys apply it to the remote Turso DB automatically (Fly `release_command` in `fly.toml`/`fly.preview.toml` runs `node db/migrate.ts`); `pnpm db:migrate` applies it manually using `.env` credentials
+
+`drizzle/0000_init.sql` is a hand-edited baseline (`CREATE TABLE IF NOT EXISTS`) that no-ops against the production database that predates drizzle — don't regenerate it.
 
 ### Routing Structure
 File-based routing under `src/pages/`. Ensemble pages live under `ensembles/[id]/` with dynamic segments. Rehearsal detail is at `ensembles/[id]/rehearsals/[rehearsalId].astro`.
@@ -94,12 +104,13 @@ File-based routing under `src/pages/`. Ensemble pages live under `ensembles/[id]
 
 ### Environment Variables
 Required in `.env` (see `.env.example`):
-- `ASTRO_DB_REMOTE_URL` / `ASTRO_DB_APP_TOKEN` — Turso database connection
+- `ASTRO_DB_REMOTE_URL` / `ASTRO_DB_APP_TOKEN` — Turso database connection (names kept from the Astro DB era; they're baked into Fly/GitHub secrets)
+- `DATABASE_URL` — overrides the Turso connection with a local libSQL URL (set automatically by `pnpm dev` and the test configs; no auth token used)
 - `JWT_SECRET` — session token signing
 - `EMAIL_API_KEY` / `EMAIL_FROM` — Resend email service
 
 ### Seed Data (dev mode)
-Local dev auto-seeds with: admin@example.com / admin123 (site admin), test@example.com / test123 (regular user), a "Chamber Orchestra" ensemble with invite code TEST1234, voice parts, a season, and a sample rehearsal.
+`pnpm dev` seeds a fresh local DB with: admin@example.com / admin123 (site admin), test@example.com / test123 (regular user), a "Chamber Orchestra" ensemble with invite code TEST1234, voice parts, a season, and a sample rehearsal. Delete `.astro/content.db` to reset and reseed.
 
 ## Testing
 
@@ -115,7 +126,7 @@ pnpm test:e2e:ui           # Playwright UI mode
 Three tiers — write tests at the appropriate level for new code:
 
 - **Unit** (`tests/unit/`) — Pure functions in `src/lib/` with no DB or external deps. Use Vitest. If a file imports `storage.ts`, mock it first (it has module-level S3 side effects that crash without env vars).
-- **Integration** (`tests/integration/`) — `src/lib/` functions that query the DB. Use Vitest with the real LibSQL test DB (mocked via `tests/integration/__mocks__/astro-db.ts`). Use fixture helpers from `tests/integration/fixtures.ts` to create test data. Mock storage the same way as unit tests.
+- **Integration** (`tests/integration/`) — `src/lib/` functions that query the DB. Use Vitest with a real in-memory LibSQL DB (`DATABASE_URL` is set in `vitest.config.ts`; `tests/integration/setup.ts` recreates the schema from the `drizzle/` migrations before each test). Use fixture helpers from `tests/integration/fixtures.ts` to create test data. Mock storage the same way as unit tests.
 - **E2E** (`tests/e2e/`) — Full browser flows via Playwright. Use the `chromium-admin` project (admin auth state) for admin-gated pages. Navigate to ensemble sub-pages by constructing the URL from `page.url()` rather than clicking navbar dropdown links (they are hidden until hovered in Bulma). Submit buttons that use `form="formId"` to associate with a form outside their DOM parent must be located with `button[type="submit"][form="formId"]`.
 
 #### Firefox-specific E2E gotchas

@@ -10,7 +10,7 @@ import {
   Season,
   SeasonSong,
   User,
-} from 'astro:db';
+} from '@db';
 import { uploadSongFile, validateSongFile, deleteStorageFile } from './storage';
 import { getEnsembleBySlugOrId } from './ensemble';
 

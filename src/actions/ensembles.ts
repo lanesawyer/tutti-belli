@@ -1,6 +1,6 @@
 import { defineAction, ActionError } from 'astro:actions';
 import { z } from 'astro/zod';
-import { db, eq, EnsembleInvite } from 'astro:db';
+import { db, eq, EnsembleInvite } from '@db';
 import { assertEnsembleAdmin } from './utils';
 import {
   joinEnsembleWithCode,

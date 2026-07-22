@@ -1,4 +1,4 @@
-import { db, eq, EnsembleMember, Ensemble } from 'astro:db';
+import { db, eq, EnsembleMember, Ensemble } from '@db';
 import { getEnsembleUrlId } from './slug';
 
 export async function getRedirectUrl(userId: string, customRedirect?: string | null): Promise<string> {

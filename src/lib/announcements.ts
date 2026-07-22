@@ -1,4 +1,4 @@
-import { db, eq, and, desc, Announcement, EnsembleMember, User } from 'astro:db';
+import { db, eq, and, desc, Announcement, EnsembleMember, User } from '@db';
 import { sendAnnouncementEmail } from './email';
 import { postAnnouncementToDiscord } from './discord';
 

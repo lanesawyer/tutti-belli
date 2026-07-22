@@ -1,4 +1,4 @@
-import { db, eq, Event, Ensemble } from 'astro:db';
+import { db, eq, Event, Ensemble } from '@db';
 
 export type CheckInPageData = {
   event: typeof Event.$inferSelect;

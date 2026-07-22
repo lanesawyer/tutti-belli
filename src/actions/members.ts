@@ -1,6 +1,6 @@
 import { defineAction, ActionError } from 'astro:actions';
 import { z } from 'astro/zod';
-import { db, eq, and, EnsembleMember, Season, SeasonMembership } from 'astro:db';
+import { db, eq, and, EnsembleMember, Season, SeasonMembership } from '@db';
 import { assertEnsembleAdmin } from './utils';
 import { removeMember, setMemberRole } from '@lib/ensemble';
 
