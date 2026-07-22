@@ -1,15 +1,17 @@
 ---
-import EnsemblePageLayout from "@layouts/EnsemblePageLayout.astro";
 import {
-  Table,
-  Modal,
   Button,
-  Icon,
-  TextInput,
   Checkbox,
+  Column,
+  Columns,
+  Icon,
+  Modal,
   Notification,
+  Table,
   Tag,
+  TextInput,
 } from "astro-bulma";
+import EnsemblePageLayout from "@layouts/EnsemblePageLayout.astro";
 import { actions } from "astro:actions";
 import { getEnsembleBySlugOrId, getEnsembleAccess } from "@lib/ensemble";
 import { getEnsembleUrlId } from "@lib/slug";
@@ -213,24 +215,24 @@ const membershipsBySeasonId = seasonMemberships.reduce(
               required
             />
 
-            <div class="columns">
-              <div class="column">
+            <Columns>
+              <Column>
                 <TextInput
                   name="startDate"
                   id="create-startDate"
                   label="Start Date"
                   type="date"
                 />
-              </div>
-              <div class="column">
+              </Column>
+              <Column>
                 <TextInput
                   name="endDate"
                   id="create-endDate"
                   label="End Date"
                   type="date"
                 />
-              </div>
-            </div>
+              </Column>
+            </Columns>
 
             <div class="field">
               <div class="control">
@@ -270,24 +272,24 @@ const membershipsBySeasonId = seasonMemberships.reduce(
               required
             />
 
-            <div class="columns">
-              <div class="column">
+            <Columns>
+              <Column>
                 <TextInput
                   name="startDate"
                   id="edit-startDate"
                   label="Start Date"
                   type="date"
                 />
-              </div>
-              <div class="column">
+              </Column>
+              <Column>
                 <TextInput
                   name="endDate"
                   id="edit-endDate"
                   label="End Date"
                   type="date"
                 />
-              </div>
-            </div>
+              </Column>
+            </Columns>
 
             <div class="field">
               <div class="control">

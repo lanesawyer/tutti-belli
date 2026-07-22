@@ -1,16 +1,22 @@
 ---
-import BaseLayout from "@layouts/BaseLayout.astro";
 import {
   Box,
   Button,
-  Image,
+  Checkbox,
+  Column,
+  Columns,
+  Container,
+  Content,
   FileInput,
   Icon,
-  TextInput,
-  Checkbox,
+  Image,
   Notification,
+  Subtitle,
   Tag,
+  TextInput,
+  Title,
 } from "astro-bulma";
+import BaseLayout from "@layouts/BaseLayout.astro";
 import { actions } from "astro:actions";
 import { getMembershipsWithParts } from "@lib/profile";
 import { getUserTasksAcrossEnsembles } from "@lib/tasks";
@@ -59,8 +65,8 @@ const tasksByEnsemble = await getUserTasksAcrossEnsembles(user.id);
 ---
 
 <BaseLayout title="Profile">
-  <div class="container">
-    <h1 class="title">My Profile</h1>
+  <Container>
+    <Title>My Profile</Title>
 
     {
       saved && (
@@ -74,8 +80,8 @@ const tasksByEnsemble = await getUserTasksAcrossEnsembles(user.id);
       )
     }
 
-    <div class="columns">
-      <div class="column is-half">
+    <Columns>
+      <Column size="half">
         <Box>
           <div class="is-flex is-align-items-center mb-5" style="gap: 1rem;">
             {
@@ -98,7 +104,7 @@ const tasksByEnsemble = await getUserTasksAcrossEnsembles(user.id);
               )
             }
             <div>
-              <p class="title is-4 mb-1">{user.name}</p>
+              <Title as="p" size={4} class="mb-1">{user.name}</Title>
               <div class="tags mb-0">
                 <Tag color={user.role === "admin" ? "danger" : "info"}>
                   {user.role === "admin" ? "Site Administrator" : "User"}
@@ -214,12 +220,14 @@ const tasksByEnsemble = await getUserTasksAcrossEnsembles(user.id);
             </details>
           </div>
         </Box>
-      </div>
+      </Column>
 
-      <div class="column is-half">
+      <Column size="half">
         <Box>
-          <h2 class="title is-4">My Parts</h2>
-          <p class="subtitle is-6">Select your part(s) for each ensemble</p>
+          <Title as="h2" size={4}>My Parts</Title>
+          <Subtitle as="p" size={6}
+            >Select your part(s) for each ensemble</Subtitle
+          >
 
           {
             memberships.length === 0 ? (
@@ -231,14 +239,16 @@ const tasksByEnsemble = await getUserTasksAcrossEnsembles(user.id);
                 </Button>
               </Notification>
             ) : (
-              <div class="content">
+              <Content>
                 {memberships.map((membership) => {
                   const parts =
                     partsByEnsemble.get(membership.ensembleId) || [];
 
                   return (
                     <Box>
-                      <h3 class="title is-5">{membership.ensembleName}</h3>
+                      <Title as="h3" size={5}>
+                        {membership.ensembleName}
+                      </Title>
 
                       {parts.length === 0 ? (
                         <Notification color="warning" light>
@@ -291,25 +301,31 @@ const tasksByEnsemble = await getUserTasksAcrossEnsembles(user.id);
                     </Box>
                   );
                 })}
-              </div>
+              </Content>
             )
           }
         </Box>
-      </div>
-    </div>
+      </Column>
+    </Columns>
 
     {
       tasksByEnsemble.length > 0 && (
         <Box class="mt-5">
-          <h2 class="title is-4">My Season Tasks</h2>
-          <p class="subtitle is-6">
+          <Title as="h2" size={4}>
+            My Season Tasks
+          </Title>
+          <Subtitle as="p" size={6}>
             Task completion status across your ensembles
-          </p>
+          </Subtitle>
 
           {tasksByEnsemble.map((group) => (
             <Box>
-              <h3 class="title is-5">{group.ensembleName}</h3>
-              <p class="subtitle is-7 has-text-grey">{group.seasonName}</p>
+              <Title as="h3" size={5}>
+                {group.ensembleName}
+              </Title>
+              <Subtitle as="p" size={7} class="has-text-grey">
+                {group.seasonName}
+              </Subtitle>
 
               <ul>
                 {group.tasks.map((task) => (
@@ -359,7 +375,7 @@ const tasksByEnsemble = await getUserTasksAcrossEnsembles(user.id);
       class="mt-5"
       style="border: 2px solid hsl(var(--bulma-danger-h), var(--bulma-danger-s), var(--bulma-danger-l));"
     >
-      <h2 class="title is-4 has-text-danger">Danger Zone</h2>
+      <Title as="h2" size={4} class="has-text-danger">Danger Zone</Title>
       <p class="mb-4">
         Permanently delete your account and all associated data. This action
         cannot be undone.
@@ -415,5 +431,5 @@ const tasksByEnsemble = await getUserTasksAcrossEnsembles(user.id);
         )
       }
     </Box>
-  </div>
+  </Container>
 </BaseLayout>

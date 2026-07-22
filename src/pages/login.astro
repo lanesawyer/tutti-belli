@@ -1,6 +1,6 @@
 ---
 import SingleColumnLayout from "@layouts/SingleColumnLayout.astro";
-import { Button, TextInput, Notification } from "astro-bulma";
+import { Button, Notification, TextInput, Title } from "astro-bulma";
 import { actions } from "astro:actions";
 import { getRedirectUrl } from "@lib/redirect";
 
@@ -31,7 +31,7 @@ if (result?.error) {
 ---
 
 <SingleColumnLayout title="Log In">
-  <h1 class="title">Log In</h1>
+  <Title>Log In</Title>
 
   {
     unverifiedEmail && (

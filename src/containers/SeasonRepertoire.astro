@@ -1,8 +1,7 @@
 ---
+import { Button, Notification } from "astro-bulma";
 import { db, eq, Season, SeasonSong, Song, and } from "@db";
 import DashboardSection from "@components/DashboardSection.astro";
-import { Notification } from "astro-bulma";
-import { Button } from "astro-bulma";
 
 interface Props {
   ensembleId: string;
@@ -36,7 +35,7 @@ const seasonSongs = await db
 <DashboardSection
   title={`${currentSeason.name} Repertoire`}
   viewAllHref={`/ensembles/${canonicalId}/songs`}
-  viewAllColor="is-info"
+  viewAllColor="info"
 >
   {
     seasonSongs.length === 0 ? (

@@ -13,7 +13,7 @@ import {
 } from "@db";
 import DashboardSection from "@components/DashboardSection.astro";
 import MemberCard from "@components/MemberCard.astro";
-import { Tabs } from "astro-bulma";
+import { Column, Columns, Tabs } from "astro-bulma";
 
 interface Props {
   ensembleId: string;
@@ -115,12 +115,12 @@ const memberTabs = [
   title="Members"
   viewAllHref={isAdmin ? `/ensembles/${canonicalId}/members` : undefined}
   viewAllLabel="View All"
-  viewAllColor="is-warning"
+  viewAllColor="warning"
   class="mb-0"
 >
   <Tabs tabs={memberTabs}>
     <div data-tab-panel="all">
-      <div class="columns is-multiline">
+      <Columns multiline>
         {
           membersData.map((member) => {
             const parts = (
@@ -129,18 +129,18 @@ const memberTabs = [
               .map((pid) => allParts.find((p) => p.id === pid)?.name)
               .filter((n): n is string => Boolean(n));
             return (
-              <div class="column is-6-tablet is-4-desktop is-3-widescreen">
+              <Column class="is-6-tablet is-4-desktop is-3-widescreen">
                 <MemberCard
                   name={member.name}
                   avatarUrl={member.avatarUrl}
                   parts={parts}
                   groups={userGroups.get(member.id)}
                 />
-              </div>
+              </Column>
             );
           })
         }
-      </div>
+      </Columns>
     </div>
 
     {
@@ -150,17 +150,17 @@ const memberTabs = [
         );
         return (
           <div data-tab-panel={part.id}>
-            <div class="columns is-multiline">
+            <Columns multiline>
               {partMembers.map((member) => (
-                <div class="column is-6-tablet is-4-desktop is-3-widescreen">
+                <Column class="is-6-tablet is-4-desktop is-3-widescreen">
                   <MemberCard
                     name={member.name}
                     avatarUrl={member.avatarUrl}
                     groups={userGroups.get(member.id)}
                   />
-                </div>
+                </Column>
               ))}
-            </div>
+            </Columns>
           </div>
         );
       })
@@ -169,17 +169,17 @@ const memberTabs = [
     {
       noPartMembers.length > 0 && (
         <div data-tab-panel="none">
-          <div class="columns is-multiline">
+          <Columns multiline>
             {noPartMembers.map((member) => (
-              <div class="column is-6-tablet is-4-desktop is-3-widescreen">
+              <Column class="is-6-tablet is-4-desktop is-3-widescreen">
                 <MemberCard
                   name={member.name}
                   avatarUrl={member.avatarUrl}
                   groups={userGroups.get(member.id)}
                 />
-              </div>
+              </Column>
             ))}
-          </div>
+          </Columns>
         </div>
       )
     }

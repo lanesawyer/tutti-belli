@@ -1,13 +1,11 @@
 ---
 import { APP_NAME } from "@lib/config";
-import { Button } from "astro-bulma";
-import { Icon } from "astro-bulma";
-import { Tag } from "astro-bulma";
+import { Button, Container, Tag, ThemeToggle } from "astro-bulma";
 const user = Astro.locals.user;
 ---
 
 <nav class="navbar is-dark" role="navigation" aria-label="main navigation">
-  <div class="container">
+  <Container>
     <div class="navbar-brand">
       <a class="navbar-item" href="/">
         <strong>🎵 {APP_NAME}</strong>
@@ -46,16 +44,7 @@ const user = Astro.locals.user;
             </a>
           )
         }
-        <button class="navbar-item theme-toggle" title="Toggle dark mode">
-          <span class="theme-icon-wrapper">
-            <Icon icon="fa-moon theme-icon-light" />
-            <Icon icon="fa-sun theme-icon-dark" />
-          </span>
-          <span class="theme-toggle-label is-hidden-tablet">
-            <span class="theme-label-light">Dark mode</span>
-            <span class="theme-label-dark">Light mode</span>
-          </span>
-        </button>
+        <ThemeToggle class="navbar-item theme-toggle" />
         {
           user ? (
             <div class="navbar-item has-dropdown is-hoverable">
@@ -85,42 +74,20 @@ const user = Astro.locals.user;
         }
       </div>
     </div>
-  </div>
+  </Container>
 </nav>
 
 <style>
-  .theme-toggle {
-    cursor: pointer;
+  .navbar :global(.theme-toggle) {
     background: transparent;
     border: none;
     color: var(--navbar-text);
     font-size: 1.25rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
+    cursor: pointer;
   }
 
-  .theme-icon-wrapper {
-    position: relative;
-    width: 1.25rem;
-    height: 1.25rem;
-  }
-
-  .theme-icon-wrapper :global(.icon) {
-    position: absolute;
-    inset: 0;
-    width: 1.25rem;
-    height: 1.25rem;
-    margin: 0;
-    justify-content: center;
-  }
-
-  .theme-toggle:hover {
+  .navbar :global(.theme-toggle:hover) {
     opacity: 0.8;
-  }
-
-  .theme-toggle-label {
-    font-size: 1rem;
   }
 </style>
 
@@ -139,27 +106,5 @@ const user = Astro.locals.user;
         $target?.classList.toggle("is-active");
       });
     });
-
-    // Theme toggle
-    const html = document.documentElement;
-
-    document.querySelectorAll(".theme-toggle").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const currentTheme = html.getAttribute("data-theme") || "light";
-        const newTheme = currentTheme === "dark" ? "light" : "dark";
-        html.setAttribute("data-theme", newTheme);
-        localStorage.setItem("theme", newTheme);
-      });
-    });
-
-    // Listen for system theme changes
-    window
-      .matchMedia("(prefers-color-scheme: dark)")
-      .addEventListener("change", (e) => {
-        if (!localStorage.getItem("theme")) {
-          const newTheme = e.matches ? "dark" : "light";
-          html.setAttribute("data-theme", newTheme);
-        }
-      });
   });
 </script>

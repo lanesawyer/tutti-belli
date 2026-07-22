@@ -1,7 +1,7 @@
 ---
 import { db, eq, and, EnsembleMember, User } from "@db";
 import { actions } from "astro:actions";
-import { Box, Button, Icon, Image } from "astro-bulma";
+import { Box, Button, Content, Icon, Image, Media, Title } from "astro-bulma";
 import { getInitials, getColorFromInitials } from "@lib/avatar";
 
 interface Props {
@@ -32,22 +32,22 @@ if (pendingMembers.length === 0) return;
 ---
 
 <Box class="mb-5">
-  <h2 class="title is-5 mb-4">
+  <Title as="h2" size={5} class="mb-4">
     <span class="icon-text">
       <Icon icon="fa-user-clock" color="warning" />
       <span>Pending Members ({pendingMembers.length})</span>
     </span>
-  </h2>
+  </Title>
   <p class="mb-4 is-size-7">
     These members are awaiting approval to join the ensemble
   </p>
 
-  <div class="content">
+  <Content>
     {
       pendingMembers.map((member) => (
         <Box class="p-2 mb-2">
-          <div class="media">
-            <div class="media-left">
+          <Media>
+            <Fragment slot="left">
               {member.avatarUrl ? (
                 <Image
                   src={member.avatarUrl}
@@ -65,17 +65,15 @@ if (pendingMembers.length === 0) return;
                   </div>
                 </figure>
               )}
-            </div>
-            <div class="media-content">
-              <p class="is-size-7 has-text-weight-semibold">{member.name}</p>
-              <p class="is-size-7 has-text-grey">{member.email}</p>
-              <p class="is-size-7 has-text-grey-light">
-                <small>
-                  Applied {new Date(member.joinedAt).toLocaleDateString()}
-                </small>
-              </p>
-            </div>
-          </div>
+            </Fragment>
+            <p class="is-size-7 has-text-weight-semibold">{member.name}</p>
+            <p class="is-size-7 has-text-grey">{member.email}</p>
+            <p class="is-size-7 has-text-grey-light">
+              <small>
+                Applied {new Date(member.joinedAt).toLocaleDateString()}
+              </small>
+            </p>
+          </Media>
           <div class="buttons are-small mt-2">
             <form
               method="POST"
@@ -113,5 +111,5 @@ if (pendingMembers.length === 0) return;
         </Box>
       ))
     }
-  </div>
+  </Content>
 </Box>

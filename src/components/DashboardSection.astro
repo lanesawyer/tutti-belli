@@ -1,12 +1,12 @@
 ---
-import { Box, Icon } from "astro-bulma";
+import { Box, Button, Icon, Level, Title } from "astro-bulma";
 
 interface Props {
   title: string;
   icon?: string; // FA icon name e.g. "fa-bullhorn"
   viewAllHref?: string;
   viewAllLabel?: string;
-  viewAllColor?: string; // Bulma color modifier e.g. "is-link", "is-primary"
+  viewAllColor?: "primary" | "link" | "info" | "success" | "warning" | "danger";
   class?: string;
 }
 
@@ -15,41 +15,37 @@ const {
   icon,
   viewAllHref,
   viewAllLabel = "View All",
-  viewAllColor = "is-link",
+  viewAllColor = "link",
   class: extraClass,
 } = Astro.props;
 ---
 
 <Box class={`mb-5 ${extraClass ?? ""}`}>
-  <div class="level mb-4">
-    <div class="level-left">
-      <div class="level-item">
-        <h2 class="title is-4">
-          {
-            icon ? (
-              <span class="icon-text">
-                <Icon icon={icon} />
-                <span>{title}</span>
-              </span>
-            ) : (
-              title
-            )
-          }
-        </h2>
-      </div>
+  <Level class="mb-4">
+    <div class="level-item" slot="left">
+      <Title as="h2" size={4}>
+        {
+          icon ? (
+            <span class="icon-text">
+              <Icon icon={icon} />
+              <span>{title}</span>
+            </span>
+          ) : (
+            title
+          )
+        }
+      </Title>
     </div>
     {
       viewAllHref && (
-        <div class="level-right">
-          <div class="level-item">
-            <a href={viewAllHref} class={`button is-small ${viewAllColor}`}>
-              {viewAllLabel}
-            </a>
-          </div>
+        <div class="level-item" slot="right">
+          <Button href={viewAllHref} size="small" color={viewAllColor}>
+            {viewAllLabel}
+          </Button>
         </div>
       )
     }
-  </div>
+  </Level>
 
   <slot />
 </Box>

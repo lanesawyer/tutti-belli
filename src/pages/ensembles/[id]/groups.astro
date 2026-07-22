@@ -1,15 +1,16 @@
 ---
 import EnsemblePageLayout from "@layouts/EnsemblePageLayout.astro";
 import {
-  Table,
-  Modal,
   Button,
-  Icon,
-  TextInput,
-  Select,
   Checkbox,
+  Icon,
+  Modal,
   Notification,
+  Select,
+  Table,
   Tag,
+  TextInput,
+  Textarea,
 } from "astro-bulma";
 import type { Color } from "@lib/bulma";
 import { actions } from "astro:actions";
@@ -219,20 +220,13 @@ const colorOptions = [
               required
             />
 
-            <div class="field">
-              <label class="label" for="create-description">
-                Description
-              </label>
-              <div class="control">
-                <textarea
-                  class="textarea"
-                  id="create-description"
-                  name="description"
-                  placeholder="Optional description of the group's purpose"
-                  rows="3"
-                />
-              </div>
-            </div>
+            <Textarea
+              id="create-description"
+              name="description"
+              label="Description"
+              placeholder="Optional description of the group's purpose"
+              rows={3}
+            />
 
             <Select
               id="create-color"
@@ -275,19 +269,12 @@ const colorOptions = [
               required
             />
 
-            <div class="field">
-              <label class="label" for="edit-description">
-                Description
-              </label>
-              <div class="control">
-                <textarea
-                  class="textarea"
-                  id="edit-description"
-                  name="description"
-                  rows="3"
-                />
-              </div>
-            </div>
+            <Textarea
+              id="edit-description"
+              name="description"
+              label="Description"
+              rows={3}
+            />
 
             <Select id="edit-color" name="color" label="Badge Color" fullwidth>
               {colorOptions.map((option) => (

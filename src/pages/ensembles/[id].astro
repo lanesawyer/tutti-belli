@@ -1,8 +1,17 @@
 ---
+import {
+  Button,
+  Column,
+  Columns,
+  Icon,
+  Image,
+  Notification,
+  Subtitle,
+  Title,
+} from "astro-bulma";
 import BaseLayout from "@layouts/BaseLayout.astro";
 import InviteCodeWidget from "@containers/InviteCodeWidget.astro";
 import PendingMembers from "@containers/PendingMembers.astro";
-import { Button, Image, Icon, Notification } from "astro-bulma";
 import RecentAnnouncements from "@containers/RecentAnnouncements.astro";
 import UpcomingEvents from "@containers/UpcomingEvents.astro";
 import EnsembleMembers from "@containers/EnsembleMembers.astro";
@@ -80,24 +89,24 @@ const currentSeason = await getActiveSeasonForEnsemble(ensemble.id);
       )
     }
     <div style="min-width: 0;">
-      <h1 class="title">{ensemble.name}</h1>
+      <Title>{ensemble.name}</Title>
       {
         ensemble.description && (
-          <p class="subtitle" style="overflow-wrap: break-word;">
+          <Subtitle as="p" style="overflow-wrap: break-word;">
             {ensemble.description}
-          </p>
+          </Subtitle>
         )
       }
       {
         currentSeason && (
-          <p class="subtitle is-6 mt-2">
+          <Subtitle as="p" size={6} class="mt-2">
             <span class="icon-text">
               <Icon icon="fa-calendar-alt" color="info" />
               <span>
                 <strong>Current Season:</strong> {currentSeason.name}
               </span>
             </span>
-          </p>
+          </Subtitle>
         )
       }
     </div>
@@ -106,12 +115,12 @@ const currentSeason = await getActiveSeasonForEnsemble(ensemble.id);
   {
     isPending && (
       <Notification color="warning">
-        <h2 class="title is-5">
+        <Title as="h2" size={5}>
           <span class="icon-text">
             <Icon icon="fa-hourglass-half" />
             <span>Membership Pending Approval</span>
           </span>
-        </h2>
+        </Title>
         <p>
           Your request to join <strong>{ensemble.name}</strong> is awaiting
           approval from an ensemble administrator. You'll receive full access
@@ -127,7 +136,7 @@ const currentSeason = await getActiveSeasonForEnsemble(ensemble.id);
 
   {
     !isPending && (
-      <div class="columns">
+      <Columns>
         <div
           class={`column ${isAdmin || ensemble.discordLink ? "is-9-desktop" : ""}`}
         >
@@ -163,7 +172,7 @@ const currentSeason = await getActiveSeasonForEnsemble(ensemble.id);
         </div>
 
         {(isAdmin || ensemble.discordLink) && (
-          <div class="column is-3-desktop">
+          <Column class="is-3-desktop">
             <EnsembleLinks
               ensembleId={ensemble.id}
               discordLink={ensemble.discordLink}
@@ -188,9 +197,9 @@ const currentSeason = await getActiveSeasonForEnsemble(ensemble.id);
                 <InviteCodeWidget ensembleId={ensemble.id} />
               </>
             )}
-          </div>
+          </Column>
         )}
-      </div>
+      </Columns>
     )
   }
 </BaseLayout>

@@ -1,15 +1,17 @@
 ---
-import PageLayout from "@layouts/PageLayout.astro";
 import {
   Box,
-  Table,
   Button,
   Icon,
-  TextInput,
-  Select,
   Modal,
   Notification,
+  Select,
+  Table,
+  TextInput,
+  Textarea,
+  Title,
 } from "astro-bulma";
+import PageLayout from "@layouts/PageLayout.astro";
 import { actions } from "astro:actions";
 import { getActiveBanner } from "@lib/banner";
 import { getAllEnsembles, getAllUsers } from "@lib/admin";
@@ -82,7 +84,7 @@ const activeBanner = await getActiveBanner();
   </Button>
 
   <!-- Ensembles -->
-  <h2 class="title is-4">Ensembles ({allEnsembles.length})</h2>
+  <Title as="h2" size={4}>Ensembles ({allEnsembles.length})</Title>
 
   {
     allEnsembles.length === 0 ? (
@@ -145,7 +147,7 @@ const activeBanner = await getActiveBanner();
   }
 
   <!-- Users -->
-  <h2 class="title is-4 mt-5">Users ({allUsers.length})</h2>
+  <Title as="h2" size={4} class="mt-5">Users ({allUsers.length})</Title>
 
   <Table>
     <thead>
@@ -213,7 +215,7 @@ const activeBanner = await getActiveBanner();
   </Table>
 
   <!-- Site Banner -->
-  <h2 class="title is-4 mt-5">Site Banner</h2>
+  <Title as="h2" size={4} class="mt-5">Site Banner</Title>
 
   {
     activeBanner ? (
@@ -294,16 +296,12 @@ const activeBanner = await getActiveBanner();
           required
         />
 
-        <div class="field">
-          <label class="label" for="description">Description</label>
-          <div class="control">
-            <textarea
-              class="textarea"
-              id="description"
-              name="description"
-              placeholder="Optional description"></textarea>
-          </div>
-        </div>
+        <Textarea
+          id="description"
+          name="description"
+          label="Description"
+          placeholder="Optional description"
+        />
       </form>
 
       <Fragment slot="footer">

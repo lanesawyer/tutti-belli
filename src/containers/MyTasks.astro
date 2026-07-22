@@ -1,8 +1,6 @@
 ---
 import { getTasksWithCompletionsForUser } from "@lib/tasks";
-import { Box } from "astro-bulma";
-import { Button } from "astro-bulma";
-import { Icon } from "astro-bulma";
+import { Box, Button, Icon, Title } from "astro-bulma";
 
 interface Props {
   ensembleId: string;
@@ -24,12 +22,12 @@ const myTasks = await getTasksWithCompletionsForUser(
 {
   myTasks.length > 0 && (
     <Box class="mb-5">
-      <h2 class="title is-5 mb-4">
+      <Title as="h2" size={5} class="mb-4">
         <span class="icon-text">
           <Icon icon="fa-tasks" />
           <span>My Tasks</span>
         </span>
-      </h2>
+      </Title>
       <ul>
         {myTasks.map((task) => (
           <li class="mb-2">

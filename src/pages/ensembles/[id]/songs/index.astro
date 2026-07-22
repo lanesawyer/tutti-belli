@@ -1,16 +1,17 @@
 ---
-import EnsemblePageLayout from "@layouts/EnsemblePageLayout.astro";
 import {
-  Table,
-  Modal,
   Button,
-  Icon,
-  TextInput,
-  Select,
   Checkbox,
+  Icon,
+  Modal,
   Notification,
+  Select,
+  Table,
   Tag,
+  TextInput,
+  Title,
 } from "astro-bulma";
+import EnsemblePageLayout from "@layouts/EnsemblePageLayout.astro";
 import { canManageEnsemble } from "@lib/permissions";
 import {
   getSongsPageData,
@@ -321,7 +322,9 @@ const songFilesMap = buildSongFilesMap(ensembleSongIds, songFilesData);
           <>
             <hr />
 
-            <h3 class="title is-6">Add File</h3>
+            <Title as="h3" size={6}>
+              Add File
+            </Title>
             <form id="addFileForm" method="POST" action={actions.songs.addFile}>
               <input type="hidden" name="ensembleId" value={ensemble.id} />
               <input type="hidden" name="songId" id="addFileSongId" />

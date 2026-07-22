@@ -1,269 +1,200 @@
 ---
 import BaseLayout from "@layouts/BaseLayout.astro";
-import { Box } from "astro-bulma";
-import { Button } from "astro-bulma";
-import { Icon } from "astro-bulma";
+import {
+  Box,
+  Button,
+  Column,
+  Columns,
+  Container,
+  Content,
+  Hero,
+  Icon,
+  Media,
+  Section,
+  Subtitle,
+  Title,
+} from "astro-bulma";
 import { APP_NAME, APP_SLOGAN } from "@lib/config";
 
 const user = Astro.locals.user;
+
+const features = [
+  {
+    icon: "fa-users",
+    title: "Member Management",
+    text: "Invite members via unique codes, assign roles, and manage membership status. Track who's active across seasons.",
+  },
+  {
+    icon: "fa-calendar-check",
+    title: "Rehearsal Scheduling",
+    text: "Schedule rehearsals and events, track attendance for each session, and keep your ensemble on track.",
+  },
+  {
+    icon: "fa-music",
+    title: "Repertoire Library",
+    text: "Build a library of songs and assign them to voice parts. Organize repertoire by season so your music is always at hand.",
+  },
+  {
+    icon: "fa-calendar-alt",
+    title: "Seasons",
+    text: "Organize your ensemble's activities into seasons. Manage seasonal memberships and tie repertoire to each season.",
+  },
+  {
+    icon: "fa-bullhorn",
+    title: "Announcements",
+    text: "Post announcements to keep all your members informed about upcoming events, changes, and important news.",
+  },
+  {
+    icon: "fa-users-cog",
+    title: "Groups & Sections",
+    text: "Create custom sub-groups within your ensemble — sections, committees, or any arbitrary grouping you need.",
+  },
+  {
+    icon: "fa-list",
+    title: "Voice Parts",
+    text: "Define custom voice parts or instrument sections for your ensemble and assign members and songs accordingly.",
+  },
+  {
+    icon: "fa-moon",
+    title: "Dark Mode",
+    text: "A polished interface with full dark mode support — easy on the eyes during late-night rehearsal prep.",
+  },
+];
 ---
 
 <BaseLayout title="Home">
-  <section class="hero is-medium is-primary">
-    <div class="hero-body">
-      <p class="title">
-        Welcome to {APP_NAME}
-      </p>
-      <p class="subtitle">
-        {APP_SLOGAN}
-      </p>
-      {
-        !user && (
-          <div class="buttons mt-4">
-            <Button href="/register" color="light" size="large">
-              <Icon icon="fa-user-plus" />
-              <span>Sign Up Free</span>
-            </Button>
-            <Button href="/login" color="primary" size="large" style="outlined">
-              <Icon icon="fa-sign-in-alt" />
-              <span>Log In</span>
-            </Button>
-          </div>
-        )
-      }
-      {
-        user && (
-          <div class="buttons mt-4">
-            <Button href="/ensembles" color="light" size="large">
-              <Icon icon="fa-users" />
-              <span>My Ensembles</span>
-            </Button>
-          </div>
-        )
-      }
-    </div>
-  </section>
+  <Hero color="primary" size="medium">
+    <Title as="p">
+      Welcome to {APP_NAME}
+    </Title>
+    <Subtitle as="p">
+      {APP_SLOGAN}
+    </Subtitle>
+    {
+      !user && (
+        <div class="buttons mt-4">
+          <Button href="/register" color="light" size="large">
+            <Icon icon="fa-user-plus" />
+            <span>Sign Up Free</span>
+          </Button>
+          <Button href="/login" color="primary" size="large" style="outlined">
+            <Icon icon="fa-sign-in-alt" />
+            <span>Log In</span>
+          </Button>
+        </div>
+      )
+    }
+    {
+      user && (
+        <div class="buttons mt-4">
+          <Button href="/ensembles" color="light" size="large">
+            <Icon icon="fa-users" />
+            <span>My Ensembles</span>
+          </Button>
+        </div>
+      )
+    }
+  </Hero>
 
-  <section class="section">
-    <div class="container">
-      <h2 class="title is-3 has-text-centered mb-6">
+  <Section>
+    <Container>
+      <Title as="h2" size={3} class="has-text-centered mb-6">
         Everything your ensemble needs
-      </h2>
-      <div class="columns is-multiline">
-        <div class="column is-half">
-          <Box>
-            <div class="media">
-              <div class="media-left">
-                <Icon icon="fa-2x fa-users" size="large" color="primary" />
-              </div>
-              <div class="media-content">
-                <h3 class="title is-5">Member Management</h3>
-                <p>
-                  Invite members via unique codes, assign roles, and manage
-                  membership status. Track who's active across seasons.
-                </p>
-              </div>
-            </div>
-          </Box>
-        </div>
+      </Title>
+      <Columns multiline>
+        {
+          features.map((feature) => (
+            <Column size="half">
+              <Box>
+                <Media>
+                  <Icon
+                    slot="left"
+                    icon={`fa-2x ${feature.icon}`}
+                    size="large"
+                    color="primary"
+                  />
+                  <Title as="h3" size={5}>
+                    {feature.title}
+                  </Title>
+                  <p>{feature.text}</p>
+                </Media>
+              </Box>
+            </Column>
+          ))
+        }
+      </Columns>
+    </Container>
+  </Section>
 
-        <div class="column is-half">
-          <Box>
-            <div class="media">
-              <div class="media-left">
-                <Icon
-                  icon="fa-2x fa-calendar-check"
-                  size="large"
-                  color="primary"
-                />
-              </div>
-              <div class="media-content">
-                <h3 class="title is-5">Rehearsal Scheduling</h3>
-                <p>
-                  Schedule rehearsals and events, track attendance for each
-                  session, and keep your ensemble on track.
-                </p>
-              </div>
-            </div>
-          </Box>
-        </div>
-
-        <div class="column is-half">
-          <Box>
-            <div class="media">
-              <div class="media-left">
-                <Icon icon="fa-2x fa-music" size="large" color="primary" />
-              </div>
-              <div class="media-content">
-                <h3 class="title is-5">Repertoire Library</h3>
-                <p>
-                  Build a library of songs and assign them to voice parts.
-                  Organize repertoire by season so your music is always at hand.
-                </p>
-              </div>
-            </div>
-          </Box>
-        </div>
-
-        <div class="column is-half">
-          <Box>
-            <div class="media">
-              <div class="media-left">
-                <Icon
-                  icon="fa-2x fa-calendar-alt"
-                  size="large"
-                  color="primary"
-                />
-              </div>
-              <div class="media-content">
-                <h3 class="title is-5">Seasons</h3>
-                <p>
-                  Organize your ensemble's activities into seasons. Manage
-                  seasonal memberships and tie repertoire to each season.
-                </p>
-              </div>
-            </div>
-          </Box>
-        </div>
-
-        <div class="column is-half">
-          <Box>
-            <div class="media">
-              <div class="media-left">
-                <Icon icon="fa-2x fa-bullhorn" size="large" color="primary" />
-              </div>
-              <div class="media-content">
-                <h3 class="title is-5">Announcements</h3>
-                <p>
-                  Post announcements to keep all your members informed about
-                  upcoming events, changes, and important news.
-                </p>
-              </div>
-            </div>
-          </Box>
-        </div>
-
-        <div class="column is-half">
-          <Box>
-            <div class="media">
-              <div class="media-left">
-                <Icon icon="fa-2x fa-users-cog" size="large" color="primary" />
-              </div>
-              <div class="media-content">
-                <h3 class="title is-5">Groups &amp; Sections</h3>
-                <p>
-                  Create custom sub-groups within your ensemble — sections,
-                  committees, or any arbitrary grouping you need.
-                </p>
-              </div>
-            </div>
-          </Box>
-        </div>
-
-        <div class="column is-half">
-          <Box>
-            <div class="media">
-              <div class="media-left">
-                <Icon icon="fa-2x fa-list" size="large" color="primary" />
-              </div>
-              <div class="media-content">
-                <h3 class="title is-5">Voice Parts</h3>
-                <p>
-                  Define custom voice parts or instrument sections for your
-                  ensemble and assign members and songs accordingly.
-                </p>
-              </div>
-            </div>
-          </Box>
-        </div>
-
-        <div class="column is-half">
-          <Box>
-            <div class="media">
-              <div class="media-left">
-                <Icon icon="fa-2x fa-moon" size="large" color="primary" />
-              </div>
-              <div class="media-content">
-                <h3 class="title is-5">Dark Mode</h3>
-                <p>
-                  A polished interface with full dark mode support — easy on the
-                  eyes during late-night rehearsal prep.
-                </p>
-              </div>
-            </div>
-          </Box>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section class="section">
-    <div class="container">
-      <div class="columns is-vcentered">
-        <div class="column is-narrow has-text-centered mr-5">
+  <Section>
+    <Container>
+      <Columns vcentered>
+        <Column narrow class="has-text-centered mr-5">
           <span class="icon has-text-primary" style="font-size: 4rem;">
             <i class="fab fa-github"></i>
           </span>
-        </div>
-        <div class="column">
-          <h2 class="title is-3">Free &amp; open source</h2>
-          <p class="subtitle is-5">
+        </Column>
+        <Column>
+          <Title as="h2" size={3}>Free &amp; open source</Title>
+          <Subtitle as="p" size={5}>
             Tutti Belli is open source software. You're welcome to run your
             ensemble on the hosted site — or self-host it on your own
             infrastructure if you prefer to keep full control.
-          </p>
-          <a
+          </Subtitle>
+          <Button
             href="https://github.com/lanesawyer/tutti-belli"
             target="_blank"
             rel="noopener noreferrer"
-            class="button is-dark"
+            class="is-dark"
           >
             <Icon icon="fa-github" variant="fab" />
             <span>View on GitHub</span>
-          </a>
-        </div>
-      </div>
-    </div>
-  </section>
+          </Button>
+        </Column>
+      </Columns>
+    </Container>
+  </Section>
 
-  <section class="section">
-    <div class="container">
-      <div class="columns is-vcentered">
-        <div class="column is-narrow has-text-centered mr-5">
+  <Section>
+    <Container>
+      <Columns vcentered>
+        <Column narrow class="has-text-centered mr-5">
           <span class="icon has-text-primary" style="font-size: 4rem;">
             <i class="fas fa-envelope"></i>
           </span>
-        </div>
-        <div class="column">
-          <h2 class="title is-3">Get in touch</h2>
-          <p class="subtitle is-5">
+        </Column>
+        <Column>
+          <Title as="h2" size={3}>Get in touch</Title>
+          <Subtitle as="p" size={5}>
             Have a feature request, found a bug, or want to get involved? Open
             an issue on GitHub.
-          </p>
+          </Subtitle>
           <div class="buttons">
-            <a
+            <Button
               href="https://github.com/lanesawyer/tutti-belli/issues"
               target="_blank"
               rel="noopener noreferrer"
-              class="button is-dark"
+              class="is-dark"
             >
               <Icon icon="fa-github" variant="fab" />
               <span>Open an Issue</span>
-            </a>
+            </Button>
           </div>
-        </div>
-      </div>
-    </div>
-  </section>
+        </Column>
+      </Columns>
+    </Container>
+  </Section>
 
   {
     !user && (
-      <section class="section">
-        <div class="content has-text-centered">
-          <h2 class="title is-3">Ready to get organized?</h2>
-          <p class="subtitle is-5">
+      <Section>
+        <Content class="has-text-centered">
+          <Title as="h2" size={3}>
+            Ready to get organized?
+          </Title>
+          <Subtitle as="p" size={5}>
             Create an account and start managing your ensemble today.
-          </p>
+          </Subtitle>
           <div class="buttons is-centered">
             <Button href="/register" color="primary" size="large">
               <Icon icon="fa-user-plus" />
@@ -274,16 +205,18 @@ const user = Astro.locals.user;
               <span>Log In</span>
             </Button>
           </div>
-        </div>
-      </section>
+        </Content>
+      </Section>
     )
   }
 
   {
     user && (
-      <section class="section">
-        <div class="content has-text-centered">
-          <h2 class="title is-3">Welcome back, {user.name}!</h2>
+      <Section>
+        <Content class="has-text-centered">
+          <Title as="h2" size={3}>
+            Welcome back, {user.name}!
+          </Title>
           <div class="buttons is-centered">
             <Button href="/ensembles" color="primary" size="large">
               <Icon icon="fa-users" />
@@ -296,8 +229,8 @@ const user = Astro.locals.user;
               </Button>
             )}
           </div>
-        </div>
-      </section>
+        </Content>
+      </Section>
     )
   }
 </BaseLayout>

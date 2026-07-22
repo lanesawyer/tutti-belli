@@ -1,5 +1,5 @@
 ---
-import { Card, Image, Tag } from "astro-bulma";
+import { Card, Image, Subtitle, Tag, Title } from "astro-bulma";
 import { getInitials, getColorFromInitials } from "@lib/avatar";
 import { isColor } from "@lib/bulma";
 
@@ -42,10 +42,12 @@ const avatarColor = getColorFromInitials(initials);
       </figure>
     )
   }
-  <p class="title is-6 mb-2">{name}</p>
+  <Title as="p" size={6} class="mb-2">{name}</Title>
   {
     parts && parts.length > 0 && (
-      <p class="subtitle is-7 has-text-grey mb-2">{parts.join(", ")}</p>
+      <Subtitle as="p" size={7} class="has-text-grey mb-2">
+        {parts.join(", ")}
+      </Subtitle>
     )
   }
   {

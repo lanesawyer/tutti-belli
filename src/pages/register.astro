@@ -1,6 +1,6 @@
 ---
 import SingleColumnLayout from "@layouts/SingleColumnLayout.astro";
-import { Notification } from "astro-bulma";
+import { Notification, Title } from "astro-bulma";
 // import { Button, TextInput, Notification } from "astro-bulma";
 // import { actions } from "astro:actions";
 
@@ -17,7 +17,7 @@ if (Astro.locals.user) {
 ---
 
 <SingleColumnLayout title="Sign Up">
-  <h1 class="title">Sign Up</h1>
+  <Title>Sign Up</Title>
 
   <Notification color="warning" light>
     <p><strong>Registration is currently invite-only.</strong></p>

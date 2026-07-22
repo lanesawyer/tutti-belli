@@ -1,7 +1,6 @@
 ---
+import { Block, Button, Icon, Subtitle, Title } from "astro-bulma";
 import SingleColumnLayout from "@layouts/SingleColumnLayout.astro";
-import { Button } from "astro-bulma";
-import { Icon } from "astro-bulma";
 ---
 
 <SingleColumnLayout title="500 – Something Went Wrong">
@@ -9,13 +8,13 @@ import { Icon } from "astro-bulma";
     <div style="font-size: 6rem; line-height: 1; margin-bottom: 1rem;">
       &#x1D10A;
     </div>
-    <h1 class="title is-1">500</h1>
-    <h2 class="subtitle is-3">The ensemble lost the beat</h2>
-    <p class="block" style="max-width: 480px; margin: 0 auto 2rem;">
+    <Title size={1}>500</Title>
+    <Subtitle size={3}>The ensemble lost the beat</Subtitle>
+    <Block style="max-width: 480px; margin: 0 auto 2rem;">
       Something backstage went wrong — a wrong note, a missed cue, maybe the
       oboist came in early again. Our stagehands have been notified. Please try
       again in a moment.
-    </p>
+    </Block>
     <Button href="/" color="warning">
       <Icon icon="fa-rotate-right" />
       <span>Try from the Top</span>
