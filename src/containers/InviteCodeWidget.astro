@@ -1,7 +1,15 @@
 ---
 import { db, eq, EnsembleInvite } from "@db";
 import { actions } from "astro:actions";
-import { Box, Button, Icon, TextInput, Notification } from "astro-bulma";
+import {
+  Box,
+  Button,
+  Content,
+  Icon,
+  TextInput,
+  Notification,
+  Title,
+} from "astro-bulma";
 
 interface Props {
   ensembleId: string;
@@ -16,12 +24,12 @@ const invites = await db
 ---
 
 <Box>
-  <h2 class="title is-5">
+  <Title as="h2" size={5}>
     <span class="icon-text">
       <Icon icon="fa-key" />
       <span>Invite Codes</span>
     </span>
-  </h2>
+  </Title>
   <p class="mb-4 is-size-7">
     Share these codes with new members to join the ensemble
   </p>
@@ -38,7 +46,7 @@ const invites = await db
 
   {
     invites.length > 0 ? (
-      <div class="content">
+      <Content>
         {invites.map((invite) => {
           const inviteUrl = new URL(
             `/invite/join?code=${invite.code}`,
@@ -87,7 +95,7 @@ const invites = await db
             </Box>
           );
         })}
-      </div>
+      </Content>
     ) : (
       <Notification color="info" light class="is-size-7">
         No invite codes yet.

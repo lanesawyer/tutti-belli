@@ -36,7 +36,7 @@ Always use path aliases instead of relative `../` imports:
 - `@layouts/*` → `src/layouts/*`
 - `@lib/*` → `src/lib/*`
 
-Example: `import Box from "@components/elements/Box.astro"` not `import Box from "../../components/elements/Box.astro"`.
+Example: `import MemberCard from "@components/MemberCard.astro"` not `import MemberCard from "../../components/MemberCard.astro"`.
 
 The only exception is same-directory imports (e.g. `./AudioPlayer.astro`) and imports outside `src/` (e.g. `../../package.json`).
 
@@ -44,10 +44,15 @@ The only exception is same-directory imports (e.g. `./AudioPlayer.astro`) and im
 - Don't duplicate logic, if there are commonalities, extract it into a shared utility in `src/lib/`
 - Keep the frontmatter Astro files light, most server logic should be in `src/lib/` files
 - **Never import `@db` in page frontmatter.** All database queries must live in `src/lib/` functions or Astro Actions (`src/actions/`). Pages call lib functions and pass the results to the template.
-- **Always use components from `src/components/` instead of writing raw HTML equivalents.** Before writing a `<button>`, `<a class="button">`, or modal, check if a component exists: `Button.astro`, `Modal.astro`, `Table.astro`, `InviteCodeWidget.astro`, etc. Prefer extending a component over one-off inline markup. This includes icons — always use `Icon.astro` instead of raw `<i class="fas ...">` tags. Extra classes can be appended to the `icon` prop string (e.g. `icon="fa-moon my-class"`).
-- **Never write `<div class="box">`.** Always use `Box.astro` (`src/components/elements/Box.astro`). Props: `class`, `id`, plus any HTML div attributes. Example: `<Box class="mb-5">...</Box>`.
-- **Never write raw `<img>` tags or `<figure class="image">` wrappers.** Always use `Image.astro` (`src/components/elements/Image.astro`). It wraps Bulma's image element, uses Astro's `<Image>` component for real URLs, and falls back to a plain `<img>` for data URIs. Props: `src`, `alt`, `size` (e.g. `"96x96"`), `ratio`, `rounded`, `fullwidth`, `class` (on the figure), `style` (on the figure), `imgStyle` (on the img).
-- **Never write raw `<input class="input">` elements.** Always use `TextInput.astro` (`src/components/forms/TextInput.astro`). It handles the Bulma `field`/`label`/`control` wrapper, icons, help text, and all modifiers. Use the `standalone` prop when the input lives inside a `has-addons` or `is-grouped` layout managed by the parent. Props: `name`, `label`, `type`, `placeholder`, `value`, `required`, `disabled`, `readonly`, `color`, `size`, `rounded`, `static`, `iconLeft`, `iconLeftVariant`, `iconRight`, `iconRightVariant`, `help`, `helpColor`, `standalone`, `controlClass`, plus any native input attributes (`min`, `max`, `pattern`, `autofocus`, etc.).
+- **Always use `astro-bulma` components instead of writing raw Bulma HTML.** Bulma UI primitives come from the [`astro-bulma`](https://github.com/lanesawyer/astro-bulma) package (`import { Box, Button, ... } from "astro-bulma"`); `src/components/` holds app-specific components built on top of them (`MemberCard.astro`, `DashboardSection.astro`, etc.). Before writing any element with a Bulma class, check for a component first. This includes icons — always use `Icon` instead of raw `<i class="fas ...">` tags (extra classes can be appended to the `icon` prop string, e.g. `icon="fa-moon my-class"`).
+- Available astro-bulma components:
+  - Elements: `Block`, `Box`, `Button`, `Content`, `Delete`, `Icon`, `Image`, `Notification`, `Progress`, `Subtitle`, `Table`, `Tag`, `Title`
+  - Forms: `Checkbox`, `Field`, `FileInput`, `Radio`, `Select`, `Textarea`, `TextInput`
+  - Layouts: `Cell`, `Column`, `Columns`, `Container`, `Footer`, `Grid`, `Hero`, `Level`, `Media`, `PageLayout`, `Section`, `SingleColumnLayout`
+  - Components: `Breadcrumb`, `Card`, `Dropdown`, `Menu`, `Message`, `Modal`, `Navbar`, `Pagination`, `Panel`, `Tabs`, `ThemeToggle`
+- **Never write `<div class="box">`, `<div class="columns">`, `<h1 class="title">`, `<section class="section">`, etc.** Use `Box`, `Columns`/`Column`, `Title`/`Subtitle` (`as` prop picks the tag, `size` the `is-N` modifier), `Section`, `Container`, `Level` (with `slot="left"`/`slot="right"`), `Media`, `Hero`, `Content`, `Block` instead.
+- **Never write raw `<img>` tags or `<figure class="image">` wrappers.** Always use `Image`. It wraps Bulma's image element, uses Astro's `<Image>` component for real URLs, and falls back to a plain `<img>` for data URIs. Props: `src`, `alt`, `size` (e.g. `"96x96"`), `ratio`, `rounded`, `fullwidth`, `class` (on the figure), `style` (on the figure), `imgStyle` (on the img).
+- **Never write raw `<input class="input">` or `<textarea class="textarea">` elements.** Always use `TextInput`/`Textarea`. They handle the Bulma `field`/`label`/`control` wrapper, icons, help text, and all modifiers. Use the `standalone` prop when the control lives inside a `has-addons`/`is-grouped` layout or needs a custom label managed by the parent. TextInput props: `name`, `label`, `type`, `placeholder`, `value`, `required`, `disabled`, `readonly`, `color`, `size`, `rounded`, `static`, `iconLeft`, `iconLeftVariant`, `iconRight`, `iconRightVariant`, `help`, `helpColor`, `standalone`, `controlClass`, plus any native input attributes (`min`, `max`, `pattern`, `autofocus`, etc.).
 
 ### Client-side Scripts & Astro ClientRouter
 `<ClientRouter />` is active globally (in `Layout.astro`), which means pages are swapped client-side without a full browser reload. **All DOM manipulation in `<script>` tags must be wrapped in `document.addEventListener('astro:page-load', () => { ... })`** — otherwise the code runs once on first load and never again after navigation.

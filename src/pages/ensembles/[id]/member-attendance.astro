@@ -1,6 +1,19 @@
 ---
+import {
+  Box,
+  Breadcrumb,
+  Button,
+  Container,
+  Icon,
+  Image,
+  Level,
+  Progress,
+  Section,
+  Subtitle,
+  Table,
+  Title,
+} from "astro-bulma";
 import BaseLayout from "@layouts/BaseLayout.astro";
-import { Box, Table, Button, Image, Icon, Breadcrumb } from "astro-bulma";
 import { ensembleAdminTools } from "@lib/config";
 import { getInitials, getColorFromInitials } from "@lib/avatar";
 import { getEnsembleBySlugOrId, getEnsembleAccess } from "@lib/ensemble";
@@ -66,8 +79,8 @@ const selectedSeason = seasons.find((s) => s.id === seasonId);
     </div>
   </div>
 
-  <section class="section">
-    <div class="container">
+  <Section>
+    <Container>
       <Breadcrumb
         items={[
           { label: "Ensembles", href: "/ensembles" },
@@ -77,18 +90,18 @@ const selectedSeason = seasons.find((s) => s.id === seasonId);
         ]}
       />
 
-      <div class="level mb-5">
-        <div class="level-left">
+      <Level class="mb-5">
+        <Fragment slot="left">
           <div class="level-item">
             <div>
-              <h1 class="title">Member Attendance</h1>
-              <p class="subtitle">
+              <Title>Member Attendance</Title>
+              <Subtitle as="p">
                 {selectedSeason ? `Season: ${selectedSeason.name}` : "All time"}
-              </p>
+              </Subtitle>
             </div>
           </div>
-        </div>
-        <div class="level-right">
+        </Fragment>
+        <Fragment slot="right">
           {
             seasons.length > 0 && (
               <div class="level-item">
@@ -121,8 +134,8 @@ const selectedSeason = seasons.find((s) => s.id === seasonId);
               <span>Export CSV</span>
             </Button>
           </div>
-        </div>
-      </div>
+        </Fragment>
+      </Level>
 
       <Box>
         {
@@ -180,10 +193,18 @@ const selectedSeason = seasons.find((s) => s.id === seasonId);
                         class="is-flex is-align-items-center"
                         style="gap: 0.5rem;"
                       >
-                        <progress
-                          class={`progress is-small mb-0 ${member.pct >= 75 ? "is-success" : member.pct >= 50 ? "is-warning" : "is-danger"}`}
+                        <Progress
+                          size="small"
+                          color={
+                            member.pct >= 75
+                              ? "success"
+                              : member.pct >= 50
+                                ? "warning"
+                                : "danger"
+                          }
+                          class="mb-0"
                           value={member.pct}
-                          max="100"
+                          max={100}
                           style="width: 80px;"
                         />
                         <span
@@ -200,6 +221,6 @@ const selectedSeason = seasons.find((s) => s.id === seasonId);
           )
         }
       </Box>
-    </div>
-  </section>
+    </Container>
+  </Section>
 </BaseLayout>

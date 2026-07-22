@@ -1,4 +1,21 @@
 ---
+import {
+  Box,
+  Breadcrumb,
+  Button,
+  Checkbox,
+  Column,
+  Columns,
+  Container,
+  Content,
+  FileInput,
+  Icon,
+  Image,
+  Section,
+  TextInput,
+  Textarea,
+  Title,
+} from "astro-bulma";
 import BaseLayout from "@layouts/BaseLayout.astro";
 import { actions } from "astro:actions";
 import { canManageEnsemble } from "@lib/permissions";
@@ -9,16 +26,6 @@ import {
   getEnsembleLinks,
 } from "@lib/ensemble";
 import { getEnsembleUrlId } from "@lib/slug";
-import {
-  Box,
-  Button,
-  Image,
-  Icon,
-  TextInput,
-  Checkbox,
-  Breadcrumb,
-  FileInput,
-} from "astro-bulma";
 
 const user = Astro.locals.user!;
 
@@ -101,8 +108,8 @@ if (updateResult?.error) {
       }
     </div>
   </div>
-  <section class="section">
-    <div class="container">
+  <Section>
+    <Container>
       <Breadcrumb
         items={[
           { label: "Ensembles", href: "/ensembles" },
@@ -111,12 +118,12 @@ if (updateResult?.error) {
         ]}
       />
 
-      <h1 class="title">Edit Ensemble</h1>
+      <Title>Edit Ensemble</Title>
 
       {message && <div class={`notification is-${messageType}`}>{message}</div>}
 
-      <div class="columns">
-        <div class="column is-two-thirds">
+      <Columns>
+        <Column size="two-thirds">
           <Box>
             <form
               method="POST"
@@ -154,19 +161,14 @@ if (updateResult?.error) {
                 </p>
               </div>
 
-              <div class="field">
-                <label class="label" for="description">Description</label>
-                <div class="control">
-                  <textarea
-                    class="textarea"
-                    id="description"
-                    name="description"
-                    rows="4"
-                    placeholder="Optional description..."
-                    >{ensemble.description || ""}</textarea
-                  >
-                </div>
-              </div>
+              <Textarea
+                id="description"
+                name="description"
+                label="Description"
+                rows={4}
+                placeholder="Optional description..."
+                value={ensemble.description || ""}
+              />
 
               <TextInput
                 name="discordLink"
@@ -263,23 +265,15 @@ if (updateResult?.error) {
                 </div>
               </div>
 
-              <div class="field">
-                <label class="label" for="codeOfConduct">Code of Conduct</label>
-                <div class="control">
-                  <textarea
-                    class="textarea"
-                    id="codeOfConduct"
-                    name="codeOfConduct"
-                    rows="8"
-                    placeholder="Optional code of conduct for new members. If set, new members must agree to these terms before joining."
-                    >{ensemble.codeOfConduct || ""}</textarea
-                  >
-                </div>
-                <p class="help">
-                  New members will be required to read and agree to this code of
-                  conduct before joining
-                </p>
-              </div>
+              <Textarea
+                id="codeOfConduct"
+                name="codeOfConduct"
+                label="Code of Conduct"
+                rows={8}
+                placeholder="Optional code of conduct for new members. If set, new members must agree to these terms before joining."
+                value={ensemble.codeOfConduct || ""}
+                help="New members will be required to read and agree to this code of conduct before joining"
+              />
 
               <div class="field">
                 <label class="label">Ensemble Image</label>
@@ -321,8 +315,8 @@ if (updateResult?.error) {
                   Configure when members can check in for rehearsals
                 </p>
 
-                <div class="columns">
-                  <div class="column is-6">
+                <Columns>
+                  <Column size={6}>
                     <TextInput
                       name="checkInStartMinutes"
                       label="Check-in opens (minutes before)"
@@ -333,8 +327,8 @@ if (updateResult?.error) {
                       required
                       help="Default: 30 minutes before rehearsal"
                     />
-                  </div>
-                  <div class="column is-6">
+                  </Column>
+                  <Column size={6}>
                     <TextInput
                       name="checkInEndMinutes"
                       label="Check-in closes (minutes after start)"
@@ -345,8 +339,8 @@ if (updateResult?.error) {
                       required
                       help="Default: 15 minutes after rehearsal starts"
                     />
-                  </div>
-                </div>
+                  </Column>
+                </Columns>
               </div>
 
               <div class="field is-grouped">
@@ -385,12 +379,12 @@ if (updateResult?.error) {
               ))
             }
           </Box>
-        </div>
+        </Column>
 
-        <div class="column">
+        <Column>
           <Box>
-            <h2 class="title is-5">Tips</h2>
-            <div class="content">
+            <Title as="h2" size={5}>Tips</Title>
+            <Content>
               <ul>
                 <li>Choose a descriptive name for your ensemble</li>
                 <li>
@@ -400,10 +394,10 @@ if (updateResult?.error) {
                 <li>Upload a logo or photo that represents your ensemble</li>
                 <li>Square images work best for display</li>
               </ul>
-            </div>
+            </Content>
           </Box>
-        </div>
-      </div>
-    </div>
-  </section>
+        </Column>
+      </Columns>
+    </Container>
+  </Section>
 </BaseLayout>

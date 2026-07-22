@@ -1,6 +1,7 @@
 ---
 import { ClientRouter } from "astro:transitions";
 import "bulma/css/bulma.min.css";
+import { Container } from "astro-bulma";
 import Header from "@components/Header.astro";
 import Footer from "@components/Footer.astro";
 import { APP_NAME } from "@lib/config";
@@ -26,38 +27,6 @@ const activeBanner = await getActiveBanner();
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
     />
-    <script is:inline>
-      const THEME_ICON_CSS =
-        '.theme-icon-dark{display:none}[data-theme="dark"] .theme-icon-light{display:none}[data-theme="dark"] .theme-icon-dark{display:inline}.theme-label-dark{display:none}[data-theme="dark"] .theme-label-light{display:none}[data-theme="dark"] .theme-label-dark{display:inline}';
-
-      // Inject theme icon styles (must be global, not scoped by Astro)
-      (function () {
-        const s = document.createElement("style");
-        s.textContent = THEME_ICON_CSS;
-        document.head.appendChild(s);
-      })();
-
-      // Set theme immediately to prevent flash on hard load
-      (function () {
-        const savedTheme = localStorage.getItem("theme");
-        const theme =
-          savedTheme ||
-          (window.matchMedia("(prefers-color-scheme: dark)").matches
-            ? "dark"
-            : "light");
-        document.documentElement.setAttribute("data-theme", theme);
-      })();
-
-      // Preserve data-theme and re-inject styles into the incoming document
-      document.addEventListener("astro:before-swap", (e) => {
-        const theme = document.documentElement.getAttribute("data-theme");
-        if (theme)
-          e.newDocument.documentElement.setAttribute("data-theme", theme);
-        const s = e.newDocument.createElement("style");
-        s.textContent = THEME_ICON_CSS;
-        e.newDocument.head.appendChild(s);
-      });
-    </script>
     <ClientRouter />
     <title>{title} - {APP_NAME}</title>
     <style>
@@ -219,9 +188,9 @@ const activeBanner = await getActiveBanner();
     </div>
 
     <main class="section" style="flex: 1;">
-      <div class="container">
+      <Container>
         <slot />
-      </div>
+      </Container>
     </main>
 
     <Footer />

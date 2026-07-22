@@ -1,13 +1,16 @@
 ---
-import SingleColumnLayout from "@layouts/SingleColumnLayout.astro";
 import {
   Box,
   Button,
-  Icon,
-  TextInput,
   Checkbox,
+  Content,
+  Icon,
   Notification,
+  Subtitle,
+  TextInput,
+  Title,
 } from "astro-bulma";
+import SingleColumnLayout from "@layouts/SingleColumnLayout.astro";
 import { actions } from "astro:actions";
 import { getEnsembleByInviteCode } from "@lib/ensemble";
 import { APP_NAME } from "@lib/config";
@@ -26,14 +29,14 @@ const ensemble = codeParam ? await getEnsembleByInviteCode(codeParam) : null;
 ---
 
 <SingleColumnLayout title="Join Ensemble" width="wide">
-  <h1 class="title">Join an Ensemble</h1>
-  <p class="subtitle">
+  <Title>Join an Ensemble</Title>
+  <Subtitle as="p">
     {
       user
         ? "Enter your invite code to join an ensemble"
         : "Sign in or create an account to join"
     }
-  </p>
+  </Subtitle>
 
   {
     error && (
@@ -46,8 +49,12 @@ const ensemble = codeParam ? await getEnsembleByInviteCode(codeParam) : null;
   {
     !user && ensemble && (
       <Box class="mb-5">
-        <h2 class="title is-4">{ensemble.name}</h2>
-        <p class="subtitle is-6">You've been invited to join this ensemble</p>
+        <Title as="h2" size={4}>
+          {ensemble.name}
+        </Title>
+        <Subtitle as="p" size={6}>
+          You've been invited to join this ensemble
+        </Subtitle>
       </Box>
     )
   }
@@ -55,16 +62,15 @@ const ensemble = codeParam ? await getEnsembleByInviteCode(codeParam) : null;
   {
     !user && ensemble?.codeOfConduct && (
       <Box class="mb-5">
-        <h2 class="title is-5">Code of Conduct</h2>
-        <p class="subtitle is-6 mb-4">
+        <Title as="h2" size={5}>
+          Code of Conduct
+        </Title>
+        <Subtitle as="p" size={6} class="mb-4">
           This ensemble requires agreement to its code of conduct
-        </p>
-        <div
-          class="content"
-          style="max-height: 400px; overflow-y: auto; border: 1px solid #4a4a4a; border-radius: 4px; padding: 1.25rem; background-color: #363636; color: #f5f5f5;"
-        >
+        </Subtitle>
+        <Content style="max-height: 400px; overflow-y: auto; border: 1px solid #4a4a4a; border-radius: 4px; padding: 1.25rem; background-color: #363636; color: #f5f5f5;">
           <div style="white-space: pre-wrap;">{ensemble.codeOfConduct}</div>
-        </div>
+        </Content>
       </Box>
     )
   }
@@ -72,9 +78,9 @@ const ensemble = codeParam ? await getEnsembleByInviteCode(codeParam) : null;
   {
     !user ? (
       <Box>
-        <div class="content has-text-centered mb-5">
+        <Content class="has-text-centered mb-5">
           <p class="is-size-5">You need a {APP_NAME} account to join</p>
-        </div>
+        </Content>
         <div class="buttons is-centered">
           <Button
             href={`/register?redirect=${encodeURIComponent(Astro.url.pathname + Astro.url.search)}`}
@@ -114,16 +120,15 @@ const ensemble = codeParam ? await getEnsembleByInviteCode(codeParam) : null;
 
         {ensemble?.codeOfConduct && (
           <Box class="mt-5">
-            <h2 class="title is-5">Code of Conduct</h2>
-            <p class="subtitle is-6 mb-4">
+            <Title as="h2" size={5}>
+              Code of Conduct
+            </Title>
+            <Subtitle as="p" size={6} class="mb-4">
               Please review and agree to the {ensemble.name} code of conduct
-            </p>
-            <div
-              class="content"
-              style="max-height: 400px; overflow-y: auto; border: 1px solid #4a4a4a; border-radius: 4px; padding: 1.25rem; background-color: #363636; color: #f5f5f5;"
-            >
+            </Subtitle>
+            <Content style="max-height: 400px; overflow-y: auto; border: 1px solid #4a4a4a; border-radius: 4px; padding: 1.25rem; background-color: #363636; color: #f5f5f5;">
               <div style="white-space: pre-wrap;">{ensemble.codeOfConduct}</div>
-            </div>
+            </Content>
             <Checkbox name="agreedToCodeOfConduct" required class="mt-4">
               <strong class="ml-2">
                 I have read and agree to the code of conduct

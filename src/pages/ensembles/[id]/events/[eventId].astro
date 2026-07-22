@@ -1,15 +1,23 @@
 ---
-import BaseLayout from "@layouts/BaseLayout.astro";
 import {
   Box,
   Button,
-  Image,
+  Column,
+  Columns,
+  Content,
+  Delete,
   Icon,
-  TextInput,
-  Select,
-  Tag,
+  Image,
+  Level,
   Notification,
+  Select,
+  Subtitle,
+  Tag,
+  TextInput,
+  Textarea,
+  Title,
 } from "astro-bulma";
+import BaseLayout from "@layouts/BaseLayout.astro";
 import { actions } from "astro:actions";
 import QRCode from "qrcode";
 import { ensembleAdminTools } from "@lib/config";
@@ -205,11 +213,11 @@ const programLabel = isPerformance ? "Set List" : "Rehearsal Plan";
     )
   }
 
-  <div class="level mb-5">
-    <div class="level-left">
+  <Level class="mb-5">
+    <Fragment slot="left">
       <div class="level-item">
         <div>
-          <h1 class="title">
+          <Title>
             {event.title}
             <Tag color={categoryColor as any} class="ml-2">
               {categoryLabel}
@@ -221,8 +229,8 @@ const programLabel = isPerformance ? "Set List" : "Rehearsal Plan";
                 </Tag>
               )
             }
-          </h1>
-          <p class="subtitle">
+          </Title>
+          <Subtitle as="p">
             <span class="icon-text">
               <Icon icon="fa-calendar" />
               <span>{scheduledDate.toLocaleDateString()}</span>
@@ -250,11 +258,11 @@ const programLabel = isPerformance ? "Set List" : "Rehearsal Plan";
                 </span>
               )
             }
-          </p>
+          </Subtitle>
         </div>
       </div>
-    </div>
-    <div class="level-right">
+    </Fragment>
+    <Fragment slot="right">
       <div class="level-item">
         <div class="buttons">
           {
@@ -271,8 +279,8 @@ const programLabel = isPerformance ? "Set List" : "Rehearsal Plan";
           </Button>
         </div>
       </div>
-    </div>
-  </div>
+    </Fragment>
+  </Level>
 
   {
     message && (
@@ -285,17 +293,19 @@ const programLabel = isPerformance ? "Set List" : "Rehearsal Plan";
   {
     event.description && (
       <Box>
-        <p class="content">{event.description}</p>
+        <Content>{event.description}</Content>
       </Box>
     )
   }
 
-  <div class="columns">
-    <div class="column">
+  <Columns>
+    <Column>
       {
         rsvpOn && !isAdmin && (
           <Box>
-            <h2 class="title is-4">RSVP</h2>
+            <Title as="h2" size={4}>
+              RSVP
+            </Title>
             {userRsvp === "yes" ? (
               <>
                 <Notification color="success" light>
@@ -397,7 +407,7 @@ const programLabel = isPerformance ? "Set List" : "Rehearsal Plan";
       }
 
       <Box>
-        <h2 class="title is-4">Check-In</h2>
+        <Title as="h2" size={4}>Check-In</Title>
 
         {
           !isPast && (
@@ -481,7 +491,9 @@ const programLabel = isPerformance ? "Set List" : "Rehearsal Plan";
       {
         isAdmin && (
           <Box>
-            <h2 class="title is-4">QR Code Check-In</h2>
+            <Title as="h2" size={4}>
+              QR Code Check-In
+            </Title>
             <p class="mb-4">
               Display this QR code for members to scan and check in
             </p>
@@ -514,20 +526,20 @@ const programLabel = isPerformance ? "Set List" : "Rehearsal Plan";
           </Box>
         )
       }
-    </div>
+    </Column>
 
     {
       isAdmin && (
-        <div class="column">
+        <Column>
           <Box>
-            <h2 class="title is-4">
+            <Title as="h2" size={4}>
               Attendance ({attendanceRecords.length} / {allMembers.length})
               {group && (
                 <Tag color={group.color as any} size="small" class="ml-2">
                   {group.name}
                 </Tag>
               )}
-            </h2>
+            </Title>
 
             {rsvpOn && (
               <div class="tags mb-3">
@@ -674,13 +686,13 @@ const programLabel = isPerformance ? "Set List" : "Rehearsal Plan";
               </Notification>
             )}
           </Box>
-        </div>
+        </Column>
       )
     }
-  </div>
+  </Columns>
 
   <Box class="mt-2">
-    <h2 class="title is-4">
+    <Title as="h2" size={4}>
       <span class="icon-text">
         <Icon
           icon="fa-music"
@@ -694,7 +706,7 @@ const programLabel = isPerformance ? "Set List" : "Rehearsal Plan";
         />
         <span>{programLabel}</span>
       </span>
-    </h2>
+    </Title>
 
     <Timeline
       eventId={event.id}
@@ -828,17 +840,13 @@ const programLabel = isPerformance ? "Set List" : "Rehearsal Plan";
             />
           )}
 
-          <div class="field">
-            <label class="label is-small">Notes (optional)</label>
-            <div class="control">
-              <textarea
-                class="textarea is-small"
-                name="notes"
-                rows="2"
-                placeholder="Rehearsal focus, cues, timing notes..."
-              />
-            </div>
-          </div>
+          <Textarea
+            name="notes"
+            label="Notes (optional)"
+            size="small"
+            rows={2}
+            placeholder="Rehearsal focus, cues, timing notes..."
+          />
 
           <div class="field">
             <div class="control">
@@ -929,7 +937,7 @@ const programLabel = isPerformance ? "Set List" : "Rehearsal Plan";
         <div class="modal-card">
           <header class="modal-card-head">
             <p class="modal-card-title">Edit Event</p>
-            <button class="delete" aria-label="close" id="close-edit-modal" />
+            <Delete label="close" id="close-edit-modal" />
           </header>
           <form method="POST" action={actions.events.edit}>
             <section class="modal-card-body">
@@ -944,24 +952,16 @@ const programLabel = isPerformance ? "Set List" : "Rehearsal Plan";
                 required
               />
 
-              <div class="field">
-                <label class="label" for="edit-description">
-                  Description
-                </label>
-                <div class="control">
-                  <textarea
-                    class="textarea"
-                    id="edit-description"
-                    name="description"
-                    rows="3"
-                  >
-                    {event.description || ""}
-                  </textarea>
-                </div>
-              </div>
+              <Textarea
+                id="edit-description"
+                name="description"
+                label="Description"
+                rows={3}
+                value={event.description || ""}
+              />
 
-              <div class="columns">
-                <div class="column is-4">
+              <Columns>
+                <Column size={4}>
                   <TextInput
                     name="date"
                     id="edit-date"
@@ -970,8 +970,8 @@ const programLabel = isPerformance ? "Set List" : "Rehearsal Plan";
                     value={dateValue}
                     required
                   />
-                </div>
-                <div class="column is-4">
+                </Column>
+                <Column size={4}>
                   <TextInput
                     name="time"
                     id="edit-time"
@@ -980,8 +980,8 @@ const programLabel = isPerformance ? "Set List" : "Rehearsal Plan";
                     value={timeValue}
                     required
                   />
-                </div>
-                <div class="column is-4">
+                </Column>
+                <Column size={4}>
                   <TextInput
                     name="durationMinutes"
                     id="edit-duration"
@@ -992,8 +992,8 @@ const programLabel = isPerformance ? "Set List" : "Rehearsal Plan";
                     max="480"
                     required
                   />
-                </div>
-              </div>
+                </Column>
+              </Columns>
 
               <TextInput
                 name="location"
@@ -1059,7 +1059,7 @@ const programLabel = isPerformance ? "Set List" : "Rehearsal Plan";
         <div class="modal-card">
           <header class="modal-card-head">
             <p class="modal-card-title">Edit Entry</p>
-            <button class="delete" aria-label="close" data-close-entry-modal />
+            <Delete label="close" data-close-entry-modal />
           </header>
           <form
             id="edit-entry-form"
@@ -1097,21 +1097,14 @@ const programLabel = isPerformance ? "Set List" : "Rehearsal Plan";
                   placeholder="e.g. 15"
                 />
               )}
-              <div class="field">
-                <label class="label" for="edit-entry-notes">
-                  Notes
-                </label>
-                <div class="control">
-                  <textarea
-                    class="textarea"
-                    id="edit-entry-notes"
-                    name="notes"
-                    rows="4"
-                    placeholder="Rehearsal focus, cues, timing notes..."
-                  />
-                </div>
-                <p class="help">Leave blank to clear notes.</p>
-              </div>
+              <Textarea
+                id="edit-entry-notes"
+                name="notes"
+                label="Notes"
+                rows={4}
+                placeholder="Rehearsal focus, cues, timing notes..."
+                help="Leave blank to clear notes."
+              />
             </section>
             <footer class="modal-card-foot">
               <Button type="submit" color="primary">

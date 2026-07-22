@@ -1,7 +1,6 @@
 ---
+import { Button, Notification, Title } from "astro-bulma";
 import SingleColumnLayout from "@layouts/SingleColumnLayout.astro";
-import { Button } from "astro-bulma";
-import { Notification } from "astro-bulma";
 import { verifyEmailToken } from "@lib/profile";
 import { createSession } from "@lib/session";
 import { getRedirectUrl } from "@lib/redirect";
@@ -33,7 +32,7 @@ if (!token) {
 ---
 
 <SingleColumnLayout title="Verify Email">
-  <h1 class="title">Email Verification</h1>
+  <Title>Email Verification</Title>
 
   {
     error && (

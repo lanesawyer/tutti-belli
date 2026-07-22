@@ -1,16 +1,19 @@
 ---
-import EnsemblePageLayout from "@layouts/EnsemblePageLayout.astro";
-import { getSongDetailData, getMembership, formatRuntime } from "@lib/songs";
-import { canManageEnsemble } from "@lib/permissions";
 import {
   Box,
   Button,
-  Icon,
-  TextInput,
-  Tag,
+  Column,
+  Columns,
   FileInput,
+  Icon,
   Notification,
+  Tag,
+  TextInput,
+  Title,
 } from "astro-bulma";
+import EnsemblePageLayout from "@layouts/EnsemblePageLayout.astro";
+import { getSongDetailData, getMembership, formatRuntime } from "@lib/songs";
+import { canManageEnsemble } from "@lib/permissions";
 import SongPdfFile from "@components/song/SongPdfFile.astro";
 import SongAudioFile from "@components/song/SongAudioFile.astro";
 import SongLinkFile from "@components/song/SongLinkFile.astro";
@@ -87,61 +90,61 @@ const linkFiles = songFiles.filter((f) => f.category === "link");
 
   <!-- Song details -->
   <Box class="mb-5">
-    <div class="columns is-multiline">
-      <div class="column is-half">
+    <Columns multiline>
+      <Column size="half">
         <p class="heading">Composer</p>
         <p class="is-size-5">
           {song.composer || <span class="has-text-grey">—</span>}
         </p>
-      </div>
-      <div class="column is-half">
+      </Column>
+      <Column size="half">
         <p class="heading">Arranger</p>
         <p class="is-size-5">
           {song.arranger || <span class="has-text-grey">—</span>}
         </p>
-      </div>
-      <div class="column is-half">
+      </Column>
+      <Column size="half">
         <p class="heading">Runtime</p>
         <p class="is-size-5">{formatRuntime(song.runTime)}</p>
-      </div>
-      <div class="column is-half">
+      </Column>
+      <Column size="half">
         <p class="heading">Added</p>
         <p class="is-size-5">{new Date(song.createdAt).toLocaleDateString()}</p>
-      </div>
+      </Column>
       {
         songParts.length > 0 && (
-          <div class="column is-half">
+          <Column size="half">
             <p class="heading">Parts</p>
             <div class="tags">
               {songParts.map((part) => (
                 <Tag color="info">{part!.name}</Tag>
               ))}
             </div>
-          </div>
+          </Column>
         )
       }
       {
         songSeasons.length > 0 && (
-          <div class="column is-half">
+          <Column size="half">
             <p class="heading">Seasons</p>
             <div class="tags">
               {songSeasons.map((season) => (
                 <Tag color="primary">{season!.name}</Tag>
               ))}
             </div>
-          </div>
+          </Column>
         )
       }
-    </div>
+    </Columns>
   </Box>
 
   <!-- Resources section -->
-  <h2 class="title is-4">
+  <Title as="h2" size={4}>
     <span class="icon-text">
       <Icon icon="fa-folder-open" />
       <span>Resources</span>
     </span>
-  </h2>
+  </Title>
 
   {
     songFiles.length === 0 && (
@@ -153,7 +156,7 @@ const linkFiles = songFiles.filter((f) => f.category === "link");
 
   {
     (pdfFiles.length > 0 || audioFiles.length > 0) && (
-      <div class="columns mb-5">
+      <Columns class="mb-5">
         {pdfFiles.length > 0 && (
           <div
             class={
@@ -196,7 +199,7 @@ const linkFiles = songFiles.filter((f) => f.category === "link");
             ))}
           </div>
         )}
-      </div>
+      </Columns>
     )
   }
 
@@ -222,7 +225,9 @@ const linkFiles = songFiles.filter((f) => f.category === "link");
   {
     isAdmin && (
       <Box>
-        <h3 class="title is-5">Upload Resource</h3>
+        <Title as="h3" size={5}>
+          Upload Resource
+        </Title>
         {fileError && (
           <Notification color="danger" light class="mb-4">
             {fileError}
@@ -270,8 +275,8 @@ const linkFiles = songFiles.filter((f) => f.category === "link");
             </div>
           </div>
 
-          <div class="columns is-multiline mt-2">
-            <div class="column is-full" id="file-input-field">
+          <Columns multiline class="mt-2">
+            <Column size="full" id="file-input-field">
               <div class="field">
                 <FileInput
                   name="file"
@@ -281,12 +286,8 @@ const linkFiles = songFiles.filter((f) => f.category === "link");
                   help="PDF or MP3, max 50 MB"
                 />
               </div>
-            </div>
-            <div
-              class="column is-full"
-              id="url-input-field"
-              style="display:none;"
-            >
+            </Column>
+            <Column size="full" id="url-input-field" style="display:none;">
               <TextInput
                 name="fileUrl"
                 id="fileUrl"
@@ -294,8 +295,8 @@ const linkFiles = songFiles.filter((f) => f.category === "link");
                 type="url"
                 placeholder="https://www.youtube.com/watch?v=..."
               />
-            </div>
-            <div class="column">
+            </Column>
+            <Column>
               <TextInput
                 name="fileName"
                 id="fileName"
@@ -303,8 +304,8 @@ const linkFiles = songFiles.filter((f) => f.category === "link");
                 placeholder="e.g. Soprano Sheet Music"
                 required
               />
-            </div>
-            <div class="column is-narrow">
+            </Column>
+            <Column narrow>
               <div class="field">
                 <label class="label">&nbsp;</label>
                 <div class="control">
@@ -314,8 +315,8 @@ const linkFiles = songFiles.filter((f) => f.category === "link");
                   </Button>
                 </div>
               </div>
-            </div>
-          </div>
+            </Column>
+          </Columns>
         </form>
       </Box>
     )

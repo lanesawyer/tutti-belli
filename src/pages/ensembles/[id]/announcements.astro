@@ -1,14 +1,15 @@
 ---
 import EnsemblePageLayout from "@layouts/EnsemblePageLayout.astro";
 import {
-  Table,
-  Modal,
   Button,
-  Icon,
-  TextInput,
-  Notification,
-  Tag,
   Checkbox,
+  Icon,
+  Modal,
+  Notification,
+  Table,
+  Tag,
+  TextInput,
+  Textarea,
 } from "astro-bulma";
 import { actions } from "astro:actions";
 import { getEnsembleBySlugOrId, getEnsembleAccess } from "@lib/ensemble";
@@ -180,20 +181,13 @@ const announcements = await getEnsembleAnnouncements(ensemble.id);
               required
             />
 
-            <div class="field">
-              <label class="label" for="create-content">
-                Content *
-              </label>
-              <div class="control">
-                <textarea
-                  class="textarea"
-                  id="create-content"
-                  name="content"
-                  rows="6"
-                  required
-                />
-              </div>
-            </div>
+            <Textarea
+              id="create-content"
+              name="content"
+              label="Content *"
+              rows={6}
+              required
+            />
 
             {ensemble.discordWebhookUrl && (
               <Checkbox name="postToDiscord" label="Post to Discord" />
@@ -240,20 +234,13 @@ const announcements = await getEnsembleAnnouncements(ensemble.id);
 
             <TextInput name="title" id="edit-title" label="Title *" required />
 
-            <div class="field">
-              <label class="label" for="edit-content">
-                Content *
-              </label>
-              <div class="control">
-                <textarea
-                  class="textarea"
-                  id="edit-content"
-                  name="content"
-                  rows="6"
-                  required
-                />
-              </div>
-            </div>
+            <Textarea
+              id="edit-content"
+              name="content"
+              label="Content *"
+              rows={6}
+              required
+            />
 
             {ensemble.discordWebhookUrl && (
               <Checkbox name="postToDiscord" label="Post to Discord" />

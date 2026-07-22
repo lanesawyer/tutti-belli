@@ -1,6 +1,6 @@
 ---
 import SingleColumnLayout from "@layouts/SingleColumnLayout.astro";
-import { Button, TextInput, Notification } from "astro-bulma";
+import { Button, Notification, TextInput, Title } from "astro-bulma";
 import { resendVerificationEmail } from "@lib/profile";
 
 const prefillEmail = Astro.url.searchParams.get("email") ?? "";
@@ -17,7 +17,7 @@ if (Astro.request.method === "POST") {
 ---
 
 <SingleColumnLayout title="Resend Verification Email">
-  <h1 class="title">Resend Verification Email</h1>
+  <Title>Resend Verification Email</Title>
 
   {
     sent ? (

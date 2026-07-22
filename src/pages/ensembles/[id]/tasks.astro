@@ -1,15 +1,20 @@
 ---
-import EnsemblePageLayout from "@layouts/EnsemblePageLayout.astro";
 import {
   Box,
-  Table,
-  Modal,
   Button,
+  Column,
+  Columns,
   Icon,
-  TextInput,
-  Tag,
+  Modal,
   Notification,
+  Subtitle,
+  Table,
+  Tag,
+  TextInput,
+  Textarea,
+  Title,
 } from "astro-bulma";
+import EnsemblePageLayout from "@layouts/EnsemblePageLayout.astro";
 import { actions } from "astro:actions";
 import { canManageEnsemble } from "@lib/permissions";
 import {
@@ -220,23 +225,27 @@ const nextSortOrder =
           </tbody>
         </Table>
 
-        <h2 class="title is-5 mt-5">Member Completions</h2>
-        <p class="subtitle is-6 has-text-grey mb-4">
+        <Title as="h2" size={5} class="mt-5">
+          Member Completions
+        </Title>
+        <Subtitle as="p" size={6} class="has-text-grey mb-4">
           Check or uncheck to mark tasks complete for each member.
-        </p>
+        </Subtitle>
 
         {seasonTasks.map((task) => (
           <Box class="mb-4">
-            <h3 class="title is-6 mb-3">{task.title}</h3>
+            <Title as="h3" size={6} class="mb-3">
+              {task.title}
+            </Title>
             {activeMembers.length === 0 ? (
               <p class="has-text-grey is-size-7">No active members.</p>
             ) : (
-              <div class="columns is-multiline">
+              <Columns multiline>
                 {activeMembers.map((member) => {
                   const isComplete =
                     completionsByTask.get(task.id)?.has(member.id) ?? false;
                   return (
-                    <div class="column is-6-tablet is-4-desktop is-3-widescreen">
+                    <Column class="is-6-tablet is-4-desktop is-3-widescreen">
                       <form
                         method="POST"
                         action={
@@ -275,10 +284,10 @@ const nextSortOrder =
                           </span>
                         </button>
                       </form>
-                    </div>
+                    </Column>
                   );
                 })}
-              </div>
+              </Columns>
             )}
           </Box>
         ))}
@@ -301,17 +310,13 @@ const nextSortOrder =
           required
         />
 
-        <div class="field">
-          <label class="label" for="create-description">Description</label>
-          <div class="control">
-            <textarea
-              class="textarea"
-              id="create-description"
-              name="description"
-              rows="2"
-              placeholder="Optional details about this task"></textarea>
-          </div>
-        </div>
+        <Textarea
+          id="create-description"
+          name="description"
+          label="Description"
+          rows={2}
+          placeholder="Optional details about this task"
+        />
 
         <TextInput
           name="sortOrder"
@@ -340,16 +345,12 @@ const nextSortOrder =
 
         <TextInput name="title" id="edit-title" label="Title *" required />
 
-        <div class="field">
-          <label class="label" for="edit-description">Description</label>
-          <div class="control">
-            <textarea
-              class="textarea"
-              id="edit-description"
-              name="description"
-              rows="2"></textarea>
-          </div>
-        </div>
+        <Textarea
+          id="edit-description"
+          name="description"
+          label="Description"
+          rows={2}
+        />
 
         <TextInput
           name="sortOrder"

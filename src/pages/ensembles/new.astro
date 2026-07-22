@@ -1,6 +1,13 @@
 ---
 import SingleColumnLayout from "@layouts/SingleColumnLayout.astro";
-import { Button, TextInput, Notification } from "astro-bulma";
+import {
+  Button,
+  Notification,
+  Subtitle,
+  TextInput,
+  Textarea,
+  Title,
+} from "astro-bulma";
 import { actions } from "astro:actions";
 
 const result = Astro.getActionResult(actions.admin.createEnsemble);
@@ -12,10 +19,10 @@ const error = result?.error?.message ?? "";
 ---
 
 <SingleColumnLayout title="Create Ensemble" width="medium">
-  <h1 class="title">Create Ensemble</h1>
-  <p class="subtitle">
+  <Title>Create Ensemble</Title>
+  <Subtitle as="p">
     Start your own ensemble. You'll be added as an admin automatically.
-  </p>
+  </Subtitle>
 
   {
     error && (
@@ -38,12 +45,13 @@ const error = result?.error?.message ?? "";
         >Description <span class="has-text-grey-light">(optional)</span></label
       >
       <div class="control">
-        <textarea
-          class="textarea"
+        <Textarea
+          standalone
           id="description"
           name="description"
           placeholder="A brief description of your ensemble"
-          rows="3"></textarea>
+          rows={3}
+        />
       </div>
     </div>
 

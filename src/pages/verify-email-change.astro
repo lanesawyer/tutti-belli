@@ -1,7 +1,6 @@
 ---
+import { Button, Notification, Title } from "astro-bulma";
 import SingleColumnLayout from "@layouts/SingleColumnLayout.astro";
-import { Button } from "astro-bulma";
-import { Notification } from "astro-bulma";
 import { verifyEmailChangeToken } from "@lib/profile";
 
 const token = Astro.url.searchParams.get("token");
@@ -28,7 +27,7 @@ if (!token) {
 ---
 
 <SingleColumnLayout title="Verify Email Change">
-  <h1 class="title">Email Change Verification</h1>
+  <Title>Email Change Verification</Title>
 
   {
     error && (

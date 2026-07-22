@@ -1,15 +1,19 @@
 ---
-import EnsemblePageLayout from "@layouts/EnsemblePageLayout.astro";
 import {
-  Table,
-  Modal,
   Button,
+  Column,
+  Columns,
   Icon,
-  TextInput,
-  Select,
-  Tag,
+  Modal,
   Notification,
+  Select,
+  Table,
+  Tag,
+  TextInput,
+  Textarea,
+  Title,
 } from "astro-bulma";
+import EnsemblePageLayout from "@layouts/EnsemblePageLayout.astro";
 import { actions } from "astro:actions";
 import { getEnsembleBySlugOrId, getEnsembleAccess } from "@lib/ensemble";
 import { getEnsembleUrlId } from "@lib/slug";
@@ -148,7 +152,9 @@ const pastEvents = allEvents.filter((e) => {
       <>
         {upcomingEvents.length > 0 && (
           <div class="mb-5">
-            <h2 class="title is-5 mb-3">Upcoming</h2>
+            <Title as="h2" size={5} class="mb-3">
+              Upcoming
+            </Title>
             <Table>
               <thead>
                 <tr>
@@ -366,7 +372,9 @@ const pastEvents = allEvents.filter((e) => {
 
         {pastEvents.length > 0 && (
           <div>
-            <h2 class="title is-5 mb-3">Past</h2>
+            <Title as="h2" size={5} class="mb-3">
+              Past
+            </Title>
             <Table>
               <thead>
                 <tr>
@@ -443,34 +451,34 @@ const pastEvents = allEvents.filter((e) => {
           <form id="createForm" method="POST" action={actions.events.create}>
             <input type="hidden" name="ensembleId" value={ensemble.id} />
 
-            <div class="columns">
-              <div class="column">
+            <Columns>
+              <Column>
                 <TextInput
                   name="title"
                   label="Title *"
                   placeholder="Weekly Rehearsal"
                   required
                 />
-              </div>
-              <div class="column is-narrow">
+              </Column>
+              <Column narrow>
                 <Select id="category" name="category" label="Type *">
                   <option value="rehearsal">Rehearsal</option>
                   <option value="performance">Performance</option>
                   <option value="social">Social</option>
                   <option value="sectional">Sectional</option>
                 </Select>
-              </div>
+              </Column>
               {groups.length > 0 && (
-                <div class="column is-narrow">
+                <Column narrow>
                   <Select id="groupId" name="groupId" label="Group">
                     <option value="">— All Members —</option>
                     {groups.map((g) => (
                       <option value={g.id}>{g.name}</option>
                     ))}
                   </Select>
-                </div>
+                </Column>
               )}
-            </div>
+            </Columns>
 
             <Select
               name="rsvpEnabled"
@@ -488,14 +496,14 @@ const pastEvents = allEvents.filter((e) => {
               placeholder="Music Hall, Room 101"
             />
 
-            <div class="columns">
-              <div class="column">
+            <Columns>
+              <Column>
                 <TextInput name="date" label="Date *" type="date" required />
-              </div>
-              <div class="column">
+              </Column>
+              <Column>
                 <TextInput name="time" label="Time *" type="time" required />
-              </div>
-              <div class="column">
+              </Column>
+              <Column>
                 <TextInput
                   name="durationMinutes"
                   label="Duration (min)"
@@ -504,23 +512,16 @@ const pastEvents = allEvents.filter((e) => {
                   min="15"
                   max="480"
                 />
-              </div>
-            </div>
+              </Column>
+            </Columns>
 
-            <div class="field">
-              <label class="label" for="description">
-                Description
-              </label>
-              <div class="control">
-                <textarea
-                  class="textarea"
-                  id="description"
-                  name="description"
-                  placeholder="Optional notes about this event"
-                  rows="3"
-                />
-              </div>
-            </div>
+            <Textarea
+              id="description"
+              name="description"
+              label="Description"
+              placeholder="Optional notes about this event"
+              rows={3}
+            />
           </form>
 
           <div slot="footer">

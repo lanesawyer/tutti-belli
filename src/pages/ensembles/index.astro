@@ -1,6 +1,16 @@
 ---
+import {
+  Button,
+  Card,
+  Column,
+  Columns,
+  Icon,
+  Notification,
+  Subtitle,
+  Tag,
+  Title,
+} from "astro-bulma";
 import PageLayout from "@layouts/PageLayout.astro";
-import { Button, Card, Icon, Notification, Tag } from "astro-bulma";
 import { getUserEnsembles } from "@lib/ensemble";
 import { getEnsembleUrlId } from "@lib/slug";
 
@@ -23,13 +33,17 @@ const userEnsembles = await getUserEnsembles(user.id);
 
   {
     userEnsembles.length > 0 ? (
-      <div class="columns is-multiline">
+      <Columns multiline>
         {userEnsembles.map((ensemble) => (
-          <div class="column is-4">
+          <Column size={4}>
             <Card>
-              <p class="title is-4">{ensemble.name}</p>
+              <Title as="p" size={4}>
+                {ensemble.name}
+              </Title>
               {ensemble.description && (
-                <p class="subtitle is-6">{ensemble.description}</p>
+                <Subtitle as="p" size={6}>
+                  {ensemble.description}
+                </Subtitle>
               )}
               <div class="tags mt-2">
                 <Tag color={ensemble.role === "admin" ? "warning" : "info"}>
@@ -44,9 +58,9 @@ const userEnsembles = await getUserEnsembles(user.id);
                 View Details
               </a>
             </Card>
-          </div>
+          </Column>
         ))}
-      </div>
+      </Columns>
     ) : (
       <Notification color="info" light>
         <p>

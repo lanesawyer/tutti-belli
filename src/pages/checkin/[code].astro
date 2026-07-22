@@ -1,9 +1,14 @@
 ---
+import {
+  Box,
+  Button,
+  Content,
+  Icon,
+  Notification,
+  Subtitle,
+  Title,
+} from "astro-bulma";
 import SingleColumnLayout from "@layouts/SingleColumnLayout.astro";
-import { Box } from "astro-bulma";
-import { Button } from "astro-bulma";
-import { Icon } from "astro-bulma";
-import { Notification } from "astro-bulma";
 import { actions } from "astro:actions";
 import { getCheckInPageData } from "@lib/ensemble/check-in";
 
@@ -38,11 +43,11 @@ const isPerformance = event.category === "performance";
   <Box class="has-text-centered">
     <Icon icon="fa-qrcode fa-3x" size="large" color="primary" class="mb-3" />
 
-    <h1 class="title">Event Check-In</h1>
+    <Title>Event Check-In</Title>
 
-    {ensemble && <p class="subtitle">{ensemble.name}</p>}
+    {ensemble && <Subtitle as="p">{ensemble.name}</Subtitle>}
 
-    <div class="content mt-4">
+    <Content class="mt-4">
       <p>
         <strong>{event.title}</strong>
         <span class={`tag ml-2 ${isPerformance ? "is-warning" : "is-primary"}`}>
@@ -76,7 +81,7 @@ const isPerformance = event.category === "performance";
           </p>
         )
       }
-    </div>
+    </Content>
 
     <Notification color="info" light class="mt-4">
       <p class="has-text-weight-semibold">Check-in Window:</p>
