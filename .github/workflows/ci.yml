@@ -15,16 +15,9 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - uses: pnpm/action-setup@v6
+      - uses: pnpm/setup@v1
         with:
-          version: 11.5.1
-
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 24.15.0
-          cache: pnpm
-
-      - run: pnpm install --frozen-lockfile
+          cache: true
 
       - run: pnpm lint
 
@@ -35,16 +28,9 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - uses: pnpm/action-setup@v6
+      - uses: pnpm/setup@v1
         with:
-          version: 11.5.1
-
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 24.15.0
-          cache: pnpm
-
-      - run: pnpm install --frozen-lockfile
+          cache: true
 
       - run: pnpm check
 
@@ -55,16 +41,9 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - uses: pnpm/action-setup@v6
+      - uses: pnpm/setup@v1
         with:
-          version: 11.5.1
-
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 24.15.0
-          cache: pnpm
-
-      - run: pnpm install --frozen-lockfile
+          cache: true
 
       - run: pnpm test:coverage --project unit --coverage.reportsDirectory=coverage/unit
 
@@ -82,16 +61,9 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - uses: pnpm/action-setup@v6
+      - uses: pnpm/setup@v1
         with:
-          version: 11.5.1
-
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 24.15.0
-          cache: pnpm
-
-      - run: pnpm install --frozen-lockfile
+          cache: true
 
       - run: pnpm test:coverage --project integration --coverage.reportsDirectory=coverage/integration
 
@@ -112,16 +84,9 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - uses: pnpm/action-setup@v6
+      - uses: pnpm/setup@v1
         with:
-          version: 11.5.1
-
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 24.15.0
-          cache: pnpm
-
-      - run: pnpm install --frozen-lockfile
+          cache: true
 
       - run: pnpm test:e2e
         env:
