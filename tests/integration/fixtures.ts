@@ -2,7 +2,7 @@
  * Test data factory helpers for integration tests.
  * Each function inserts a row and returns the created record.
  */
-import { db, User, Ensemble, EnsembleMember, EnsembleInvite, MemberPart, Season, Event, Part, Song, SeasonSong, SongFile, EventProgram, Task, TaskCompletion, Group, GroupMembership, eq } from 'astro:db';
+import { db, User, Ensemble, EnsembleMember, EnsembleInvite, MemberPart, Season, Event, Part, Song, SeasonSong, SongFile, EventProgram, Task, TaskCompletion, Group, GroupMembership, eq } from '@db';
 import { hashPassword } from '../../src/lib/auth.ts';
 
 export async function createUser(overrides: {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { db, Season, SeasonMembership, eq } from 'astro:db';
+import { db, Season, SeasonMembership, eq } from '@db';
 import {
   createSeason,
   updateSeason,

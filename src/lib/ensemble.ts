@@ -1,4 +1,4 @@
-import { db, eq, or, and, ne, inArray, Ensemble, EnsembleMember, EnsembleInvite, EnsembleLink, MemberPart, Part, Season, User } from 'astro:db';
+import { db, eq, or, and, ne, inArray, Ensemble, EnsembleMember, EnsembleInvite, EnsembleLink, MemberPart, Part, Season, User } from '@db';
 import { canManageEnsemble, isSiteAdmin } from './permissions';
 
 /**

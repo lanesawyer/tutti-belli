@@ -1,4 +1,4 @@
-import { db, eq, Ensemble } from 'astro:db';
+import { db, eq, Ensemble } from '@db';
 
 export function generateSlug(name: string): string {
   return name

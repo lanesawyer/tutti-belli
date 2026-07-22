@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { db, GroupMembership, eq } from 'astro:db';
+import { db, GroupMembership, eq } from '@db';
 import { createUser, createEnsemble, createGroup, createGroupMembership } from './fixtures.ts';
 
 describe('GroupMembership role', () => {

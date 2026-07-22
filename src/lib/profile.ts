@@ -17,7 +17,7 @@ import {
   EmailChangeToken,
   EmailVerificationToken,
   TaskCompletion,
-} from 'astro:db';
+} from '@db';
 import { fileToDataUri, validateImageFile } from './upload';
 import { hashPassword, verifyPassword } from './auth';
 import { sendEmailChangeVerificationEmail, sendEmailVerificationEmail } from './email';

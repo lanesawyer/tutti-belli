@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { addSong, editSong, deleteSong, addSongFile, deleteSongFile } from '../../src/lib/songs.ts';
-import { db, Song, SongPart, SeasonSong, SongFile, eq } from 'astro:db';
+import { db, Song, SongPart, SeasonSong, SongFile, eq } from '@db';
 import { createUser, createEnsemble, createSeason, createPart, createSong, createSongFile } from './fixtures.ts';
 
 // Mock storage — avoid real S3 calls

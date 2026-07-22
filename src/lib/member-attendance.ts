@@ -1,4 +1,4 @@
-import { db, eq, and, Attendance, Event, EnsembleMember, User } from 'astro:db';
+import { db, eq, and, Attendance, Event, EnsembleMember, User } from '@db';
 
 export type MemberAttendanceStat = {
   userId: string;

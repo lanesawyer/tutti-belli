@@ -1,6 +1,6 @@
 import { defineAction, ActionError } from 'astro:actions';
 import { z } from 'astro/zod';
-import { db, eq, Part, MemberPart } from 'astro:db';
+import { db, eq, Part, MemberPart } from '@db';
 import { assertEnsembleAdmin } from './utils';
 
 export const parts = {

@@ -5,12 +5,16 @@ import path from 'path';
 
 const root = fileURLToPath(new URL('.', import.meta.url));
 
-// Redirect all `astro:db` imports to our in-memory SQLite mock.
-// This is a Vite virtual module in the real app — it doesn't exist on disk.
-const astroDbMock = path.resolve(root, 'tests/integration/__mocks__/astro-db.ts');
-
 const sharedAlias = {
-  'astro:db': astroDbMock,
+  '@db': path.resolve(root, 'db/index.ts'),
+};
+
+// Point @db at a single in-memory LibSQL database shared across the process
+// (`?cache=shared` makes every createClient() call with this URL get the same
+// instance — required with fileParallelism: false).
+const sharedEnv = {
+  DATABASE_URL: 'file::memory:?cache=shared',
+  EMAIL_DISABLED: 'true',
 };
 
 export default defineConfig({
@@ -26,7 +30,7 @@ export default defineConfig({
           name: 'unit',
           include: ['tests/unit/**/*.test.ts'],
           environment: 'node',
-          env: { EMAIL_DISABLED: 'true' },
+          env: sharedEnv,
         },
       },
       {
@@ -37,7 +41,7 @@ export default defineConfig({
           environment: 'node',
           fileParallelism: false,
           setupFiles: ['tests/integration/setup.ts'],
-          env: { EMAIL_DISABLED: 'true' },
+          env: sharedEnv,
         },
       },
     ],

@@ -10,7 +10,7 @@ import {
   Season,
   Task,
   TaskCompletion,
-} from 'astro:db';
+} from '@db';
 
 // ── Queries ────────────────────────────────────────────────────────────────────
 

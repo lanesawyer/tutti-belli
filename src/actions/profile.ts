@@ -1,6 +1,6 @@
 import { defineAction, ActionError } from 'astro:actions';
 import { z } from 'astro/zod';
-import { db, eq, EnsembleMember } from 'astro:db';
+import { db, eq, EnsembleMember } from '@db';
 import {
   registerUser,
   updateName,

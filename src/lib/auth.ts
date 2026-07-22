@@ -1,5 +1,5 @@
 import bcrypt from 'bcryptjs';
-import { db, eq, User, PasswordResetToken } from 'astro:db';
+import { db, eq, User, PasswordResetToken } from '@db';
 
 export async function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, 10);

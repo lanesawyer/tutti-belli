@@ -8,6 +8,9 @@ primary_region = 'sjc'
 
 [build]
 
+[deploy]
+  release_command = 'node db/migrate.ts'
+
 [env]
   PORT = "8080"
   HOST = "0.0.0.0"

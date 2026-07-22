@@ -1,5 +1,5 @@
 import { ActionError } from 'astro:actions';
-import { db, eq, and, EnsembleMember } from 'astro:db';
+import { db, eq, and, EnsembleMember } from '@db';
 import { canManageEnsemble } from '@lib/permissions';
 
 export function assertSiteAdmin(user: { role: string } | undefined | null) {
