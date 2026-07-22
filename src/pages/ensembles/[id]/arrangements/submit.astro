@@ -1,0 +1,118 @@
+---
+import EnsemblePageLayout from "@layouts/EnsemblePageLayout.astro";
+import { Button, Icon, Notification, Box, TextInput } from "astro-bulma";
+import { actions } from "astro:actions";
+import { getEnsembleBySlugOrId, getEnsembleAccess } from "@lib/ensemble";
+import { getEnsembleUrlId } from "@lib/slug";
+
+const user = Astro.locals.user!;
+
+const { id } = Astro.params;
+const ensemble = await getEnsembleBySlugOrId(id!);
+
+if (!ensemble) {
+  return new Response("Ensemble not found", { status: 404 });
+}
+
+const canonicalId = getEnsembleUrlId(ensemble);
+if (Astro.request.method === "GET" && id !== canonicalId) {
+  return Astro.redirect(
+    Astro.url.pathname.replace(`/ensembles/${id}`, `/ensembles/${canonicalId}`),
+    301,
+  );
+}
+
+const access = await getEnsembleAccess(user, ensemble.id);
+if (!access) {
+  return Astro.redirect(`/ensembles/${canonicalId}`);
+}
+
+const submitResult = Astro.getActionResult(actions.arrangements.submit);
+
+if (submitResult && !submitResult.error && submitResult.data?.arrangementId) {
+  return Astro.redirect(
+    `/ensembles/${canonicalId}/arrangements/${submitResult.data.arrangementId}`,
+  );
+}
+
+let message = "";
+let messageType: "success" | "danger" | undefined;
+
+if (submitResult?.error) {
+  message = submitResult.error.message ?? "Failed to submit arrangement.";
+  messageType = "danger";
+}
+---
+
+<EnsemblePageLayout
+  title={`Submit Arrangement - ${ensemble.name}`}
+  ensembleName={ensemble.name}
+  ensembleId={canonicalId}
+  pageTitle="Submit an Arrangement"
+  message={message}
+  messageType={messageType}
+  isAdmin={access.isAdmin}
+  extraBreadcrumbs={[
+    ["Arrangements", `/ensembles/${canonicalId}/arrangements`],
+  ]}
+>
+  <Box>
+    <form
+      method="POST"
+      action={actions.arrangements.submit}
+      enctype="multipart/form-data"
+    >
+      <input type="hidden" name="ensembleId" value={ensemble.id} />
+
+      <TextInput
+        name="name"
+        label="Title *"
+        placeholder="e.g. Ave Verum Corpus"
+        required
+      />
+
+      <TextInput name="composer" label="Composer" placeholder="e.g. Mozart" />
+
+      <TextInput name="arranger" label="Arranger" placeholder="e.g. Smith" />
+
+      <div class="field">
+        <label class="label" for="description">Description</label>
+        <div class="control">
+          <textarea
+            class="textarea"
+            id="description"
+            name="description"
+            rows="4"
+            placeholder="Optional notes about this arrangement…"></textarea>
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="label" for="file">PDF File *</label>
+        <div class="control">
+          <input
+            class="input"
+            type="file"
+            id="file"
+            name="file"
+            accept=".pdf,.mscz,.mscx,.mp3,application/pdf,audio/mpeg"
+            required
+          />
+        </div>
+        <p class="help">PDF, MuseScore (.mscz, .mscx), or MP3 — max 50 MB.</p>
+      </div>
+
+      <div class="field mt-5">
+        <div class="control">
+          <Button type="submit" color="primary">
+            <Icon icon="fa-paper-plane" />
+            <span>Submit Arrangement</span>
+          </Button>
+          <Button href={`/ensembles/${canonicalId}`} class="ml-2">
+            Cancel
+          </Button>
+        </div>
+      </div>
+    </form>
+  </Box>
+</EnsemblePageLayout>

@@ -1,0 +1,175 @@
+---
+import { Button, Icon, FileInput, TextInput, Notification } from "astro-bulma";
+
+interface Props {
+  action: string;
+  ensembleId: string;
+  songId: string;
+  fileAccept?: string;
+  fileHelp?: string;
+  fileError?: string;
+}
+
+const {
+  action,
+  ensembleId,
+  songId,
+  fileAccept = ".pdf,.mp3,application/pdf,audio/mpeg",
+  fileHelp = "PDF or MP3, max 50 MB",
+  fileError,
+} = Astro.props;
+---
+
+{
+  fileError && (
+    <Notification color="danger" light class="mb-4">
+      {fileError}
+    </Notification>
+  )
+}
+
+<form method="POST" action={action} enctype="multipart/form-data">
+  <input type="hidden" name="ensembleId" value={ensembleId} />
+  <input type="hidden" name="songId" value={songId} />
+
+  <div class="field">
+    <label class="label">Type *</label>
+    <div class="control">
+      <div class="buttons has-addons">
+        <label class="button is-selected is-success" id="btn-sheet_music">
+          <input
+            type="radio"
+            name="category"
+            value="sheet_music"
+            checked
+            hidden
+          />{" "}
+          Sheet Music
+        </label>
+        <label class="button" id="btn-rehearsal_track">
+          <input type="radio" name="category" value="rehearsal_track" hidden />{
+            " "
+          }
+          Rehearsal Track
+        </label>
+        <label class="button" id="btn-link">
+          <input type="radio" name="category" value="link" hidden />{" "}
+          Link
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <div class="columns is-multiline mt-2">
+    <div class="column is-full" id="file-input-field">
+      <div class="field">
+        <FileInput
+          name="file"
+          id="file"
+          label="File *"
+          accept={fileAccept}
+          help={fileHelp}
+        />
+      </div>
+    </div>
+    <div class="column is-full" id="url-input-field" style="display:none;">
+      <TextInput
+        name="fileUrl"
+        id="fileUrl"
+        label="URL *"
+        type="url"
+        placeholder="https://www.youtube.com/watch?v=..."
+      />
+    </div>
+    <div class="column">
+      <TextInput
+        name="fileName"
+        id="fileName"
+        label="Display Name *"
+        placeholder="e.g. Soprano Sheet Music"
+        required
+      />
+    </div>
+    <div class="column is-narrow">
+      <div class="field">
+        <label class="label">&nbsp;</label>
+        <div class="control">
+          <Button type="submit" color="primary">
+            <Icon icon="fa-upload" />
+            <span>Upload</span>
+          </Button>
+        </div>
+      </div>
+    </div>
+  </div>
+</form>
+
+<script>
+  document.addEventListener("astro:page-load", () => {
+    const fileInput = document.getElementById(
+      "file",
+    ) as HTMLInputElement | null;
+    const nameInput = document.getElementById(
+      "fileName",
+    ) as HTMLInputElement | null;
+    const fileField = document.getElementById(
+      "file-input-field",
+    ) as HTMLElement | null;
+    const urlField = document.getElementById(
+      "url-input-field",
+    ) as HTMLElement | null;
+    const radios = document.querySelectorAll<HTMLInputElement>(
+      'input[name="category"]',
+    );
+
+    const categoryColors: Record<string, string> = {
+      sheet_music: "is-success",
+      rehearsal_track: "is-warning",
+      link: "is-info",
+    };
+
+    function onCategoryChange() {
+      const selected = (
+        document.querySelector(
+          'input[name="category"]:checked',
+        ) as HTMLInputElement | null
+      )?.value;
+      const isLink = selected === "link";
+      if (fileField) fileField.style.display = isLink ? "none" : "";
+      if (urlField) urlField.style.display = isLink ? "" : "none";
+      if (fileInput) fileInput.required = !isLink;
+      const urlInput = document.getElementById(
+        "fileUrl",
+      ) as HTMLInputElement | null;
+      if (urlInput) urlInput.required = isLink;
+
+      radios.forEach((r) => {
+        const btn = document.getElementById(`btn-${r.value}`);
+        if (!btn) return;
+        const color = categoryColors[r.value] ?? "is-light";
+        btn.classList.remove(
+          "is-selected",
+          "is-success",
+          "is-warning",
+          "is-info",
+          "is-light",
+        );
+        if (r.value === selected) btn.classList.add("is-selected", color);
+      });
+    }
+
+    radios.forEach((r) => r.addEventListener("change", onCategoryChange));
+    onCategoryChange();
+
+    if (fileInput && nameInput) {
+      fileInput.addEventListener("change", () => {
+        const file = fileInput.files?.[0];
+        if (file && !nameInput.value) {
+          nameInput.value = file.name
+            .replace(/\.[^.]+$/, "")
+            .replace(/[_-]/g, " ");
+        }
+      });
+    }
+  });
+</script>

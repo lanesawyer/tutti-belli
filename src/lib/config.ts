@@ -18,4 +18,5 @@ export const ensembleAdminTools: AdminTool[] = [
   { href: (id) => `/ensembles/${id}/seasons`, icon: 'fa-calendar-alt', label: 'Seasons' },
   { href: (id) => `/ensembles/${id}/groups`, icon: 'fa-users-cog', label: 'Groups' },
   { href: (id) => `/ensembles/${id}/tasks`, icon: 'fa-tasks', label: 'Tasks' },
+  { href: (id) => `/ensembles/${id}/arrangements`, icon: 'fa-file-signature', label: 'Arrangements' },
 ];

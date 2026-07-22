@@ -1,0 +1,155 @@
+---
+import { Box, Button, Icon, Notification } from "astro-bulma";
+import SongPdfFile from "./SongPdfFile.astro";
+import SongAudioFile from "./SongAudioFile.astro";
+import SongLinkFile from "./SongLinkFile.astro";
+import SongFileHeader from "./SongFileHeader.astro";
+import SongFileDeleteModal from "./SongFileDeleteModal.astro";
+
+interface Props {
+  files: Array<{
+    id: string;
+    name: string;
+    url: string;
+    category: string;
+    uploaderName: string;
+    uploadedAt: string | Date;
+  }>;
+  ensembleId: string;
+  isAdmin: boolean;
+  emptyMessage?: string;
+}
+
+const {
+  files,
+  ensembleId,
+  isAdmin,
+  emptyMessage = "No files attached yet.",
+} = Astro.props;
+
+const pdfFiles = files.filter(
+  (f) => f.category !== "link" && /\.pdf$/i.test(f.url),
+);
+const audioFiles = files.filter(
+  (f) => f.category !== "link" && /\.mp3$/i.test(f.url),
+);
+const linkFiles = files.filter((f) => f.category === "link");
+const otherFiles = files.filter(
+  (f) =>
+    f.category !== "link" && !/\.pdf$/i.test(f.url) && !/\.mp3$/i.test(f.url),
+);
+---
+
+{
+  files.length === 0 ? (
+    <Notification>{emptyMessage}</Notification>
+  ) : (
+    <>
+      {(pdfFiles.length > 0 || audioFiles.length > 0) && (
+        <div class="columns mb-5">
+          {pdfFiles.length > 0 && (
+            <div
+              class={
+                audioFiles.length > 0
+                  ? "column is-two-thirds-tablet is-three-quarters-desktop"
+                  : "column"
+              }
+            >
+              {pdfFiles.map((file) => (
+                <SongPdfFile
+                  id={file.id}
+                  name={file.name}
+                  category={file.category}
+                  uploaderName={file.uploaderName}
+                  uploadedAt={file.uploadedAt}
+                  {ensembleId}
+                  {isAdmin}
+                />
+              ))}
+            </div>
+          )}
+          {audioFiles.length > 0 && (
+            <div
+              class={
+                pdfFiles.length > 0
+                  ? "column is-one-third-tablet is-one-quarter-desktop"
+                  : "column"
+              }
+            >
+              {audioFiles.map((file) => (
+                <SongAudioFile
+                  id={file.id}
+                  name={file.name}
+                  category={file.category}
+                  uploaderName={file.uploaderName}
+                  uploadedAt={file.uploadedAt}
+                  {ensembleId}
+                  {isAdmin}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {linkFiles.length > 0 && (
+        <Box class="mb-5">
+          {linkFiles.map((file) => (
+            <SongLinkFile
+              id={file.id}
+              name={file.name}
+              category={file.category}
+              url={file.url}
+              uploaderName={file.uploaderName}
+              uploadedAt={file.uploadedAt}
+              {ensembleId}
+              {isAdmin}
+            />
+          ))}
+        </Box>
+      )}
+
+      {otherFiles.length > 0 && (
+        <Box class="mb-5">
+          {otherFiles.map((file) => (
+            <div class="mb-3">
+              <SongFileHeader
+                name={file.name}
+                category={file.category}
+                uploaderName={file.uploaderName}
+                uploadedAt={file.uploadedAt}
+              >
+                <Button
+                  href={`/files/${file.id}`}
+                  size="small"
+                  title="Download"
+                >
+                  <Icon icon="fa-download" size="small" />
+                </Button>
+                {isAdmin && (
+                  <SongFileDeleteModal
+                    fileId={file.id}
+                    {ensembleId}
+                    fileName={file.name}
+                  />
+                )}
+              </SongFileHeader>
+            </div>
+          ))}
+        </Box>
+      )}
+    </>
+  )
+}
+
+<script>
+  document.addEventListener("astro:page-load", () => {
+    document.querySelectorAll("details").forEach((details) => {
+      const arrow = details.querySelector(".pdf-arrow") as HTMLElement | null;
+      if (!arrow) return;
+      details.addEventListener("toggle", () => {
+        arrow.style.transform = details.open ? "rotate(90deg)" : "";
+      });
+    });
+  });
+</script>

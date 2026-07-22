@@ -18,8 +18,14 @@ import {
   buildSongPartsMap,
   buildSongSeasonsMap,
   buildSongFilesMap,
+  buildSongArrangementsMap,
   formatRuntime,
 } from "@lib/songs";
+import {
+  ARRANGEMENT_STATUS_LABELS,
+  ARRANGEMENT_STATUS_COLORS,
+} from "@lib/arrangements";
+import type { ArrangementStatus } from "@lib/arrangements";
 import { getEnsembleUrlId } from "@lib/slug";
 import { actions } from "astro:actions";
 
@@ -34,6 +40,7 @@ const {
   songPartsData,
   seasonSongsData,
   songFilesData,
+  arrangementData,
 } = await getSongsPageData(id!);
 
 if (!ensemble) {
@@ -81,6 +88,7 @@ const ensembleSongIds = new Set(songs.map((s) => s.id));
 const songPartsMap = buildSongPartsMap(songPartsData);
 const songSeasonsMap = buildSongSeasonsMap(seasonSongsData);
 const songFilesMap = buildSongFilesMap(ensembleSongIds, songFilesData);
+const songArrangementsMap = buildSongArrangementsMap(arrangementData);
 ---
 
 <EnsemblePageLayout
@@ -123,6 +131,10 @@ const songFilesMap = buildSongFilesMap(ensembleSongIds, songFilesData);
             const songParts = songPartsMap.get(song.id) || [];
             const songSeasons = songSeasonsMap.get(song.id) || [];
             const songFiles = songFilesMap.get(song.id) || [];
+            const arrangement = songArrangementsMap.get(song.id);
+            const arrangementStatus = arrangement?.status as
+              | ArrangementStatus
+              | undefined;
             return (
               <tr>
                 <td>
@@ -132,6 +144,28 @@ const songFilesMap = buildSongFilesMap(ensembleSongIds, songFilesData);
                   >
                     {song.name}
                   </a>
+                  {arrangement && (
+                    <Tag
+                      color={
+                        ARRANGEMENT_STATUS_COLORS[arrangementStatus!] ?? "info"
+                      }
+                      size="small"
+                      class="ml-2"
+                    >
+                      {isAdmin ? (
+                        <a
+                          href={`/ensembles/${canonicalId}/arrangements/${arrangement.arrangementId}`}
+                          class="has-text-inherit"
+                        >
+                          {ARRANGEMENT_STATUS_LABELS[arrangementStatus!] ??
+                            arrangementStatus}
+                        </a>
+                      ) : (
+                        (ARRANGEMENT_STATUS_LABELS[arrangementStatus!] ??
+                        arrangementStatus)
+                      )}
+                    </Tag>
+                  )}
                 </td>
                 <td>{song.composer || "-"}</td>
                 <td>{song.arranger || "-"}</td>

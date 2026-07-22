@@ -294,6 +294,38 @@ const TaskCompletion = defineTable({
   }
 });
 
+const Arrangement = defineTable({
+  columns: {
+    id: column.text({ primaryKey: true }),
+    ensembleId: column.text({ references: () => Ensemble.columns.id }),
+    songId: column.text({ references: () => Song.columns.id }),
+    submittedBy: column.text({ references: () => User.columns.id }),
+    description: column.text({ optional: true }),
+    status: column.text({ default: 'submitted' }), // 'submitted' | 'in_review' | 'needs_revision' | 'approved' | 'rejected'
+    createdAt: column.date({ default: NOW }),
+    updatedAt: column.date({ default: NOW }),
+  }
+});
+
+const ArrangementReviewer = defineTable({
+  columns: {
+    id: column.text({ primaryKey: true }),
+    arrangementId: column.text({ references: () => Arrangement.columns.id }),
+    userId: column.text({ references: () => User.columns.id }),
+    addedAt: column.date({ default: NOW }),
+  }
+});
+
+const ArrangementMessage = defineTable({
+  columns: {
+    id: column.text({ primaryKey: true }),
+    arrangementId: column.text({ references: () => Arrangement.columns.id }),
+    userId: column.text({ references: () => User.columns.id }),
+    content: column.text(),
+    createdAt: column.date({ default: NOW }),
+  }
+});
+
 export default defineDb({
-  tables: { User, Ensemble, EnsembleMember, Part, MemberPart, EnsembleInvite, Season, SeasonMembership, Event, Attendance, EventRsvp, Announcement, Group, GroupMembership, Song, SongPart, SeasonSong, SongFile, EventProgram, PasswordResetToken, EmailChangeToken, EmailVerificationToken, EnsembleLink, SiteBanner, Task, TaskCompletion }
+  tables: { User, Ensemble, EnsembleMember, Part, MemberPart, EnsembleInvite, Season, SeasonMembership, Event, Attendance, EventRsvp, Announcement, Group, GroupMembership, Song, SongPart, SeasonSong, SongFile, EventProgram, PasswordResetToken, EmailChangeToken, EmailVerificationToken, EnsembleLink, SiteBanner, Task, TaskCompletion, Arrangement, ArrangementReviewer, ArrangementMessage}
 });

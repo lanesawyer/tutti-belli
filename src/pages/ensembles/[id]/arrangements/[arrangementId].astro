@@ -1,0 +1,368 @@
+---
+import EnsemblePageLayout from "@layouts/EnsemblePageLayout.astro";
+import { Button, Box, Icon, Notification, Tag } from "astro-bulma";
+import SongFileList from "@components/song/SongFileList.astro";
+import SongFileUploadForm from "@components/song/SongFileUploadForm.astro";
+import { actions } from "astro:actions";
+import { getEnsembleBySlugOrId, getEnsembleAccess } from "@lib/ensemble";
+import { getEnsembleUrlId } from "@lib/slug";
+import {
+  getArrangement,
+  getArrangementFiles,
+  getArrangementMessages,
+  getArrangementReviewers,
+  ARRANGEMENT_STATUS_LABELS,
+  ARRANGEMENT_STATUS_COLORS,
+} from "@lib/arrangements";
+import type { ArrangementStatus } from "@lib/arrangements";
+
+const user = Astro.locals.user!;
+
+const { id, arrangementId } = Astro.params;
+const ensemble = await getEnsembleBySlugOrId(id!);
+
+if (!ensemble) {
+  return new Response("Ensemble not found", { status: 404 });
+}
+
+const canonicalId = getEnsembleUrlId(ensemble);
+if (Astro.request.method === "GET" && id !== canonicalId) {
+  return Astro.redirect(
+    Astro.url.pathname.replace(`/ensembles/${id}`, `/ensembles/${canonicalId}`),
+    301,
+  );
+}
+
+const access = await getEnsembleAccess(user, ensemble.id);
+if (!access) {
+  return new Response("Unauthorized", { status: 403 });
+}
+
+const arrangement = await getArrangement(arrangementId!);
+
+if (!arrangement || arrangement.ensembleId !== ensemble.id) {
+  return new Response("Not found", { status: 404 });
+}
+
+// Only submitter or admin can view
+if (arrangement.submittedBy !== user.id && !access.isAdmin) {
+  return new Response("Unauthorized", { status: 403 });
+}
+
+const { isAdmin } = access;
+const isSubmitter = arrangement.submittedBy === user.id;
+
+const [files, messages, reviewers] = await Promise.all([
+  getArrangementFiles(arrangement.songId),
+  getArrangementMessages(arrangementId!),
+  getArrangementReviewers(arrangementId!),
+]);
+
+const startReviewResult = Astro.getActionResult(
+  actions.arrangements.startReview,
+);
+const updateStatusResult = Astro.getActionResult(
+  actions.arrangements.updateStatus,
+);
+const addMessageResult = Astro.getActionResult(actions.arrangements.addMessage);
+const fileError = Astro.url.searchParams.get("uploadError") ?? undefined;
+
+let message = "";
+let messageType: "success" | "danger" | undefined;
+
+if (startReviewResult?.error) {
+  message = startReviewResult.error.message ?? "Failed to start review.";
+  messageType = "danger";
+} else if (startReviewResult) {
+  message = "Review started.";
+  messageType = "success";
+} else if (updateStatusResult?.error) {
+  message = updateStatusResult.error.message ?? "Failed to update status.";
+  messageType = "danger";
+} else if (updateStatusResult) {
+  message = "Status updated.";
+  messageType = "success";
+} else if (addMessageResult?.error) {
+  message = addMessageResult.error.message ?? "Failed to send message.";
+  messageType = "danger";
+}
+
+const status = arrangement.status as ArrangementStatus;
+const statusLabel = ARRANGEMENT_STATUS_LABELS[status] ?? status;
+const statusColor = ARRANGEMENT_STATUS_COLORS[status] ?? "info";
+---
+
+<EnsemblePageLayout
+  title={`${arrangement.name} - Arrangements - ${ensemble.name}`}
+  ensembleName={ensemble.name}
+  ensembleId={canonicalId}
+  pageTitle={arrangement.name}
+  message={message}
+  messageType={messageType}
+  isAdmin={isAdmin}
+  extraBreadcrumbs={[
+    ["Arrangements", `/ensembles/${canonicalId}/arrangements`],
+  ]}
+>
+  <!-- Header Info -->
+  <Box class="mb-5">
+    <div class="level is-mobile">
+      <div class="level-left">
+        <div class="level-item">
+          <Tag color={statusColor} size="medium">{statusLabel}</Tag>
+        </div>
+      </div>
+    </div>
+    <table class="table is-narrow is-fullwidth mt-3">
+      <tbody>
+        {
+          arrangement.composer && (
+            <tr>
+              <th style="width: 180px;">Composer</th>
+              <td>{arrangement.composer}</td>
+            </tr>
+          )
+        }
+        {
+          arrangement.arranger && (
+            <tr>
+              <th style="width: 180px;">Arranger</th>
+              <td>{arrangement.arranger}</td>
+            </tr>
+          )
+        }
+        <tr>
+          <th style="width: 180px;">Song</th>
+          <td>
+            <a href={`/ensembles/${canonicalId}/songs/${arrangement.songId}`}>
+              View in Song Library
+            </a>
+          </td>
+        </tr>
+        <tr>
+          <th>Submitted By</th>
+          <td>{arrangement.submitterName}</td>
+        </tr>
+        <tr>
+          <th>Submitted On</th>
+          <td>{new Date(arrangement.createdAt).toLocaleDateString()}</td>
+        </tr>
+        {
+          reviewers.length > 0 && (
+            <tr>
+              <th>Reviewer{reviewers.length > 1 ? "s" : ""}</th>
+              <td>{reviewers.map((r) => r.name).join(", ")}</td>
+            </tr>
+          )
+        }
+        {
+          arrangement.description && (
+            <tr>
+              <th>Description</th>
+              <td style="white-space: pre-wrap;">{arrangement.description}</td>
+            </tr>
+          )
+        }
+      </tbody>
+    </table>
+  </Box>
+
+  <!-- File Versions -->
+  <Box class="mb-5">
+    <h2 class="title is-5">
+      <Icon icon="fa-file-alt" />
+      <span>Files</span>
+    </h2>
+    <SongFileList
+      files={files}
+      ensembleId={ensemble.id}
+      isAdmin={isAdmin}
+      emptyMessage="No files uploaded yet."
+    />
+
+    {
+      (isSubmitter || isAdmin) && (
+        <div class="mt-5">
+          <h3 class="subtitle is-6 mb-2">Upload File</h3>
+          <SongFileUploadForm
+            action={`/ensembles/${canonicalId}/arrangements/${arrangementId}/upload`}
+            ensembleId={ensemble.id}
+            songId={arrangement.songId}
+            fileAccept=".pdf,.mscz,.mscx,.mp3,application/pdf,audio/mpeg"
+            fileHelp="PDF, MuseScore (.mscz, .mscx), or MP3 — max 50 MB."
+            fileError={fileError}
+          />
+        </div>
+      )
+    }
+  </Box>
+
+  <!-- Admin Controls -->
+  {
+    isAdmin && (
+      <Box class="mb-5">
+        <h2 class="title is-5">
+          <Icon icon="fa-clipboard-check" />
+          <span>Review Actions</span>
+        </h2>
+        <div class="buttons">
+          {status === "submitted" && (
+            <form method="POST" action={actions.arrangements.startReview}>
+              <input type="hidden" name="ensembleId" value={ensemble.id} />
+              <input
+                type="hidden"
+                name="arrangementId"
+                value={arrangement.id}
+              />
+              <Button type="submit" color="warning">
+                <Icon icon="fa-search" />
+                <span>Start Review</span>
+              </Button>
+            </form>
+          )}
+
+          {(status === "in_review" || status === "needs_revision") && (
+            <>
+              <form method="POST" action={actions.arrangements.updateStatus}>
+                <input type="hidden" name="ensembleId" value={ensemble.id} />
+                <input
+                  type="hidden"
+                  name="arrangementId"
+                  value={arrangement.id}
+                />
+                <input type="hidden" name="status" value="needs_revision" />
+                <Button type="submit" color="danger">
+                  <Icon icon="fa-redo" />
+                  <span>Needs Revision</span>
+                </Button>
+              </form>
+
+              <form method="POST" action={actions.arrangements.updateStatus}>
+                <input type="hidden" name="ensembleId" value={ensemble.id} />
+                <input
+                  type="hidden"
+                  name="arrangementId"
+                  value={arrangement.id}
+                />
+                <input type="hidden" name="status" value="approved" />
+                <Button type="submit" color="success">
+                  <Icon icon="fa-check" />
+                  <span>Approve</span>
+                </Button>
+              </form>
+
+              <form method="POST" action={actions.arrangements.updateStatus}>
+                <input type="hidden" name="ensembleId" value={ensemble.id} />
+                <input
+                  type="hidden"
+                  name="arrangementId"
+                  value={arrangement.id}
+                />
+                <input type="hidden" name="status" value="rejected" />
+                <Button type="submit">
+                  <Icon icon="fa-times" />
+                  <span>Reject</span>
+                </Button>
+              </form>
+            </>
+          )}
+
+          {status === "approved" && (
+            <form method="POST" action={actions.arrangements.updateStatus}>
+              <input type="hidden" name="ensembleId" value={ensemble.id} />
+              <input
+                type="hidden"
+                name="arrangementId"
+                value={arrangement.id}
+              />
+              <input type="hidden" name="status" value="in_review" />
+              <Button type="submit" color="warning">
+                <Icon icon="fa-undo" />
+                <span>Unapprove</span>
+              </Button>
+            </form>
+          )}
+
+          {status === "rejected" && (
+            <form method="POST" action={actions.arrangements.updateStatus}>
+              <input type="hidden" name="ensembleId" value={ensemble.id} />
+              <input
+                type="hidden"
+                name="arrangementId"
+                value={arrangement.id}
+              />
+              <input type="hidden" name="status" value="in_review" />
+              <Button type="submit" color="warning">
+                <Icon icon="fa-undo" />
+                <span>Unreject</span>
+              </Button>
+            </form>
+          )}
+        </div>
+      </Box>
+    )
+  }
+
+  <!-- Message Thread -->
+  <Box>
+    <h2 class="title is-5">
+      <Icon icon="fa-comments" />
+      <span>Messages</span>
+    </h2>
+
+    {
+      messages.length === 0 ? (
+        <Notification>No messages yet.</Notification>
+      ) : (
+        <div class="mb-4">
+          {messages.map((msg) => {
+            const isOwn = msg.userId === user.id;
+            return (
+              <article class={`message mb-3 ${isOwn ? "is-info" : "is-light"}`}>
+                <div class="message-header">
+                  <span>{msg.authorName}</span>
+                  <span class="is-size-7" style="opacity: 0.75">
+                    {new Date(msg.createdAt).toLocaleString()}
+                  </span>
+                </div>
+                <div class="message-body" style="white-space: pre-wrap;">
+                  {msg.content}
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      )
+    }
+
+    {
+      status !== "approved" && status !== "rejected" && (
+        <form method="POST" action={actions.arrangements.addMessage}>
+          <input type="hidden" name="ensembleId" value={ensemble.id} />
+          <input type="hidden" name="arrangementId" value={arrangement.id} />
+          <div class="field">
+            <label class="label" for="message-content">
+              {isAdmin ? "Leave a note for the submitter" : "Reply to reviewer"}
+            </label>
+            <div class="control">
+              <textarea
+                class="textarea"
+                id="message-content"
+                name="content"
+                rows="3"
+                placeholder="Write a message…"
+                required
+              />
+            </div>
+          </div>
+          <div class="control">
+            <Button type="submit" color="primary">
+              <Icon icon="fa-paper-plane" />
+              <span>Send Message</span>
+            </Button>
+          </div>
+        </form>
+      )
+    }
+  </Box>
+</EnsemblePageLayout>

@@ -235,9 +235,33 @@ const CREATE_STATEMENTS = [
     "createdAt" TEXT DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TEXT DEFAULT CURRENT_TIMESTAMP
   )`,
+  `CREATE TABLE IF NOT EXISTS "Arrangement" (
+    "id" TEXT PRIMARY KEY,
+    "ensembleId" TEXT NOT NULL REFERENCES "Ensemble"("id"),
+    "songId" TEXT NOT NULL REFERENCES "Song"("id"),
+    "submittedBy" TEXT NOT NULL REFERENCES "User"("id"),
+    "description" TEXT,
+    "status" TEXT DEFAULT 'submitted' NOT NULL,
+    "createdAt" TEXT DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TEXT DEFAULT CURRENT_TIMESTAMP
+  )`,
+  `CREATE TABLE IF NOT EXISTS "ArrangementReviewer" (
+    "id" TEXT PRIMARY KEY,
+    "arrangementId" TEXT NOT NULL REFERENCES "Arrangement"("id"),
+    "userId" TEXT NOT NULL REFERENCES "User"("id"),
+    "addedAt" TEXT DEFAULT CURRENT_TIMESTAMP
+  )`,
+  `CREATE TABLE IF NOT EXISTS "ArrangementMessage" (
+    "id" TEXT PRIMARY KEY,
+    "arrangementId" TEXT NOT NULL REFERENCES "Arrangement"("id"),
+    "userId" TEXT NOT NULL REFERENCES "User"("id"),
+    "content" TEXT NOT NULL,
+    "createdAt" TEXT DEFAULT CURRENT_TIMESTAMP
+  )`,
 ];
 
 const TABLE_NAMES = [
+  'ArrangementMessage', 'ArrangementReviewer', 'Arrangement',
   'SiteBanner', 'EmailVerificationToken', 'EmailChangeToken', 'PasswordResetToken', 'EventProgram', 'SongFile',
   'SeasonSong', 'SongPart', 'Song', 'GroupMembership', 'Group',
   'Announcement', 'EventRsvp', 'Attendance', 'Event', 'TaskCompletion', 'Task',

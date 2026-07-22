@@ -14,6 +14,9 @@ const client = new S3Client({
 });
 
 const ALLOWED_TYPES = ['application/pdf', 'audio/mpeg', 'audio/mp3'];
+const ARRANGEMENT_ALLOWED_MIMETYPES = new Set(['application/pdf', 'audio/mpeg', 'audio/mp3']);
+// MuseScore files have no reliable MIME type, so we also validate by extension
+const ARRANGEMENT_ALLOWED_EXTENSIONS = new Set(['.pdf', '.mp3', '.mscz', '.mscx']);
 const MAX_SIZE_BYTES = 50 * 1024 * 1024; // 50 MB
 
 export function validateSongFile(file: File): { valid: boolean; error?: string } {
@@ -34,6 +37,40 @@ export async function uploadSongFile(file: File, ensembleId: string): Promise<st
 
   const sanitizedName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
   const key = `${ensembleId}/songs/${crypto.randomUUID()}-${sanitizedName}`;
+
+  const buffer = await file.arrayBuffer();
+
+  await client.send(
+    new PutObjectCommand({
+      Bucket: bucket,
+      Key: key,
+      Body: new Uint8Array(buffer),
+      ContentType: file.type,
+    })
+  );
+
+  return `${endpoint}/${bucket}/${key}`;
+}
+
+export function validateArrangementFile(file: File): { valid: boolean; error?: string } {
+  const ext = file.name.includes('.') ? `.${file.name.split('.').pop()!.toLowerCase()}` : '';
+  if (!ARRANGEMENT_ALLOWED_MIMETYPES.has(file.type) && !ARRANGEMENT_ALLOWED_EXTENSIONS.has(ext)) {
+    return { valid: false, error: 'Only PDF, MuseScore (.mscz, .mscx), and MP3 files are allowed.' };
+  }
+  if (file.size > MAX_SIZE_BYTES) {
+    return { valid: false, error: 'File must be 50 MB or smaller.' };
+  }
+  return { valid: true };
+}
+
+export async function uploadArrangementFile(file: File, ensembleId: string): Promise<string> {
+  if (import.meta.env.STORAGE_DISABLED ?? process.env.STORAGE_DISABLED) {
+    console.log(`[storage] disabled — skipping upload of "${file.name}"`);
+    return `https://storage.example.com/${ensembleId}/arrangements/${file.name}`;
+  }
+
+  const sanitizedName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+  const key = `${ensembleId}/arrangements/${crypto.randomUUID()}-${sanitizedName}`;
 
   const buffer = await file.arrayBuffer();
 

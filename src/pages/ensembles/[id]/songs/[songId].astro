@@ -2,18 +2,9 @@
 import EnsemblePageLayout from "@layouts/EnsemblePageLayout.astro";
 import { getSongDetailData, getMembership, formatRuntime } from "@lib/songs";
 import { canManageEnsemble } from "@lib/permissions";
-import {
-  Box,
-  Button,
-  Icon,
-  TextInput,
-  Tag,
-  FileInput,
-  Notification,
-} from "astro-bulma";
-import SongPdfFile from "@components/song/SongPdfFile.astro";
-import SongAudioFile from "@components/song/SongAudioFile.astro";
-import SongLinkFile from "@components/song/SongLinkFile.astro";
+import { Box, Button, Icon, Tag } from "astro-bulma";
+import SongFileList from "@components/song/SongFileList.astro";
+import SongFileUploadForm from "@components/song/SongFileUploadForm.astro";
 import { getEnsembleUrlId } from "@lib/slug";
 import { actions } from "astro:actions";
 
@@ -58,14 +49,6 @@ const songParts = songPartsData
 const songSeasons = seasonSongsData
   .map((ss) => seasons.find((s) => s.id === ss.seasonId))
   .filter(Boolean);
-
-const pdfFiles = songFiles.filter(
-  (f) => f.category !== "link" && f.url.match(/\.(pdf)$/i),
-);
-const audioFiles = songFiles.filter(
-  (f) => f.category !== "link" && f.url.match(/\.(mp3)$/i),
-);
-const linkFiles = songFiles.filter((f) => f.category === "link");
 ---
 
 <EnsemblePageLayout
@@ -143,261 +126,26 @@ const linkFiles = songFiles.filter((f) => f.category === "link");
     </span>
   </h2>
 
-  {
-    songFiles.length === 0 && (
-      <Notification color="info" light>
-        No resources attached to this song yet.
-      </Notification>
-    )
-  }
-
-  {
-    (pdfFiles.length > 0 || audioFiles.length > 0) && (
-      <div class="columns mb-5">
-        {pdfFiles.length > 0 && (
-          <div
-            class={
-              audioFiles.length > 0
-                ? "column is-two-thirds-tablet is-three-quarters-desktop"
-                : "column"
-            }
-          >
-            {pdfFiles.map((file) => (
-              <SongPdfFile
-                id={file.id}
-                name={file.name}
-                category={file.category}
-                uploaderName={file.uploaderName ?? ""}
-                uploadedAt={file.uploadedAt}
-                ensembleId={ensemble.id}
-                {isAdmin}
-              />
-            ))}
-          </div>
-        )}
-        {audioFiles.length > 0 && (
-          <div
-            class={
-              pdfFiles.length > 0
-                ? "column is-one-third-tablet is-one-quarter-desktop"
-                : "column"
-            }
-          >
-            {audioFiles.map((file) => (
-              <SongAudioFile
-                id={file.id}
-                name={file.name}
-                category={file.category}
-                uploaderName={file.uploaderName ?? ""}
-                uploadedAt={file.uploadedAt}
-                ensembleId={ensemble.id}
-                {isAdmin}
-              />
-            ))}
-          </div>
-        )}
-      </div>
-    )
-  }
-
-  {
-    linkFiles.length > 0 && (
-      <Box class="mb-5">
-        {linkFiles.map((file) => (
-          <SongLinkFile
-            id={file.id}
-            name={file.name}
-            category={file.category}
-            url={file.url}
-            uploaderName={file.uploaderName ?? ""}
-            uploadedAt={file.uploadedAt}
-            ensembleId={ensemble.id}
-            {isAdmin}
-          />
-        ))}
-      </Box>
-    )
-  }
+  <SongFileList
+    files={songFiles.map((f) => ({ ...f, uploaderName: f.uploaderName ?? "" }))}
+    ensembleId={ensemble.id}
+    {isAdmin}
+    emptyMessage="No resources attached to this song yet."
+  />
 
   {
     isAdmin && (
       <Box>
         <h3 class="title is-5">Upload Resource</h3>
-        {fileError && (
-          <Notification color="danger" light class="mb-4">
-            {fileError}
-          </Notification>
-        )}
-        <form
-          method="POST"
+        <SongFileUploadForm
           action={`/ensembles/${canonicalId}/songs/${songId}/upload`}
-          enctype="multipart/form-data"
-        >
-          <input type="hidden" name="ensembleId" value={ensemble.id} />
-          <input type="hidden" name="songId" value={songId} />
-
-          <div class="field">
-            <label class="label">Type *</label>
-            <div class="control">
-              <div class="buttons has-addons">
-                <label
-                  class="button is-selected is-success"
-                  id="btn-sheet_music"
-                >
-                  <input
-                    type="radio"
-                    name="category"
-                    value="sheet_music"
-                    checked
-                    hidden
-                  />{" "}
-                  Sheet Music
-                </label>
-                <label class="button" id="btn-rehearsal_track">
-                  <input
-                    type="radio"
-                    name="category"
-                    value="rehearsal_track"
-                    hidden
-                  />{" "}
-                  Rehearsal Track
-                </label>
-                <label class="button" id="btn-link">
-                  <input type="radio" name="category" value="link" hidden />{" "}
-                  Link
-                </label>
-              </div>
-            </div>
-          </div>
-
-          <div class="columns is-multiline mt-2">
-            <div class="column is-full" id="file-input-field">
-              <div class="field">
-                <FileInput
-                  name="file"
-                  id="file"
-                  label="File *"
-                  accept=".pdf,.mp3,application/pdf,audio/mpeg"
-                  help="PDF or MP3, max 50 MB"
-                />
-              </div>
-            </div>
-            <div
-              class="column is-full"
-              id="url-input-field"
-              style="display:none;"
-            >
-              <TextInput
-                name="fileUrl"
-                id="fileUrl"
-                label="URL *"
-                type="url"
-                placeholder="https://www.youtube.com/watch?v=..."
-              />
-            </div>
-            <div class="column">
-              <TextInput
-                name="fileName"
-                id="fileName"
-                label="Display Name *"
-                placeholder="e.g. Soprano Sheet Music"
-                required
-              />
-            </div>
-            <div class="column is-narrow">
-              <div class="field">
-                <label class="label">&nbsp;</label>
-                <div class="control">
-                  <Button type="submit" color="primary">
-                    <Icon icon="fa-upload" />
-                    <span>Upload</span>
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </form>
+          ensembleId={ensemble.id}
+          songId={songId!}
+          fileError={fileError}
+        />
       </Box>
     )
   }
-
-  <script>
-    document.addEventListener("astro:page-load", () => {
-      const fileInput = document.getElementById(
-        "file",
-      ) as HTMLInputElement | null;
-      const nameInput = document.getElementById(
-        "fileName",
-      ) as HTMLInputElement | null;
-      const fileField = document.getElementById(
-        "file-input-field",
-      ) as HTMLElement | null;
-      const urlField = document.getElementById(
-        "url-input-field",
-      ) as HTMLElement | null;
-      const radios = document.querySelectorAll<HTMLInputElement>(
-        'input[name="category"]',
-      );
-
-      const categoryColors: Record<string, string> = {
-        sheet_music: "is-success",
-        rehearsal_track: "is-warning",
-        link: "is-info",
-      };
-
-      function onCategoryChange() {
-        const selected = (
-          document.querySelector(
-            'input[name="category"]:checked',
-          ) as HTMLInputElement | null
-        )?.value;
-        const isLink = selected === "link";
-        if (fileField) fileField.style.display = isLink ? "none" : "";
-        if (urlField) urlField.style.display = isLink ? "" : "none";
-        if (fileInput) fileInput.required = !isLink;
-        const urlInput = document.getElementById(
-          "fileUrl",
-        ) as HTMLInputElement | null;
-        if (urlInput) urlInput.required = isLink;
-
-        radios.forEach((r) => {
-          const btn = document.getElementById(`btn-${r.value}`);
-          if (!btn) return;
-          const color = categoryColors[r.value] ?? "is-light";
-          btn.classList.remove(
-            "is-selected",
-            "is-success",
-            "is-warning",
-            "is-info",
-            "is-light",
-          );
-          if (r.value === selected) btn.classList.add("is-selected", color);
-        });
-      }
-
-      radios.forEach((r) => r.addEventListener("change", onCategoryChange));
-      onCategoryChange();
-
-      if (fileInput && nameInput) {
-        fileInput.addEventListener("change", () => {
-          const file = fileInput.files?.[0];
-          if (file && !nameInput.value) {
-            nameInput.value = file.name
-              .replace(/\.[^.]+$/, "")
-              .replace(/[_-]/g, " ");
-          }
-        });
-      }
-
-      document.querySelectorAll("details").forEach((details) => {
-        const arrow = details.querySelector(".pdf-arrow") as HTMLElement | null;
-        if (!arrow) return;
-        details.addEventListener("toggle", () => {
-          arrow.style.transform = details.open ? "rotate(90deg)" : "";
-        });
-      });
-    });
-  </script>
 
   {
     !isAdmin && (

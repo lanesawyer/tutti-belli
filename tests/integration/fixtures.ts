@@ -2,7 +2,7 @@
  * Test data factory helpers for integration tests.
  * Each function inserts a row and returns the created record.
  */
-import { db, User, Ensemble, EnsembleMember, EnsembleInvite, MemberPart, Season, Event, Part, Song, SeasonSong, SongFile, EventProgram, Task, TaskCompletion, Group, GroupMembership, eq } from 'astro:db';
+import { db, User, Ensemble, EnsembleMember, EnsembleInvite, MemberPart, Season, Event, Part, Song, SeasonSong, SongFile, EventProgram, Task, TaskCompletion, Group, GroupMembership, Arrangement, ArrangementMessage, eq } from 'astro:db';
 import { hashPassword } from '../../src/lib/auth.ts';
 
 export async function createUser(overrides: {
@@ -255,4 +255,56 @@ export async function createTaskCompletion(
   const id = overrides.id ?? crypto.randomUUID();
   await db.insert(TaskCompletion).values({ id, taskId, userId, completedBy });
   return db.select().from(TaskCompletion).where(eq(TaskCompletion.id, id)).get() as Promise<typeof TaskCompletion.$inferSelect>;
+}
+
+export async function createArrangement(
+  ensembleId: string,
+  submittedBy: string,
+  overrides: {
+    id?: string;
+    songId?: string;
+    name?: string;
+    composer?: string;
+    arranger?: string;
+    description?: string;
+    status?: string;
+  } = {}
+) {
+  let songId = overrides.songId;
+  if (!songId) {
+    songId = crypto.randomUUID();
+    await db.insert(Song).values({
+      id: songId,
+      ensembleId,
+      name: overrides.name ?? 'Test Arrangement',
+      composer: overrides.composer ?? null,
+      arranger: overrides.arranger ?? null,
+    });
+  }
+
+  const id = overrides.id ?? crypto.randomUUID();
+  await db.insert(Arrangement).values({
+    id,
+    ensembleId,
+    songId,
+    submittedBy,
+    description: overrides.description,
+    status: overrides.status ?? 'submitted',
+  });
+  return db.select().from(Arrangement).where(eq(Arrangement.id, id)).get() as Promise<typeof Arrangement.$inferSelect>;
+}
+
+export async function createArrangementMessage(
+  arrangementId: string,
+  userId: string,
+  overrides: { id?: string; content?: string } = {}
+) {
+  const id = overrides.id ?? crypto.randomUUID();
+  await db.insert(ArrangementMessage).values({
+    id,
+    arrangementId,
+    userId,
+    content: overrides.content ?? 'Test message',
+  });
+  return db.select().from(ArrangementMessage).where(eq(ArrangementMessage.id, id)).get() as Promise<typeof ArrangementMessage.$inferSelect>;
 }

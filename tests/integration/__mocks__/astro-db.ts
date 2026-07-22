@@ -61,6 +61,9 @@ export const EnsembleLink = asDrizzleTable('EnsembleLink', tables.EnsembleLink);
 export const SiteBanner = asDrizzleTable('SiteBanner', tables.SiteBanner);
 export const Task = asDrizzleTable('Task', tables.Task);
 export const TaskCompletion = asDrizzleTable('TaskCompletion', tables.TaskCompletion);
+export const Arrangement = asDrizzleTable('Arrangement', tables.Arrangement);
+export const ArrangementReviewer = asDrizzleTable('ArrangementReviewer', tables.ArrangementReviewer);
+export const ArrangementMessage = asDrizzleTable('ArrangementMessage', tables.ArrangementMessage);
 
 // Re-export query helpers — these are all the same imports that `astro:db` exposes
 export {

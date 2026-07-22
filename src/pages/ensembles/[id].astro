@@ -156,6 +156,15 @@ const currentSeason = await getActiveSeasonForEnsemble(ensemble.id);
             isAdmin={isAdmin}
           />
 
+          <Button
+            href={`/ensembles/${canonicalId}/arrangements/submit`}
+            color="info"
+            class="mr-2"
+          >
+            <Icon icon="fa-file-signature" />
+            <span>Submit Arrangement</span>
+          </Button>
+
           <Button href="/ensembles">
             <Icon icon="fa-arrow-left" />
             <span>Back to Ensembles</span>

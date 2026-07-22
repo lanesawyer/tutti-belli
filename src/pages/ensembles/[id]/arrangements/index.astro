@@ -1,0 +1,107 @@
+---
+import EnsemblePageLayout from "@layouts/EnsemblePageLayout.astro";
+import { Table, Button, Icon, Notification, Tag } from "astro-bulma";
+import { getEnsembleBySlugOrId, getEnsembleAccess } from "@lib/ensemble";
+import { getEnsembleUrlId } from "@lib/slug";
+import {
+  getEnsembleArrangements,
+  ARRANGEMENT_STATUS_LABELS,
+  ARRANGEMENT_STATUS_COLORS,
+} from "@lib/arrangements";
+import type { ArrangementStatus } from "@lib/arrangements";
+
+const user = Astro.locals.user!;
+
+const { id } = Astro.params;
+const ensemble = await getEnsembleBySlugOrId(id!);
+
+if (!ensemble) {
+  return new Response("Ensemble not found", { status: 404 });
+}
+
+const canonicalId = getEnsembleUrlId(ensemble);
+if (Astro.request.method === "GET" && id !== canonicalId) {
+  return Astro.redirect(
+    Astro.url.pathname.replace(`/ensembles/${id}`, `/ensembles/${canonicalId}`),
+    301,
+  );
+}
+
+const access = await getEnsembleAccess(user, ensemble.id);
+if (!access || !access.isAdmin) {
+  return new Response("Unauthorized", { status: 403 });
+}
+
+const arrangements = await getEnsembleArrangements(ensemble.id);
+---
+
+<EnsemblePageLayout
+  title={`Arrangements - ${ensemble.name}`}
+  ensembleName={ensemble.name}
+  ensembleId={canonicalId}
+  pageTitle="Arrangement Submissions"
+  isAdmin={access.isAdmin}
+>
+  {
+    arrangements.length === 0 ? (
+      <Notification color="info" light>
+        No arrangement submissions yet.
+      </Notification>
+    ) : (
+      <Table>
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Composer / Arranger</th>
+            <th>Submitted By</th>
+            <th>Status</th>
+            <th>Date</th>
+            <th style="width: 80px;" />
+          </tr>
+        </thead>
+        <tbody>
+          {arrangements.map((arrangement) => (
+            <tr>
+              <td>
+                <strong>{arrangement.name}</strong>
+              </td>
+              <td>
+                {[
+                  arrangement.composer,
+                  arrangement.arranger ? `arr. ${arrangement.arranger}` : null,
+                ]
+                  .filter(Boolean)
+                  .join(", ") || <span class="has-text-grey">—</span>}
+              </td>
+              <td>{arrangement.submitterName}</td>
+              <td>
+                <Tag
+                  color={
+                    ARRANGEMENT_STATUS_COLORS[
+                      arrangement.status as ArrangementStatus
+                    ]
+                  }
+                >
+                  {ARRANGEMENT_STATUS_LABELS[
+                    arrangement.status as ArrangementStatus
+                  ] ?? arrangement.status}
+                </Tag>
+              </td>
+              <td>{new Date(arrangement.createdAt).toLocaleDateString()}</td>
+              <td>
+                <Button
+                  color="info"
+                  size="small"
+                  href={`/ensembles/${canonicalId}/arrangements/${arrangement.id}`}
+                >
+                  <Icon icon="fa-eye" />
+                  <span>Review</span>
+                </Button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </Table>
+    )
+  }
+</EnsemblePageLayout>
