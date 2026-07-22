@@ -23,29 +23,29 @@
   },
   "dependencies": {
     "@astrojs/check": "0.9.9",
-    "@astrojs/node": "10.1.0",
-    "@aws-sdk/client-s3": "3.1045.0",
-    "@libsql/client": "0.17.3",
-    "astro": "6.3.1",
-    "astro-bulma": "0.0.1",
+    "@astrojs/node": "11.0.2",
+    "@aws-sdk/client-s3": "3.1087.0",
+    "@libsql/client": "0.17.4",
+    "astro": "7.0.9",
+    "astro-bulma": "0.4.0",
     "bcryptjs": "3.0.3",
     "bulma": "1.0.4",
     "drizzle-orm": "0.45.2",
     "jsonwebtoken": "9.0.3",
     "qrcode": "1.5.4",
-    "resend": "6.12.3"
+    "resend": "6.17.2"
   },
   "devDependencies": {
     "@playwright/test": "1.61.1",
     "@types/jsonwebtoken": "9.0.10",
     "@types/qrcode": "1.5.6",
-    "@vitest/coverage-istanbul": "4.1.6",
+    "@vitest/coverage-istanbul": "4.1.10",
     "drizzle-kit": "0.31.10",
-    "oxlint": "1.64.0",
-    "prettier": "3.8.3",
+    "oxlint": "1.74.0",
+    "prettier": "3.9.5",
     "prettier-plugin-astro": "0.14.1",
-    "typescript": "6.0.3",
-    "vitest": "4.1.6"
+    "typescript": "7.0.2",
+    "vitest": "4.1.10"
   },
   "engines": {
     "node": "24.15.0",
