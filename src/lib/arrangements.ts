@@ -12,6 +12,9 @@ import {
   EnsembleMember,
   Group,
   GroupMembership,
+  ArrangementPart,
+  Part,
+  SongPart,
   Song,
   SongFile,
   User,
@@ -93,6 +96,7 @@ export async function getEnsembleArrangements(
       title: Arrangement.title,
       composer: Arrangement.composer,
       arranger: Arrangement.arranger,
+      runTime: Arrangement.runTime,
       status: Arrangement.status,
       submittedBy: Arrangement.submittedBy,
       submitterName: User.name,
@@ -116,7 +120,22 @@ export async function getEnsembleArrangements(
     }
   }
 
-  return { arrangements, versionCounts };
+  const partsByArrangement = new Map<string, string[]>();
+  if (arrangements.length > 0) {
+    const rows = await db
+      .select({ arrangementId: ArrangementPart.arrangementId, partName: Part.name })
+      .from(ArrangementPart)
+      .innerJoin(Part, eq(ArrangementPart.partId, Part.id))
+      .where(inArray(ArrangementPart.arrangementId, arrangements.map((a) => a.id)))
+      .orderBy(Part.sortOrder)
+      .all();
+    for (const row of rows) {
+      if (!partsByArrangement.has(row.arrangementId)) partsByArrangement.set(row.arrangementId, []);
+      partsByArrangement.get(row.arrangementId)!.push(row.partName);
+    }
+  }
+
+  return { arrangements, versionCounts, partsByArrangement };
 }
 
 export async function getArrangementDetail(arrangementId: string) {
@@ -127,6 +146,7 @@ export async function getArrangementDetail(arrangementId: string) {
       title: Arrangement.title,
       composer: Arrangement.composer,
       arranger: Arrangement.arranger,
+      runTime: Arrangement.runTime,
       notes: Arrangement.notes,
       status: Arrangement.status,
       submittedBy: Arrangement.submittedBy,
@@ -139,9 +159,9 @@ export async function getArrangementDetail(arrangementId: string) {
     .where(eq(Arrangement.id, arrangementId))
     .get();
 
-  if (!arrangement) return { arrangement: null, versions: [], comments: [] };
+  if (!arrangement) return { arrangement: null, versions: [], comments: [], parts: [] };
 
-  const [versions, comments] = await Promise.all([
+  const [versions, comments, parts] = await Promise.all([
     db
       .select({
         id: ArrangementVersion.id,
@@ -172,9 +192,16 @@ export async function getArrangementDetail(arrangementId: string) {
       .where(eq(ArrangementVersion.arrangementId, arrangementId))
       .orderBy(asc(ArrangementComment.createdAt))
       .all(),
+    db
+      .select({ id: Part.id, name: Part.name })
+      .from(ArrangementPart)
+      .innerJoin(Part, eq(ArrangementPart.partId, Part.id))
+      .where(eq(ArrangementPart.arrangementId, arrangementId))
+      .orderBy(Part.sortOrder)
+      .all(),
   ]);
 
-  return { arrangement, versions, comments };
+  return { arrangement, versions, comments, parts };
 }
 
 export async function getArrangementById(arrangementId: string) {
@@ -188,6 +215,9 @@ export interface SubmitArrangementInput {
   composer?: string;
   arranger?: string;
   notes?: string;
+  runTimeMinutes?: number;
+  runTimeSeconds?: number;
+  parts?: string[];
   file?: File;
 }
 
@@ -212,9 +242,15 @@ export async function submitArrangement(
     title,
     composer: input.composer?.trim() || null,
     arranger: input.arranger?.trim() || null,
+    runTime: toRunTime(input.runTimeMinutes, input.runTimeSeconds),
     notes: input.notes?.trim() || null,
     submittedBy: userId,
   });
+
+  for (const partId of input.parts ?? []) {
+    await db.insert(ArrangementPart).values({ id: crypto.randomUUID(), arrangementId, partId });
+  }
+
   await db.insert(ArrangementVersion).values({
     id: crypto.randomUUID(),
     arrangementId,
@@ -335,7 +371,17 @@ export async function approveArrangement(
     name: arrangement.title,
     composer: arrangement.composer,
     arranger: arrangement.arranger,
+    runTime: arrangement.runTime,
   });
+
+  const parts = await db
+    .select({ partId: ArrangementPart.partId })
+    .from(ArrangementPart)
+    .where(eq(ArrangementPart.arrangementId, arrangementId))
+    .all();
+  for (const { partId } of parts) {
+    await db.insert(SongPart).values({ id: crypto.randomUUID(), songId, partId });
+  }
 
   await db.insert(SongFile).values({
     id: crypto.randomUUID(),
@@ -364,6 +410,11 @@ export async function declineArrangement(arrangementId: string): Promise<{ error
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
+
+/** Combine minute/second form inputs into total seconds, or null when unset. */
+export function toRunTime(minutes?: number, seconds?: number): number | null {
+  return (minutes ?? 0) * 60 + (seconds ?? 0) || null;
+}
 
 export function isPdfFile(fileName: string): boolean {
   return /\.pdf$/i.test(fileName);

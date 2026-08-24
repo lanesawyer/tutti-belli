@@ -26,11 +26,19 @@ export const POST: APIRoute = async ({ params, locals, request, redirect }) => {
   }
 
   const file = formData.get('file');
+  const toNumber = (value: FormDataEntryValue | null) => {
+    const parsed = Number(value);
+    return value === null || value === '' || Number.isNaN(parsed) ? undefined : parsed;
+  };
+
   const result = await submitArrangement(ensemble.id, user.id, {
     title: (formData.get('title') as string | null) ?? '',
     composer: (formData.get('composer') as string | null) ?? undefined,
     arranger: (formData.get('arranger') as string | null) ?? undefined,
     notes: (formData.get('notes') as string | null) ?? undefined,
+    runTimeMinutes: toNumber(formData.get('runTimeMinutes')),
+    runTimeSeconds: toNumber(formData.get('runTimeSeconds')),
+    parts: formData.getAll('parts').filter((v): v is string => typeof v === 'string'),
     file: file instanceof File && file.size > 0 ? file : undefined,
   });
 

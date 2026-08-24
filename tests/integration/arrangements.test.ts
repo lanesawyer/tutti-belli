@@ -1,11 +1,12 @@
 import { describe, it, expect, vi } from 'vitest';
-import { db, eq, Arrangement, ArrangementVersion, Song, SongFile } from '@db';
+import { db, eq, Arrangement, ArrangementPart, ArrangementVersion, Song, SongFile, SongPart } from '@db';
 import {
   createUser,
   createEnsemble,
   createMembership,
   createGroup,
   createGroupMembership,
+  createPart,
 } from './fixtures.ts';
 import {
   submitArrangement,
@@ -17,6 +18,7 @@ import {
   isArrangementReviewer,
   isAudioFile,
   isPdfFile,
+  toRunTime,
   getEnsembleArrangements,
   getArrangementDetail,
   getArrangementFileWithAccess,
@@ -384,6 +386,112 @@ describe('arrangements lib', () => {
 
       const result = await declineArrangement(arrangementId!);
       expect(result.error).toBe('Already approved.');
+    });
+  });
+
+  describe('parts and runtime', () => {
+    it('stores runtime and selected parts on submission', async () => {
+      const { submitter, ensemble } = await setupEnsemble();
+      const soprano = await createPart(ensemble!.id, { name: 'Soprano', sortOrder: 0 });
+      const alto = await createPart(ensemble!.id, { name: 'Alto', sortOrder: 1 });
+
+      const { arrangementId } = await submitArrangement(ensemble!.id, submitter!.id, {
+        title: 'With Parts',
+        runTimeMinutes: 3,
+        runTimeSeconds: 45,
+        parts: [soprano!.id, alto!.id],
+        file: pdfFile(),
+      });
+
+      const arrangement = await db
+        .select()
+        .from(Arrangement)
+        .where(eq(Arrangement.id, arrangementId!))
+        .get();
+      expect(arrangement!.runTime).toBe(225);
+
+      const linked = await db
+        .select()
+        .from(ArrangementPart)
+        .where(eq(ArrangementPart.arrangementId, arrangementId!))
+        .all();
+      expect(linked).toHaveLength(2);
+    });
+
+    it('leaves runtime null when omitted and records no parts', async () => {
+      const { submitter, ensemble } = await setupEnsemble();
+      const { arrangementId } = await submitArrangement(ensemble!.id, submitter!.id, {
+        title: 'Bare',
+        file: pdfFile(),
+      });
+
+      const arrangement = await db
+        .select()
+        .from(Arrangement)
+        .where(eq(Arrangement.id, arrangementId!))
+        .get();
+      expect(arrangement!.runTime).toBeNull();
+
+      const { parts } = await getArrangementDetail(arrangementId!);
+      expect(parts).toHaveLength(0);
+    });
+
+    it('returns parts ordered by sortOrder in detail and list views', async () => {
+      const { submitter, ensemble } = await setupEnsemble();
+      const bass = await createPart(ensemble!.id, { name: 'Bass', sortOrder: 3 });
+      const soprano = await createPart(ensemble!.id, { name: 'Soprano', sortOrder: 0 });
+
+      const { arrangementId } = await submitArrangement(ensemble!.id, submitter!.id, {
+        title: 'Ordered Parts',
+        parts: [bass!.id, soprano!.id],
+        file: pdfFile(),
+      });
+
+      const { parts } = await getArrangementDetail(arrangementId!);
+      expect(parts.map((p) => p.name)).toEqual(['Soprano', 'Bass']);
+
+      const { partsByArrangement } = await getEnsembleArrangements(
+        ensemble!.id,
+        submitter!.id,
+        true
+      );
+      expect(partsByArrangement.get(arrangementId!)).toEqual(['Soprano', 'Bass']);
+    });
+
+    it('carries runtime and parts onto the song when approved', async () => {
+      const { admin, submitter, ensemble } = await setupEnsemble();
+      const soprano = await createPart(ensemble!.id, { name: 'Soprano', sortOrder: 0 });
+      const tenor = await createPart(ensemble!.id, { name: 'Tenor', sortOrder: 2 });
+
+      const { arrangementId } = await submitArrangement(ensemble!.id, submitter!.id, {
+        title: 'Inherited',
+        runTimeMinutes: 2,
+        runTimeSeconds: 30,
+        parts: [soprano!.id, tenor!.id],
+        file: pdfFile(),
+      });
+
+      const result = await approveArrangement(arrangementId!, admin!.id);
+
+      const song = await db.select().from(Song).where(eq(Song.id, result.songId!)).get();
+      expect(song!.runTime).toBe(150);
+
+      const songParts = await db
+        .select()
+        .from(SongPart)
+        .where(eq(SongPart.songId, result.songId!))
+        .all();
+      expect(songParts.map((sp) => sp.partId).sort()).toEqual(
+        [soprano!.id, tenor!.id].sort()
+      );
+    });
+
+    it('toRunTime converts minutes and seconds, treating zero as unset', () => {
+      expect(toRunTime(3, 45)).toBe(225);
+      expect(toRunTime(0, 30)).toBe(30);
+      expect(toRunTime(2, undefined)).toBe(120);
+      expect(toRunTime(undefined, undefined)).toBeNull();
+      expect(toRunTime(0, 0)).toBeNull();
     });
   });
 

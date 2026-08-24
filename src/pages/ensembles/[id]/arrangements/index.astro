@@ -2,6 +2,7 @@
 import {
   Box,
   Button,
+  Checkbox,
   FileInput,
   Icon,
   Modal,
@@ -15,9 +16,14 @@ import {
 } from "astro-bulma";
 import EnsemblePageLayout from "@layouts/EnsemblePageLayout.astro";
 import { actions } from "astro:actions";
-import { getEnsembleBySlugOrId, getEnsembleAccess } from "@lib/ensemble";
+import {
+  getEnsembleBySlugOrId,
+  getEnsembleAccess,
+  getEnsembleParts,
+} from "@lib/ensemble";
 import { getEnsembleUrlId } from "@lib/slug";
 import { getEnsembleGroups } from "@lib/groups";
+import { formatRuntime } from "@lib/songs";
 import {
   getEnsembleArrangements,
   isArrangementReviewer,
@@ -68,12 +74,14 @@ if (setReviewGroupResult?.error) {
   messageType = "danger";
 }
 
-const { arrangements, versionCounts } = await getEnsembleArrangements(
+const { arrangements, versionCounts, partsByArrangement } =
+  await getEnsembleArrangements(
   ensemble.id,
   user.id,
   canReview,
 );
 
+const parts = await getEnsembleParts(ensemble.id);
 const groups = isAdmin ? await getEnsembleGroups(ensemble.id) : [];
 const reviewGroup =
   groups.find((g) => g.id === ensemble.arrangementReviewGroupId) ?? null;
@@ -156,6 +164,8 @@ const reviewGroup =
           <tr>
             <th>Title</th>
             <th>Arranger</th>
+            <th>Runtime</th>
+            <th>Parts</th>
             {canReview && <th>Submitted By</th>}
             <th>Versions</th>
             <th>Status</th>
@@ -176,6 +186,8 @@ const reviewGroup =
                 )}
               </td>
               <td>{arrangement.arranger ?? "-"}</td>
+              <td>{formatRuntime(arrangement.runTime)}</td>
+              <td>{(partsByArrangement.get(arrangement.id) ?? []).join(", ") || "-"}</td>
               {canReview && <td>{arrangement.submitterName}</td>}
               <td>{versionCounts.get(arrangement.id) ?? 0}</td>
               <td>
@@ -202,6 +214,57 @@ const reviewGroup =
         <TextInput name="title" label="Title *" required />
         <TextInput name="composer" label="Composer" />
         <TextInput name="arranger" label="Arranger" />
+
+        <div class="field">
+          <label class="label">Runtime</label>
+          <div class="field has-addons">
+            <div class="control">
+              <TextInput
+                name="runTimeMinutes"
+                type="number"
+                placeholder="Min"
+                min="0"
+                style="width: 80px;"
+                standalone
+              />
+            </div>
+            <div class="control">
+              <span class="button is-static">:</span>
+            </div>
+            <div class="control">
+              <TextInput
+                name="runTimeSeconds"
+                type="number"
+                placeholder="Sec"
+                min="0"
+                max="59"
+                style="width: 80px;"
+                standalone
+              />
+            </div>
+          </div>
+          <p class="help">Leave blank if unknown</p>
+        </div>
+
+        {
+          parts.length > 0 && (
+            <div class="field">
+              <label class="label">Parts</label>
+              <div class="control">
+                {parts.map((part) => (
+                  <Checkbox
+                    name="parts"
+                    value={part.id}
+                    label={part.name}
+                    class="is-block mb-2"
+                  />
+                ))}
+              </div>
+              <p class="help">Select which parts this arrangement is written for</p>
+            </div>
+          )
+        }
+
         <Textarea
           name="notes"
           label="Notes for reviewers"

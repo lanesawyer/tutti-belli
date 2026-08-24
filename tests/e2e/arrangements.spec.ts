@@ -38,6 +38,10 @@ test('member can submit an arrangement and it appears in review', async ({ page 
   const title = `E2E Arrangement ${Date.now()}`;
   await page.fill('#submit-modal input[name="title"]', title);
   await page.fill('#submit-modal input[name="composer"]', 'E2E Composer');
+  await page.fill('#submit-modal input[name="runTimeMinutes"]', '3');
+  await page.fill('#submit-modal input[name="runTimeSeconds"]', '45');
+  // Parts render in sortOrder, so the first checkbox is Soprano
+  await page.locator('#submit-modal input[name="parts"]').first().check();
   await page.setInputFiles('#submit-modal input[name="file"]', testPdf);
 
   await page.locator('button[type="submit"][form="submitArrangementForm"]').click();
@@ -47,6 +51,10 @@ test('member can submit an arrangement and it appears in review', async ({ page 
   await expect(page.locator('body')).toContainText(title);
   await expect(page.locator('body')).toContainText('In Review');
   await expect(page.locator('body')).toContainText('v1');
+
+  // Song-style metadata carries through to the detail page
+  await expect(page.locator('body')).toContainText('3:45');
+  await expect(page.locator('body')).toContainText('Soprano');
 
   // The PDF viewer starts collapsed and only expands when the reviewer asks for it
   const viewer = page.locator('embed[type="application/pdf"]');

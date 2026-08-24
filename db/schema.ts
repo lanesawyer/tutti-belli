@@ -265,11 +265,18 @@ export const Arrangement = sqliteTable('Arrangement', {
   title: text('title').notNull(),
   composer: text('composer'),
   arranger: text('arranger'),
+  runTime: integer('runTime'), // Runtime in seconds
   notes: text('notes'),
   status: text('status', { enum: ['in_review', 'approved', 'declined'] }).notNull().default('in_review'),
   submittedBy: text('submittedBy').notNull().references(() => User.id),
   approvedSongId: text('approvedSongId').references(() => Song.id), // Song created when adopted into the library
   createdAt: date('createdAt').notNull().default(NOW),
+});
+
+export const ArrangementPart = sqliteTable('ArrangementPart', {
+  id: text('id').primaryKey(),
+  arrangementId: text('arrangementId').notNull().references(() => Arrangement.id),
+  partId: text('partId').notNull().references(() => Part.id),
 });
 
 export const ArrangementVersion = sqliteTable('ArrangementVersion', {
