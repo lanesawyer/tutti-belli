@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "ab4d5db7-a434-48a5-880c-95c6715b4701",
+  "id": "4c9d8f7a-b49e-4d27-9db8-47f77a8f3aaf",
   "prevId": "ef2b5774-02fc-423e-937a-a05d285c737e",
   "tables": {
     "Announcement": {
@@ -126,6 +126,13 @@
         "arranger": {
           "name": "arranger",
           "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "runTime": {
+          "name": "runTime",
+          "type": "integer",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
@@ -275,6 +282,64 @@
           "tableTo": "User",
           "columnsFrom": [
             "userId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "ArrangementPart": {
+      "name": "ArrangementPart",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "arrangementId": {
+          "name": "arrangementId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "partId": {
+          "name": "partId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "ArrangementPart_arrangementId_Arrangement_id_fk": {
+          "name": "ArrangementPart_arrangementId_Arrangement_id_fk",
+          "tableFrom": "ArrangementPart",
+          "tableTo": "Arrangement",
+          "columnsFrom": [
+            "arrangementId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "ArrangementPart_partId_Part_id_fk": {
+          "name": "ArrangementPart_partId_Part_id_fk",
+          "tableFrom": "ArrangementPart",
+          "tableTo": "Part",
+          "columnsFrom": [
+            "partId"
           ],
           "columnsTo": [
             "id"

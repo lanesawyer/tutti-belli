@@ -19,15 +19,8 @@
     {
       "idx": 2,
       "version": "6",
-      "when": 1787541488355,
+      "when": 1787615507366,
       "tag": "0002_arrangements",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "6",
-      "when": 1787615061616,
-      "tag": "0003_arrangement_parts_runtime",
       "breakpoints": true
     }
   ]

@@ -4,6 +4,7 @@ CREATE TABLE `Arrangement` (
 	`title` text NOT NULL,
 	`composer` text,
 	`arranger` text,
+	`runTime` integer,
 	`notes` text,
 	`status` text DEFAULT 'in_review' NOT NULL,
 	`submittedBy` text NOT NULL,
@@ -22,6 +23,14 @@ CREATE TABLE `ArrangementComment` (
 	`createdAt` text DEFAULT CURRENT_TIMESTAMP NOT NULL,
 	FOREIGN KEY (`versionId`) REFERENCES `ArrangementVersion`(`id`) ON UPDATE no action ON DELETE no action,
 	FOREIGN KEY (`userId`) REFERENCES `User`(`id`) ON UPDATE no action ON DELETE no action
+);
+--> statement-breakpoint
+CREATE TABLE `ArrangementPart` (
+	`id` text PRIMARY KEY NOT NULL,
+	`arrangementId` text NOT NULL,
+	`partId` text NOT NULL,
+	FOREIGN KEY (`arrangementId`) REFERENCES `Arrangement`(`id`) ON UPDATE no action ON DELETE no action,
+	FOREIGN KEY (`partId`) REFERENCES `Part`(`id`) ON UPDATE no action ON DELETE no action
 );
 --> statement-breakpoint
 CREATE TABLE `ArrangementVersion` (
