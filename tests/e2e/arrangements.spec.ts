@@ -48,9 +48,12 @@ test('member can submit an arrangement and it appears in review', async ({ page 
   await expect(page.locator('body')).toContainText('In Review');
   await expect(page.locator('body')).toContainText('v1');
 
-  // The latest PDF version is embedded for inline review, expanded by default
+  // The PDF viewer starts collapsed and only expands when the reviewer asks for it
   const viewer = page.locator('embed[type="application/pdf"]');
   await expect(viewer).toHaveAttribute('src', /\/arrangement-files\/[0-9a-f-]+\?inline/);
+  await expect(page.locator('details[open]')).toHaveCount(0);
+
+  await page.getByText('Show PDF').first().click();
   await expect(page.locator('details[open] embed[type="application/pdf"]')).toHaveCount(1);
 });
 
