@@ -27,13 +27,21 @@ export function validateSongFile(file: File): { valid: boolean; error?: string }
 }
 
 export async function uploadSongFile(file: File, ensembleId: string): Promise<string> {
+  return uploadEnsembleFile(file, ensembleId, 'songs');
+}
+
+export async function uploadArrangementFile(file: File, ensembleId: string): Promise<string> {
+  return uploadEnsembleFile(file, ensembleId, 'arrangements');
+}
+
+async function uploadEnsembleFile(file: File, ensembleId: string, folder: string): Promise<string> {
   if (import.meta.env.STORAGE_DISABLED ?? process.env.STORAGE_DISABLED) {
     console.log(`[storage] disabled — skipping upload of "${file.name}"`);
-    return `https://storage.example.com/${ensembleId}/songs/${file.name}`;
+    return `https://storage.example.com/${ensembleId}/${folder}/${file.name}`;
   }
 
   const sanitizedName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-  const key = `${ensembleId}/songs/${crypto.randomUUID()}-${sanitizedName}`;
+  const key = `${ensembleId}/${folder}/${crypto.randomUUID()}-${sanitizedName}`;
 
   const buffer = await file.arrayBuffer();
 

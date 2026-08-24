@@ -15,6 +15,13 @@
       "when": 1784686627370,
       "tag": "0001_event_program_breaks",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1787541488355,
+      "tag": "0002_arrangements",
+      "breakpoints": true
     }
   ]
 }

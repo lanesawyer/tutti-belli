@@ -1,0 +1,239 @@
+---
+import {
+  Box,
+  Button,
+  FileInput,
+  Icon,
+  Modal,
+  Notification,
+  Select,
+  Table,
+  Tag,
+  TextInput,
+  Textarea,
+  Title,
+} from "astro-bulma";
+import EnsemblePageLayout from "@layouts/EnsemblePageLayout.astro";
+import { actions } from "astro:actions";
+import { getEnsembleBySlugOrId, getEnsembleAccess } from "@lib/ensemble";
+import { getEnsembleUrlId } from "@lib/slug";
+import { getEnsembleGroups } from "@lib/groups";
+import {
+  getEnsembleArrangements,
+  isArrangementReviewer,
+  statusLabel,
+  statusTagClass,
+} from "@lib/arrangements";
+
+const user = Astro.locals.user!;
+
+const { id } = Astro.params;
+const ensemble = await getEnsembleBySlugOrId(id!);
+
+if (!ensemble) {
+  return new Response("Ensemble not found", { status: 404 });
+}
+
+const canonicalId = getEnsembleUrlId(ensemble);
+if (Astro.request.method === "GET" && id !== canonicalId) {
+  return Astro.redirect(
+    Astro.url.pathname.replace(`/ensembles/${id}`, `/ensembles/${canonicalId}`),
+    301,
+  );
+}
+
+const access = await getEnsembleAccess(user, ensemble.id);
+if (!access)
+  return new Response("Unauthorized - Not a member", { status: 403 });
+const { isAdmin } = access;
+
+const canReview =
+  isAdmin || (await isArrangementReviewer(ensemble.id, user.id));
+
+const setReviewGroupResult = Astro.getActionResult(
+  actions.arrangements.setReviewGroup,
+);
+if (setReviewGroupResult && !setReviewGroupResult.error) {
+  return Astro.redirect(`/ensembles/${canonicalId}/arrangements`);
+}
+
+let message = Astro.url.searchParams.get("submitError") ?? "";
+let messageType: "success" | "danger" | undefined = message
+  ? "danger"
+  : undefined;
+
+if (setReviewGroupResult?.error) {
+  message =
+    setReviewGroupResult.error.message ?? "Failed to update review group.";
+  messageType = "danger";
+}
+
+const { arrangements, versionCounts } = await getEnsembleArrangements(
+  ensemble.id,
+  user.id,
+  canReview,
+);
+
+const groups = isAdmin ? await getEnsembleGroups(ensemble.id) : [];
+const reviewGroup =
+  groups.find((g) => g.id === ensemble.arrangementReviewGroupId) ?? null;
+---
+
+<EnsemblePageLayout
+  title={`Arrangements - ${ensemble.name}`}
+  ensembleName={ensemble.name}
+  ensembleId={canonicalId}
+  pageTitle="Arrangements"
+  pageSubtitle="Submit arrangements for review before they join the music library"
+  message={message}
+  messageType={messageType}
+  isAdmin={isAdmin}
+>
+  <Button slot="action" color="primary" id="submit-arrangement-btn">
+    <Icon icon="fa-plus" />
+    <span>Submit Arrangement</span>
+  </Button>
+
+  {
+    isAdmin && (
+      <Box>
+        <Title as="h3" size={5}>
+          <span class="icon-text">
+            <Icon icon="fa-user-check" />
+            <span>Review Group</span>
+          </span>
+        </Title>
+        <p class="mb-3">
+          Members of this group (e.g. an Artistic Guild) can see all submitted
+          arrangements, leave feedback, and approve or decline them.
+          {!reviewGroup &&
+            " No group is assigned yet, so only admins can review."}
+        </p>
+        <form
+          method="POST"
+          action={actions.arrangements.setReviewGroup}
+          class="is-flex is-align-items-flex-end"
+          style="gap: 0.75rem;"
+        >
+          <input type="hidden" name="ensembleId" value={ensemble.id} />
+          <Select name="groupId" label="Group" standalone>
+            <option value="">None (admins only)</option>
+            {groups.map((group) => (
+              <option
+                value={group.id}
+                selected={group.id === ensemble.arrangementReviewGroupId}
+              >
+                {group.name}
+              </option>
+            ))}
+          </Select>
+          <Button type="submit" color="info">
+            Save
+          </Button>
+        </form>
+      </Box>
+    )
+  }
+
+  {
+    !canReview && (
+      <Notification color="info" light>
+        You're viewing your own submissions. Arrangements are reviewed by the
+        ensemble's review group before being added to the music library.
+      </Notification>
+    )
+  }
+
+  {
+    arrangements.length === 0 ? (
+      <Notification color="info" light>
+        No arrangements {canReview ? "have been submitted" : "submitted"} yet.
+        Click "Submit Arrangement" to send one in for review.
+      </Notification>
+    ) : (
+      <Table>
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Arranger</th>
+            {canReview && <th>Submitted By</th>}
+            <th>Versions</th>
+            <th>Status</th>
+            <th>Submitted</th>
+          </tr>
+        </thead>
+        <tbody>
+          {arrangements.map((arrangement) => (
+            <tr>
+              <td>
+                <a
+                  href={`/ensembles/${canonicalId}/arrangements/${arrangement.id}`}
+                >
+                  <strong>{arrangement.title}</strong>
+                </a>
+                {arrangement.composer && (
+                  <p class="has-text-grey is-size-7">{arrangement.composer}</p>
+                )}
+              </td>
+              <td>{arrangement.arranger ?? "-"}</td>
+              {canReview && <td>{arrangement.submitterName}</td>}
+              <td>{versionCounts.get(arrangement.id) ?? 0}</td>
+              <td>
+                <Tag class={statusTagClass(arrangement.status)}>
+                  {statusLabel(arrangement.status)}
+                </Tag>
+              </td>
+              <td>{new Date(arrangement.createdAt).toLocaleDateString()}</td>
+            </tr>
+          ))}
+        </tbody>
+      </Table>
+    )
+  }
+
+  <Fragment slot="modals">
+    <Modal id="submit-modal" title="Submit Arrangement">
+      <form
+        id="submitArrangementForm"
+        method="POST"
+        action={`/ensembles/${canonicalId}/arrangements/submit`}
+        enctype="multipart/form-data"
+      >
+        <TextInput name="title" label="Title *" required />
+        <TextInput name="composer" label="Composer" />
+        <TextInput name="arranger" label="Arranger" />
+        <Textarea
+          name="notes"
+          label="Notes for reviewers"
+          rows={3}
+          placeholder="Anything the review group should know about this arrangement"
+        />
+        <FileInput
+          name="file"
+          id="submit-file"
+          label="Arrangement File *"
+          accept=".pdf,.mp3,application/pdf,audio/mpeg"
+          help="PDF or MP3, max 50 MB"
+        />
+      </form>
+
+      <div slot="footer">
+        <Button type="submit" form="submitArrangementForm" color="primary">
+          <Icon icon="fa-paper-plane" />
+          <span>Submit for Review</span>
+        </Button>
+        <Button type="button" data-modal-close>Cancel</Button>
+      </div>
+    </Modal>
+
+    <script is:inline>
+      document.addEventListener("astro:page-load", () => {
+        document
+          .getElementById("submit-arrangement-btn")
+          ?.addEventListener("click", () => {
+            document.getElementById("submit-modal")?.classList.add("is-active");
+          });
+      });
+    </script>
+  </Fragment>
+</EnsemblePageLayout>
