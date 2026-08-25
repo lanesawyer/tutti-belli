@@ -1,0 +1,435 @@
+---
+import {
+  Box,
+  Button,
+  FileInput,
+  Icon,
+  Modal,
+  Notification,
+  Tag,
+  Textarea,
+  Title,
+} from "astro-bulma";
+import EnsemblePageLayout from "@layouts/EnsemblePageLayout.astro";
+import AudioPlayer from "@components/song/AudioPlayer.astro";
+import { actions } from "astro:actions";
+import { getEnsembleBySlugOrId, getEnsembleAccess } from "@lib/ensemble";
+import { getEnsembleUrlId } from "@lib/slug";
+import { formatRuntime } from "@lib/songs";
+import {
+  getArrangementDetail,
+  isArrangementReviewer,
+  isAudioFile,
+  isPdfFile,
+  statusLabel,
+  statusTagClass,
+} from "@lib/arrangements";
+
+const user = Astro.locals.user!;
+
+const { id, arrangementId } = Astro.params;
+const ensemble = await getEnsembleBySlugOrId(id!);
+
+if (!ensemble) {
+  return new Response("Ensemble not found", { status: 404 });
+}
+
+const canonicalId = getEnsembleUrlId(ensemble);
+if (Astro.request.method === "GET" && id !== canonicalId) {
+  return Astro.redirect(
+    Astro.url.pathname.replace(`/ensembles/${id}`, `/ensembles/${canonicalId}`),
+    301,
+  );
+}
+
+const access = await getEnsembleAccess(user, ensemble.id);
+if (!access)
+  return new Response("Unauthorized - Not a member", { status: 403 });
+const { isAdmin } = access;
+
+const { arrangement, versions, comments, parts } = await getArrangementDetail(
+  arrangementId!,
+);
+if (!arrangement || arrangement.ensembleId !== ensemble.id) {
+  return new Response("Arrangement not found", { status: 404 });
+}
+
+const canReview =
+  isAdmin || (await isArrangementReviewer(ensemble.id, user.id));
+const isSubmitter = arrangement.submittedBy === user.id;
+if (!canReview && !isSubmitter) {
+  return new Response("Unauthorized", { status: 403 });
+}
+
+const canUpload = (isSubmitter || isAdmin) && arrangement.status !== "approved";
+const latestVersion = versions[0] ?? null;
+
+const approveResult = Astro.getActionResult(actions.arrangements.approve);
+if (approveResult && !approveResult.error) {
+  return Astro.redirect(
+    approveResult.data.songId
+      ? `/ensembles/${canonicalId}/songs/${approveResult.data.songId}`
+      : `/ensembles/${canonicalId}/arrangements`,
+  );
+}
+
+const commentResult = Astro.getActionResult(actions.arrangements.comment);
+const declineResult = Astro.getActionResult(actions.arrangements.decline);
+if (
+  (commentResult && !commentResult.error) ||
+  (declineResult && !declineResult.error)
+) {
+  return Astro.redirect(Astro.url.pathname);
+}
+
+let message = Astro.url.searchParams.get("uploadError") ?? "";
+let messageType: "success" | "danger" | undefined = message
+  ? "danger"
+  : undefined;
+
+if (approveResult?.error) {
+  message = approveResult.error.message ?? "Failed to approve arrangement.";
+  messageType = "danger";
+} else if (declineResult?.error) {
+  message = declineResult.error.message ?? "Failed to decline arrangement.";
+  messageType = "danger";
+} else if (commentResult?.error) {
+  message = commentResult.error.message ?? "Failed to post comment.";
+  messageType = "danger";
+}
+---
+
+<EnsemblePageLayout
+  title={`${arrangement.title} - ${ensemble.name}`}
+  ensembleName={ensemble.name}
+  ensembleId={canonicalId}
+  pageTitle={arrangement.title}
+  extraBreadcrumbs={[
+    ["Arrangements", `/ensembles/${canonicalId}/arrangements`],
+  ]}
+  message={message}
+  messageType={messageType}
+  isAdmin={isAdmin}
+>
+  <div slot="action" class="buttons">
+    {
+      canUpload && (
+        <Button color="primary" id="new-version-btn">
+          <Icon icon="fa-upload" />
+          <span>New Version</span>
+        </Button>
+      )
+    }
+    {
+      canReview && arrangement.status === "in_review" && (
+        <>
+          <Button color="success" id="approve-btn">
+            <Icon icon="fa-check" />
+            <span>Approve</span>
+          </Button>
+          <Button color="danger" id="decline-btn">
+            <Icon icon="fa-times" />
+            <span>Decline</span>
+          </Button>
+        </>
+      )
+    }
+  </div>
+
+  <Box>
+    <div
+      class="is-flex is-justify-content-space-between is-align-items-center mb-3"
+    >
+      <Title as="h3" size={5} class="mb-0">Details</Title>
+      <Tag class={statusTagClass(arrangement.status)}>
+        {statusLabel(arrangement.status)}
+      </Tag>
+    </div>
+    <p>
+      <strong>Composer:</strong>
+      {arrangement.composer ?? "-"}
+      <br />
+      <strong>Arranger:</strong>
+      {arrangement.arranger ?? "-"}
+      <br />
+      <strong>Runtime:</strong>
+      {formatRuntime(arrangement.runTime)}
+      <br />
+      <strong>Parts:</strong>
+      {parts.length > 0 ? parts.map((part) => part.name).join(", ") : "-"}
+      <br />
+      <strong>Submitted by:</strong>
+      {arrangement.submitterName} on{" "}
+      {new Date(arrangement.createdAt).toLocaleDateString()}
+    </p>
+    {
+      arrangement.notes && (
+        <p class="mt-3" style="white-space: pre-wrap;">
+          {arrangement.notes}
+        </p>
+      )
+    }
+    {
+      arrangement.status === "approved" && arrangement.approvedSongId && (
+        <Notification color="success" light class="mt-4 mb-0">
+          This arrangement has been adopted into the music library.{" "}
+          <a
+            href={`/ensembles/${canonicalId}/songs/${arrangement.approvedSongId}`}
+          >
+            View it in the song library
+          </a>
+          .
+        </Notification>
+      )
+    }
+  </Box>
+
+  <Box>
+    <Title as="h3" size={5}>
+      <span class="icon-text">
+        <Icon icon="fa-file-audio" />
+        <span>Versions</span>
+      </span>
+    </Title>
+    {
+      versions.map((version) => (
+        <div class="mb-5">
+          <div
+            class="is-flex is-justify-content-space-between is-align-items-center mb-1"
+            style="flex-wrap: wrap; gap: 0.5rem;"
+          >
+            <p>
+              <strong>v{version.versionNumber}</strong>
+              {version.id === latestVersion?.id && (
+                <Tag size="small" color="info" light class="ml-1">
+                  latest
+                </Tag>
+              )}
+              <span class="has-text-grey ml-2 is-size-7">
+                {version.uploaderName} ·{" "}
+                {new Date(version.uploadedAt).toLocaleDateString()}
+              </span>
+            </p>
+            <Button
+              href={`/arrangement-files/${version.id}`}
+              size="small"
+              title="Download"
+            >
+              <Icon icon="fa-download" size="small" />
+              <span>{version.fileName}</span>
+            </Button>
+          </div>
+          {version.notes && (
+            <p
+              class="is-size-7 has-text-grey mb-2"
+              style="white-space: pre-wrap;"
+            >
+              {version.notes}
+            </p>
+          )}
+          {isPdfFile(version.fileName) && (
+            <details>
+              <summary
+                class="is-clickable has-text-grey is-size-7"
+                style="list-style: none; display: flex; align-items: center; gap: 0.3rem; width: fit-content;"
+              >
+                <span
+                  class="pdf-arrow"
+                  style="display: inline-block; transition: transform 0.15s;"
+                >
+                  ▶
+                </span>
+                <span>Show PDF</span>
+              </summary>
+              <embed
+                src={`/arrangement-files/${version.id}?inline`}
+                type="application/pdf"
+                class="mt-2"
+                style="width: 100%; height: 80vh; min-height: 600px;"
+              />
+            </details>
+          )}
+          {isAudioFile(version.fileName) && (
+            <AudioPlayer
+              src={`/arrangement-files/${version.id}?inline`}
+              id={`audio-${version.id}`}
+            />
+          )}
+        </div>
+      ))
+    }
+  </Box>
+
+  <Box>
+    <Title as="h3" size={5}>
+      <span class="icon-text">
+        <Icon icon="fa-comments" />
+        <span>Feedback</span>
+      </span>
+    </Title>
+
+    {
+      comments.length === 0 ? (
+        <p class="has-text-grey mb-4">No feedback yet.</p>
+      ) : (
+        <div class="mb-4">
+          {comments.map((comment) => (
+            <div class="mb-4">
+              <p>
+                <strong>{comment.authorName}</strong>
+                <Tag size="small" class="mx-2">
+                  v{comment.versionNumber}
+                </Tag>
+                <small class="has-text-grey">
+                  {new Date(comment.createdAt).toLocaleString()}
+                </small>
+              </p>
+              <p style="white-space: pre-wrap;">{comment.content}</p>
+            </div>
+          ))}
+        </div>
+      )
+    }
+
+    {
+      latestVersion && (
+        <form method="POST" action={actions.arrangements.comment}>
+          <input type="hidden" name="versionId" value={latestVersion.id} />
+          <Textarea
+            name="content"
+            label={`Add feedback on v${latestVersion.versionNumber}`}
+            rows={3}
+            required
+          />
+          <Button type="submit" color="primary">
+            <Icon icon="fa-comment" />
+            <span>Post Feedback</span>
+          </Button>
+        </form>
+      )
+    }
+  </Box>
+
+  <Fragment slot="modals">
+    {
+      canUpload && (
+        <Modal id="version-modal" title="Upload New Version">
+          <form
+            id="versionForm"
+            method="POST"
+            action={`/ensembles/${canonicalId}/arrangements/${arrangement.id}/upload`}
+            enctype="multipart/form-data"
+          >
+            <FileInput
+              name="file"
+              id="version-file"
+              label="Arrangement File *"
+              accept=".pdf,.mp3,application/pdf,audio/mpeg"
+              help="PDF or MP3, max 50 MB"
+            />
+            <Textarea
+              name="notes"
+              label="What changed?"
+              rows={3}
+              placeholder="e.g. Rewrote the alto line based on feedback"
+            />
+          </form>
+
+          <div slot="footer">
+            <Button type="submit" form="versionForm" color="primary">
+              <Icon icon="fa-upload" />
+              <span>Upload Version</span>
+            </Button>
+            <Button type="button" data-modal-close>
+              Cancel
+            </Button>
+          </div>
+        </Modal>
+      )
+    }
+
+    {
+      canReview && arrangement.status === "in_review" && (
+        <>
+          <Modal id="approve-modal" title="Approve Arrangement">
+            <p>
+              Approving <strong>{arrangement.title}</strong> will add it to the
+              ensemble's song library along with the latest uploaded file
+              {latestVersion && ` (v${latestVersion.versionNumber})`}.
+            </p>
+            <form
+              id="approveForm"
+              method="POST"
+              action={actions.arrangements.approve}
+            >
+              <input
+                type="hidden"
+                name="arrangementId"
+                value={arrangement.id}
+              />
+            </form>
+
+            <div slot="footer">
+              <Button type="submit" form="approveForm" color="success">
+                <Icon icon="fa-check" />
+                <span>Approve &amp; Adopt</span>
+              </Button>
+              <Button type="button" data-modal-close>
+                Cancel
+              </Button>
+            </div>
+          </Modal>
+
+          <Modal id="decline-modal" title="Decline Arrangement">
+            <p>
+              Decline <strong>{arrangement.title}</strong>? The submitter can
+              still upload a new version to reopen the review.
+            </p>
+            <form
+              id="declineForm"
+              method="POST"
+              action={actions.arrangements.decline}
+            >
+              <input
+                type="hidden"
+                name="arrangementId"
+                value={arrangement.id}
+              />
+            </form>
+
+            <div slot="footer">
+              <Button type="submit" form="declineForm" color="danger">
+                <Icon icon="fa-times" />
+                <span>Decline</span>
+              </Button>
+              <Button type="button" data-modal-close>
+                Cancel
+              </Button>
+            </div>
+          </Modal>
+        </>
+      )
+    }
+
+    <script is:inline>
+      document.addEventListener("astro:page-load", () => {
+        const wire = (btnId, modalId) => {
+          document.getElementById(btnId)?.addEventListener("click", () => {
+            document.getElementById(modalId)?.classList.add("is-active");
+          });
+        };
+        wire("new-version-btn", "version-modal");
+        wire("approve-btn", "approve-modal");
+        wire("decline-btn", "decline-modal");
+
+        document.querySelectorAll("details").forEach((details) => {
+          const arrow = details.querySelector(".pdf-arrow");
+          if (!arrow) return;
+          details.addEventListener("toggle", () => {
+            arrow.style.transform = details.open ? "rotate(90deg)" : "";
+          });
+        });
+      });
+    </script>
+  </Fragment>
+</EnsemblePageLayout>

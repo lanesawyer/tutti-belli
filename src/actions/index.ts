@@ -10,6 +10,7 @@ import { auth } from './auth';
 import { groups } from './groups';
 import { seasons } from './seasons';
 import { announcements } from './announcements';
+import { arrangements } from './arrangements';
 
 export const server = {
   profile,
@@ -24,4 +25,5 @@ export const server = {
   groups,
   seasons,
   announcements,
+  arrangements,
 };
