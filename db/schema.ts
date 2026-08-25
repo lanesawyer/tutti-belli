@@ -36,7 +36,9 @@ export const Ensemble = sqliteTable('Ensemble', {
   codeOfConduct: text('codeOfConduct'),
   checkInStartMinutes: integer('checkInStartMinutes').notNull().default(30), // Minutes before event check-in opens
   checkInEndMinutes: integer('checkInEndMinutes').notNull().default(15), // Minutes after event start check-in closes
-  arrangementReviewGroupId: text('arrangementReviewGroupId'), // Group whose members review submitted arrangements
+  // Group whose members review submitted arrangements. The return type is
+  // annotated because Ensemble and Group reference each other circularly.
+  arrangementReviewGroupId: text('arrangementReviewGroupId').references((): any => Group.id),
   createdBy: text('createdBy').notNull().references(() => User.id),
   createdAt: date('createdAt').notNull().default(NOW),
 });

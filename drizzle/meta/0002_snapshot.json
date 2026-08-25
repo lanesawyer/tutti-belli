@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "4c9d8f7a-b49e-4d27-9db8-47f77a8f3aaf",
+  "id": "1402ed95-34ea-4b28-b08b-75eb50ddd853",
   "prevId": "ef2b5774-02fc-423e-937a-a05d285c737e",
   "tables": {
     "Announcement": {
@@ -784,6 +784,19 @@
         }
       },
       "foreignKeys": {
+        "Ensemble_arrangementReviewGroupId_Group_id_fk": {
+          "name": "Ensemble_arrangementReviewGroupId_Group_id_fk",
+          "tableFrom": "Ensemble",
+          "tableTo": "Group",
+          "columnsFrom": [
+            "arrangementReviewGroupId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
         "Ensemble_createdBy_User_id_fk": {
           "name": "Ensemble_createdBy_User_id_fk",
           "tableFrom": "Ensemble",

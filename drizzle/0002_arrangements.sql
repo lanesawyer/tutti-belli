@@ -46,4 +46,5 @@ CREATE TABLE `ArrangementVersion` (
 	FOREIGN KEY (`uploadedBy`) REFERENCES `User`(`id`) ON UPDATE no action ON DELETE no action
 );
 --> statement-breakpoint
-ALTER TABLE `Ensemble` ADD `arrangementReviewGroupId` text;
+-- `Group` is quoted by hand: drizzle-kit emits it bare here and GROUP is a SQLite keyword.
+ALTER TABLE `Ensemble` ADD `arrangementReviewGroupId` text REFERENCES `Group`(`id`);

@@ -19,7 +19,7 @@ import {
   SongFile,
   User,
 } from '@db';
-import { uploadArrangementFile, validateSongFile } from './storage';
+import { copyStorageFile, uploadArrangementFile, validateSongFile } from './storage';
 
 // ─── Access ─────────────────────────────────────────────────────────────────
 
@@ -383,11 +383,15 @@ export async function approveArrangement(
     await db.insert(SongPart).values({ id: crypto.randomUUID(), songId, partId });
   }
 
+  // Copy rather than share the object: deleting the song's file must not
+  // destroy the arrangement's version history, or vice versa.
+  const songFileUrl = await copyStorageFile(latest.url, arrangement.ensembleId, 'songs');
+
   await db.insert(SongFile).values({
     id: crypto.randomUUID(),
     songId,
     name: latest.fileName,
-    url: latest.url,
+    url: songFileUrl,
     category: isAudioFile(latest.fileName) ? 'rehearsal_track' : 'sheet_music',
     uploadedBy: approvedBy,
   });

@@ -29,6 +29,7 @@ vi.mock('../../src/lib/storage.ts', () => ({
   validateSongFile: vi.fn().mockReturnValue({ valid: true }),
   uploadArrangementFile: vi.fn().mockResolvedValue('https://storage.example.com/arrangement.pdf'),
   uploadSongFile: vi.fn().mockResolvedValue('https://storage.example.com/test.pdf'),
+  copyStorageFile: vi.fn().mockResolvedValue('https://storage.example.com/song-copy.pdf'),
   deleteStorageFile: vi.fn().mockResolvedValue(undefined),
 }));
 
@@ -318,6 +319,15 @@ describe('arrangements lib', () => {
       expect(files).toHaveLength(1);
       expect(files[0].category).toBe('sheet_music');
       expect(files[0].uploadedBy).toBe(admin!.id);
+
+      // The song owns a copy, not the arrangement's object, so deleting either
+      // file cannot destroy the other.
+      const version = await db
+        .select()
+        .from(ArrangementVersion)
+        .where(eq(ArrangementVersion.arrangementId, arrangementId!))
+        .get();
+      expect(files[0].url).not.toBe(version!.url);
 
       const arrangement = await db
         .select()

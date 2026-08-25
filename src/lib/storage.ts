@@ -1,4 +1,10 @@
-import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import {
+  S3Client,
+  PutObjectCommand,
+  GetObjectCommand,
+  DeleteObjectCommand,
+  CopyObjectCommand,
+} from '@aws-sdk/client-s3';
 
 const endpoint = (import.meta.env.STORAGE_ENDPOINT ?? process.env.STORAGE_ENDPOINT) as string;
 const region = endpoint.replace('https://s3.', '').replace('.backblazeb2.com', '');
@@ -55,6 +61,32 @@ async function uploadEnsembleFile(file: File, ensembleId: string, folder: string
   );
 
   return `${endpoint}/${bucket}/${key}`;
+}
+
+/**
+ * Duplicate a stored object so the copy has an independent lifecycle. Used when
+ * an arrangement is adopted into the library: the song's file and the
+ * arrangement's version history must survive each other's deletion.
+ */
+export async function copyStorageFile(url: string, ensembleId: string, folder: string): Promise<string> {
+  if (import.meta.env.STORAGE_DISABLED ?? process.env.STORAGE_DISABLED) {
+    console.log(`[storage] disabled — skipping copy of "${url}"`);
+    return url;
+  }
+
+  const sourceKey = keyFromUrl(url);
+  const fileName = sourceKey.split('/').pop() ?? 'file';
+  const destinationKey = `${ensembleId}/${folder}/${crypto.randomUUID()}-${fileName}`;
+
+  await client.send(
+    new CopyObjectCommand({
+      Bucket: bucket,
+      CopySource: `${bucket}/${sourceKey}`,
+      Key: destinationKey,
+    })
+  );
+
+  return `${endpoint}/${bucket}/${destinationKey}`;
 }
 
 export function keyFromUrl(url: string): string {
