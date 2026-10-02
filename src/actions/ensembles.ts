@@ -12,6 +12,7 @@ import {
 } from '@lib/ensemble';
 import { validateImageFile, fileToDataUri } from '@lib/upload';
 import { generateSlug } from '@lib/slug';
+import { randomCode } from '@lib/codes';
 
 export const ensembles = {
   join: defineAction({
@@ -42,7 +43,7 @@ export const ensembles = {
       const user = context.locals.user;
       if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
       await assertEnsembleAdmin(input.ensembleId, user);
-      const code = Math.random().toString(36).substring(2, 10).toUpperCase();
+      const code = randomCode();
       await db.insert(EnsembleInvite).values({
         id: crypto.randomUUID(),
         ensembleId: input.ensembleId,
@@ -71,7 +72,6 @@ export const ensembles = {
     accept: 'form',
     input: z.object({
       ensembleId: z.string(),
-      currentImageUrl: z.string().optional(),
       name: z.string().min(1, 'Ensemble name is required.'),
       slug: z.string().optional(),
       description: z.string().optional(),
@@ -108,8 +108,8 @@ export const ensembles = {
         newSlug = normalized;
       }
 
-      // Handle image
-      let imageUrl: string | null | undefined = input.currentImageUrl ?? null;
+      // Handle image. Undefined leaves the stored image as it is.
+      let imageUrl: string | null | undefined;
       if (input.removeImage === 'true') {
         imageUrl = null;
       }

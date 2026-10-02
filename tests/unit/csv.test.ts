@@ -51,6 +51,19 @@ describe('toCSV', () => {
     expect(line).toBe('Bob,5,');
   });
 
+  it('neutralizes text that a spreadsheet would run as a formula', () => {
+    for (const name of ['=HYPERLINK("https://evil.example")', '+SUM(1,2)', '-2+3', '@cmd', '\tTabbed']) {
+      const line = toCSV([{ name, count: 1, note: null }], columns).split('\r\n')[1];
+      const cell = line.startsWith('"') ? line.slice(1) : line;
+      expect(cell.startsWith("'"), JSON.stringify(name)).toBe(true);
+    }
+  });
+
+  it('leaves negative numbers and ordinary text alone', () => {
+    const csv = toCSV([{ name: 'Alice-Smith', count: -3, note: 'a=b' }], columns);
+    expect(csv.split('\r\n')[1]).toBe('Alice-Smith,-3,a=b');
+  });
+
   it('renders numeric values without quotes', () => {
     const csv = toCSV([{ name: 'Bob', count: 42, note: null }], columns);
     expect(csv.split('\r\n')[1]).toContain('42');
