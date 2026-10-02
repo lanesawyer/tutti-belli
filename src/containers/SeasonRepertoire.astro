@@ -1,6 +1,6 @@
 ---
 import { Button, Notification } from "astro-bulma";
-import { db, eq, Season, SeasonSong, Song, and } from "@db";
+import { getActiveSeasonRepertoire } from "@lib/songs";
 import DashboardSection from "@components/DashboardSection.astro";
 
 interface Props {
@@ -11,25 +11,9 @@ interface Props {
 
 const { ensembleId, canonicalId, isAdmin } = Astro.props;
 
-const [currentSeason] = await db
-  .select()
-  .from(Season)
-  .where(and(eq(Season.ensembleId, ensembleId), eq(Season.isActive, 1)));
-
-if (!currentSeason) return;
-
-const seasonSongs = await db
-  .select({
-    id: Song.id,
-    name: Song.name,
-    composer: Song.composer,
-    arranger: Song.arranger,
-    runTime: Song.runTime,
-  })
-  .from(SeasonSong)
-  .innerJoin(Song, eq(SeasonSong.songId, Song.id))
-  .where(eq(SeasonSong.seasonId, currentSeason.id))
-  .orderBy(Song.name);
+const repertoire = await getActiveSeasonRepertoire(ensembleId);
+if (!repertoire) return;
+const { season: currentSeason, songs: seasonSongs } = repertoire;
 ---
 
 <DashboardSection

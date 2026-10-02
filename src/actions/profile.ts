@@ -1,7 +1,7 @@
 import { defineAction, ActionError } from 'astro:actions';
 import { z } from 'astro/zod';
 import { assertPartsInEnsemble } from './utils';
-import { db, eq, EnsembleMember } from '@db';
+import { getMembershipById } from '@lib/ensemble';
 import {
   updateName,
   updatePhone,
@@ -124,7 +124,7 @@ export const profile = {
     handler: async ({ membershipId, partIds }, context) => {
       const user = context.locals.user;
       if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
-      const membership = await db.select().from(EnsembleMember).where(eq(EnsembleMember.id, membershipId)).get();
+      const membership = await getMembershipById(membershipId);
       if (!membership || membership.userId !== user.id) {
         throw new ActionError({ code: 'FORBIDDEN' });
       }

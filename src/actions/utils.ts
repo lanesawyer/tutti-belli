@@ -1,5 +1,5 @@
 import { ActionError } from 'astro:actions';
-import { db, eq, and, EnsembleMember } from '@db';
+import { getEnsembleMembership } from '@lib/ensemble';
 import { canManageEnsemble } from '@lib/permissions';
 import { isInEnsemble, isUserInEnsemble, partsInEnsemble, type OwnedKind } from '@lib/ownership';
 
@@ -10,11 +10,7 @@ export function assertSiteAdmin(user: { role: string } | undefined | null) {
 }
 
 export async function assertEnsembleAdmin(ensembleId: string, user: { id: string; role: string }) {
-  const membership = await db
-    .select()
-    .from(EnsembleMember)
-    .where(and(eq(EnsembleMember.ensembleId, ensembleId), eq(EnsembleMember.userId, user.id)))
-    .get();
+  const membership = await getEnsembleMembership(ensembleId, user.id);
 
   if (!canManageEnsemble(user, membership)) {
     throw new ActionError({ code: 'FORBIDDEN' });
@@ -22,11 +18,7 @@ export async function assertEnsembleAdmin(ensembleId: string, user: { id: string
 }
 
 export async function assertEnsembleMember(ensembleId: string, user: { id: string; role: string }) {
-  const membership = await db
-    .select()
-    .from(EnsembleMember)
-    .where(and(eq(EnsembleMember.ensembleId, ensembleId), eq(EnsembleMember.userId, user.id)))
-    .get();
+  const membership = await getEnsembleMembership(ensembleId, user.id);
 
   if (!membership) {
     throw new ActionError({ code: 'FORBIDDEN' });

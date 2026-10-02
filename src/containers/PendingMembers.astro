@@ -1,5 +1,5 @@
 ---
-import { db, eq, and, EnsembleMember, User } from "@db";
+import { getPendingMembers } from "@lib/ensemble";
 import { actions } from "astro:actions";
 import { Box, Button, Content, Icon, Image, Media, Title } from "astro-bulma";
 import { getInitials, getColorFromInitials } from "@lib/avatar";
@@ -10,23 +10,7 @@ interface Props {
 
 const { ensembleId } = Astro.props;
 
-const pendingMembers = await db
-  .select({
-    id: User.id,
-    name: User.name,
-    email: User.email,
-    avatarUrl: User.avatarUrl,
-    joinedAt: EnsembleMember.joinedAt,
-    membershipId: EnsembleMember.id,
-  })
-  .from(EnsembleMember)
-  .innerJoin(User, eq(EnsembleMember.userId, User.id))
-  .where(
-    and(
-      eq(EnsembleMember.ensembleId, ensembleId),
-      eq(EnsembleMember.status, "pending"),
-    ),
-  );
+const pendingMembers = await getPendingMembers(ensembleId);
 
 if (pendingMembers.length === 0) return;
 ---
