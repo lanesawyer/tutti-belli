@@ -104,6 +104,10 @@ jobs:
 
       - name: Set runtime secrets
         run: |
+          if [ -z "$JWT_SECRET" ]; then
+            echo "::error::The JWT_SECRET repository secret is not set, so nobody could log in to the preview."
+            exit 1
+          fi
           flyctl secrets set \
             JWT_SECRET="$JWT_SECRET" \
             EMAIL_API_KEY="$EMAIL_API_KEY" \
