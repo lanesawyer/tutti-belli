@@ -6,7 +6,7 @@ import {
   updateAnnouncement,
   deleteAnnouncement,
 } from '../../src/lib/announcements.ts';
-import { createUser, createEnsemble, createMembership } from './fixtures.ts';
+import { createUser, createEnsemble } from './fixtures.ts';
 
 // Prevent real email/Discord calls
 vi.mock('../../src/lib/email.ts', () => ({ sendAnnouncementEmail: vi.fn().mockResolvedValue(undefined) }));
