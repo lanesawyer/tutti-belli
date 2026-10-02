@@ -75,6 +75,8 @@ Form mutations use **Astro Actions** (`src/actions/`). Do not use the old patter
 - **Three permission tiers**: Site admin (`User.role = 'admin'`), ensemble admin (`EnsembleMember.role = 'admin'`), and regular member
 - Sessions are JWT tokens (30-day expiry) in HTTP-only cookies, signed with `JWT_SECRET`
 - Passwords hashed with bcryptjs (10 rounds)
+- CSRF: Astro's `checkOrigin` is on. Fly terminates TLS, so `security.allowedDomains` in `astro.config.mjs` lists the hosts whose `X-Forwarded-Proto`/`Host` Astro trusts to rebuild the https URL; add any new domain there or its form POSTs will 403
+- Failed logins and password-reset requests are rate-limited in memory per email and per client IP (`src/lib/rate-limit.ts`; the IP comes from Fly's `Fly-Client-IP` header)
 
 ### Database Schema
 Defined in `db/schema.ts` (drizzle `sqliteTable` definitions, 26 tables). Seed data in `db/seed.ts`. Key relationships:
