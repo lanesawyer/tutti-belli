@@ -22,7 +22,6 @@
     "test:e2e:ui": "playwright test --ui"
   },
   "dependencies": {
-    "@astrojs/check": "0.9.9",
     "@astrojs/node": "11.0.2",
     "@aws-sdk/client-s3": "3.1087.0",
     "@libsql/client": "0.17.4",
@@ -36,6 +35,7 @@
     "resend": "6.17.2"
   },
   "devDependencies": {
+    "@astrojs/check": "0.9.9",
     "@playwright/test": "1.61.1",
     "@types/jsonwebtoken": "9.0.10",
     "@types/qrcode": "1.5.6",
