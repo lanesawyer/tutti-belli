@@ -20,7 +20,15 @@ export default defineConfig({
     mode: 'standalone',
   }),
   security: {
-    checkOrigin: false
+    // Fly terminates TLS, so the server sees plain http. Trusting X-Forwarded-Proto/Host for
+    // these hosts lets Astro rebuild the real https URL, which its CSRF origin check
+    // (checkOrigin, on by default) compares against the browser's Origin header.
+    allowedDomains: [
+      { hostname: 'tuttibelli.org', protocol: 'https' },
+      { hostname: '*.tuttibelli.org', protocol: 'https' },
+      // tutti-belli.fly.dev and the per-PR preview apps
+      { hostname: '*.fly.dev', protocol: 'https' },
+    ],
   },
   vite: {
     resolve: {

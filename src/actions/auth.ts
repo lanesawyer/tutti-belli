@@ -5,6 +5,25 @@ import { createSession } from '@lib/session';
 import { getRedirectUrl } from '@lib/redirect';
 import { sendPasswordResetEmail } from '@lib/email';
 import { validatePasswordResetToken, resetPassword as doResetPassword } from '@lib/profile';
+import {
+  clientIp,
+  failedLoginsByEmail,
+  failedLoginsByIp,
+  passwordResetsByEmail,
+  passwordResetsByIp,
+  retryAfter,
+  tooManyAttemptsMessage,
+} from '@lib/rate-limit';
+
+function requestIp(context: { request: Request; clientAddress: string }): string {
+  let address: string | undefined;
+  try {
+    address = context.clientAddress;
+  } catch {
+    // adapter couldn't determine it
+  }
+  return clientIp(context.request, address);
+}
 
 export const auth = {
   login: defineAction({
@@ -15,11 +34,24 @@ export const auth = {
       redirect: z.string().optional(),
     }),
     handler: async ({ email, password, redirect }, context) => {
+      const emailKey = email.trim().toLowerCase();
+      const ip = requestIp(context);
+      const wait = retryAfter([
+        [failedLoginsByEmail, emailKey],
+        [failedLoginsByIp, ip],
+      ]);
+      if (wait) {
+        throw new ActionError({ code: 'TOO_MANY_REQUESTS', message: tooManyAttemptsMessage(wait) });
+      }
+
       const user = await getUserByEmail(email);
 
       if (!user || !(await verifyPassword(password, user.passwordHash))) {
+        failedLoginsByEmail.record(emailKey);
+        failedLoginsByIp.record(ip);
         throw new ActionError({ code: 'UNAUTHORIZED', message: 'Invalid email or password' });
       }
+      failedLoginsByEmail.reset(emailKey);
 
       if (!user.emailVerifiedAt) {
         throw new ActionError({ code: 'FORBIDDEN', message: `unverified:${email}` });
@@ -44,7 +76,19 @@ export const auth = {
     input: z.object({
       email: z.string().min(1, 'Email is required.'),
     }),
-    handler: async ({ email }) => {
+    handler: async ({ email }, context) => {
+      const emailKey = email.trim().toLowerCase();
+      const ip = requestIp(context);
+      const wait = retryAfter([
+        [passwordResetsByEmail, emailKey],
+        [passwordResetsByIp, ip],
+      ]);
+      if (wait) {
+        throw new ActionError({ code: 'TOO_MANY_REQUESTS', message: tooManyAttemptsMessage(wait) });
+      }
+      passwordResetsByEmail.record(emailKey);
+      passwordResetsByIp.record(ip);
+
       const user = await getUserByEmail(email);
 
       if (user) {
