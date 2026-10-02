@@ -226,6 +226,8 @@ export async function addSongFile(
   if (category === 'link') {
     url = input.fileUrl?.trim() ?? '';
     if (!url) return { error: 'A URL is required for links.' };
+    // Links render as <a href> for every member, so only allow web URLs (no javascript: etc.).
+    if (!/^https?:\/\//i.test(url)) return { error: 'Links must start with http:// or https://.' };
   } else if (input.file && input.file.size > 0) {
     if (!ensembleId) return { error: 'Missing ensemble context for upload.' };
     const validation = validateSongFile(input.file);

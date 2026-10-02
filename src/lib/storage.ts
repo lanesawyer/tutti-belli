@@ -1,26 +1,20 @@
-import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand, NoSuchKey } from '@aws-sdk/client-s3';
 
+// Song files live in a Tigris bucket. `fly storage create -a <app>` sets these variables on the
+// app; the SDK also reads AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY from the environment.
 // Built on first use rather than at import, so pages that import this module (and tests)
 // load without storage credentials; only an actual upload, download, or delete needs them.
-let cached: { client: S3Client; endpoint: string; bucket: string } | null = null;
+let cached: { client: S3Client; bucket: string } | null = null;
 
 function storage() {
   if (cached) return cached;
-  const endpoint = process.env.STORAGE_ENDPOINT;
-  const bucket = process.env.STORAGE_BUCKET;
+  const endpoint = process.env.AWS_ENDPOINT_URL_S3;
+  const bucket = process.env.BUCKET_NAME;
   if (!endpoint || !bucket) {
-    throw new Error('File storage is not configured: set STORAGE_ENDPOINT and STORAGE_BUCKET.');
+    throw new Error('File storage is not configured: set AWS_ENDPOINT_URL_S3 and BUCKET_NAME.');
   }
-  const region = endpoint.replace('https://s3.', '').replace('.backblazeb2.com', '');
-  const client = new S3Client({
-    endpoint,
-    region,
-    credentials: {
-      accessKeyId: process.env.STORAGE_KEY_ID ?? '',
-      secretAccessKey: process.env.STORAGE_KEY ?? '',
-    },
-  });
-  cached = { client, endpoint, bucket };
+  const client = new S3Client({ endpoint, region: process.env.AWS_REGION ?? 'auto' });
+  cached = { client, bucket };
   return cached;
 }
 
@@ -37,18 +31,18 @@ export function validateSongFile(file: File): { valid: boolean; error?: string }
   return { valid: true };
 }
 
+/** Uploads a song file and returns its object key, which is what SongFile.url stores. */
 export async function uploadSongFile(file: File, ensembleId: string): Promise<string> {
-  if (process.env.STORAGE_DISABLED) {
-    console.log(`[storage] disabled — skipping upload of "${file.name}"`);
-    return `https://storage.example.com/${ensembleId}/songs/${file.name}`;
-  }
-
   const sanitizedName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
   const key = `${ensembleId}/songs/${crypto.randomUUID()}-${sanitizedName}`;
 
-  const buffer = await file.arrayBuffer();
-  const { client, endpoint, bucket } = storage();
+  if (process.env.STORAGE_DISABLED) {
+    console.log(`[storage] disabled — skipping upload of "${file.name}"`);
+    return key;
+  }
 
+  const buffer = await file.arrayBuffer();
+  const { client, bucket } = storage();
   await client.send(
     new PutObjectCommand({
       Bucket: bucket,
@@ -57,36 +51,32 @@ export async function uploadSongFile(file: File, ensembleId: string): Promise<st
       ContentType: file.type,
     })
   );
-
-  return `${endpoint}/${bucket}/${key}`;
+  return key;
 }
 
-export function keyFromUrl(url: string): string {
-  const { endpoint, bucket } = storage();
-  const prefix = `${endpoint}/${bucket}/`;
-  return url.startsWith(prefix) ? url.slice(prefix.length) : url;
-}
-
-export async function deleteStorageFile(url: string): Promise<void> {
+export async function deleteStorageFile(key: string): Promise<void> {
   if (process.env.STORAGE_DISABLED) {
-    console.log(`[storage] disabled — skipping delete of "${url}"`);
+    console.log(`[storage] disabled — skipping delete of "${key}"`);
     return;
   }
 
   const { client, bucket } = storage();
-  const key = keyFromUrl(url);
   await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));
 }
 
+/** Streams an object, or returns null if it doesn't exist. */
 export async function getFileStream(
-  url: string,
+  key: string,
   range?: string
-): Promise<{ body: ReadableStream; contentType: string; contentLength?: number; contentRange?: string; status: number }> {
+): Promise<{ body: ReadableStream; contentType: string; contentLength?: number; contentRange?: string; status: number } | null> {
   const { client, bucket } = storage();
-  const key = keyFromUrl(url);
-  const response = await client.send(
-    new GetObjectCommand({ Bucket: bucket, Key: key, Range: range })
-  );
+  let response;
+  try {
+    response = await client.send(new GetObjectCommand({ Bucket: bucket, Key: key, Range: range }));
+  } catch (error) {
+    if (error instanceof NoSuchKey) return null;
+    throw error;
+  }
 
   if (!response.Body) throw new Error('Empty response from storage');
 

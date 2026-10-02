@@ -52,7 +52,7 @@ See `.env.example`.
 | `DATABASE_URL` | Local libSQL URL that overrides Turso; `pnpm dev` and the tests set it for you |
 | `JWT_SECRET` | Signs session tokens |
 | `EMAIL_API_KEY`, `EMAIL_FROM` | Resend, for verification and password-reset email |
-| `STORAGE_KEY_ID`, `STORAGE_KEY`, `STORAGE_BUCKET`, `STORAGE_ENDPOINT` | S3-compatible storage (Backblaze B2) for song files |
+| `AWS_ENDPOINT_URL_S3`, `AWS_REGION`, `BUCKET_NAME`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` | Tigris object storage (Fly.io) for song files |
 | `STORAGE_DISABLED` | Set to skip real uploads and deletes |
 | `DISCORD_DISABLED` | Set to skip Discord posts |
 
@@ -84,13 +84,13 @@ pnpm db:migrate    # Apply migrations to the remote database
 - [Drizzle ORM](https://orm.drizzle.team/) on [libSQL](https://github.com/tursodatabase/libsql) / [Turso](https://turso.tech/)
 - [Bulma](https://bulma.io/) 1.0 through [`astro-bulma`](https://github.com/lanesawyer/astro-bulma) components, with [Font Awesome](https://fontawesome.com/) 6 icons
 - JWT sessions in an HTTP-only cookie; passwords hashed with bcrypt
-- [Resend](https://resend.com/) for email, Backblaze B2 for file storage
+- [Resend](https://resend.com/) for email, Tigris (Fly.io) for file storage
 - Vitest and Playwright for tests, Oxlint for linting
 - Deployed on [Fly.io](https://fly.io/) with Docker, with a preview app per pull request
 
 ## Self-Hosting
 
-See [docs/self-hosting.md](docs/self-hosting.md) for the external services (Turso, Resend, Backblaze B2), environment variables, Docker, Fly.io deployment, and first-login setup.
+See [docs/self-hosting.md](docs/self-hosting.md) for the external services (Turso, Resend, Tigris), environment variables, Docker, Fly.io deployment, and first-login setup.
 
 ## License
 

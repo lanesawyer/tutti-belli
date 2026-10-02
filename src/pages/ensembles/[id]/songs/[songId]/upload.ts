@@ -2,6 +2,7 @@ import type { APIRoute } from 'astro';
 import { canManageEnsemble } from '@lib/permissions';
 import { addSongFile } from '@lib/songs';
 import { getEnsembleBySlugOrId, getEnsembleMembership } from '@lib/ensemble';
+import { isInEnsemble } from '@lib/ownership';
 
 export const POST: APIRoute = async ({ params, locals, request, redirect }) => {
   const user = locals.user;
@@ -17,6 +18,9 @@ export const POST: APIRoute = async ({ params, locals, request, redirect }) => {
 
   if (!canManageEnsemble(user, membership)) {
     return new Response('Forbidden', { status: 403 });
+  }
+  if (!(await isInEnsemble('song', songId, ensemble.id))) {
+    return new Response('Not found', { status: 404 });
   }
 
   let formData: FormData;
