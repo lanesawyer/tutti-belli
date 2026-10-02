@@ -14,6 +14,7 @@ const sharedAlias = {
 const sharedEnv = {
   DATABASE_URL: 'file::memory:?cache=shared',
   EMAIL_DISABLED: 'true',
+  JWT_SECRET: 'test-secret',
 };
 
 export default defineConfig({
