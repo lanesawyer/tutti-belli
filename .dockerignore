@@ -24,3 +24,14 @@
 # jetbrains setting folder
 **/.idea
 fly.toml
+
+# not needed to build or run the app
+.git
+.github
+.claude
+.vscode
+docs
+tests
+coverage
+playwright-report
+test-results
