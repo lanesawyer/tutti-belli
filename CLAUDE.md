@@ -134,7 +134,7 @@ pnpm test:e2e:ui           # Playwright UI mode
 
 Three tiers — write tests at the appropriate level for new code:
 
-- **Unit** (`tests/unit/`) — Pure functions in `src/lib/` with no DB or external deps. Use Vitest. If a file imports `storage.ts`, mock it first (it has module-level S3 side effects that crash without env vars).
+- **Unit** (`tests/unit/`) — Pure functions in `src/lib/` with no DB or external deps. Use Vitest. If code under test uploads, downloads, or deletes files, mock `storage.ts` so tests never reach real S3.
 - **Integration** (`tests/integration/`) — `src/lib/` functions that query the DB. Use Vitest with a real in-memory LibSQL DB (`DATABASE_URL` is set in `vitest.config.ts`; `tests/integration/setup.ts` recreates the schema from the `drizzle/` migrations before each test). Use fixture helpers from `tests/integration/fixtures.ts` to create test data. Mock storage the same way as unit tests.
 - **E2E** (`tests/e2e/`) — Full browser flows via Playwright. Use the `chromium-admin` project (admin auth state) for admin-gated pages. Navigate to ensemble sub-pages by constructing the URL from `page.url()` rather than clicking navbar dropdown links (they are hidden until hovered in Bulma). Submit buttons that use `form="formId"` to associate with a form outside their DOM parent must be located with `button[type="submit"][form="formId"]`.
 

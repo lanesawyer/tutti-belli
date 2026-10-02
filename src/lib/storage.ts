@@ -1,17 +1,28 @@
 import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 
-const endpoint = process.env.STORAGE_ENDPOINT as string;
-const region = endpoint.replace('https://s3.', '').replace('.backblazeb2.com', '');
-const bucket = process.env.STORAGE_BUCKET as string;
+// Built on first use rather than at import, so pages that import this module (and tests)
+// load without storage credentials; only an actual upload, download, or delete needs them.
+let cached: { client: S3Client; endpoint: string; bucket: string } | null = null;
 
-const client = new S3Client({
-  endpoint,
-  region,
-  credentials: {
-    accessKeyId: process.env.STORAGE_KEY_ID as string,
-    secretAccessKey: process.env.STORAGE_KEY as string,
-  },
-});
+function storage() {
+  if (cached) return cached;
+  const endpoint = process.env.STORAGE_ENDPOINT;
+  const bucket = process.env.STORAGE_BUCKET;
+  if (!endpoint || !bucket) {
+    throw new Error('File storage is not configured: set STORAGE_ENDPOINT and STORAGE_BUCKET.');
+  }
+  const region = endpoint.replace('https://s3.', '').replace('.backblazeb2.com', '');
+  const client = new S3Client({
+    endpoint,
+    region,
+    credentials: {
+      accessKeyId: process.env.STORAGE_KEY_ID ?? '',
+      secretAccessKey: process.env.STORAGE_KEY ?? '',
+    },
+  });
+  cached = { client, endpoint, bucket };
+  return cached;
+}
 
 const ALLOWED_TYPES = ['application/pdf', 'audio/mpeg', 'audio/mp3'];
 const MAX_SIZE_BYTES = 50 * 1024 * 1024; // 50 MB
@@ -36,6 +47,7 @@ export async function uploadSongFile(file: File, ensembleId: string): Promise<st
   const key = `${ensembleId}/songs/${crypto.randomUUID()}-${sanitizedName}`;
 
   const buffer = await file.arrayBuffer();
+  const { client, endpoint, bucket } = storage();
 
   await client.send(
     new PutObjectCommand({
@@ -50,6 +62,7 @@ export async function uploadSongFile(file: File, ensembleId: string): Promise<st
 }
 
 export function keyFromUrl(url: string): string {
+  const { endpoint, bucket } = storage();
   const prefix = `${endpoint}/${bucket}/`;
   return url.startsWith(prefix) ? url.slice(prefix.length) : url;
 }
@@ -60,6 +73,7 @@ export async function deleteStorageFile(url: string): Promise<void> {
     return;
   }
 
+  const { client, bucket } = storage();
   const key = keyFromUrl(url);
   await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));
 }
@@ -68,6 +82,7 @@ export async function getFileStream(
   url: string,
   range?: string
 ): Promise<{ body: ReadableStream; contentType: string; contentLength?: number; contentRange?: string; status: number }> {
+  const { client, bucket } = storage();
   const key = keyFromUrl(url);
   const response = await client.send(
     new GetObjectCommand({ Bucket: bucket, Key: key, Range: range })
