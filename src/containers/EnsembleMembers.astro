@@ -1,16 +1,5 @@
 ---
-import {
-  db,
-  eq,
-  and,
-  inArray,
-  EnsembleMember,
-  User,
-  Part,
-  MemberPart,
-  Group,
-  GroupMembership,
-} from "@db";
+import { getEnsembleMembersOverview } from "@lib/ensemble";
 import DashboardSection from "@components/DashboardSection.astro";
 import MemberCard from "@components/MemberCard.astro";
 import { Column, Columns, Tabs } from "astro-bulma";
@@ -23,43 +12,13 @@ interface Props {
 
 const { ensembleId, canonicalId, isAdmin } = Astro.props;
 
-const membersData = await db
-  .select({
-    id: User.id,
-    name: User.name,
-    email: User.email,
-    avatarUrl: User.avatarUrl,
-    role: EnsembleMember.role,
-    status: EnsembleMember.status,
-    joinedAt: EnsembleMember.joinedAt,
-    membershipId: EnsembleMember.id,
-  })
-  .from(EnsembleMember)
-  .innerJoin(User, eq(EnsembleMember.userId, User.id))
-  .where(
-    and(
-      eq(EnsembleMember.ensembleId, ensembleId),
-      eq(EnsembleMember.status, "active"),
-    ),
-  );
-
-const allParts = await db
-  .select()
-  .from(Part)
-  .where(eq(Part.ensembleId, ensembleId))
-  .all();
-
-allParts.sort((a, b) => a.sortOrder - b.sortOrder);
-
-const membershipIds = membersData.map((m) => m.membershipId);
-const memberPartRows =
-  membershipIds.length > 0
-    ? await db
-        .select()
-        .from(MemberPart)
-        .where(inArray(MemberPart.membershipId, membershipIds))
-        .all()
-    : [];
+const {
+  members: membersData,
+  parts: allParts,
+  memberParts: memberPartRows,
+  groups,
+  groupMemberships,
+} = await getEnsembleMembersOverview(ensembleId);
 
 const memberPartIdsByMembership = new Map<string, string[]>();
 for (const mp of memberPartRows) {
@@ -68,16 +27,6 @@ for (const mp of memberPartRows) {
   }
   memberPartIdsByMembership.get(mp.membershipId)!.push(mp.partId);
 }
-
-const groups = await db
-  .select()
-  .from(Group)
-  .where(eq(Group.ensembleId, ensembleId))
-  .all();
-
-const groupMemberships = await db
-  .select({ groupId: GroupMembership.groupId, userId: GroupMembership.userId })
-  .from(GroupMembership);
 
 const userGroups = new Map<string, typeof groups>();
 for (const gm of groupMemberships) {

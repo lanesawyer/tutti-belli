@@ -1,7 +1,7 @@
 import { defineAction, ActionError } from 'astro:actions';
 import { z } from 'astro/zod';
-import { db, eq, Part, MemberPart } from '@db';
 import { assertEnsembleAdmin, assertInEnsemble } from './utils';
+import { addPart, editPart, deletePart } from '@lib/ensemble';
 
 export const parts = {
   add: defineAction({
@@ -16,12 +16,7 @@ export const parts = {
       if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
       await assertEnsembleAdmin(ensembleId, user);
 
-      await db.insert(Part).values({
-        id: crypto.randomUUID(),
-        ensembleId,
-        name: name.trim(),
-        sortOrder,
-      });
+      await addPart(ensembleId, name.trim(), sortOrder);
     },
   }),
 
@@ -39,10 +34,7 @@ export const parts = {
       await assertEnsembleAdmin(ensembleId, user);
       await assertInEnsemble('part', partId, ensembleId);
 
-      await db
-        .update(Part)
-        .set({ name: name.trim(), sortOrder })
-        .where(eq(Part.id, partId));
+      await editPart(partId, ensembleId, name.trim(), sortOrder);
     },
   }),
 
@@ -58,20 +50,10 @@ export const parts = {
       await assertEnsembleAdmin(ensembleId, user);
       await assertInEnsemble('part', partId, ensembleId);
 
-      const membersWithPart = await db
-        .select()
-        .from(MemberPart)
-        .where(eq(MemberPart.partId, partId))
-        .all();
-
-      if (membersWithPart.length > 0) {
-        throw new ActionError({
-          code: 'BAD_REQUEST',
-          message: 'Cannot delete a part that has members assigned to it.',
-        });
+      const result = await deletePart(partId, ensembleId);
+      if (!result.ok) {
+        throw new ActionError({ code: 'BAD_REQUEST', message: result.error });
       }
-
-      await db.delete(Part).where(eq(Part.id, partId));
     },
   }),
 };

@@ -1,5 +1,5 @@
 ---
-import { db, eq, EventProgram, Song } from "@db";
+import { getTimedProgramEntries } from "@lib/events";
 
 interface Props {
   eventId: string;
@@ -10,30 +10,7 @@ interface Props {
 
 const { eventId, isPerformance, scheduledAt, durationMinutes } = Astro.props;
 
-const timedEntries = isPerformance
-  ? []
-  : await db
-      .select({
-        type: EventProgram.type,
-        label: EventProgram.label,
-        songName: Song.name,
-        sortOrder: EventProgram.sortOrder,
-        length: EventProgram.length,
-      })
-      .from(EventProgram)
-      .leftJoin(Song, eq(EventProgram.songId, Song.id))
-      .where(eq(EventProgram.eventId, eventId))
-      .orderBy(EventProgram.sortOrder)
-      .all()
-      .then((rows) =>
-        rows
-          .filter((r) => r.length != null)
-          .map((r) => ({
-            ...r,
-            displayName:
-              r.type === "song" ? (r.songName ?? "") : (r.label ?? r.type),
-          })),
-      );
+const timedEntries = isPerformance ? [] : await getTimedProgramEntries(eventId);
 
 // Time markers: start, middle, end
 const markers = [0, durationMinutes / 2, durationMinutes].map((offset) => {

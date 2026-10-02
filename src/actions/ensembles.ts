@@ -1,6 +1,5 @@
 import { defineAction, ActionError } from 'astro:actions';
 import { z } from 'astro/zod';
-import { db, eq, EnsembleInvite } from '@db';
 import { assertEnsembleAdmin, assertInEnsemble } from './utils';
 import {
   joinEnsembleWithCode,
@@ -9,6 +8,8 @@ import {
   updateEnsemble,
   addEnsembleLink,
   deleteEnsembleLink,
+  createInvite,
+  deleteInvite,
 } from '@lib/ensemble';
 import { validateImageFile, fileToDataUri } from '@lib/upload';
 import { generateSlug } from '@lib/slug';
@@ -44,12 +45,7 @@ export const ensembles = {
       if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
       await assertEnsembleAdmin(input.ensembleId, user);
       const code = randomCode();
-      await db.insert(EnsembleInvite).values({
-        id: crypto.randomUUID(),
-        ensembleId: input.ensembleId,
-        code,
-        createdBy: user.id,
-      });
+      await createInvite(input.ensembleId, code, user.id);
     },
   }),
 
@@ -64,7 +60,7 @@ export const ensembles = {
       if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
       await assertEnsembleAdmin(input.ensembleId, user);
       await assertInEnsemble('invite', input.inviteId, input.ensembleId);
-      await db.delete(EnsembleInvite).where(eq(EnsembleInvite.id, input.inviteId));
+      await deleteInvite(input.inviteId, input.ensembleId);
     },
   }),
 

@@ -1,13 +1,5 @@
 ---
-import {
-  db,
-  eq,
-  inArray,
-  Event,
-  EventProgram,
-  Song,
-  GroupMembership,
-} from "@db";
+import { getUpcomingEvents } from "@lib/events";
 import DashboardSection from "@components/DashboardSection.astro";
 import { Message, Notification, Button, Content, Icon, Tag } from "astro-bulma";
 import { formatDuration } from "@lib/format";
@@ -21,55 +13,11 @@ interface Props {
 
 const { ensembleId, canonicalId, userId, isAdmin } = Astro.props;
 
-const allEvents = await db
-  .select()
-  .from(Event)
-  .where(eq(Event.ensembleId, ensembleId))
-  .orderBy(Event.scheduledAt);
-
-const groupMemberships = await db
-  .select({ groupId: GroupMembership.groupId, userId: GroupMembership.userId })
-  .from(GroupMembership);
-
-const userGroupIds = new Set(
-  groupMemberships.filter((gm) => gm.userId === userId).map((gm) => gm.groupId),
-);
-
-const now = new Date();
-const upcomingEvents = allEvents
-  .filter((e) => {
-    const endTime = new Date(
-      new Date(e.scheduledAt).getTime() + e.durationMinutes * 60 * 1000,
-    );
-    const isUpcoming = endTime > now;
-    const canSee = !e.groupId || userGroupIds.has(e.groupId) || isAdmin;
-    return isUpcoming && canSee;
-  })
-  .slice(0, 10);
-
-const allUpcomingIds = upcomingEvents.map((e) => e.id);
-const upcomingProgramRows =
-  allUpcomingIds.length > 0
-    ? await db
-        .select({
-          eventId: EventProgram.eventId,
-          songName: Song.name,
-          composer: Song.composer,
-          notes: EventProgram.notes,
-          sortOrder: EventProgram.sortOrder,
-        })
-        .from(EventProgram)
-        .innerJoin(Song, eq(EventProgram.songId, Song.id))
-        .where(inArray(EventProgram.eventId, allUpcomingIds))
-        .orderBy(EventProgram.sortOrder)
-        .all()
-    : [];
-
-const programByEventId = new Map<string, typeof upcomingProgramRows>();
-for (const row of upcomingProgramRows) {
-  if (!programByEventId.has(row.eventId)) programByEventId.set(row.eventId, []);
-  programByEventId.get(row.eventId)!.push(row);
-}
+const { events: upcomingEvents, programByEventId } = await getUpcomingEvents({
+  ensembleId,
+  userId,
+  isAdmin,
+});
 ---
 
 <DashboardSection

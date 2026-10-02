@@ -478,3 +478,70 @@ export async function reorderProgramSongs(eventId: string, orderedEntryIds: stri
 export async function removeProgramSong(programEntryId: string) {
   await db.delete(EventProgram).where(eq(EventProgram.id, programEntryId));
 }
+
+/**
+ * The next events (still running or upcoming) the user can see, with each one's song program.
+ * Group-restricted events are visible to that group's members and to admins.
+ */
+export async function getUpcomingEvents(params: { ensembleId: string; userId: string; isAdmin: boolean; limit?: number }) {
+  const { ensembleId, userId, isAdmin, limit = 10 } = params;
+  const events = await db.select().from(Event).where(eq(Event.ensembleId, ensembleId)).orderBy(Event.scheduledAt).all();
+
+  const userGroupIds = new Set(
+    (
+      await db.select({ groupId: GroupMembership.groupId }).from(GroupMembership).where(eq(GroupMembership.userId, userId)).all()
+    ).map((g) => g.groupId),
+  );
+
+  const now = Date.now();
+  const upcoming = events
+    .filter((e) => {
+      const end = new Date(e.scheduledAt).getTime() + e.durationMinutes * 60 * 1000;
+      return end > now && (!e.groupId || isAdmin || userGroupIds.has(e.groupId));
+    })
+    .slice(0, limit);
+
+  const programRows =
+    upcoming.length > 0
+      ? await db
+          .select({
+            eventId: EventProgram.eventId,
+            songName: Song.name,
+            composer: Song.composer,
+            notes: EventProgram.notes,
+            sortOrder: EventProgram.sortOrder,
+          })
+          .from(EventProgram)
+          .innerJoin(Song, eq(EventProgram.songId, Song.id))
+          .where(inArray(EventProgram.eventId, upcoming.map((e) => e.id)))
+          .orderBy(EventProgram.sortOrder)
+          .all()
+      : [];
+
+  const programByEventId = new Map<string, typeof programRows>();
+  for (const row of programRows) {
+    if (!programByEventId.has(row.eventId)) programByEventId.set(row.eventId, []);
+    programByEventId.get(row.eventId)!.push(row);
+  }
+  return { events: upcoming, programByEventId };
+}
+
+/** Program entries that have a length, in order, with a display name for the timeline. */
+export async function getTimedProgramEntries(eventId: string) {
+  const rows = await db
+    .select({
+      type: EventProgram.type,
+      label: EventProgram.label,
+      songName: Song.name,
+      sortOrder: EventProgram.sortOrder,
+      length: EventProgram.length,
+    })
+    .from(EventProgram)
+    .leftJoin(Song, eq(EventProgram.songId, Song.id))
+    .where(eq(EventProgram.eventId, eventId))
+    .orderBy(EventProgram.sortOrder)
+    .all();
+  return rows
+    .filter((r) => r.length != null)
+    .map((r) => ({ ...r, displayName: r.type === 'song' ? (r.songName ?? '') : (r.label ?? r.type) }));
+}

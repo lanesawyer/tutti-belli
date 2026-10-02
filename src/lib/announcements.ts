@@ -19,8 +19,8 @@ async function getAnnouncementContext(ensembleId: string) {
   };
 }
 
-export async function getEnsembleAnnouncements(ensembleId: string) {
-  return await db
+export async function getEnsembleAnnouncements(ensembleId: string, limit?: number) {
+  const query = db
     .select({
       id: Announcement.id,
       title: Announcement.title,
@@ -32,8 +32,8 @@ export async function getEnsembleAnnouncements(ensembleId: string) {
     .from(Announcement)
     .innerJoin(User, eq(Announcement.createdBy, User.id))
     .where(eq(Announcement.ensembleId, ensembleId))
-    .orderBy(desc(Announcement.createdAt))
-    .all();
+    .orderBy(desc(Announcement.createdAt));
+  return await (limit === undefined ? query.all() : query.limit(limit).all());
 }
 
 export async function createAnnouncement(params: {

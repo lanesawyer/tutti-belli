@@ -1,5 +1,5 @@
 ---
-import { db, eq, EnsembleLink } from "@db";
+import { getEnsembleLinks } from "@lib/ensemble";
 import { Box, Button, Icon, Title } from "astro-bulma";
 
 interface Props {
@@ -9,11 +9,7 @@ interface Props {
 
 const { ensembleId, discordLink } = Astro.props;
 
-const ensembleLinks = await db
-  .select()
-  .from(EnsembleLink)
-  .where(eq(EnsembleLink.ensembleId, ensembleId))
-  .orderBy(EnsembleLink.sortOrder, EnsembleLink.createdAt);
+const ensembleLinks = await getEnsembleLinks(ensembleId);
 ---
 
 {

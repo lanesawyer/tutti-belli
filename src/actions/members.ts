@@ -1,8 +1,7 @@
 import { defineAction, ActionError } from 'astro:actions';
 import { z } from 'astro/zod';
-import { db, eq, and, EnsembleMember, Season, SeasonMembership } from '@db';
 import { assertEnsembleAdmin, assertInEnsemble } from './utils';
-import { removeMember, setMemberRole } from '@lib/ensemble';
+import { approveMember, removeMember, setMemberRole } from '@lib/ensemble';
 
 export const members = {
   approve: defineAction({
@@ -17,41 +16,8 @@ export const members = {
       await assertEnsembleAdmin(input.ensembleId, user);
       await assertInEnsemble('membership', input.membershipId, input.ensembleId);
 
-      const [membership] = await db
-        .select()
-        .from(EnsembleMember)
-        .where(eq(EnsembleMember.id, input.membershipId));
-
-      if (!membership) throw new ActionError({ code: 'NOT_FOUND' });
-
-      await db
-        .update(EnsembleMember)
-        .set({ status: 'active' })
-        .where(eq(EnsembleMember.id, input.membershipId));
-
-      const [activeSeason] = await db
-        .select()
-        .from(Season)
-        .where(and(eq(Season.ensembleId, input.ensembleId), eq(Season.isActive, 1)));
-
-      if (activeSeason) {
-        const [existing] = await db
-          .select()
-          .from(SeasonMembership)
-          .where(
-            and(
-              eq(SeasonMembership.seasonId, activeSeason.id),
-              eq(SeasonMembership.userId, membership.userId),
-            ),
-          );
-
-        if (!existing) {
-          await db.insert(SeasonMembership).values({
-            id: crypto.randomUUID(),
-            seasonId: activeSeason.id,
-            userId: membership.userId,
-          });
-        }
+      if (!(await approveMember(input.membershipId))) {
+        throw new ActionError({ code: 'NOT_FOUND' });
       }
     },
   }),
@@ -67,9 +33,7 @@ export const members = {
       if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
       await assertEnsembleAdmin(input.ensembleId, user);
       await assertInEnsemble('membership', input.membershipId, input.ensembleId);
-      await db
-        .delete(EnsembleMember)
-        .where(eq(EnsembleMember.id, input.membershipId));
+      await removeMember(input.membershipId);
     },
   }),
 
