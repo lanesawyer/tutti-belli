@@ -1,23 +1,29 @@
 import { db, eq, User } from '@db';
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = import.meta.env.JWT_SECRET || process.env.JWT_SECRET || 'fallback-secret-change-me';
+// No fallback: a default secret would let anyone forge a session for any user.
+function jwtSecret(): string {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) throw new Error('JWT_SECRET is not set');
+  return secret;
+}
 
 export interface SessionPayload {
   userId: string;
 }
 
 export function createSession(userId: string): string {
-  return jwt.sign({ userId } as SessionPayload, JWT_SECRET, {
+  return jwt.sign({ userId } as SessionPayload, jwtSecret(), {
     expiresIn: '30d',
   });
 }
 
 export function getSession(token: string | undefined): SessionPayload | null {
   if (!token) return null;
-  
+  const secret = jwtSecret();
+
   try {
-    const payload = jwt.verify(token, JWT_SECRET) as SessionPayload;
+    const payload = jwt.verify(token, secret) as SessionPayload;
     return payload;
   } catch {
     return null;

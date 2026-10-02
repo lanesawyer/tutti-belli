@@ -1,6 +1,6 @@
 import { defineAction, ActionError } from 'astro:actions';
 import { z } from 'astro/zod';
-import { assertEnsembleAdmin } from './utils';
+import { assertEnsembleAdmin, assertInEnsemble, assertUserInEnsemble } from './utils';
 import {
   createGroup,
   updateGroup,
@@ -44,6 +44,7 @@ export const groups = {
       const user = context.locals.user;
       if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
       await assertEnsembleAdmin(input.ensembleId, user);
+      await assertInEnsemble('group', input.groupId, input.ensembleId);
       await updateGroup(
         input.groupId,
         input.name.trim(),
@@ -63,6 +64,7 @@ export const groups = {
       const user = context.locals.user;
       if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
       await assertEnsembleAdmin(input.ensembleId, user);
+      await assertInEnsemble('group', input.groupId, input.ensembleId);
       await deleteGroup(input.groupId);
     },
   }),
@@ -78,6 +80,8 @@ export const groups = {
       const user = context.locals.user;
       if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
       await assertEnsembleAdmin(input.ensembleId, user);
+      await assertInEnsemble('group', input.groupId, input.ensembleId);
+      await assertUserInEnsemble(input.userId, input.ensembleId);
       await toggleGroupMember(input.groupId, input.userId);
     },
   }),
@@ -94,6 +98,8 @@ export const groups = {
       const user = context.locals.user;
       if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
       await assertEnsembleAdmin(input.ensembleId, user);
+      await assertInEnsemble('group', input.groupId, input.ensembleId);
+      await assertUserInEnsemble(input.userId, input.ensembleId);
       await setGroupMemberRole(input.groupId, input.userId, input.role || null);
     },
   }),

@@ -1,7 +1,7 @@
 import { defineAction, ActionError } from 'astro:actions';
 import { z } from 'astro/zod';
 import { db, eq, and, EnsembleMember, Season, SeasonMembership } from '@db';
-import { assertEnsembleAdmin } from './utils';
+import { assertEnsembleAdmin, assertInEnsemble } from './utils';
 import { removeMember, setMemberRole } from '@lib/ensemble';
 
 export const members = {
@@ -15,6 +15,7 @@ export const members = {
       const user = context.locals.user;
       if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
       await assertEnsembleAdmin(input.ensembleId, user);
+      await assertInEnsemble('membership', input.membershipId, input.ensembleId);
 
       const [membership] = await db
         .select()
@@ -65,6 +66,7 @@ export const members = {
       const user = context.locals.user;
       if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
       await assertEnsembleAdmin(input.ensembleId, user);
+      await assertInEnsemble('membership', input.membershipId, input.ensembleId);
       await db
         .delete(EnsembleMember)
         .where(eq(EnsembleMember.id, input.membershipId));
@@ -81,6 +83,7 @@ export const members = {
       const user = context.locals.user;
       if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
       await assertEnsembleAdmin(input.ensembleId, user);
+      await assertInEnsemble('membership', input.membershipId, input.ensembleId);
       await removeMember(input.membershipId);
     },
   }),
@@ -95,6 +98,7 @@ export const members = {
       const user = context.locals.user;
       if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
       await assertEnsembleAdmin(input.ensembleId, user);
+      await assertInEnsemble('membership', input.membershipId, input.ensembleId);
       await setMemberRole(input.membershipId, 'admin');
     },
   }),
@@ -109,6 +113,7 @@ export const members = {
       const user = context.locals.user;
       if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
       await assertEnsembleAdmin(input.ensembleId, user);
+      await assertInEnsemble('membership', input.membershipId, input.ensembleId);
       await setMemberRole(input.membershipId, 'member');
     },
   }),

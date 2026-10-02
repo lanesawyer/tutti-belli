@@ -67,6 +67,8 @@ Rules:
 ### Request Handling Pattern
 Form mutations use **Astro Actions** (`src/actions/`). Do not use the old pattern of checking `Astro.request.method === 'POST'` in page frontmatter. Actions use `defineAction` with `accept: 'form'` and a Zod schema, throw `ActionError` for failures, and delegate business logic to `src/lib/`. Pages read results via `Astro.getActionResult()` and redirect on success.
 
+**Every ID in an action's input must be checked against the ensemble.** `assertEnsembleAdmin(ensembleId, user)` only proves the user may act on the `ensembleId` from the form; the other IDs in the same form are just as attacker-controlled. After the permission check, call `assertInEnsemble(kind, id, ensembleId)` (from `src/actions/utils.ts`, backed by `src/lib/ownership.ts`) for each record ID, and `assertUserInEnsemble(userId, ensembleId)` for any target user. Add a new kind to `ownership.ts` when you add a table that belongs to an ensemble.
+
 ### Authentication & Authorization
 - **Middleware** (`src/middleware.ts`): Runs on every request, extracts JWT from `session` cookie, populates `Astro.locals.user` and `Astro.locals.session`. Redirects unauthenticated users to `/login` for protected routes.
 - **Public routes**: `/`, `/login`, `/register`, `/forgot-password`, `/reset-password`, `/invite/join`
@@ -108,6 +110,8 @@ File-based routing under `src/pages/`. Ensemble pages live under `ensembles/[id]
 - `redirect.ts` — smart login redirect logic
 
 ### Environment Variables
+**Read server secrets from `process.env`, never `import.meta.env`.** Vite writes `import.meta.env` values into the server bundle at build time, which would bake secrets into `dist/` and the Docker image. `astro.config.mjs` loads `.env` into `process.env` for `astro dev`; in production the values are Fly secrets. Secrets are never Docker build args.
+
 Required in `.env` (see `.env.example`):
 - `ASTRO_DB_REMOTE_URL` / `ASTRO_DB_APP_TOKEN` — Turso database connection (names kept from the Astro DB era; they're baked into Fly/GitHub secrets)
 - `DATABASE_URL` — overrides the Turso connection with a local libSQL URL (set automatically by `pnpm dev` and the test configs; no auth token used)

@@ -8,7 +8,7 @@ import {
   markTaskIncomplete,
   getTaskEnsembleId,
 } from '@lib/tasks';
-import { assertEnsembleAdmin } from './utils';
+import { assertEnsembleAdmin, assertInEnsemble, assertUserInEnsemble } from './utils';
 
 export const tasks = {
   createTask: defineAction({
@@ -24,6 +24,7 @@ export const tasks = {
       const user = context.locals.user;
       if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
       await assertEnsembleAdmin(ensembleId, user);
+      if (seasonId) await assertInEnsemble('season', seasonId, ensembleId);
       await createTask(ensembleId, title, description, sortOrder, seasonId);
     },
   }),
@@ -41,6 +42,7 @@ export const tasks = {
       const user = context.locals.user;
       if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
       await assertEnsembleAdmin(ensembleId, user);
+      await assertInEnsemble('task', taskId, ensembleId);
       await editTask(taskId, title, description, sortOrder);
     },
   }),
@@ -55,6 +57,7 @@ export const tasks = {
       const user = context.locals.user;
       if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
       await assertEnsembleAdmin(ensembleId, user);
+      await assertInEnsemble('task', taskId, ensembleId);
       await deleteTask(taskId);
     },
   }),
@@ -71,6 +74,7 @@ export const tasks = {
       const ensembleId = await getTaskEnsembleId(taskId);
       if (!ensembleId) throw new ActionError({ code: 'NOT_FOUND' });
       await assertEnsembleAdmin(ensembleId, user);
+      await assertUserInEnsemble(userId, ensembleId);
       await markTaskComplete(taskId, userId, user.id);
     },
   }),
@@ -87,6 +91,7 @@ export const tasks = {
       const ensembleId = await getTaskEnsembleId(taskId);
       if (!ensembleId) throw new ActionError({ code: 'NOT_FOUND' });
       await assertEnsembleAdmin(ensembleId, user);
+      await assertUserInEnsemble(userId, ensembleId);
       await markTaskIncomplete(taskId, userId);
     },
   }),

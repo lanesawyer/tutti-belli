@@ -1,6 +1,6 @@
 import { defineAction, ActionError } from 'astro:actions';
 import { z } from 'astro/zod';
-import { assertEnsembleAdmin } from './utils';
+import { assertEnsembleAdmin, assertInEnsemble } from './utils';
 import { createAnnouncement, updateAnnouncement, deleteAnnouncement } from '@lib/announcements';
 
 export const announcements = {
@@ -48,6 +48,7 @@ export const announcements = {
       const user = context.locals.user;
       if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
       await assertEnsembleAdmin(input.ensembleId, user);
+      await assertInEnsemble('announcement', input.announcementId, input.ensembleId);
       await updateAnnouncement({
         announcementId: input.announcementId,
         ensembleId: input.ensembleId,
@@ -71,6 +72,7 @@ export const announcements = {
       const user = context.locals.user;
       if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
       await assertEnsembleAdmin(input.ensembleId, user);
+      await assertInEnsemble('announcement', input.announcementId, input.ensembleId);
       await deleteAnnouncement(input.announcementId);
     },
   }),

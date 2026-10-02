@@ -1,15 +1,15 @@
 import { createClient } from '@libsql/client';
 import { drizzle } from 'drizzle-orm/libsql';
 
-// Works both inside Vite (import.meta.env) and under plain `node` (process.env only).
-const metaEnv: Record<string, string | undefined> =
-  typeof import.meta.env === 'undefined' ? {} : import.meta.env;
+// Read from process.env only, never import.meta.env: Vite writes import.meta.env values into
+// the server bundle at build time, which would bake the database token into the build.
+// astro.config.mjs loads .env into process.env for `astro dev`.
 
 // DATABASE_URL (set by `pnpm dev`, tests, and db scripts) forces a specific —
 // usually local — database and skips the auth token. Without it, connect to
 // the remote Turso database, like `astro dev --remote` used to.
-const overrideUrl = metaEnv.DATABASE_URL || process.env.DATABASE_URL;
-const remoteUrl = metaEnv.ASTRO_DB_REMOTE_URL || process.env.ASTRO_DB_REMOTE_URL;
+const overrideUrl = process.env.DATABASE_URL;
+const remoteUrl = process.env.ASTRO_DB_REMOTE_URL;
 const url = overrideUrl || remoteUrl;
 if (!url) {
   throw new Error('Database not configured: set DATABASE_URL or ASTRO_DB_REMOTE_URL');
@@ -17,7 +17,7 @@ if (!url) {
 
 const client = createClient({
   url,
-  authToken: overrideUrl ? undefined : metaEnv.ASTRO_DB_APP_TOKEN || process.env.ASTRO_DB_APP_TOKEN,
+  authToken: overrideUrl ? undefined : process.env.ASTRO_DB_APP_TOKEN,
 });
 
 export const db = drizzle(client);

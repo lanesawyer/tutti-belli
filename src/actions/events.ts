@@ -1,7 +1,7 @@
 import { defineAction, ActionError } from 'astro:actions';
 import { z } from 'astro/zod';
 import { canManageEnsemble } from '@lib/permissions';
-import { assertEnsembleAdmin, assertEnsembleMember } from './utils';
+import { assertEnsembleAdmin, assertEnsembleMember, assertInEnsemble, assertUserInEnsemble } from './utils';
 import {
   createEvent,
   deleteEvent,
@@ -39,6 +39,7 @@ export const events = {
       const user = context.locals.user;
       if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
       await assertEnsembleAdmin(input.ensembleId, user);
+      if (input.groupId) await assertInEnsemble('group', input.groupId, input.ensembleId);
       const rsvpEnabled = input.rsvpEnabled === '1' ? 1 : input.rsvpEnabled === '0' ? 0 : null;
       try {
         await createEvent({ ...input, groupId: input.groupId || undefined, rsvpEnabled });
@@ -58,6 +59,7 @@ export const events = {
       const user = context.locals.user;
       if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
       await assertEnsembleAdmin(ensembleId, user);
+      await assertInEnsemble('event', eventId, ensembleId);
       await deleteEvent(eventId);
     },
   }),
@@ -80,6 +82,8 @@ export const events = {
       const user = context.locals.user;
       if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
       await assertEnsembleAdmin(ensembleId, user);
+      await assertInEnsemble('event', params.eventId, ensembleId);
+      if (params.groupId) await assertInEnsemble('group', params.groupId, ensembleId);
       const rsvpEnabled = rsvpRaw === '1' ? 1 : rsvpRaw === '0' ? 0 : null;
       await editEvent({ ...params, groupId: params.groupId || null, rsvpEnabled });
     },
@@ -95,6 +99,7 @@ export const events = {
       const user = context.locals.user;
       if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
       const membership = await assertEnsembleMember(ensembleId, user);
+      await assertInEnsemble('event', eventId, ensembleId);
       const isAdmin = canManageEnsemble(user, membership);
       try {
         await checkInToEvent({ eventId, userId: user.id, ensembleId, isAdmin });
@@ -115,6 +120,8 @@ export const events = {
       const user = context.locals.user;
       if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
       await assertEnsembleAdmin(ensembleId, user);
+      await assertInEnsemble('event', eventId, ensembleId);
+      await assertUserInEnsemble(userId, ensembleId);
       await addAttendance(eventId, userId);
     },
   }),
@@ -129,6 +136,7 @@ export const events = {
       const user = context.locals.user;
       if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
       await assertEnsembleAdmin(ensembleId, user);
+      await assertInEnsemble('attendance', attendanceId, ensembleId);
       await removeAttendance(attendanceId);
     },
   }),
@@ -144,6 +152,7 @@ export const events = {
       const user = context.locals.user;
       if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
       await assertEnsembleMember(ensembleId, user);
+      await assertInEnsemble('event', eventId, ensembleId);
       await setRsvp(eventId, user.id, response);
     },
   }),
@@ -158,6 +167,7 @@ export const events = {
       const user = context.locals.user;
       if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
       await assertEnsembleMember(ensembleId, user);
+      await assertInEnsemble('event', eventId, ensembleId);
       await removeRsvp(eventId, user.id);
     },
   }),
@@ -175,6 +185,8 @@ export const events = {
       const user = context.locals.user;
       if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
       await assertEnsembleAdmin(ensembleId, user);
+      await assertInEnsemble('event', eventId, ensembleId);
+      await assertInEnsemble('song', songId, ensembleId);
       await addProgramSong(eventId, songId, length, notes);
     },
   }),
@@ -193,6 +205,7 @@ export const events = {
       const user = context.locals.user;
       if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
       await assertEnsembleAdmin(ensembleId, user);
+      await assertInEnsemble('event', eventId, ensembleId);
       await addProgramItem(eventId, type, label, length, notes);
     },
   }),
@@ -207,6 +220,7 @@ export const events = {
       const user = context.locals.user;
       if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
       await assertEnsembleAdmin(ensembleId, user);
+      await assertInEnsemble('programEntry', programEntryId, ensembleId);
       await removeProgramSong(programEntryId);
     },
   }),
@@ -222,6 +236,7 @@ export const events = {
       const user = context.locals.user;
       if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
       await assertEnsembleAdmin(ensembleId, user);
+      await assertInEnsemble('programEntry', programEntryId, ensembleId);
       await updateProgramSongNotes(programEntryId, notes);
     },
   }),
@@ -240,6 +255,7 @@ export const events = {
       const user = context.locals.user;
       if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
       await assertEnsembleAdmin(ensembleId, user);
+      await assertInEnsemble('programEntry', programEntryId, ensembleId);
       await updateProgramEntry(programEntryId, { label, notes, length: length ?? null, sortOrder });
     },
   }),
@@ -255,6 +271,7 @@ export const events = {
       const user = context.locals.user;
       if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
       await assertEnsembleAdmin(ensembleId, user);
+      await assertInEnsemble('event', eventId, ensembleId);
       let ids: string[];
       try {
         ids = JSON.parse(orderedEntryIds);

@@ -1,5 +1,5 @@
 function getEnv(key: string, fallback = ''): string {
-  return import.meta.env[key] || process.env[key] || fallback;
+  return process.env[key] || fallback;
 }
 
 export interface DiscordResult {

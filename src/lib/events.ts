@@ -313,6 +313,20 @@ export async function checkInByCode(params: { code: string; userId: string }) {
   const event = await db.select().from(Event).where(eq(Event.checkInCode, code.toUpperCase())).get();
   if (!event) throw new Error('Invalid check-in code.');
 
+  // Codes are shown on screen and in QR codes at the venue, so knowing one isn't proof of membership.
+  const membership = await db
+    .select({ id: EnsembleMember.id })
+    .from(EnsembleMember)
+    .where(
+      and(
+        eq(EnsembleMember.ensembleId, event.ensembleId),
+        eq(EnsembleMember.userId, userId),
+        eq(EnsembleMember.status, 'active'),
+      ),
+    )
+    .get();
+  if (!membership) throw new Error('Invalid check-in code.');
+
   const ensembleData = await db.select().from(Ensemble).where(eq(Ensemble.id, event.ensembleId)).get();
   if (!ensembleData) throw new Error('Ensemble not found.');
 

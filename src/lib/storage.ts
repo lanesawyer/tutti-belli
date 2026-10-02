@@ -1,15 +1,15 @@
 import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 
-const endpoint = (import.meta.env.STORAGE_ENDPOINT ?? process.env.STORAGE_ENDPOINT) as string;
+const endpoint = process.env.STORAGE_ENDPOINT as string;
 const region = endpoint.replace('https://s3.', '').replace('.backblazeb2.com', '');
-const bucket = (import.meta.env.STORAGE_BUCKET ?? process.env.STORAGE_BUCKET) as string;
+const bucket = process.env.STORAGE_BUCKET as string;
 
 const client = new S3Client({
   endpoint,
   region,
   credentials: {
-    accessKeyId: (import.meta.env.STORAGE_KEY_ID ?? process.env.STORAGE_KEY_ID) as string,
-    secretAccessKey: (import.meta.env.STORAGE_KEY ?? process.env.STORAGE_KEY) as string,
+    accessKeyId: process.env.STORAGE_KEY_ID as string,
+    secretAccessKey: process.env.STORAGE_KEY as string,
   },
 });
 
@@ -27,7 +27,7 @@ export function validateSongFile(file: File): { valid: boolean; error?: string }
 }
 
 export async function uploadSongFile(file: File, ensembleId: string): Promise<string> {
-  if (import.meta.env.STORAGE_DISABLED ?? process.env.STORAGE_DISABLED) {
+  if (process.env.STORAGE_DISABLED) {
     console.log(`[storage] disabled — skipping upload of "${file.name}"`);
     return `https://storage.example.com/${ensembleId}/songs/${file.name}`;
   }
@@ -55,7 +55,7 @@ export function keyFromUrl(url: string): string {
 }
 
 export async function deleteStorageFile(url: string): Promise<void> {
-  if (import.meta.env.STORAGE_DISABLED ?? process.env.STORAGE_DISABLED) {
+  if (process.env.STORAGE_DISABLED) {
     console.log(`[storage] disabled — skipping delete of "${url}"`);
     return;
   }
