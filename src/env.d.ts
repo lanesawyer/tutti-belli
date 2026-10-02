@@ -1,3 +1,4 @@
+// oxlint-disable-next-line typescript/triple-slash-reference -- Astro's generated types are only reachable this way
 /// <reference path="../.astro/types.d.ts" />
 
 declare namespace App {
