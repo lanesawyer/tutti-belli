@@ -131,11 +131,6 @@ if (updateResult?.error) {
               action={actions.ensembles.update}
             >
               <input type="hidden" name="ensembleId" value={ensemble.id} />
-              <input
-                type="hidden"
-                name="currentImageUrl"
-                value={ensemble.imageUrl ?? ""}
-              />
               <TextInput
                 name="name"
                 label="Ensemble Name"
