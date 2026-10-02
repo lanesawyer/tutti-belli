@@ -1,5 +1,6 @@
 import { defineAction, ActionError } from 'astro:actions';
 import { z } from 'astro/zod';
+import { assertPartsInEnsemble } from './utils';
 import { db, eq, EnsembleMember } from '@db';
 import {
   updateName,
@@ -127,6 +128,7 @@ export const profile = {
       if (!membership || membership.userId !== user.id) {
         throw new ActionError({ code: 'FORBIDDEN' });
       }
+      await assertPartsInEnsemble(partIds, membership.ensembleId);
       const result = await updateParts(membershipId, partIds);
       if (result?.type === 'error') {
         throw new ActionError({ code: 'BAD_REQUEST', message: result.message });

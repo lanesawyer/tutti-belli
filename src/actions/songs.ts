@@ -1,6 +1,6 @@
 import { defineAction, ActionError } from 'astro:actions';
 import { z } from 'astro/zod';
-import { assertEnsembleAdmin } from './utils';
+import { assertEnsembleAdmin, assertInEnsemble } from './utils';
 import { addSong, editSong, deleteSong, addSongFile, deleteSongFile } from '@lib/songs';
 
 export const songs = {
@@ -50,6 +50,7 @@ export const songs = {
       const user = context.locals.user;
       if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
       await assertEnsembleAdmin(input.ensembleId, user);
+      await assertInEnsemble('song', input.songId, input.ensembleId);
 
       await editSong(input);
     },
@@ -65,6 +66,7 @@ export const songs = {
       const user = context.locals.user;
       if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
       await assertEnsembleAdmin(ensembleId, user);
+      await assertInEnsemble('song', songId, ensembleId);
 
       await deleteSong(songId);
     },
@@ -84,6 +86,7 @@ export const songs = {
       const user = context.locals.user;
       if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
       await assertEnsembleAdmin(input.ensembleId, user);
+      await assertInEnsemble('song', input.songId, input.ensembleId);
 
       const result = await addSongFile(input, user.id, input.ensembleId);
       if (result.error) {
@@ -102,6 +105,7 @@ export const songs = {
       const user = context.locals.user;
       if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
       await assertEnsembleAdmin(ensembleId, user);
+      await assertInEnsemble('songFile', fileId, ensembleId);
 
       await deleteSongFile(fileId);
     },

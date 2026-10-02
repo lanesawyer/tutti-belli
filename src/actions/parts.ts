@@ -1,7 +1,7 @@
 import { defineAction, ActionError } from 'astro:actions';
 import { z } from 'astro/zod';
 import { db, eq, Part, MemberPart } from '@db';
-import { assertEnsembleAdmin } from './utils';
+import { assertEnsembleAdmin, assertInEnsemble } from './utils';
 
 export const parts = {
   add: defineAction({
@@ -37,6 +37,7 @@ export const parts = {
       const user = context.locals.user;
       if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
       await assertEnsembleAdmin(ensembleId, user);
+      await assertInEnsemble('part', partId, ensembleId);
 
       await db
         .update(Part)
@@ -55,6 +56,7 @@ export const parts = {
       const user = context.locals.user;
       if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
       await assertEnsembleAdmin(ensembleId, user);
+      await assertInEnsemble('part', partId, ensembleId);
 
       const membersWithPart = await db
         .select()
