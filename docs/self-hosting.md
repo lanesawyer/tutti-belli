@@ -29,18 +29,15 @@ Password reset emails are sent via [Resend](https://resend.com). Sign up for a f
 - `EMAIL_API_KEY` — your Resend API key
 - `EMAIL_FROM` — a verified sender address (e.g. `noreply@yourdomain.com`)
 
-### 3. Backblaze B2 (file storage)
+### 3. Tigris (file storage)
 
-User avatars and ensemble images are stored in [Backblaze B2](https://www.backblaze.com/cloud-storage). Create a free account, then:
+Song files (sheet music and recordings) are stored in [Tigris](https://fly.io/docs/tigris/), Fly.io's S3-compatible object storage. Create a private bucket attached to your app:
 
-1. Create a bucket (private)
-2. Create an application key scoped to that bucket
+```bash
+fly storage create -a <app-name> -n <bucket-name>
+```
 
-You'll need:
-- `STORAGE_KEY_ID` — the application key ID
-- `STORAGE_KEY` — the application key
-- `STORAGE_BUCKET` — the bucket name
-- `STORAGE_ENDPOINT` — the S3-compatible endpoint for your bucket's region (e.g. `https://s3.us-west-004.backblazeb2.com`)
+That sets `AWS_ENDPOINT_URL_S3`, `AWS_REGION`, `BUCKET_NAME`, `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` as secrets on the app. It prints the keys once; save them if you also want them in a local `.env`. Any other S3-compatible store works too if you set the same variables.
 
 ## Environment Variables
 
@@ -57,10 +54,11 @@ cp .env.example .env
 | `JWT_SECRET` | Secret used to sign session tokens — use a long random string |
 | `EMAIL_API_KEY` | Resend API key |
 | `EMAIL_FROM` | Verified sender email address |
-| `STORAGE_KEY_ID` | Backblaze B2 application key ID |
-| `STORAGE_KEY` | Backblaze B2 application key |
-| `STORAGE_BUCKET` | Backblaze B2 bucket name |
-| `STORAGE_ENDPOINT` | Backblaze B2 S3-compatible endpoint URL |
+| `AWS_ENDPOINT_URL_S3` | Object storage endpoint (`https://fly.storage.tigris.dev` for Tigris) |
+| `AWS_REGION` | Object storage region (`auto` for Tigris) |
+| `BUCKET_NAME` | Bucket for song files |
+| `AWS_ACCESS_KEY_ID` | Object storage access key ID |
+| `AWS_SECRET_ACCESS_KEY` | Object storage secret key |
 
 Generate a strong `JWT_SECRET`:
 ```bash
@@ -92,10 +90,11 @@ docker run -d \
   -e JWT_SECRET="$JWT_SECRET" \
   -e EMAIL_API_KEY="$EMAIL_API_KEY" \
   -e EMAIL_FROM="$EMAIL_FROM" \
-  -e STORAGE_KEY_ID="$STORAGE_KEY_ID" \
-  -e STORAGE_KEY="$STORAGE_KEY" \
-  -e STORAGE_BUCKET="$STORAGE_BUCKET" \
-  -e STORAGE_ENDPOINT="$STORAGE_ENDPOINT" \
+  -e AWS_ENDPOINT_URL_S3="$AWS_ENDPOINT_URL_S3" \
+  -e AWS_REGION="$AWS_REGION" \
+  -e BUCKET_NAME="$BUCKET_NAME" \
+  -e AWS_ACCESS_KEY_ID="$AWS_ACCESS_KEY_ID" \
+  -e AWS_SECRET_ACCESS_KEY="$AWS_SECRET_ACCESS_KEY" \
   tutti-belli
 ```
 
@@ -117,10 +116,11 @@ services:
       - JWT_SECRET=${JWT_SECRET}
       - EMAIL_API_KEY=${EMAIL_API_KEY}
       - EMAIL_FROM=${EMAIL_FROM}
-      - STORAGE_KEY_ID=${STORAGE_KEY_ID}
-      - STORAGE_KEY=${STORAGE_KEY}
-      - STORAGE_BUCKET=${STORAGE_BUCKET}
-      - STORAGE_ENDPOINT=${STORAGE_ENDPOINT}
+      - AWS_ENDPOINT_URL_S3=${AWS_ENDPOINT_URL_S3}
+      - AWS_REGION=${AWS_REGION}
+      - BUCKET_NAME=${BUCKET_NAME}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
     restart: unless-stopped
 ```
 
@@ -138,13 +138,10 @@ The repo includes a `fly.toml` and a helper script:
    fly secrets set \
      JWT_SECRET="..." \
      EMAIL_API_KEY="..." \
-     EMAIL_FROM="..." \
-     STORAGE_KEY_ID="..." \
-     STORAGE_KEY="..." \
-     STORAGE_BUCKET="..." \
-     STORAGE_ENDPOINT="..."
+     EMAIL_FROM="..."
    ```
-4. Deploy (passes DB credentials as build args from your local `.env`):
+   Create the storage bucket with `fly storage create -a <app-name>` (see above); it sets the storage secrets itself.
+4. Deploy (database credentials are runtime secrets too; the image never contains them):
    ```bash
    ./deploy.sh
    ```
@@ -163,12 +160,8 @@ The workflow in `.github/workflows/fly-preview.yml` automatically deploys a prev
 | `JWT_SECRET` | Same value as your production secret | — |
 | `EMAIL_API_KEY` | Same value as your production secret | — |
 | `EMAIL_FROM` | Same value as your production secret | — |
-| `STORAGE_KEY_ID` | Same value as your production secret | — |
-| `STORAGE_KEY` | Same value as your production secret | — |
-| `STORAGE_BUCKET` | Same value as your production secret | — |
-| `STORAGE_ENDPOINT` | Same value as your production secret | — |
 
-Each preview app is named `tutti-belli-pr-<number>` and its Turso DB is named the same. Both are automatically destroyed when the PR is closed.
+Each preview app is named `tutti-belli-pr-<number>`, and its Turso DB and Tigris bucket are named the same. The bucket starts empty, so files from the copied production data download as 404 on previews. All three are automatically destroyed when the PR is closed.
 
 ## First Login
 
