@@ -1,7 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 
-// songs.ts imports storage.ts which has module-level S3 side effects that
-// crash when STORAGE_ENDPOINT env var is missing. Mock it before importing songs.ts.
+// Keep these tests away from real object storage: mock storage.ts before importing songs.ts.
 vi.mock('../../src/lib/storage.ts', () => ({
   validateSongFile: vi.fn().mockReturnValue({ valid: true }),
   uploadSongFile: vi.fn().mockResolvedValue('https://storage.example.com/test.pdf'),
