@@ -3,9 +3,14 @@ export type CsvColumn<T> = {
   value: (row: T) => string | number | boolean | null | undefined;
 };
 
+// Spreadsheet apps run cells that start with these as formulas, so a member named
+// "=HYPERLINK(...)" would execute when an admin opens the export.
+const FORMULA_PREFIX = /^[=+\-@\t\r]/;
+
 function escapeField(value: string | number | boolean | null | undefined): string {
   if (value == null) return '';
-  const str = String(value);
+  let str = String(value);
+  if (typeof value === 'string' && FORMULA_PREFIX.test(str)) str = `'${str}`;
   if (str.includes('"') || str.includes(',') || str.includes('\n') || str.includes('\r')) {
     return `"${str.replace(/"/g, '""')}"`;
   }

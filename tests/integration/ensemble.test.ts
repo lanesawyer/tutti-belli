@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { getEnsembleBySlugOrId } from '../../src/lib/ensemble.ts';
+import { getEnsembleBySlugOrId, updateEnsemble } from '../../src/lib/ensemble.ts';
+import { db, Ensemble, eq } from '@db';
 import { findUniqueSlug } from '../../src/lib/slug.ts';
 import { createUser, createEnsemble } from './fixtures.ts';
 
@@ -59,5 +60,41 @@ describe('findUniqueSlug', () => {
     const uuid = crypto.randomUUID();
     const slug = await findUniqueSlug('!!!', uuid);
     expect(slug).toBe(uuid);
+  });
+});
+
+describe('updateEnsemble', () => {
+  const fields = {
+    name: 'Renamed',
+    slug: null,
+    description: null,
+    discordLink: null,
+    discordWebhookUrl: null,
+    codeOfConduct: null,
+    checkInStartMinutes: 30,
+    checkInEndMinutes: 15,
+  };
+
+  it('keeps the stored image when imageUrl is left out', async () => {
+    const admin = await createUser({ role: 'admin' });
+    const ensemble = await createEnsemble(admin!.id);
+    await db.update(Ensemble).set({ imageUrl: 'data:image/png;base64,AAAA' }).where(eq(Ensemble.id, ensemble!.id));
+
+    await updateEnsemble(ensemble!.id, fields);
+
+    const after = await db.select().from(Ensemble).where(eq(Ensemble.id, ensemble!.id)).get();
+    expect(after!.name).toBe('Renamed');
+    expect(after!.imageUrl).toBe('data:image/png;base64,AAAA');
+  });
+
+  it('clears the image when imageUrl is null', async () => {
+    const admin = await createUser({ role: 'admin' });
+    const ensemble = await createEnsemble(admin!.id);
+    await db.update(Ensemble).set({ imageUrl: 'data:image/png;base64,AAAA' }).where(eq(Ensemble.id, ensemble!.id));
+
+    await updateEnsemble(ensemble!.id, { ...fields, imageUrl: null });
+
+    const after = await db.select().from(Ensemble).where(eq(Ensemble.id, ensemble!.id)).get();
+    expect(after!.imageUrl).toBeNull();
   });
 });

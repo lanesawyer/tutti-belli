@@ -56,7 +56,7 @@ See `.env.example`.
 | `STORAGE_DISABLED` | Set to skip real uploads and deletes |
 | `DISCORD_DISABLED` | Set to skip Discord posts |
 
-The storage module reads `STORAGE_ENDPOINT` when it loads, so set it even in development (any `https://s3.<region>.backblazeb2.com` value works with `STORAGE_DISABLED` set).
+The storage variables are only needed to upload, download, or delete song files; the app runs without them otherwise.
 
 ## Development
 
