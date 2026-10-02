@@ -1,4 +1,5 @@
 import { db, eq, and, inArray, Ensemble, Event, EventProgram, Attendance, EventRsvp, Season, User, EnsembleMember, Song, SeasonSong, Group, GroupMembership } from '@db';
+import { randomCode } from './codes';
 
 // ─── RSVP Helpers ───────────────────────────────────────────────────────────
 
@@ -210,7 +211,7 @@ export async function createEvent(params: {
   }
 
   const scheduledAt = new Date(`${date}T${time}`);
-  const checkInCode = Math.random().toString(36).substring(2, 10).toUpperCase();
+  const checkInCode = randomCode();
 
   await db.insert(Event).values({
     id: crypto.randomUUID(),
