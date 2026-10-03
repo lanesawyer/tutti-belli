@@ -19,8 +19,10 @@ import { actions } from "astro:actions";
 import {
   getEnsembleBySlugOrId,
   getEnsembleAccess,
+  getActiveMembership,
   getEnsembleParts,
 } from "@lib/ensemble";
+import { isSiteAdmin } from "@lib/permissions";
 import { getEnsembleUrlId } from "@lib/slug";
 import { getEnsembleGroups } from "@lib/groups";
 import { formatRuntime } from "@lib/songs";
@@ -52,6 +54,9 @@ const access = await getEnsembleAccess(user, ensemble.id);
 if (!access)
   return new Response("Unauthorized - Not a member", { status: 403 });
 const { isAdmin } = access;
+if (!isSiteAdmin(user) && !(await getActiveMembership(ensemble.id, user.id))) {
+  return new Response("Your membership is pending approval", { status: 403 });
+}
 
 const canReview =
   isAdmin || (await isArrangementReviewer(ensemble.id, user.id));

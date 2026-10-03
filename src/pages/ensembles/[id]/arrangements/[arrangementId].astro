@@ -13,7 +13,12 @@ import {
 import EnsemblePageLayout from "@layouts/EnsemblePageLayout.astro";
 import AudioPlayer from "@components/song/AudioPlayer.astro";
 import { actions } from "astro:actions";
-import { getEnsembleBySlugOrId, getEnsembleAccess } from "@lib/ensemble";
+import {
+  getEnsembleBySlugOrId,
+  getEnsembleAccess,
+  getActiveMembership,
+} from "@lib/ensemble";
+import { isSiteAdmin } from "@lib/permissions";
 import { getEnsembleUrlId } from "@lib/slug";
 import { formatRuntime } from "@lib/songs";
 import {
@@ -46,6 +51,9 @@ const access = await getEnsembleAccess(user, ensemble.id);
 if (!access)
   return new Response("Unauthorized - Not a member", { status: 403 });
 const { isAdmin } = access;
+if (!isSiteAdmin(user) && !(await getActiveMembership(ensemble.id, user.id))) {
+  return new Response("Your membership is pending approval", { status: 403 });
+}
 
 const { arrangement, versions, comments, parts } = await getArrangementDetail(
   arrangementId!,
@@ -62,6 +70,7 @@ if (!canReview && !isSubmitter) {
 }
 
 const canUpload = (isSubmitter || isAdmin) && arrangement.status !== "approved";
+const canDelete = isAdmin || (isSubmitter && arrangement.status !== "approved");
 const latestVersion = versions[0] ?? null;
 
 const approveResult = Astro.getActionResult(actions.arrangements.approve);
@@ -71,6 +80,11 @@ if (approveResult && !approveResult.error) {
       ? `/ensembles/${canonicalId}/songs/${approveResult.data.songId}`
       : `/ensembles/${canonicalId}/arrangements`,
   );
+}
+
+const deleteResult = Astro.getActionResult(actions.arrangements.delete);
+if (deleteResult && !deleteResult.error) {
+  return Astro.redirect(`/ensembles/${canonicalId}/arrangements`);
 }
 
 const commentResult = Astro.getActionResult(actions.arrangements.comment);
@@ -92,6 +106,9 @@ if (approveResult?.error) {
   messageType = "danger";
 } else if (declineResult?.error) {
   message = declineResult.error.message ?? "Failed to decline arrangement.";
+  messageType = "danger";
+} else if (deleteResult?.error) {
+  message = deleteResult.error.message ?? "Failed to delete arrangement.";
   messageType = "danger";
 } else if (commentResult?.error) {
   message = commentResult.error.message ?? "Failed to post comment.";
@@ -132,6 +149,21 @@ if (approveResult?.error) {
             <span>Decline</span>
           </Button>
         </>
+      )
+    }
+    {
+      canDelete && (
+        <form
+          method="POST"
+          action={actions.arrangements.delete}
+          onsubmit={`return confirm('${isSubmitter && !isAdmin ? "Withdraw" : "Delete"} this arrangement and all its versions? This cannot be undone.');`}
+        >
+          <input type="hidden" name="arrangementId" value={arrangement.id} />
+          <Button type="submit" color="danger" outlined>
+            <Icon icon="fa-trash" />
+            <span>{isSubmitter && !isAdmin ? "Withdraw" : "Delete"}</span>
+          </Button>
+        </form>
       )
     }
   </div>

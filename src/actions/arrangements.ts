@@ -1,12 +1,13 @@
 import { defineAction, ActionError } from 'astro:actions';
 import { z } from 'astro/zod';
 import { assertEnsembleAdmin } from './utils';
-import { getEnsembleMembership } from '@lib/ensemble';
+import { getActiveMembership } from '@lib/ensemble';
 import { canManageEnsemble } from '@lib/permissions';
 import {
   addArrangementComment,
   approveArrangement,
   declineArrangement,
+  deleteArrangements,
   setArrangementReviewGroup,
   getArrangementById,
   getArrangementFileWithAccess,
@@ -14,9 +15,9 @@ import {
 } from '@lib/arrangements';
 
 async function assertCanReview(ensembleId: string, user: { id: string; role: string }) {
-  const membership = await getEnsembleMembership(ensembleId, user.id);
+  const membership = await getActiveMembership(ensembleId, user.id);
   if (canManageEnsemble(user, membership)) return;
-  if (!membership || !(await isArrangementReviewer(ensembleId, user.id))) {
+  if (!(await isArrangementReviewer(ensembleId, user.id))) {
     throw new ActionError({ code: 'FORBIDDEN' });
   }
 }
@@ -85,6 +86,30 @@ export const arrangements = {
       if (result.error) {
         throw new ActionError({ code: 'BAD_REQUEST', message: result.error });
       }
+    },
+  }),
+
+  // Admins can delete any arrangement; submitters can withdraw their own until it's approved.
+  delete: defineAction({
+    accept: 'form',
+    input: z.object({
+      arrangementId: z.string(),
+    }),
+    handler: async ({ arrangementId }, context) => {
+      const user = context.locals.user;
+      if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
+
+      const arrangement = await getArrangementById(arrangementId);
+      if (!arrangement) throw new ActionError({ code: 'NOT_FOUND' });
+
+      const membership = await getActiveMembership(arrangement.ensembleId, user.id);
+      const canWithdraw =
+        !!membership && arrangement.submittedBy === user.id && arrangement.status !== 'approved';
+      if (!canManageEnsemble(user, membership) && !canWithdraw) {
+        throw new ActionError({ code: 'FORBIDDEN' });
+      }
+
+      await deleteArrangements([arrangementId]);
     },
   }),
 

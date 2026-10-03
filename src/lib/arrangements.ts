@@ -9,7 +9,6 @@ import {
   ArrangementVersion,
   ArrangementComment,
   Ensemble,
-  EnsembleMember,
   Group,
   GroupMembership,
   ArrangementPart,
@@ -19,15 +18,20 @@ import {
   SongFile,
   User,
 } from '@db';
-import { copyStorageFile, uploadArrangementFile, validateSongFile } from './storage';
+import { copyStorageFile, deleteStorageFile, uploadArrangementFile, validateSongFile } from './storage';
+import { getActiveMembership } from './ensemble';
+import { canManageEnsemble } from './permissions';
+import { partsInEnsemble } from './ownership';
 
 // ─── Access ─────────────────────────────────────────────────────────────────
 
 /**
- * Whether the user belongs to the ensemble's assigned arrangement review group
+ * Whether the user is an active member in the ensemble's assigned arrangement review group
  * (e.g. the "Artistic Guild"). Ensemble/site admins are handled separately.
  */
 export async function isArrangementReviewer(ensembleId: string, userId: string): Promise<boolean> {
+  if (!(await getActiveMembership(ensembleId, userId))) return false;
+
   const ensemble = await db
     .select({ groupId: Ensemble.arrangementReviewGroupId })
     .from(Ensemble)
@@ -67,17 +71,12 @@ export async function getArrangementFileWithAccess(
 
   if (!row) return null;
 
-  if (user.role !== 'admin' && row.submittedBy !== user.id) {
-    const membership = await db
-      .select()
-      .from(EnsembleMember)
-      .where(and(eq(EnsembleMember.ensembleId, row.ensembleId), eq(EnsembleMember.userId, user.id)))
-      .get();
-    const isEnsembleAdmin = membership?.role === 'admin';
-    if (!isEnsembleAdmin) {
-      if (!membership || !(await isArrangementReviewer(row.ensembleId, user.id))) return null;
-    }
-  }
+  const membership = await getActiveMembership(row.ensembleId, user.id);
+  const allowed =
+    canManageEnsemble(user, membership) ||
+    (membership && row.submittedBy === user.id) ||
+    (await isArrangementReviewer(row.ensembleId, user.id));
+  if (!allowed) return null;
 
   return { url: row.url, name: row.fileName };
 }
@@ -233,6 +232,9 @@ export async function submitArrangement(
   const validation = validateSongFile(input.file);
   if (!validation.valid) return { error: validation.error };
 
+  const partIds = [...new Set(input.parts ?? [])];
+  if (!(await partsInEnsemble(partIds, ensembleId))) return { error: 'Unknown voice part.' };
+
   const url = await uploadArrangementFile(input.file, ensembleId);
 
   const arrangementId = crypto.randomUUID();
@@ -247,7 +249,7 @@ export async function submitArrangement(
     submittedBy: userId,
   });
 
-  for (const partId of input.parts ?? []) {
+  for (const partId of partIds) {
     await db.insert(ArrangementPart).values({ id: crypto.randomUUID(), arrangementId, partId });
   }
 
@@ -411,6 +413,49 @@ export async function declineArrangement(arrangementId: string): Promise<{ error
 
   await db.update(Arrangement).set({ status: 'declined' }).where(eq(Arrangement.id, arrangementId));
   return {};
+}
+
+/** Deletes arrangements with their versions, comments, voice parts and stored files. */
+export async function deleteArrangements(arrangementIds: string[]): Promise<void> {
+  if (arrangementIds.length === 0) return;
+  const versions = await db
+    .select({ id: ArrangementVersion.id, url: ArrangementVersion.url })
+    .from(ArrangementVersion)
+    .where(inArray(ArrangementVersion.arrangementId, arrangementIds))
+    .all();
+  await deleteVersionRows(versions.map((v) => v.id));
+  await db.delete(ArrangementPart).where(inArray(ArrangementPart.arrangementId, arrangementIds));
+  await db.delete(Arrangement).where(inArray(Arrangement.id, arrangementIds));
+  await Promise.all(versions.map((v) => deleteStorageFile(v.url)));
+}
+
+/**
+ * Removes a user's arrangement activity so the user can be deleted: their submissions, versions
+ * they uploaded to other people's submissions, and their comments.
+ */
+export async function deleteUserArrangements(userId: string): Promise<void> {
+  const submitted = await db
+    .select({ id: Arrangement.id })
+    .from(Arrangement)
+    .where(eq(Arrangement.submittedBy, userId))
+    .all();
+  await deleteArrangements(submitted.map((a) => a.id));
+
+  const uploaded = await db
+    .select({ id: ArrangementVersion.id, url: ArrangementVersion.url })
+    .from(ArrangementVersion)
+    .where(eq(ArrangementVersion.uploadedBy, userId))
+    .all();
+  await deleteVersionRows(uploaded.map((v) => v.id));
+  await Promise.all(uploaded.map((v) => deleteStorageFile(v.url)));
+
+  await db.delete(ArrangementComment).where(eq(ArrangementComment.userId, userId));
+}
+
+async function deleteVersionRows(versionIds: string[]): Promise<void> {
+  if (versionIds.length === 0) return;
+  await db.delete(ArrangementComment).where(inArray(ArrangementComment.versionId, versionIds));
+  await db.delete(ArrangementVersion).where(inArray(ArrangementVersion.id, versionIds));
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────

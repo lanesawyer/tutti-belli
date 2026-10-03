@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { getEnsembleBySlugOrId, getEnsembleMembership } from '@lib/ensemble';
+import { getEnsembleBySlugOrId, getActiveMembership } from '@lib/ensemble';
 import { canManageEnsemble } from '@lib/permissions';
 import { addArrangementVersion, getArrangementById } from '@lib/arrangements';
 
@@ -18,11 +18,10 @@ export const POST: APIRoute = async ({ params, locals, request, redirect }) => {
     return new Response('Not found', { status: 404 });
   }
 
-  if (arrangement.submittedBy !== user.id) {
-    const membership = await getEnsembleMembership(ensemble.id, user.id);
-    if (!canManageEnsemble(user, membership)) {
-      return new Response('Forbidden', { status: 403 });
-    }
+  const membership = await getActiveMembership(ensemble.id, user.id);
+  const isSubmitter = !!membership && arrangement.submittedBy === user.id;
+  if (!isSubmitter && !canManageEnsemble(user, membership)) {
+    return new Response('Forbidden', { status: 403 });
   }
 
   let formData: FormData;

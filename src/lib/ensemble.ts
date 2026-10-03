@@ -1,4 +1,4 @@
-import { db, eq, or, and, ne, inArray, Ensemble, EnsembleMember, EnsembleInvite, EnsembleLink, Group, GroupMembership, MemberPart, Part, Season, SeasonMembership, User } from '@db';
+import { db, eq, or, and, ne, inArray, ArrangementPart, Ensemble, EnsembleMember, EnsembleInvite, EnsembleLink, Group, GroupMembership, MemberPart, Part, Season, SeasonMembership, SongPart, User } from '@db';
 import { canManageEnsemble, isSiteAdmin } from './permissions';
 import { deleteImage } from './storage';
 
@@ -21,6 +21,12 @@ export async function getEnsembleMembership(ensembleId: string, userId: string) 
     .from(EnsembleMember)
     .where(and(eq(EnsembleMember.ensembleId, ensembleId), eq(EnsembleMember.userId, userId)))
     .get() ?? null;
+}
+
+/** The user's membership if it's active; a pending join request returns null. */
+export async function getActiveMembership(ensembleId: string, userId: string) {
+  const membership = await getEnsembleMembership(ensembleId, userId);
+  return membership?.status === 'active' ? membership : null;
 }
 
 /**
@@ -353,11 +359,15 @@ export async function editPart(partId: string, ensembleId: string, name: string,
     .where(and(eq(Part.id, partId), eq(Part.ensembleId, ensembleId)));
 }
 
-/** Deletes a part, unless members are still assigned to it. */
+/** Deletes a part, unless members are still assigned to it. Songs and arrangements just lose it. */
 export async function deletePart(partId: string, ensembleId: string): Promise<{ ok: true } | { ok: false; error: string }> {
+  const part = await db.select({ id: Part.id }).from(Part).where(and(eq(Part.id, partId), eq(Part.ensembleId, ensembleId))).get();
+  if (!part) return { ok: true };
   const assigned = await db.select({ id: MemberPart.id }).from(MemberPart).where(eq(MemberPart.partId, partId)).get();
   if (assigned) return { ok: false, error: 'Cannot delete a part that has members assigned to it.' };
-  await db.delete(Part).where(and(eq(Part.id, partId), eq(Part.ensembleId, ensembleId)));
+  await db.delete(SongPart).where(eq(SongPart.partId, partId));
+  await db.delete(ArrangementPart).where(eq(ArrangementPart.partId, partId));
+  await db.delete(Part).where(eq(Part.id, partId));
   return { ok: true };
 }
 

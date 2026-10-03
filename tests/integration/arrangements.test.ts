@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { db, eq, Arrangement, ArrangementPart, ArrangementVersion, Song, SongFile, SongPart } from '@db';
+import { db, eq, Arrangement, ArrangementComment, ArrangementPart, ArrangementVersion, Part, Song, SongFile, SongPart, User } from '@db';
 import {
   createUser,
   createEnsemble,
@@ -22,8 +22,12 @@ import {
   getEnsembleArrangements,
   getArrangementDetail,
   getArrangementFileWithAccess,
+  deleteArrangements,
 } from '../../src/lib/arrangements.ts';
-import { validateSongFile } from '../../src/lib/storage.ts';
+import { deleteSong } from '../../src/lib/songs.ts';
+import { deletePart } from '../../src/lib/ensemble.ts';
+import { adminDeleteUser } from '../../src/lib/profile.ts';
+import { deleteStorageFile, validateSongFile } from '../../src/lib/storage.ts';
 
 vi.mock('../../src/lib/storage.ts', () => ({
   validateSongFile: vi.fn().mockReturnValue({ valid: true }),
@@ -31,6 +35,7 @@ vi.mock('../../src/lib/storage.ts', () => ({
   uploadSongFile: vi.fn().mockResolvedValue('https://storage.example.com/test.pdf'),
   copyStorageFile: vi.fn().mockResolvedValue('https://storage.example.com/song-copy.pdf'),
   deleteStorageFile: vi.fn().mockResolvedValue(undefined),
+  deleteImage: vi.fn().mockResolvedValue(undefined),
 }));
 
 function pdfFile(name = 'score.pdf') {
@@ -589,6 +594,100 @@ describe('arrangements lib', () => {
         role: 'user',
       });
       expect(result).toBeNull();
+    });
+  });
+
+  describe('access for pending members', () => {
+    it('does not let a pending member review or download, even in the review group', async () => {
+      const { admin, ensemble } = await setupEnsemble();
+      const pending = await createUser();
+      await createMembership(ensemble!.id, pending!.id, { status: 'pending' });
+      const group = await createGroup(ensemble!.id);
+      await createGroupMembership(group!.id, pending!.id);
+      await setArrangementReviewGroup(ensemble!.id, group!.id);
+      const { arrangementId } = await submitArrangement(ensemble!.id, admin!.id, { title: 'T', file: pdfFile() });
+      const version = await db.select().from(ArrangementVersion).where(eq(ArrangementVersion.arrangementId, arrangementId!)).get();
+
+      expect(await isArrangementReviewer(ensemble!.id, pending!.id)).toBe(false);
+      expect(await getArrangementFileWithAccess(version!.id, { id: pending!.id, role: 'user' })).toBeNull();
+    });
+  });
+
+  describe('voice part validation', () => {
+    it("rejects another ensemble's parts", async () => {
+      const { submitter, ensemble } = await setupEnsemble();
+      const other = await createEnsemble(submitter!.id);
+      const foreign = await createPart(other!.id);
+
+      const result = await submitArrangement(ensemble!.id, submitter!.id, {
+        title: 'T',
+        file: pdfFile(),
+        parts: [foreign!.id],
+      });
+
+      expect(result.error).toBe('Unknown voice part.');
+      expect(await db.select().from(Arrangement).where(eq(Arrangement.ensembleId, ensemble!.id)).all()).toHaveLength(0);
+    });
+  });
+
+  describe('deleting', () => {
+    async function approvedArrangement() {
+      const { admin, submitter, ensemble } = await setupEnsemble();
+      const part = await createPart(ensemble!.id);
+      const { arrangementId } = await submitArrangement(ensemble!.id, submitter!.id, {
+        title: 'T',
+        file: pdfFile(),
+        parts: [part!.id],
+      });
+      const version = await db.select().from(ArrangementVersion).where(eq(ArrangementVersion.arrangementId, arrangementId!)).get();
+      await addArrangementComment(version!.id, admin!.id, 'Lovely');
+      const { songId } = await approveArrangement(arrangementId!, admin!.id);
+      return { admin, submitter, ensemble, part, arrangementId: arrangementId!, songId: songId! };
+    }
+
+    it('deletes an arrangement with its versions, comments, parts and files', async () => {
+      const { arrangementId } = await approvedArrangement();
+      vi.mocked(deleteStorageFile).mockClear();
+
+      await deleteArrangements([arrangementId]);
+
+      expect(await db.select().from(Arrangement).where(eq(Arrangement.id, arrangementId)).get()).toBeUndefined();
+      expect(await db.select().from(ArrangementVersion).where(eq(ArrangementVersion.arrangementId, arrangementId)).all()).toHaveLength(0);
+      expect(await db.select().from(ArrangementPart).where(eq(ArrangementPart.arrangementId, arrangementId)).all()).toHaveLength(0);
+      expect(deleteStorageFile).toHaveBeenCalledWith('https://storage.example.com/arrangement.pdf');
+    });
+
+    it('can delete a song that came from an arrangement', async () => {
+      const { arrangementId, songId } = await approvedArrangement();
+
+      await deleteSong(songId);
+
+      expect(await db.select().from(Song).where(eq(Song.id, songId)).get()).toBeUndefined();
+      expect((await db.select().from(Arrangement).where(eq(Arrangement.id, arrangementId)).get())!.approvedSongId).toBeNull();
+    });
+
+    it('can delete a voice part that an arrangement and its song use', async () => {
+      const { ensemble, part, arrangementId } = await approvedArrangement();
+
+      expect(await deletePart(part!.id, ensemble!.id)).toEqual({ ok: true });
+      expect(await db.select().from(Part).where(eq(Part.id, part!.id)).get()).toBeUndefined();
+      expect(await db.select().from(ArrangementPart).where(eq(ArrangementPart.arrangementId, arrangementId)).all()).toHaveLength(0);
+    });
+
+    it("can delete a user who submitted, uploaded and commented on arrangements", async () => {
+      const { admin, submitter, ensemble, arrangementId } = await approvedArrangement();
+      const { arrangementId: othersId } = await submitArrangement(ensemble!.id, admin!.id, { title: 'Other', file: pdfFile() });
+      await addArrangementVersion(othersId!, submitter!.id, { file: pdfFile() });
+      const othersVersion = await db.select().from(ArrangementVersion).where(eq(ArrangementVersion.arrangementId, othersId!)).get();
+      await addArrangementComment(othersVersion!.id, submitter!.id, 'Nice');
+
+      await adminDeleteUser(submitter!.id);
+
+      expect(await db.select().from(User).where(eq(User.id, submitter!.id)).get()).toBeUndefined();
+      expect(await db.select().from(Arrangement).where(eq(Arrangement.id, arrangementId)).get()).toBeUndefined();
+      const remaining = await db.select().from(ArrangementVersion).where(eq(ArrangementVersion.arrangementId, othersId!)).all();
+      expect(remaining.map((v) => v.uploadedBy)).toEqual([admin!.id]);
+      expect(await db.select().from(ArrangementComment).where(eq(ArrangementComment.userId, submitter!.id)).all()).toHaveLength(0);
     });
   });
 });
