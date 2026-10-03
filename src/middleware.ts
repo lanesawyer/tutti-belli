@@ -1,5 +1,6 @@
 import { defineMiddleware } from 'astro:middleware';
 import { getSession, getUserFromSession } from './lib/session';
+import { resolveViewAs, VIEW_AS_COOKIE } from './lib/role-preview';
 
 // Public routes that don't require authentication
 const PUBLIC_ROUTES = [
@@ -31,6 +32,19 @@ export const onRequest = defineMiddleware(async (context, next) => {
 
   context.locals.session = session;
   context.locals.user = user;
+  context.locals.viewingAs = null;
+
+  // A site admin previewing a role: serve the request as the test account they picked.
+  const viewAsToken = context.cookies.get(VIEW_AS_COOKIE)?.value;
+  if (viewAsToken) {
+    const testAccount = user ? await resolveViewAs(viewAsToken, user) : null;
+    if (user && testAccount) {
+      context.locals.viewingAs = { realUser: user };
+      context.locals.user = testAccount;
+    } else {
+      context.cookies.delete(VIEW_AS_COOKIE, { path: '/' });
+    }
+  }
 
   // Redirect to login if accessing protected route without authentication
   if (!user && !isPublicRoute(context.url.pathname)) {
