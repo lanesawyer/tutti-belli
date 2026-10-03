@@ -1,4 +1,5 @@
 import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand, NoSuchKey } from '@aws-sdk/client-s3';
+import { IMAGE_EXTENSIONS } from './upload';
 
 // Song files live in a Tigris bucket. `fly storage create -a <app>` sets these variables on the
 // app; the SDK also reads AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY from the environment.
@@ -31,14 +32,10 @@ export function validateSongFile(file: File): { valid: boolean; error?: string }
   return { valid: true };
 }
 
-/** Uploads a song file and returns its object key, which is what SongFile.url stores. */
-export async function uploadSongFile(file: File, ensembleId: string): Promise<string> {
-  const sanitizedName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-  const key = `${ensembleId}/songs/${crypto.randomUUID()}-${sanitizedName}`;
-
+async function putFile(key: string, file: File): Promise<void> {
   if (process.env.STORAGE_DISABLED) {
     console.log(`[storage] disabled — skipping upload of "${file.name}"`);
-    return key;
+    return;
   }
 
   const buffer = await file.arrayBuffer();
@@ -51,7 +48,45 @@ export async function uploadSongFile(file: File, ensembleId: string): Promise<st
       ContentType: file.type,
     })
   );
+}
+
+/** Uploads a song file and returns its object key, which is what SongFile.url stores. */
+export async function uploadSongFile(file: File, ensembleId: string): Promise<string> {
+  const sanitizedName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+  const key = `${ensembleId}/songs/${crypto.randomUUID()}-${sanitizedName}`;
+  await putFile(key, file);
   return key;
+}
+
+const IMAGE_PATH = /^\/images\/((?:avatars|ensembles)\/[0-9a-f-]{36}\.(?:png|jpg|webp|gif))$/;
+
+/**
+ * Uploads an avatar or ensemble image that passed validateImageFile, and returns the path it's
+ * served from (src/pages/images), which is what User.avatarUrl and Ensemble.imageUrl store.
+ */
+export async function uploadImage(file: File, kind: 'avatars' | 'ensembles'): Promise<string> {
+  const key = `${kind}/${crypto.randomUUID()}.${IMAGE_EXTENSIONS[file.type]}`;
+  await putFile(key, file);
+  return `/images/${key}`;
+}
+
+/**
+ * The object key behind an image path, or null for anything else. Images uploaded before they
+ * moved to storage are inline data URIs, which still render but have nothing to delete.
+ */
+export function imageKey(path: string): string | null {
+  return IMAGE_PATH.exec(path)?.[1] ?? null;
+}
+
+/** Deletes a replaced or removed image. Failures are only logged: the database change already happened. */
+export async function deleteImage(path: string | null | undefined): Promise<void> {
+  const key = path ? imageKey(path) : null;
+  if (!key) return;
+  try {
+    await deleteStorageFile(key);
+  } catch (error) {
+    console.error(`[storage] failed to delete image "${key}":`, error);
+  }
 }
 
 export async function deleteStorageFile(key: string): Promise<void> {

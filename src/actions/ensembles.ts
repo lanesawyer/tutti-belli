@@ -11,7 +11,8 @@ import {
   createInvite,
   deleteInvite,
 } from '@lib/ensemble';
-import { validateImageFile, fileToDataUri } from '@lib/upload';
+import { validateImageFile } from '@lib/upload';
+import { uploadImage } from '@lib/storage';
 import { generateSlug } from '@lib/slug';
 import { randomCode } from '@lib/codes';
 import { isDiscordWebhookUrl } from '@lib/discord';
@@ -119,7 +120,7 @@ export const ensembles = {
         if (!validation.valid) {
           throw new ActionError({ code: 'BAD_REQUEST', message: validation.error! });
         }
-        imageUrl = await fileToDataUri(input.image);
+        imageUrl = await uploadImage(input.image, 'ensembles');
       }
 
       await updateEnsemble(input.ensembleId, {

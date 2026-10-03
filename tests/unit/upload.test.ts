@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { validateImageFile, fileToDataUri } from '../../src/lib/upload.ts';
+import { validateImageFile } from '../../src/lib/upload.ts';
 
 describe('validateImageFile', () => {
   it('accepts image/jpeg', () => {
@@ -29,6 +29,11 @@ describe('validateImageFile', () => {
     expect(result.error).toMatch(/image/i);
   });
 
+  it('rejects SVG, which could run scripts when served from our origin', () => {
+    const file = new File(['<svg/>'], 'logo.svg', { type: 'image/svg+xml' });
+    expect(validateImageFile(file, 2).valid).toBe(false);
+  });
+
   it('rejects text/plain', () => {
     const file = new File(['hello'], 'note.txt', { type: 'text/plain' });
     const result = validateImageFile(file, 2);
@@ -47,21 +52,5 @@ describe('validateImageFile', () => {
     const atLimit = new Uint8Array(2 * 1024 * 1024); // exactly 2MB
     const file = new File([atLimit], 'ok.jpg', { type: 'image/jpeg' });
     expect(validateImageFile(file, 2).valid).toBe(true);
-  });
-});
-
-describe('fileToDataUri', () => {
-  it('returns a base64-encoded data URI', async () => {
-    const file = new File(['hello'], 'test.png', { type: 'image/png' });
-    const uri = await fileToDataUri(file);
-    expect(uri).toMatch(/^data:image\/png;base64,/);
-  });
-
-  it('encodes the file content correctly', async () => {
-    const content = 'test content';
-    const file = new File([content], 'test.txt', { type: 'text/plain' });
-    const uri = await fileToDataUri(file);
-    const base64Part = uri.split(',')[1];
-    expect(Buffer.from(base64Part, 'base64').toString()).toBe(content);
   });
 });
