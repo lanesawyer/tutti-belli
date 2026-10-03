@@ -9,13 +9,13 @@ import {
   Content,
   FileInput,
   Icon,
+  Image,
   Notification,
   Subtitle,
   Tag,
   TextInput,
   Title,
 } from "astro-bulma";
-import UploadedImage from "@components/UploadedImage.astro";
 import BaseLayout from "@layouts/BaseLayout.astro";
 import { actions } from "astro:actions";
 import { getMembershipsWithParts } from "@lib/profile";
@@ -86,7 +86,7 @@ const tasksByEnsemble = await getUserTasksAcrossEnsembles(user.id);
           <div class="is-flex is-align-items-center mb-5" style="gap: 1rem;">
             {
               user.avatarUrl ? (
-                <UploadedImage
+                <Image
                   src={user.avatarUrl}
                   alt={user.name}
                   size="96x96"

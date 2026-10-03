@@ -5,13 +5,13 @@ import {
   Button,
   Container,
   Icon,
+  Image,
   Level,
   Section,
   Subtitle,
   Table,
   Title,
 } from "astro-bulma";
-import UploadedImage from "@components/UploadedImage.astro";
 import BaseLayout from "@layouts/BaseLayout.astro";
 import { actions } from "astro:actions";
 import { ensembleAdminTools } from "@lib/config";
@@ -185,7 +185,7 @@ const members = membersData;
                           <tr>
                             <td>
                               {member.avatarUrl ? (
-                                <UploadedImage
+                                <Image
                                   src={member.avatarUrl}
                                   alt={member.name}
                                   size="48x48"
@@ -320,7 +320,7 @@ const members = membersData;
                         <tr>
                           <td>
                             {member.avatarUrl ? (
-                              <UploadedImage
+                              <Image
                                 src={member.avatarUrl}
                                 alt={member.name}
                                 size="48x48"
@@ -451,7 +451,7 @@ const members = membersData;
                   <tr>
                     <td>
                       {member.avatarUrl ? (
-                        <UploadedImage
+                        <Image
                           src={member.avatarUrl}
                           alt={member.name}
                           size="48x48"

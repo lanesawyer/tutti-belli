@@ -1,6 +1,5 @@
 ---
-import { Card, Subtitle, Tag, Title } from "astro-bulma";
-import UploadedImage from "@components/UploadedImage.astro";
+import { Card, Image, Subtitle, Tag, Title } from "astro-bulma";
 import { getInitials, getColorFromInitials } from "@lib/avatar";
 import { isColor } from "@lib/bulma";
 
@@ -25,7 +24,7 @@ const avatarColor = getColorFromInitials(initials);
 <Card contentClass="has-text-centered">
   {
     avatarUrl ? (
-      <UploadedImage
+      <Image
         src={avatarUrl}
         alt={name}
         size="96x96"

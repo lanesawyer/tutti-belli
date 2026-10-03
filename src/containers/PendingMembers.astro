@@ -1,8 +1,7 @@
 ---
 import { getPendingMembers } from "@lib/ensemble";
 import { actions } from "astro:actions";
-import { Box, Button, Content, Icon, Media, Title } from "astro-bulma";
-import UploadedImage from "@components/UploadedImage.astro";
+import { Box, Button, Content, Icon, Image, Media, Title } from "astro-bulma";
 import { getInitials, getColorFromInitials } from "@lib/avatar";
 
 interface Props {
@@ -34,7 +33,7 @@ if (pendingMembers.length === 0) return;
           <Media>
             <Fragment slot="left">
               {member.avatarUrl ? (
-                <UploadedImage
+                <Image
                   src={member.avatarUrl}
                   alt={member.name}
                   size="32x32"
