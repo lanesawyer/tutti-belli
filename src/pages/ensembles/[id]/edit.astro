@@ -10,12 +10,12 @@ import {
   Content,
   FileInput,
   Icon,
-  Image,
   Section,
   TextInput,
   Textarea,
   Title,
 } from "astro-bulma";
+import UploadedImage from "@components/UploadedImage.astro";
 import BaseLayout from "@layouts/BaseLayout.astro";
 import { actions } from "astro:actions";
 import { canManageEnsemble } from "@lib/permissions";
@@ -278,7 +278,7 @@ if (updateResult?.error) {
                       <p class="mb-2 has-text-weight-semibold">
                         Current Image:
                       </p>
-                      <Image
+                      <UploadedImage
                         src={ensemble.imageUrl}
                         alt={ensemble.name}
                         size="128x128"

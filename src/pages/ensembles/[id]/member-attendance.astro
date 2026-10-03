@@ -5,7 +5,6 @@ import {
   Button,
   Container,
   Icon,
-  Image,
   Level,
   Progress,
   Section,
@@ -13,6 +12,7 @@ import {
   Table,
   Title,
 } from "astro-bulma";
+import UploadedImage from "@components/UploadedImage.astro";
 import BaseLayout from "@layouts/BaseLayout.astro";
 import { ensembleAdminTools } from "@lib/config";
 import { getInitials, getColorFromInitials } from "@lib/avatar";
@@ -158,7 +158,7 @@ const selectedSeason = seasons.find((s) => s.id === seasonId);
                   <tr>
                     <td>
                       {member.avatarUrl ? (
-                        <Image
+                        <UploadedImage
                           src={member.avatarUrl}
                           alt={member.name}
                           size="48x48"

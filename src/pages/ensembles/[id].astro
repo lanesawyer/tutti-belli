@@ -4,11 +4,11 @@ import {
   Column,
   Columns,
   Icon,
-  Image,
   Notification,
   Subtitle,
   Title,
 } from "astro-bulma";
+import UploadedImage from "@components/UploadedImage.astro";
 import BaseLayout from "@layouts/BaseLayout.astro";
 import InviteCodeWidget from "@containers/InviteCodeWidget.astro";
 import PendingMembers from "@containers/PendingMembers.astro";
@@ -78,7 +78,7 @@ const currentSeason = await getActiveSeasonForEnsemble(ensemble.id);
   <div class="is-flex is-align-items-flex-start mb-5" style="min-width: 0;">
     {
       ensemble.imageUrl && (
-        <Image
+        <UploadedImage
           src={ensemble.imageUrl}
           alt={ensemble.name}
           size="96x96"

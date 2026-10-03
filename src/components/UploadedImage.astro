@@ -1,0 +1,24 @@
+---
+// A Bulma image for avatars and ensemble images. astro-bulma's Image hands anything that isn't a
+// data URI to astro:assets, which fetches it at render time to infer its size; uploaded images
+// sit behind a login at /images, so render a plain <img> instead.
+interface Props {
+  src: string;
+  alt: string;
+  size?: "32x32" | "48x48" | "96x96" | "128x128";
+  rounded?: boolean;
+  class?: string;
+  style?: string;
+  imgStyle?: string;
+}
+
+const { src, alt, size, rounded, class: className, style, imgStyle } = Astro.props;
+const px = size ? Number(size.split("x")[0]) : undefined;
+---
+
+<figure
+  class:list={["image", size && `is-${size}`, rounded && "is-rounded", className]}
+  style={style}
+>
+  <img src={src} alt={alt} width={px} height={px} loading="lazy" style={imgStyle} />
+</figure>
