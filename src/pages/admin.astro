@@ -15,6 +15,12 @@ import PageLayout from "@layouts/PageLayout.astro";
 import { actions } from "astro:actions";
 import { getActiveBanner } from "@lib/banner";
 import { getAllEnsembles, getAllUsers } from "@lib/admin";
+import {
+  getSandboxEnsemble,
+  getTestAccount,
+  TEST_ACCOUNTS,
+} from "@lib/role-preview";
+import { getEnsembleUrlId } from "@lib/slug";
 
 const user = Astro.locals.user;
 
@@ -30,6 +36,7 @@ const toggleAdminResult = Astro.getActionResult(actions.admin.toggleAdmin);
 const deleteUserResult = Astro.getActionResult(actions.admin.deleteUser);
 const setBannerResult = Astro.getActionResult(actions.admin.setBanner);
 const clearBannerResult = Astro.getActionResult(actions.admin.clearBanner);
+const rolePreviewResult = Astro.getActionResult(actions.admin.setUpRolePreview);
 
 let message = "";
 let messageType: "success" | "danger" = "success";
@@ -65,11 +72,17 @@ if (createResult?.data) {
 } else if (clearBannerResult?.error) {
   message = clearBannerResult.error.message;
   messageType = "danger";
+} else if (rolePreviewResult && !rolePreviewResult.error) {
+  message = "Role preview test accounts are ready.";
+} else if (rolePreviewResult?.error) {
+  message = rolePreviewResult.error.message;
+  messageType = "danger";
 }
 
 const allEnsembles = await getAllEnsembles();
 const allUsers = await getAllUsers();
 const activeBanner = await getActiveBanner();
+const sandbox = await getSandboxEnsemble();
 ---
 
 <PageLayout
@@ -171,6 +184,9 @@ const activeBanner = await getActiveBanner();
               >
                 {u.role === "admin" ? "Site Admin" : "User"}
               </span>
+              {getTestAccount(u.id) && (
+                <span class="tag is-light ml-1">Test account</span>
+              )}
             </td>
             <td>{new Date(u.createdAt).toLocaleDateString()}</td>
             <td>
@@ -215,6 +231,46 @@ const activeBanner = await getActiveBanner();
   </Table>
 
   <!-- Site Banner -->
+  <Title as="h2" size={4} class="mt-5" id="role-preview">Role Preview</Title>
+  <Box>
+    <p class="mb-3">
+      Browse the site as a test account to see what each role sees. The test
+      accounts belong only to the {sandbox ? (
+        <a href={`/ensembles/${getEnsembleUrlId(sandbox)}`}>{sandbox.name}</a>
+      ) : (
+        "Role Preview Sandbox"
+      )} ensemble, no email is ever sent to them, and nobody can sign in as them.
+      A preview lasts an hour.
+    </p>
+    {
+      sandbox && (
+        <Table>
+          <tbody>
+            {TEST_ACCOUNTS.map((account) => (
+              <tr>
+                <td>{account.name}</td>
+                <td>{account.description}</td>
+                <td>
+                  <form method="POST" action="/view-as">
+                    <input type="hidden" name="userId" value={account.id} />
+                    <Button type="submit" color="link" size="small">
+                      View as
+                    </Button>
+                  </form>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </Table>
+      )
+    }
+    <form method="POST" action={actions.admin.setUpRolePreview}>
+      <Button type="submit" color={sandbox ? "light" : "primary"} size="small">
+        {sandbox ? "Reset test accounts" : "Set up role preview"}
+      </Button>
+    </form>
+  </Box>
+
   <Title as="h2" size={4} class="mt-5">Site Banner</Title>
 
   {

@@ -1,4 +1,5 @@
 import { Resend } from 'resend';
+import { isTestEmail } from './role-preview';
 
 interface SendParams {
   from: string;
@@ -26,6 +27,7 @@ function getClient(): { client: Resend; fromEmail: string } | { error: EmailResu
 }
 
 async function sendEmail(params: SendParams, logContext: string): Promise<EmailResult> {
+  if (isTestEmail(params.to)) return { success: true };
   if (getEnv('EMAIL_DISABLED')) {
     console.log(`[email] disabled — skipping ${logContext} to="${params.to}"`);
     return { success: true };
@@ -47,7 +49,9 @@ async function sendEmail(params: SendParams, logContext: string): Promise<EmailR
   }
 }
 
-async function sendEmailBatch(paramsList: SendParams[], logContext: string): Promise<EmailResult> {
+async function sendEmailBatch(allParams: SendParams[], logContext: string): Promise<EmailResult> {
+  const paramsList = allParams.filter((params) => !isTestEmail(params.to));
+  if (paramsList.length === 0) return { success: true };
   if (getEnv('EMAIL_DISABLED')) {
     console.log(`[email] disabled — skipping ${logContext} to ${paramsList.length} recipients`);
     return { success: true };
