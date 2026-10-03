@@ -1,5 +1,6 @@
 import { db, eq, Ensemble, EnsembleMember, User } from '@db';
 import { findUniqueSlug } from './slug';
+import { deleteImage } from './storage';
 
 export async function getAllEnsembles() {
   return await db.select().from(Ensemble).all();
@@ -39,6 +40,8 @@ export async function createEnsemble(params: { name: string; description: string
 }
 
 export async function deleteEnsemble(ensembleId: string) {
+  const ensemble = await db.select({ imageUrl: Ensemble.imageUrl }).from(Ensemble).where(eq(Ensemble.id, ensembleId)).get();
   await db.delete(EnsembleMember).where(eq(EnsembleMember.ensembleId, ensembleId));
   await db.delete(Ensemble).where(eq(Ensemble.id, ensembleId));
+  await deleteImage(ensemble?.imageUrl);
 }

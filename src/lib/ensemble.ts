@@ -1,5 +1,6 @@
 import { db, eq, or, and, ne, inArray, Ensemble, EnsembleMember, EnsembleInvite, EnsembleLink, Group, GroupMembership, MemberPart, Part, Season, SeasonMembership, User } from '@db';
 import { canManageEnsemble, isSiteAdmin } from './permissions';
+import { deleteImage } from './storage';
 
 /**
  * Look up an ensemble by either its slug or its UUID id.
@@ -101,7 +102,9 @@ export async function updateEnsemble(
     checkInEndMinutes: number;
   },
 ) {
+  const before = await db.select({ imageUrl: Ensemble.imageUrl }).from(Ensemble).where(eq(Ensemble.id, ensembleId)).get();
   await db.update(Ensemble).set(data).where(eq(Ensemble.id, ensembleId));
+  if (data.imageUrl !== undefined && before?.imageUrl !== data.imageUrl) await deleteImage(before?.imageUrl);
 }
 
 /**
