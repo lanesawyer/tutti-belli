@@ -208,11 +208,18 @@ jobs:
           FLY_API_TOKEN: ${{ secrets.FLY_ORG_TOKEN }}
 
       - name: Destroy Turso branch DB
-        # Ignore errors — the DB may not exist if the deploy never ran
+        # A 404 is fine (the deploy may never have run); anything else fails the job, since a
+        # leftover branch DB is a full copy of production data.
         run: |
-          curl -sf -X DELETE \
+          DELETE_BODY=$(curl -sL -w '\n%{http_code}' -X DELETE \
             -H "Authorization: Bearer $TURSO_API_TOKEN" \
-            "https://api.turso.tech/v1/organizations/$TURSO_ORG/databases/$DB_NAME" || true
+            "https://api.turso.tech/v1/organizations/$TURSO_ORG/databases/$DB_NAME")
+          DELETE_STATUS=$(echo "$DELETE_BODY" | tail -1)
+          echo "Delete $DB_NAME → HTTP $DELETE_STATUS"
+          echo "$DELETE_BODY" | head -n -1
+          if [ "$DELETE_STATUS" != "200" ] && [ "$DELETE_STATUS" != "404" ]; then
+            exit 1
+          fi
         env:
           TURSO_API_TOKEN: ${{ secrets.TURSO_API_TOKEN }}
           TURSO_ORG: ${{ secrets.TURSO_ORG }}
