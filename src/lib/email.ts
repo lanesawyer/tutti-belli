@@ -236,3 +236,77 @@ export async function sendPasswordResetEmail(
     'password reset email',
   );
 }
+
+function emailButton(href: string, label: string): string {
+  return `
+          <p style="margin: 32px 0;">
+            <a
+              href="${href}"
+              style="background-color: #485fc7; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;"
+            >
+              ${label}
+            </a>
+          </p>`;
+}
+
+/** For someone a site admin added who had no account yet: set a password to get in. */
+export async function sendWelcomeEmail(
+  toEmail: string,
+  toName: string,
+  ensembleName: string,
+  setPasswordToken: string,
+): Promise<EmailResult> {
+  const siteUrl = getEnv('SITE', 'http://localhost:4321');
+  const setPasswordUrl = new URL(`/reset-password?token=${setPasswordToken}`, siteUrl).toString();
+
+  return sendEmail(
+    {
+      from: getEnv('EMAIL_FROM', 'noreply@example.com'),
+      to: toEmail,
+      subject: `You've been added to ${ensembleName}`,
+      html: `
+        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2>Welcome to ${ensembleName}</h2>
+          <p>Hi ${toName},</p>
+          <p>You've been added to <strong>${ensembleName}</strong> on Tutti Belli. Choose a password to sign in.</p>
+          ${emailButton(setPasswordUrl, 'Set Your Password')}
+          <p>This link will expire in 7 days.</p>
+          <hr style="border: none; border-top: 1px solid #eee; margin: 32px 0;" />
+          <p style="color: #888; font-size: 0.875rem;">
+            If the button above doesn't work, copy and paste this URL into your browser:<br />
+            <a href="${setPasswordUrl}" style="color: #485fc7;">${setPasswordUrl}</a>
+          </p>
+        </div>
+      `,
+    },
+    'welcome email',
+  );
+}
+
+/** For someone who already had an account and was added to another ensemble. */
+export async function sendAddedToEnsembleEmail(
+  toEmail: string,
+  toName: string,
+  ensembleName: string,
+  ensembleId: string,
+): Promise<EmailResult> {
+  const siteUrl = getEnv('SITE', 'http://localhost:4321');
+  const ensembleUrl = new URL(`/ensembles/${ensembleId}`, siteUrl).toString();
+
+  return sendEmail(
+    {
+      from: getEnv('EMAIL_FROM', 'noreply@example.com'),
+      to: toEmail,
+      subject: `You've been added to ${ensembleName}`,
+      html: `
+        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2>You've been added to ${ensembleName}</h2>
+          <p>Hi ${toName},</p>
+          <p>You're now a member of <strong>${ensembleName}</strong> on Tutti Belli.</p>
+          ${emailButton(ensembleUrl, `Open ${ensembleName}`)}
+        </div>
+      `,
+    },
+    'added to ensemble email',
+  );
+}

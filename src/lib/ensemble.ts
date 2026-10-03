@@ -1,6 +1,7 @@
-import { db, eq, or, and, ne, inArray, Ensemble, EnsembleMember, EnsembleInvite, EnsembleLink, Group, GroupMembership, MemberPart, Part, Season, SeasonMembership, User } from '@db';
+import { db, eq, or, and, ne, inArray, sql, Ensemble, EnsembleMember, EnsembleInvite, EnsembleLink, Group, GroupMembership, MemberPart, Part, Season, SeasonMembership, User } from '@db';
 import { canManageEnsemble, isSiteAdmin } from './permissions';
 import { deleteImage } from './storage';
+import { createPasswordResetToken, hashPassword } from './auth';
 
 /**
  * Look up an ensemble by either its slug or its UUID id.
@@ -310,6 +311,58 @@ export async function approveMember(membershipId: string): Promise<boolean> {
     }
   }
   return true;
+}
+
+/** How long the set-password link for a newly added account stays valid. */
+export const NEW_ACCOUNT_LINK_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
+export type AddMemberResult =
+  | { type: 'added'; userId: string; name: string }
+  | { type: 'created'; userId: string; name: string; setPasswordToken: string }
+  | { type: 'error'; message: string };
+
+/**
+ * Adds someone to an ensemble as an active member, creating their account first if the email
+ * is new. A new account has no usable password; the returned token lets them set one.
+ */
+export async function addMemberByEmail(
+  ensembleId: string,
+  input: { name: string; email: string; role: 'admin' | 'member' },
+): Promise<AddMemberResult> {
+  const email = input.email.trim().toLowerCase();
+  const name = input.name.trim();
+
+  let user = await db
+    .select({ id: User.id, name: User.name })
+    .from(User)
+    .where(sql`lower(${User.email}) = ${email}`)
+    .get();
+  let setPasswordToken: string | null = null;
+
+  if (!user) {
+    if (!name) return { type: 'error', message: 'A name is required for someone without an account.' };
+    const id = crypto.randomUUID();
+    await db.insert(User).values({ id, email, name, passwordHash: await hashPassword(crypto.randomUUID()) });
+    user = { id, name };
+    setPasswordToken = await createPasswordResetToken(id, NEW_ACCOUNT_LINK_TTL_MS);
+  }
+
+  const existing = await getEnsembleMembership(ensembleId, user.id);
+  if (existing?.status === 'active') {
+    return { type: 'error', message: `${user.name} is already a member of this ensemble.` };
+  }
+
+  const membershipId = existing?.id ?? crypto.randomUUID();
+  if (!existing) {
+    await db.insert(EnsembleMember).values({ id: membershipId, ensembleId, userId: user.id, role: input.role, status: 'pending' });
+  } else {
+    await db.update(EnsembleMember).set({ role: input.role }).where(eq(EnsembleMember.id, membershipId));
+  }
+  await approveMember(membershipId);
+
+  return setPasswordToken
+    ? { type: 'created', userId: user.id, name: user.name, setPasswordToken }
+    : { type: 'added', userId: user.id, name: user.name };
 }
 
 export async function getPendingMembers(ensembleId: string) {

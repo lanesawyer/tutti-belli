@@ -1,9 +1,51 @@
 import { defineAction, ActionError } from 'astro:actions';
 import { z } from 'astro/zod';
-import { assertEnsembleAdmin, assertInEnsemble } from './utils';
-import { approveMember, removeMember, setMemberRole } from '@lib/ensemble';
+import { assertEnsembleAdmin, assertInEnsemble, assertSiteAdmin } from './utils';
+import { addMemberByEmail, approveMember, getEnsembleBySlugOrId, removeMember, setMemberRole } from '@lib/ensemble';
+import { sendAddedToEnsembleEmail, sendWelcomeEmail } from '@lib/email';
+import { getEnsembleUrlId } from '@lib/slug';
 
 export const members = {
+  // Site admins only for now: ensemble admins adding by email could probe for accounts that
+  // belong to other ensembles.
+  add: defineAction({
+    accept: 'form',
+    input: z.object({
+      ensembleId: z.string(),
+      name: z.string().optional(),
+      email: z.email('Enter a valid email address.'),
+      role: z.enum(['member', 'admin']).default('member'),
+    }),
+    handler: async (input, context) => {
+      assertSiteAdmin(context.locals.user);
+      const ensemble = await getEnsembleBySlugOrId(input.ensembleId);
+      if (!ensemble) throw new ActionError({ code: 'NOT_FOUND' });
+
+      const result = await addMemberByEmail(ensemble.id, {
+        name: input.name ?? '',
+        email: input.email,
+        role: input.role,
+      });
+      if (result.type === 'error') throw new ActionError({ code: 'BAD_REQUEST', message: result.message });
+
+      const email = input.email.trim().toLowerCase();
+      // EMAIL_DISABLED makes sends report success without sending anything.
+      const emailOn = !process.env.EMAIL_DISABLED;
+      if (result.type === 'created') {
+        const sent = await sendWelcomeEmail(email, result.name, ensemble.name, result.setPasswordToken);
+        return {
+          name: result.name,
+          created: true,
+          emailSent: emailOn && sent.success,
+          setPasswordUrl: new URL(`/reset-password?token=${result.setPasswordToken}`, context.url.origin).toString(),
+        };
+      }
+
+      const sent = await sendAddedToEnsembleEmail(email, result.name, ensemble.name, getEnsembleUrlId(ensemble));
+      return { name: result.name, created: false, emailSent: emailOn && sent.success, setPasswordUrl: null };
+    },
+  }),
+
   approve: defineAction({
     accept: 'form',
     input: z.object({
