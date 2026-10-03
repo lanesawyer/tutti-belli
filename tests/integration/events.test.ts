@@ -200,6 +200,7 @@ describe('checkInByCode', () => {
     });
     const season = await createSeason(ensemble!.id);
     const event = await createEvent(ensemble!.id, season!.id, { checkInCode: 'TESTQR01' });
+    await createMembership(ensemble!.id, member!.id);
 
     const result = await checkInByCode({ code: 'TESTQR01', userId: member!.id });
     expect(result.eventId).toBe(event!.id);
@@ -222,10 +223,44 @@ describe('checkInByCode', () => {
     });
     const season = await createSeason(ensemble!.id);
     await createEvent(ensemble!.id, season!.id, { checkInCode: 'ABCDEF01' });
+    await createMembership(ensemble!.id, member!.id);
 
     await expect(
       checkInByCode({ code: 'abcdef01', userId: member!.id })
     ).resolves.not.toThrow();
+  });
+
+  it('rejects a valid code from someone who is not a member of the ensemble', async () => {
+    const admin = await createUser({ role: 'admin' });
+    const outsider = await createUser();
+    const ensemble = await createEnsemble(admin!.id, {
+      checkInStartMinutes: 9999,
+      checkInEndMinutes: 9999,
+    });
+    const season = await createSeason(ensemble!.id);
+    const event = await createEvent(ensemble!.id, season!.id, { checkInCode: 'OUTSIDE1' });
+
+    await expect(
+      checkInByCode({ code: 'OUTSIDE1', userId: outsider!.id })
+    ).rejects.toThrow(/Invalid check-in code/i);
+    const record = await db.select().from(Attendance).where(eq(Attendance.eventId, event!.id)).get();
+    expect(record).toBeUndefined();
+  });
+
+  it('rejects a pending member', async () => {
+    const admin = await createUser({ role: 'admin' });
+    const pending = await createUser();
+    const ensemble = await createEnsemble(admin!.id, {
+      checkInStartMinutes: 9999,
+      checkInEndMinutes: 9999,
+    });
+    const season = await createSeason(ensemble!.id);
+    await createEvent(ensemble!.id, season!.id, { checkInCode: 'PENDING1' });
+    await createMembership(ensemble!.id, pending!.id, { status: 'pending' });
+
+    await expect(
+      checkInByCode({ code: 'PENDING1', userId: pending!.id })
+    ).rejects.toThrow(/Invalid check-in code/i);
   });
 
   it('throws for an invalid check-in code', async () => {

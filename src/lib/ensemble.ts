@@ -1,5 +1,6 @@
-import { db, eq, or, and, ne, inArray, Ensemble, EnsembleMember, EnsembleInvite, EnsembleLink, MemberPart, Part, Season, User } from '@db';
+import { db, eq, or, and, ne, inArray, Ensemble, EnsembleMember, EnsembleInvite, EnsembleLink, Group, GroupMembership, MemberPart, Part, Season, SeasonMembership, User } from '@db';
 import { canManageEnsemble, isSiteAdmin } from './permissions';
+import { deleteImage } from './storage';
 
 /**
  * Look up an ensemble by either its slug or its UUID id.
@@ -101,7 +102,9 @@ export async function updateEnsemble(
     checkInEndMinutes: number;
   },
 ) {
+  const before = await db.select({ imageUrl: Ensemble.imageUrl }).from(Ensemble).where(eq(Ensemble.id, ensembleId)).get();
   await db.update(Ensemble).set(data).where(eq(Ensemble.id, ensembleId));
+  if (data.imageUrl !== undefined && before?.imageUrl !== data.imageUrl) await deleteImage(before?.imageUrl);
 }
 
 /**
@@ -275,4 +278,105 @@ export async function joinEnsembleWithCode(
   });
 
   return { ok: true, ensembleId: invite.ensembleId };
+}
+
+export async function getMembershipById(membershipId: string) {
+  return (await db.select().from(EnsembleMember).where(eq(EnsembleMember.id, membershipId)).get()) ?? null;
+}
+
+/**
+ * Activate a pending membership and add the member to the ensemble's active season, if any.
+ * Returns false if the membership doesn't exist.
+ */
+export async function approveMember(membershipId: string): Promise<boolean> {
+  const membership = await getMembershipById(membershipId);
+  if (!membership) return false;
+
+  await db.update(EnsembleMember).set({ status: 'active' }).where(eq(EnsembleMember.id, membershipId));
+
+  const activeSeason = await getActiveSeasonForEnsemble(membership.ensembleId);
+  if (activeSeason) {
+    const existing = await db
+      .select({ id: SeasonMembership.id })
+      .from(SeasonMembership)
+      .where(and(eq(SeasonMembership.seasonId, activeSeason.id), eq(SeasonMembership.userId, membership.userId)))
+      .get();
+    if (!existing) {
+      await db.insert(SeasonMembership).values({
+        id: crypto.randomUUID(),
+        seasonId: activeSeason.id,
+        userId: membership.userId,
+      });
+    }
+  }
+  return true;
+}
+
+export async function getPendingMembers(ensembleId: string) {
+  return await db
+    .select({
+      id: User.id,
+      name: User.name,
+      email: User.email,
+      avatarUrl: User.avatarUrl,
+      joinedAt: EnsembleMember.joinedAt,
+      membershipId: EnsembleMember.id,
+    })
+    .from(EnsembleMember)
+    .innerJoin(User, eq(EnsembleMember.userId, User.id))
+    .where(and(eq(EnsembleMember.ensembleId, ensembleId), eq(EnsembleMember.status, 'pending')))
+    .all();
+}
+
+export async function getEnsembleInvites(ensembleId: string) {
+  return await db.select().from(EnsembleInvite).where(eq(EnsembleInvite.ensembleId, ensembleId)).all();
+}
+
+export async function createInvite(ensembleId: string, code: string, createdBy: string) {
+  await db.insert(EnsembleInvite).values({ id: crypto.randomUUID(), ensembleId, code, createdBy });
+}
+
+export async function deleteInvite(inviteId: string, ensembleId: string) {
+  await db
+    .delete(EnsembleInvite)
+    .where(and(eq(EnsembleInvite.id, inviteId), eq(EnsembleInvite.ensembleId, ensembleId)));
+}
+
+export async function addPart(ensembleId: string, name: string, sortOrder: number) {
+  await db.insert(Part).values({ id: crypto.randomUUID(), ensembleId, name, sortOrder });
+}
+
+export async function editPart(partId: string, ensembleId: string, name: string, sortOrder: number) {
+  await db
+    .update(Part)
+    .set({ name, sortOrder })
+    .where(and(eq(Part.id, partId), eq(Part.ensembleId, ensembleId)));
+}
+
+/** Deletes a part, unless members are still assigned to it. */
+export async function deletePart(partId: string, ensembleId: string): Promise<{ ok: true } | { ok: false; error: string }> {
+  const assigned = await db.select({ id: MemberPart.id }).from(MemberPart).where(eq(MemberPart.partId, partId)).get();
+  if (assigned) return { ok: false, error: 'Cannot delete a part that has members assigned to it.' };
+  await db.delete(Part).where(and(eq(Part.id, partId), eq(Part.ensembleId, ensembleId)));
+  return { ok: true };
+}
+
+/**
+ * Active members with their part assignments and groups, for the ensemble dashboard.
+ * Group memberships are limited to this ensemble's groups.
+ */
+export async function getEnsembleMembersOverview(ensembleId: string) {
+  const members = await getEnsembleMembersWithUsers(ensembleId);
+  const parts = await getEnsembleParts(ensembleId);
+  const memberParts = await getMemberPartAssignments(members.map((m) => m.membershipId));
+  const groups = await db.select().from(Group).where(eq(Group.ensembleId, ensembleId)).all();
+  const groupMemberships =
+    groups.length > 0
+      ? await db
+          .select({ groupId: GroupMembership.groupId, userId: GroupMembership.userId })
+          .from(GroupMembership)
+          .where(inArray(GroupMembership.groupId, groups.map((g) => g.id)))
+          .all()
+      : [];
+  return { members, parts, memberParts, groups, groupMemberships };
 }

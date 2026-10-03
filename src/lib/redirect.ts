@@ -1,9 +1,30 @@
 import { db, eq, EnsembleMember, Ensemble } from '@db';
 import { getEnsembleUrlId } from './slug';
 
+const ORIGIN = 'http://tutti-belli.invalid';
+
+/**
+ * Returns the redirect as a same-site path, or null if it would leave the site. The value comes
+ * from the `?redirect=` query string, so anything absolute or protocol-relative (`//evil.com`,
+ * `/\\evil.com`, `/\t/evil.com`) must be rejected; resolving it the way a browser would catches
+ * every variant.
+ */
+export function safeRedirectPath(redirect: string | null | undefined): string | null {
+  if (!redirect || !redirect.startsWith('/')) return null;
+  let url: URL;
+  try {
+    url = new URL(redirect, ORIGIN);
+  } catch {
+    return null;
+  }
+  if (url.origin !== ORIGIN) return null;
+  return url.pathname + url.search + url.hash;
+}
+
 export async function getRedirectUrl(userId: string, customRedirect?: string | null): Promise<string> {
-  if (customRedirect) {
-    return customRedirect;
+  const safe = safeRedirectPath(customRedirect);
+  if (safe) {
+    return safe;
   }
 
   // Check how many ensembles the user is part of

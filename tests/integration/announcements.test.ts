@@ -1,12 +1,12 @@
 import { describe, it, expect, vi } from 'vitest';
-import { db, Announcement, eq } from '@db';
+import { db, Announcement, Ensemble, eq } from '@db';
 import {
   getEnsembleAnnouncements,
   createAnnouncement,
   updateAnnouncement,
   deleteAnnouncement,
 } from '../../src/lib/announcements.ts';
-import { createUser, createEnsemble, createMembership } from './fixtures.ts';
+import { createUser, createEnsemble } from './fixtures.ts';
 
 // Prevent real email/Discord calls
 vi.mock('../../src/lib/email.ts', () => ({ sendAnnouncementEmail: vi.fn().mockResolvedValue(undefined) }));
@@ -65,9 +65,6 @@ describe('getEnsembleAnnouncements', () => {
       content: 'content',
       createdBy: admin!.id,
       creatorName: admin!.name,
-      ensembleName: ensembleA!.name,
-      canonicalId: ensembleA!.id,
-      discordWebhookUrl: null,
       postToDiscord: false,
     });
 
@@ -85,9 +82,6 @@ describe('getEnsembleAnnouncements', () => {
       content: 'body',
       createdBy: admin!.id,
       creatorName: admin!.name,
-      ensembleName: ensemble!.name,
-      canonicalId: ensemble!.id,
-      discordWebhookUrl: null,
       postToDiscord: false,
     });
 
@@ -107,9 +101,6 @@ describe('createAnnouncement', () => {
       content: 'Test content',
       createdBy: admin!.id,
       creatorName: admin!.name,
-      ensembleName: ensemble!.name,
-      canonicalId: ensemble!.id,
-      discordWebhookUrl: null,
       postToDiscord: false,
     });
 
@@ -129,6 +120,10 @@ describe('createAnnouncement', () => {
     const { postAnnouncementToDiscord } = await import('../../src/lib/discord.ts');
     const admin = await createUser();
     const ensemble = await createEnsemble(admin!.id);
+    await db
+      .update(Ensemble)
+      .set({ discordWebhookUrl: 'https://discord.com/api/webhooks/123/fake' })
+      .where(eq(Ensemble.id, ensemble!.id));
 
     await createAnnouncement({
       ensembleId: ensemble!.id,
@@ -136,9 +131,6 @@ describe('createAnnouncement', () => {
       content: 'body',
       createdBy: admin!.id,
       creatorName: admin!.name,
-      ensembleName: ensemble!.name,
-      canonicalId: ensemble!.id,
-      discordWebhookUrl: 'https://discord.com/api/webhooks/123/fake',
       postToDiscord: true,
     });
 
@@ -158,6 +150,10 @@ describe('createAnnouncement', () => {
     vi.mocked(postAnnouncementToDiscord).mockClear();
     const admin = await createUser();
     const ensemble = await createEnsemble(admin!.id);
+    await db
+      .update(Ensemble)
+      .set({ discordWebhookUrl: 'https://discord.com/api/webhooks/123/fake' })
+      .where(eq(Ensemble.id, ensemble!.id));
 
     await createAnnouncement({
       ensembleId: ensemble!.id,
@@ -165,9 +161,6 @@ describe('createAnnouncement', () => {
       content: 'body',
       createdBy: admin!.id,
       creatorName: admin!.name,
-      ensembleName: ensemble!.name,
-      canonicalId: ensemble!.id,
-      discordWebhookUrl: 'https://discord.com/api/webhooks/123/fake',
       postToDiscord: false,
     });
 
@@ -187,9 +180,6 @@ describe('updateAnnouncement', () => {
       content: 'Original body',
       createdBy: admin!.id,
       creatorName: admin!.name,
-      ensembleName: ensemble!.name,
-      canonicalId: ensemble!.id,
-      discordWebhookUrl: null,
       postToDiscord: false,
     });
 
@@ -204,9 +194,7 @@ describe('updateAnnouncement', () => {
       ensembleId: ensemble!.id,
       title: 'Updated Title',
       content: 'Updated body',
-      ensembleName: ensemble!.name,
       creatorName: admin!.name,
-      discordWebhookUrl: null,
       postToDiscord: false,
     });
 
@@ -225,9 +213,6 @@ describe('updateAnnouncement', () => {
       content: 'body',
       createdBy: admin!.id,
       creatorName: admin!.name,
-      ensembleName: ensemble!.name,
-      canonicalId: ensemble!.id,
-      discordWebhookUrl: null,
       postToDiscord: false,
     });
 
@@ -242,9 +227,7 @@ describe('updateAnnouncement', () => {
       ensembleId: ensemble!.id,
       title: 'New Title',
       content: 'body',
-      ensembleName: ensemble!.name,
       creatorName: admin!.name,
-      discordWebhookUrl: null,
       postToDiscord: false,
     });
 
@@ -264,9 +247,6 @@ describe('deleteAnnouncement', () => {
       content: 'body',
       createdBy: admin!.id,
       creatorName: admin!.name,
-      ensembleName: ensemble!.name,
-      canonicalId: ensemble!.id,
-      discordWebhookUrl: null,
       postToDiscord: false,
     });
 
@@ -292,9 +272,6 @@ describe('deleteAnnouncement', () => {
       content: 'body',
       createdBy: admin!.id,
       creatorName: admin!.name,
-      ensembleName: ensemble!.name,
-      canonicalId: ensemble!.id,
-      discordWebhookUrl: null,
       postToDiscord: false,
     });
     await createAnnouncement({
@@ -303,9 +280,6 @@ describe('deleteAnnouncement', () => {
       content: 'body',
       createdBy: admin!.id,
       creatorName: admin!.name,
-      ensembleName: ensemble!.name,
-      canonicalId: ensemble!.id,
-      discordWebhookUrl: null,
       postToDiscord: false,
     });
 
@@ -326,5 +300,34 @@ describe('deleteAnnouncement', () => {
 
     expect(remaining).toHaveLength(1);
     expect(remaining[0].title).toBe('Keep Me');
+  });
+});
+
+describe('announcement ensemble scoping', () => {
+  it('does not update an announcement through another ensemble', async () => {
+    const admin = await createUser();
+    const ensembleA = await createEnsemble(admin!.id, { name: 'Ensemble A' });
+    const ensembleB = await createEnsemble(admin!.id, { name: 'Ensemble B' });
+    await createAnnouncement({
+      ensembleId: ensembleA!.id,
+      title: 'Original',
+      content: 'body',
+      createdBy: admin!.id,
+      creatorName: admin!.name,
+      postToDiscord: false,
+    });
+    const [row] = await db.select().from(Announcement).where(eq(Announcement.ensembleId, ensembleA!.id)).all();
+
+    await updateAnnouncement({
+      announcementId: row.id,
+      ensembleId: ensembleB!.id,
+      title: 'Hijacked',
+      content: 'body',
+      creatorName: admin!.name,
+      postToDiscord: false,
+    });
+
+    const after = await db.select().from(Announcement).where(eq(Announcement.id, row.id)).get();
+    expect(after!.title).toBe('Original');
   });
 });

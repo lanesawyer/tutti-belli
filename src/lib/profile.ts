@@ -18,7 +18,8 @@ import {
   EmailVerificationToken,
   TaskCompletion,
 } from '@db';
-import { fileToDataUri, validateImageFile } from './upload';
+import { validateImageFile } from './upload';
+import { deleteImage, uploadImage } from './storage';
 import { hashPassword, verifyPassword } from './auth';
 import { sendEmailChangeVerificationEmail, sendEmailVerificationEmail } from './email';
 
@@ -147,10 +148,11 @@ export async function updateAvatar(
     if (!validation.valid) {
       return { type: 'error', message: validation.error! };
     }
-    avatarUrl = await fileToDataUri(avatarFile);
+    avatarUrl = await uploadImage(avatarFile, 'avatars');
   }
 
   await db.update(User).set({ avatarUrl }).where(eq(User.id, userId));
+  if (currentAvatarUrl && currentAvatarUrl !== avatarUrl) await deleteImage(currentAvatarUrl);
   return { type: 'redirect', url: '/profile' };
 }
 
@@ -355,6 +357,7 @@ export async function resetPassword(
 }
 
 async function deleteUserData(userId: string): Promise<void> {
+  const user = await db.select({ avatarUrl: User.avatarUrl }).from(User).where(eq(User.id, userId)).get();
   const memberships = await db
     .select({ id: EnsembleMember.id })
     .from(EnsembleMember)
@@ -373,6 +376,7 @@ async function deleteUserData(userId: string): Promise<void> {
   await db.delete(GroupMembership).where(eq(GroupMembership.userId, userId));
   await db.delete(EnsembleMember).where(eq(EnsembleMember.userId, userId));
   await db.delete(User).where(eq(User.id, userId));
+  await deleteImage(user?.avatarUrl);
 }
 
 // Self-service account deletion: requires password, blocks admins from deleting themselves.

@@ -207,6 +207,19 @@ describe('deleteSong', () => {
 });
 
 describe('addSongFile', () => {
+  it('rejects links that are not http(s) URLs', async () => {
+    const admin = await createUser({ role: 'admin' });
+    const ensemble = await createEnsemble(admin!.id);
+    const song = await createSong(ensemble!.id);
+
+    for (const fileUrl of ['javascript:alert(1)', 'data:text/html,<script>alert(1)</script>', 'ftp://example.com/a.pdf']) {
+      const result = await addSongFile({ songId: song!.id, fileName: 'Bad', category: 'link', fileUrl }, admin!.id);
+      expect(result.error, fileUrl).toBe('Links must start with http:// or https://.');
+    }
+    const rows = await db.select().from(SongFile).where(eq(SongFile.songId, song!.id)).all();
+    expect(rows).toHaveLength(0);
+  });
+
   it('adds a link-type file without uploading', async () => {
     const admin = await createUser({ role: 'admin' });
     const ensemble = await createEnsemble(admin!.id);

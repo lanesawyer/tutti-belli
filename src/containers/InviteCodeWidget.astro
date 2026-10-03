@@ -1,5 +1,5 @@
 ---
-import { db, eq, EnsembleInvite } from "@db";
+import { getEnsembleInvites } from "@lib/ensemble";
 import { actions } from "astro:actions";
 import {
   Box,
@@ -17,10 +17,7 @@ interface Props {
 
 const { ensembleId } = Astro.props;
 
-const invites = await db
-  .select()
-  .from(EnsembleInvite)
-  .where(eq(EnsembleInvite.ensembleId, ensembleId));
+const invites = await getEnsembleInvites(ensembleId);
 ---
 
 <Box>

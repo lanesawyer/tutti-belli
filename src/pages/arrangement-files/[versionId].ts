@@ -15,7 +15,9 @@ export const GET: APIRoute = async ({ params, locals, url, request }) => {
   const row = await getArrangementFileWithAccess(versionId, user);
   if (!row) return new Response('Not found', { status: 404 });
 
-  const { body, contentType, contentLength, contentRange, status } = await getFileStream(row.url, range);
+  const file = await getFileStream(row.url, range);
+  if (!file) return new Response('Not found', { status: 404 });
+  const { body, contentType, contentLength, contentRange, status } = file;
 
   const headers: Record<string, string> = {
     'Content-Type': contentType,

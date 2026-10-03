@@ -91,7 +91,7 @@ vi.mock('../../src/lib/email.ts', () => ({
 }));
 ```
 
-**`src/lib/storage.ts`** — Must mock in any test that imports `src/lib/songs.ts`. `storage.ts` has module-level side effects (reads `STORAGE_ENDPOINT` env var and calls `.replace()` on it immediately on import, crashing if the env var is absent):
+**`src/lib/storage.ts`** — Mock it in any test whose code uploads, downloads, or deletes song files, so tests never reach real object storage:
 ```ts
 vi.mock('../../src/lib/storage.ts', () => ({
   validateSongFile: vi.fn().mockReturnValue({ valid: true }),

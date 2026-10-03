@@ -3,6 +3,8 @@ strictPeerDependencies: false
 saveExact: true
 engineStrict: true
 minimumReleaseAge: 10080
+minimumReleaseAgeExclude:
+  - astro-bulma
 
 allowBuilds:
   esbuild: true

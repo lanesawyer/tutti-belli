@@ -1,4 +1,3 @@
-/// <reference types="vitest/config" />
 import { defineConfig } from 'vitest/config';
 import { fileURLToPath } from 'url';
 import path from 'path';
@@ -15,6 +14,7 @@ const sharedAlias = {
 const sharedEnv = {
   DATABASE_URL: 'file::memory:?cache=shared',
   EMAIL_DISABLED: 'true',
+  JWT_SECRET: 'test-secret',
 };
 
 export default defineConfig({

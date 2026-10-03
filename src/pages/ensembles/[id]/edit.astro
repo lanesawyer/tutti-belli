@@ -131,11 +131,6 @@ if (updateResult?.error) {
               action={actions.ensembles.update}
             >
               <input type="hidden" name="ensembleId" value={ensemble.id} />
-              <input
-                type="hidden"
-                name="currentImageUrl"
-                value={ensemble.imageUrl ?? ""}
-              />
               <TextInput
                 name="name"
                 label="Ensemble Name"
@@ -301,7 +296,7 @@ if (updateResult?.error) {
                 <FileInput
                   name="image"
                   id="imageInput"
-                  accept="image/*"
+                  accept="image/png,image/jpeg,image/webp,image/gif"
                   ctaLabel={ensemble.imageUrl
                     ? "Replace image…"
                     : "Choose an image…"}

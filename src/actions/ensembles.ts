@@ -1,7 +1,6 @@
 import { defineAction, ActionError } from 'astro:actions';
 import { z } from 'astro/zod';
-import { db, eq, EnsembleInvite } from '@db';
-import { assertEnsembleAdmin } from './utils';
+import { assertEnsembleAdmin, assertInEnsemble } from './utils';
 import {
   joinEnsembleWithCode,
   getEnsembleLinks,
@@ -9,9 +8,14 @@ import {
   updateEnsemble,
   addEnsembleLink,
   deleteEnsembleLink,
+  createInvite,
+  deleteInvite,
 } from '@lib/ensemble';
-import { validateImageFile, fileToDataUri } from '@lib/upload';
+import { validateImageFile } from '@lib/upload';
+import { uploadImage } from '@lib/storage';
 import { generateSlug } from '@lib/slug';
+import { randomCode } from '@lib/codes';
+import { isDiscordWebhookUrl } from '@lib/discord';
 
 export const ensembles = {
   join: defineAction({
@@ -42,13 +46,8 @@ export const ensembles = {
       const user = context.locals.user;
       if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
       await assertEnsembleAdmin(input.ensembleId, user);
-      const code = Math.random().toString(36).substring(2, 10).toUpperCase();
-      await db.insert(EnsembleInvite).values({
-        id: crypto.randomUUID(),
-        ensembleId: input.ensembleId,
-        code,
-        createdBy: user.id,
-      });
+      const code = randomCode();
+      await createInvite(input.ensembleId, code, user.id);
     },
   }),
 
@@ -62,7 +61,8 @@ export const ensembles = {
       const user = context.locals.user;
       if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
       await assertEnsembleAdmin(input.ensembleId, user);
-      await db.delete(EnsembleInvite).where(eq(EnsembleInvite.id, input.inviteId));
+      await assertInEnsemble('invite', input.inviteId, input.ensembleId);
+      await deleteInvite(input.inviteId, input.ensembleId);
     },
   }),
 
@@ -70,12 +70,15 @@ export const ensembles = {
     accept: 'form',
     input: z.object({
       ensembleId: z.string(),
-      currentImageUrl: z.string().optional(),
       name: z.string().min(1, 'Ensemble name is required.'),
       slug: z.string().optional(),
       description: z.string().optional(),
       discordLink: z.string().optional(),
-      discordWebhookUrl: z.string().optional(),
+      discordWebhookUrl: z
+        .string()
+        .trim()
+        .refine((value) => value === '' || isDiscordWebhookUrl(value), 'Enter a Discord webhook URL (https://discord.com/api/webhooks/...).')
+        .optional(),
       codeOfConduct: z.string().optional(),
       removeImage: z.string().optional(),
       image: z.instanceof(File).optional(),
@@ -107,8 +110,8 @@ export const ensembles = {
         newSlug = normalized;
       }
 
-      // Handle image
-      let imageUrl: string | null | undefined = input.currentImageUrl ?? null;
+      // Handle image. Undefined leaves the stored image as it is.
+      let imageUrl: string | null | undefined;
       if (input.removeImage === 'true') {
         imageUrl = null;
       }
@@ -117,7 +120,7 @@ export const ensembles = {
         if (!validation.valid) {
           throw new ActionError({ code: 'BAD_REQUEST', message: validation.error! });
         }
-        imageUrl = await fileToDataUri(input.image);
+        imageUrl = await uploadImage(input.image, 'ensembles');
       }
 
       await updateEnsemble(input.ensembleId, {
@@ -162,6 +165,7 @@ export const ensembles = {
       const user = context.locals.user;
       if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
       await assertEnsembleAdmin(input.ensembleId, user);
+      await assertInEnsemble('link', input.linkId, input.ensembleId);
       await deleteEnsembleLink(input.linkId, input.ensembleId);
     },
   }),

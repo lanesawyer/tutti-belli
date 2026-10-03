@@ -226,6 +226,8 @@ export async function addSongFile(
   if (category === 'link') {
     url = input.fileUrl?.trim() ?? '';
     if (!url) return { error: 'A URL is required for links.' };
+    // Links render as <a href> for every member, so only allow web URLs (no javascript: etc.).
+    if (!/^https?:\/\//i.test(url)) return { error: 'Links must start with http:// or https://.' };
   } else if (input.file && input.file.size > 0) {
     if (!ensembleId) return { error: 'Missing ensemble context for upload.' };
     const validation = validateSongFile(input.file);
@@ -277,4 +279,22 @@ export function getYouTubeId(url: string): string | null {
     if (u.hostname.includes('youtube.com')) return u.searchParams.get('v');
   } catch {}
   return null;
+}
+
+/** The active season and its songs, or null if the ensemble has no active season. */
+export async function getActiveSeasonRepertoire(ensembleId: string) {
+  const season = await db
+    .select()
+    .from(Season)
+    .where(and(eq(Season.ensembleId, ensembleId), eq(Season.isActive, 1)))
+    .get();
+  if (!season) return null;
+  const songs = await db
+    .select({ id: Song.id, name: Song.name, composer: Song.composer, arranger: Song.arranger, runTime: Song.runTime })
+    .from(SeasonSong)
+    .innerJoin(Song, eq(SeasonSong.songId, Song.id))
+    .where(eq(SeasonSong.seasonId, season.id))
+    .orderBy(Song.name)
+    .all();
+  return { season, songs };
 }

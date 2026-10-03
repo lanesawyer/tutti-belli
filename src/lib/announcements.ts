@@ -1,9 +1,26 @@
-import { db, eq, and, desc, Announcement, EnsembleMember, User } from '@db';
+import { db, eq, and, desc, Announcement, Ensemble, EnsembleMember, User } from '@db';
 import { sendAnnouncementEmail } from './email';
 import { postAnnouncementToDiscord } from './discord';
+import { getEnsembleUrlId } from './slug';
 
-export async function getEnsembleAnnouncements(ensembleId: string) {
-  return await db
+// The ensemble's name, link, and Discord webhook come from the database rather than the form,
+// so a form can't redirect the post to another webhook or mislabel the email.
+async function getAnnouncementContext(ensembleId: string) {
+  const ensemble = await db
+    .select({ id: Ensemble.id, name: Ensemble.name, slug: Ensemble.slug, discordWebhookUrl: Ensemble.discordWebhookUrl })
+    .from(Ensemble)
+    .where(eq(Ensemble.id, ensembleId))
+    .get();
+  if (!ensemble) throw new Error('Ensemble not found.');
+  return {
+    ensembleName: ensemble.name,
+    canonicalId: getEnsembleUrlId(ensemble),
+    discordWebhookUrl: ensemble.discordWebhookUrl,
+  };
+}
+
+export async function getEnsembleAnnouncements(ensembleId: string, limit?: number) {
+  const query = db
     .select({
       id: Announcement.id,
       title: Announcement.title,
@@ -15,8 +32,8 @@ export async function getEnsembleAnnouncements(ensembleId: string) {
     .from(Announcement)
     .innerJoin(User, eq(Announcement.createdBy, User.id))
     .where(eq(Announcement.ensembleId, ensembleId))
-    .orderBy(desc(Announcement.createdAt))
-    .all();
+    .orderBy(desc(Announcement.createdAt));
+  return await (limit === undefined ? query.all() : query.limit(limit).all());
 }
 
 export async function createAnnouncement(params: {
@@ -25,12 +42,10 @@ export async function createAnnouncement(params: {
   content: string;
   createdBy: string;
   creatorName: string;
-  ensembleName: string;
-  canonicalId: string;
-  discordWebhookUrl: string | null;
   postToDiscord: boolean;
 }) {
-  const { ensembleId, title, content, createdBy, creatorName, ensembleName, canonicalId, discordWebhookUrl, postToDiscord } = params;
+  const { ensembleId, title, content, createdBy, creatorName, postToDiscord } = params;
+  const { ensembleName, canonicalId, discordWebhookUrl } = await getAnnouncementContext(ensembleId);
 
   await db.insert(Announcement).values({
     id: crypto.randomUUID(),
@@ -61,17 +76,16 @@ export async function updateAnnouncement(params: {
   ensembleId: string;
   title: string;
   content: string;
-  ensembleName: string;
   creatorName: string;
-  discordWebhookUrl: string | null;
   postToDiscord: boolean;
 }) {
-  const { announcementId, title, content, ensembleName, creatorName, discordWebhookUrl, postToDiscord } = params;
+  const { announcementId, ensembleId, title, content, creatorName, postToDiscord } = params;
+  const { ensembleName, discordWebhookUrl } = await getAnnouncementContext(ensembleId);
 
   await db
     .update(Announcement)
     .set({ title, content, updatedAt: new Date() })
-    .where(eq(Announcement.id, announcementId));
+    .where(and(eq(Announcement.id, announcementId), eq(Announcement.ensembleId, ensembleId)));
 
   if (postToDiscord && discordWebhookUrl) {
     postAnnouncementToDiscord(discordWebhookUrl, ensembleName, title, content, creatorName).catch(() => {});

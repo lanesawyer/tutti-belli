@@ -1,8 +1,8 @@
 import { defineAction, ActionError } from 'astro:actions';
 import { z } from 'astro/zod';
-import { db, eq, Ensemble, User, EnsembleMember } from '@db';
 import { adminDeleteUser } from '@lib/profile';
-import { findUniqueSlug, getEnsembleUrlId } from '@lib/slug';
+import { createEnsemble, deleteEnsemble, getUserById, setUserRole } from '@lib/admin';
+import { getEnsembleUrlId } from '@lib/slug';
 import { assertSiteAdmin } from './utils';
 import { setBanner, clearBanner } from '@lib/banner';
 
@@ -19,25 +19,8 @@ export const admin = {
         throw new ActionError({ code: 'UNAUTHORIZED' });
       }
 
-      const ensembleId = crypto.randomUUID();
-      const slug = await findUniqueSlug(name, ensembleId);
-      await db.insert(Ensemble).values({
-        id: ensembleId,
-        name,
-        slug,
-        description: description || '',
-        createdBy: user.id,
-      });
-
-      await db.insert(EnsembleMember).values({
-        id: crypto.randomUUID(),
-        ensembleId,
-        userId: user.id,
-        role: 'admin',
-        status: 'active',
-      });
-
-      return { ensembleUrlId: getEnsembleUrlId({ id: ensembleId, slug }) };
+      const ensemble = await createEnsemble({ name, description: description || '', createdBy: user.id });
+      return { ensembleUrlId: getEnsembleUrlId(ensemble) };
     },
   }),
 
@@ -49,8 +32,7 @@ export const admin = {
     handler: async ({ ensembleId }, context) => {
       assertSiteAdmin(context.locals.user);
 
-      await db.delete(EnsembleMember).where(eq(EnsembleMember.ensembleId, ensembleId));
-      await db.delete(Ensemble).where(eq(Ensemble.id, ensembleId));
+      await deleteEnsemble(ensembleId);
     },
   }),
 
@@ -67,13 +49,13 @@ export const admin = {
         throw new ActionError({ code: 'BAD_REQUEST', message: 'Cannot change your own role.' });
       }
 
-      const targetUser = await db.select().from(User).where(eq(User.id, userId)).get();
+      const targetUser = await getUserById(userId);
       if (!targetUser) {
         throw new ActionError({ code: 'NOT_FOUND', message: 'User not found.' });
       }
 
       const newRole = targetUser.role === 'admin' ? 'user' : 'admin';
-      await db.update(User).set({ role: newRole }).where(eq(User.id, userId));
+      await setUserRole(userId, newRole);
 
       return { name: targetUser.name, newRole };
     },
@@ -92,7 +74,7 @@ export const admin = {
         throw new ActionError({ code: 'BAD_REQUEST', message: 'Cannot delete your own account.' });
       }
 
-      const targetUser = await db.select().from(User).where(eq(User.id, userId)).get();
+      const targetUser = await getUserById(userId);
       if (!targetUser) {
         throw new ActionError({ code: 'NOT_FOUND', message: 'User not found.' });
       }

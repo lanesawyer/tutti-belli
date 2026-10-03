@@ -144,7 +144,7 @@ const tasksByEnsemble = await getUserTasksAcrossEnsembles(user.id);
               <FileInput
                 name="avatar"
                 id="avatarInput"
-                accept="image/*"
+                accept="image/png,image/jpeg,image/webp,image/gif"
                 ctaLabel={user.avatarUrl ? "Change avatar…" : "Upload avatar…"}
                 help="Max 2MB. Square images work best."
               />

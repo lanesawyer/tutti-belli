@@ -102,39 +102,51 @@ jobs:
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_ORG_TOKEN }}
 
+      # ── Tigris bucket ────────────────────────────────────────────────────────
+      # Each preview gets its own empty bucket so nothing it uploads or deletes touches
+      # production files. The preview DB is a copy of production, so its existing song files
+      # download as 404 here. `storage create -a` sets AWS_* and BUCKET_NAME on the app; its
+      # output includes the secret key, so it's discarded.
+      - name: Create Tigris bucket if it doesn't exist
+        run: |
+          if flyctl storage list | grep -qw "$APP_NAME"; then
+            echo "Bucket $APP_NAME already exists, reusing."
+          else
+            flyctl storage create --app "$APP_NAME" --name "$APP_NAME" --yes > /dev/null
+            echo "Created bucket $APP_NAME"
+          fi
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_ORG_TOKEN }}
+
       - name: Set runtime secrets
         run: |
+          if [ -z "$JWT_SECRET" ]; then
+            echo "::error::The JWT_SECRET repository secret is not set, so nobody could log in to the preview."
+            exit 1
+          fi
           flyctl secrets set \
             JWT_SECRET="$JWT_SECRET" \
             EMAIL_API_KEY="$EMAIL_API_KEY" \
             EMAIL_FROM="$EMAIL_FROM" \
-            STORAGE_KEY_ID="$STORAGE_KEY_ID" \
-            STORAGE_KEY="$STORAGE_KEY" \
-            STORAGE_BUCKET="$STORAGE_BUCKET" \
-            STORAGE_ENDPOINT="$STORAGE_ENDPOINT" \
+            ASTRO_DB_REMOTE_URL="$ASTRO_DB_REMOTE_URL" \
+            ASTRO_DB_APP_TOKEN="$ASTRO_DB_APP_TOKEN" \
             --app "$APP_NAME"
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_ORG_TOKEN }}
+          ASTRO_DB_REMOTE_URL: ${{ steps.turso.outputs.db_url }}
+          ASTRO_DB_APP_TOKEN: ${{ steps.turso.outputs.db_token }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
           EMAIL_API_KEY: ${{ secrets.EMAIL_API_KEY }}
           EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
-          STORAGE_KEY_ID: ${{ secrets.STORAGE_KEY_ID }}
-          STORAGE_KEY: ${{ secrets.STORAGE_KEY }}
-          STORAGE_BUCKET: ${{ secrets.STORAGE_BUCKET }}
-          STORAGE_ENDPOINT: ${{ secrets.STORAGE_ENDPOINT }}
 
       - name: Deploy to preview app
         run: |
           flyctl deploy \
             --app "$APP_NAME" \
             --config fly.preview.toml \
-            --remote-only \
-            --build-arg ASTRO_DB_REMOTE_URL="$ASTRO_DB_REMOTE_URL" \
-            --build-arg ASTRO_DB_APP_TOKEN="$ASTRO_DB_APP_TOKEN"
+            --remote-only
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_ORG_TOKEN }}
-          ASTRO_DB_REMOTE_URL: ${{ steps.turso.outputs.db_url }}
-          ASTRO_DB_APP_TOKEN: ${{ steps.turso.outputs.db_token }}
 
       - name: Comment preview URL on PR
         uses: actions/github-script@v7
@@ -182,6 +194,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Destroy Tigris bucket
+        # Ignore errors — the bucket may not exist if the deploy never ran
+        run: flyctl storage destroy "$APP_NAME" --yes || true
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_ORG_TOKEN }}
 
       - name: Destroy Fly preview app
         # Ignore errors — the app may not exist if the deploy never ran

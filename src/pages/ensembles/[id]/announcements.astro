@@ -164,15 +164,6 @@ const announcements = await getEnsembleAnnouncements(ensemble.id);
             action={actions.announcements.create}
           >
             <input type="hidden" name="ensembleId" value={ensemble.id} />
-            <input type="hidden" name="ensembleName" value={ensemble.name} />
-            <input type="hidden" name="canonicalId" value={canonicalId} />
-            {ensemble.discordWebhookUrl && (
-              <input
-                type="hidden"
-                name="discordWebhookUrl"
-                value={ensemble.discordWebhookUrl}
-              />
-            )}
 
             <TextInput
               name="title"
@@ -217,15 +208,6 @@ const announcements = await getEnsembleAnnouncements(ensemble.id);
             action={actions.announcements.update}
           >
             <input type="hidden" name="ensembleId" value={ensemble.id} />
-            <input type="hidden" name="ensembleName" value={ensemble.name} />
-            <input type="hidden" name="canonicalId" value={canonicalId} />
-            {ensemble.discordWebhookUrl && (
-              <input
-                type="hidden"
-                name="discordWebhookUrl"
-                value={ensemble.discordWebhookUrl}
-              />
-            )}
             <input
               type="hidden"
               name="announcementId"

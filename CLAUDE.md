@@ -10,7 +10,7 @@ pnpm dev:remote       # Dev server connected to remote Turso DB
 pnpm build            # Production build (no DB connection needed)
 pnpm preview          # Preview the production build locally
 pnpm check            # TypeScript type checking via astro check
-pnpm lint             # Oxlint on src/lib and db directories + astro check
+pnpm lint             # Oxlint on the whole repo (TS files plus <script> blocks in .astro; frontmatter is covered by pnpm check)
 pnpm fmt              # Auto-fix lint issues
 pnpm db:generate      # Generate a drizzle migration from db/schema.ts changes
 pnpm db:migrate       # Apply migrations to the remote Turso DB (reads .env)
@@ -67,12 +67,16 @@ Rules:
 ### Request Handling Pattern
 Form mutations use **Astro Actions** (`src/actions/`). Do not use the old pattern of checking `Astro.request.method === 'POST'` in page frontmatter. Actions use `defineAction` with `accept: 'form'` and a Zod schema, throw `ActionError` for failures, and delegate business logic to `src/lib/`. Pages read results via `Astro.getActionResult()` and redirect on success.
 
+**Every ID in an action's input must be checked against the ensemble.** `assertEnsembleAdmin(ensembleId, user)` only proves the user may act on the `ensembleId` from the form; the other IDs in the same form are just as attacker-controlled. After the permission check, call `assertInEnsemble(kind, id, ensembleId)` (from `src/actions/utils.ts`, backed by `src/lib/ownership.ts`) for each record ID, and `assertUserInEnsemble(userId, ensembleId)` for any target user. Add a new kind to `ownership.ts` when you add a table that belongs to an ensemble.
+
 ### Authentication & Authorization
 - **Middleware** (`src/middleware.ts`): Runs on every request, extracts JWT from `session` cookie, populates `Astro.locals.user` and `Astro.locals.session`. Redirects unauthenticated users to `/login` for protected routes.
 - **Public routes**: `/`, `/login`, `/register`, `/forgot-password`, `/reset-password`, `/invite/join`
 - **Three permission tiers**: Site admin (`User.role = 'admin'`), ensemble admin (`EnsembleMember.role = 'admin'`), and regular member
 - Sessions are JWT tokens (30-day expiry) in HTTP-only cookies, signed with `JWT_SECRET`
 - Passwords hashed with bcryptjs (10 rounds)
+- CSRF: Astro's `checkOrigin` is on. Fly terminates TLS, so `security.allowedDomains` in `astro.config.mjs` lists the hosts whose `X-Forwarded-Proto`/`Host` Astro trusts to rebuild the https URL; add any new domain there or its form POSTs will 403
+- Failed logins and password-reset requests are rate-limited in memory per email and per client IP (`src/lib/rate-limit.ts`; the IP comes from Fly's `Fly-Client-IP` header)
 
 ### Database Schema
 Defined in `db/schema.ts` (drizzle `sqliteTable` definitions, 26 tables). Seed data in `db/seed.ts`. Key relationships:
@@ -108,6 +112,8 @@ File-based routing under `src/pages/`. Ensemble pages live under `ensembles/[id]
 - `redirect.ts` — smart login redirect logic
 
 ### Environment Variables
+**Read server secrets from `process.env`, never `import.meta.env`.** Vite writes `import.meta.env` values into the server bundle at build time, which would bake secrets into `dist/` and the Docker image. `astro.config.mjs` loads `.env` into `process.env` for `astro dev`; in production the values are Fly secrets. Secrets are never Docker build args.
+
 Required in `.env` (see `.env.example`):
 - `ASTRO_DB_REMOTE_URL` / `ASTRO_DB_APP_TOKEN` — Turso database connection (names kept from the Astro DB era; they're baked into Fly/GitHub secrets)
 - `DATABASE_URL` — overrides the Turso connection with a local libSQL URL (set automatically by `pnpm dev` and the test configs; no auth token used)
@@ -130,7 +136,7 @@ pnpm test:e2e:ui           # Playwright UI mode
 
 Three tiers — write tests at the appropriate level for new code:
 
-- **Unit** (`tests/unit/`) — Pure functions in `src/lib/` with no DB or external deps. Use Vitest. If a file imports `storage.ts`, mock it first (it has module-level S3 side effects that crash without env vars).
+- **Unit** (`tests/unit/`) — Pure functions in `src/lib/` with no DB or external deps. Use Vitest. If code under test uploads, downloads, or deletes files, mock `storage.ts` so tests never reach real S3.
 - **Integration** (`tests/integration/`) — `src/lib/` functions that query the DB. Use Vitest with a real in-memory LibSQL DB (`DATABASE_URL` is set in `vitest.config.ts`; `tests/integration/setup.ts` recreates the schema from the `drizzle/` migrations before each test). Use fixture helpers from `tests/integration/fixtures.ts` to create test data. Mock storage the same way as unit tests.
 - **E2E** (`tests/e2e/`) — Full browser flows via Playwright. Use the `chromium-admin` project (admin auth state) for admin-gated pages. Navigate to ensemble sub-pages by constructing the URL from `page.url()` rather than clicking navbar dropdown links (they are hidden until hovered in Bulma). Submit buttons that use `form="formId"` to associate with a form outside their DOM parent must be located with `button[type="submit"][form="formId"]`.
 
