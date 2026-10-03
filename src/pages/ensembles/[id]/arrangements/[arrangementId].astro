@@ -55,6 +55,12 @@ if (!isSiteAdmin(user) && !(await getActiveMembership(ensemble.id, user.id))) {
   return new Response("Your membership is pending approval", { status: 403 });
 }
 
+// Checked before loading the arrangement, which no longer exists after a delete.
+const deleteResult = Astro.getActionResult(actions.arrangements.delete);
+if (deleteResult && !deleteResult.error) {
+  return Astro.redirect(`/ensembles/${canonicalId}/arrangements`);
+}
+
 const { arrangement, versions, comments, parts } = await getArrangementDetail(
   arrangementId!,
 );
@@ -80,11 +86,6 @@ if (approveResult && !approveResult.error) {
       ? `/ensembles/${canonicalId}/songs/${approveResult.data.songId}`
       : `/ensembles/${canonicalId}/arrangements`,
   );
-}
-
-const deleteResult = Astro.getActionResult(actions.arrangements.delete);
-if (deleteResult && !deleteResult.error) {
-  return Astro.redirect(`/ensembles/${canonicalId}/arrangements`);
 }
 
 const commentResult = Astro.getActionResult(actions.arrangements.comment);

@@ -123,3 +123,21 @@ test('uploading a new version increments the version list', async ({ page }) => 
   await expect(page.locator('body')).toContainText('v2');
   await expect(page.locator('body')).toContainText('Second pass');
 });
+
+test('admin can delete an arrangement', async ({ page }) => {
+  await navigateToArrangements(page);
+  const listUrl = page.url();
+
+  await page.getByRole('button', { name: 'Submit Arrangement' }).first().click();
+  const title = `E2E Delete ${Date.now()}`;
+  await page.fill('#submit-modal input[name="title"]', title);
+  await page.setInputFiles('#submit-modal input[name="file"]', testPdf);
+  await page.locator('button[type="submit"][form="submitArrangementForm"]').click();
+  await expect(page).toHaveURL(/\/arrangements\/[0-9a-f-]+$/);
+
+  page.once('dialog', (dialog) => dialog.accept());
+  await page.getByRole('button', { name: 'Delete' }).click();
+
+  await expect(page).toHaveURL(listUrl);
+  await expect(page.locator('body')).not.toContainText(title);
+});
