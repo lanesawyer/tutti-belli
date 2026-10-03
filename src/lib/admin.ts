@@ -10,6 +10,11 @@ export async function getAllUsers() {
   return await db.select().from(User).all();
 }
 
+export async function getSiteAdminIds(): Promise<Set<string>> {
+  const rows = await db.select({ id: User.id }).from(User).where(eq(User.role, 'admin')).all();
+  return new Set(rows.map((r) => r.id));
+}
+
 export async function getUserById(userId: string) {
   return (await db.select().from(User).where(eq(User.id, userId)).get()) ?? null;
 }

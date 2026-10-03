@@ -6,7 +6,6 @@ import Header from "@components/Header.astro";
 import Footer from "@components/Footer.astro";
 import { APP_NAME } from "@lib/config";
 import { getActiveBanner } from "@lib/banner";
-import { getTestAccount, TEST_ACCOUNTS } from "@lib/role-preview";
 
 interface Props {
   title: string;
@@ -15,9 +14,7 @@ interface Props {
 const { title } = Astro.props;
 
 const activeBanner = await getActiveBanner();
-const previewAccount = Astro.locals.viewingAs
-  ? getTestAccount(Astro.locals.user!.id)
-  : null;
+const viewedUser = Astro.locals.viewingAs ? Astro.locals.user : null;
 ---
 
 <!doctype html>
@@ -171,17 +168,13 @@ const previewAccount = Astro.locals.viewingAs
         background-color: #00d1b2;
         color: #fff;
       }
-      #role-preview-banner {
+      #view-as-banner {
         display: flex;
         flex-wrap: wrap;
         align-items: center;
         justify-content: center;
         gap: 0.5rem 1rem;
         padding: 0.5rem 1rem;
-      }
-      .role-preview-form {
-        display: flex;
-        gap: 0.5rem;
       }
       .site-banner-link {
         background-color: #485fc7;
@@ -192,32 +185,14 @@ const previewAccount = Astro.locals.viewingAs
   <body style="min-height: 100vh; display: flex; flex-direction: column;">
     <div id="site-header" style="position: sticky; top: 0; z-index: 30;">
       {
-        previewAccount && (
-          <div id="role-preview-banner" class="site-banner-link">
+        viewedUser && (
+          <div id="view-as-banner" class="site-banner-link">
             <span>
-              Previewing as <strong>{previewAccount.name}</strong> (
-              {previewAccount.description})
+              Viewing as <strong>{viewedUser.name}</strong> ({viewedUser.email})
             </span>
-            <form method="POST" action="/view-as" class="role-preview-form">
-              <div class="select is-small">
-                <select name="userId" aria-label="Switch test account">
-                  {TEST_ACCOUNTS.map((account) => (
-                    <option
-                      value={account.id}
-                      selected={account.id === previewAccount.id}
-                    >
-                      {account.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <button type="submit" class="button is-small">
-                Switch
-              </button>
-            </form>
-            <form method="POST" action="/view-as/exit" class="role-preview-form">
+            <form method="POST" action="/view-as/exit">
               <button type="submit" class="button is-small is-light">
-                Exit preview
+                Exit
               </button>
             </form>
           </div>

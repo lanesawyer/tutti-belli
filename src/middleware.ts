@@ -1,6 +1,6 @@
 import { defineMiddleware } from 'astro:middleware';
 import { getSession, getUserFromSession } from './lib/session';
-import { resolveViewAs, VIEW_AS_COOKIE } from './lib/role-preview';
+import { resolveViewAs, VIEW_AS_COOKIE } from './lib/view-as';
 
 // Public routes that don't require authentication
 const PUBLIC_ROUTES = [
@@ -34,13 +34,13 @@ export const onRequest = defineMiddleware(async (context, next) => {
   context.locals.user = user;
   context.locals.viewingAs = null;
 
-  // A site admin previewing a role: serve the request as the test account they picked.
+  // A site admin viewing the site as another user: serve the request as that user.
   const viewAsToken = context.cookies.get(VIEW_AS_COOKIE)?.value;
   if (viewAsToken) {
-    const testAccount = user ? await resolveViewAs(viewAsToken, user) : null;
-    if (user && testAccount) {
+    const viewedUser = user ? await resolveViewAs(viewAsToken, user) : null;
+    if (user && viewedUser) {
       context.locals.viewingAs = { realUser: user };
-      context.locals.user = testAccount;
+      context.locals.user = viewedUser;
     } else {
       context.cookies.delete(VIEW_AS_COOKIE, { path: '/' });
     }

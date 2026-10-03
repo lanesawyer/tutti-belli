@@ -5,17 +5,8 @@ import { createEnsemble, deleteEnsemble, getUserById, setUserRole } from '@lib/a
 import { getEnsembleUrlId } from '@lib/slug';
 import { assertSiteAdmin } from './utils';
 import { setBanner, clearBanner } from '@lib/banner';
-import { setUpRolePreview } from '@lib/role-preview';
 
 export const admin = {
-  setUpRolePreview: defineAction({
-    accept: 'form',
-    handler: async (_input, context) => {
-      assertSiteAdmin(context.locals.user);
-      await setUpRolePreview(context.locals.user!.id);
-    },
-  }),
-
   createEnsemble: defineAction({
     accept: 'form',
     input: z.object({

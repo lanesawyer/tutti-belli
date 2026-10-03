@@ -37,7 +37,7 @@ interface ViewAsPayload {
   targetId: string;
 }
 
-/** A short-lived token that lets a site admin browse as a role-preview test account. */
+/** A short-lived token that lets a site admin browse the site as another user. */
 export function createViewAsToken(adminId: string, targetId: string): string {
   return jwt.sign({ purpose: 'view-as', adminId, targetId } satisfies ViewAsPayload, jwtSecret(), {
     expiresIn: '1h',
