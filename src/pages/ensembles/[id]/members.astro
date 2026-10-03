@@ -24,6 +24,8 @@ import {
   getMemberPartAssignments,
 } from "@lib/ensemble";
 import { getEnsembleUrlId } from "@lib/slug";
+import { getSiteAdminIds } from "@lib/admin";
+import { isSiteAdmin } from "@lib/permissions";
 
 const user = Astro.locals.user!;
 
@@ -48,6 +50,9 @@ const { isAdmin } = access;
 if (!isAdmin) {
   return new Response("Unauthorized", { status: 403 });
 }
+
+// Site admins can view the site as any member who isn't also a site admin.
+const viewAsBlocked = isSiteAdmin(user) ? await getSiteAdminIds() : null;
 
 const removeResult = Astro.getActionResult(actions.members.remove);
 const promoteResult = Astro.getActionResult(actions.members.promote);
@@ -217,6 +222,15 @@ const members = membersData;
                             {member.id !== user.id && (
                               <td>
                                 <div class="buttons are-small">
+                                  {viewAsBlocked && !viewAsBlocked.has(member.id) && (
+                                    <form method="POST" action="/view-as" style="display: inline;">
+                                      <input type="hidden" name="userId" value={member.id} />
+                                      <input type="hidden" name="returnTo" value={`/ensembles/${canonicalId}`} />
+                                      <Button type="submit" color="link" size="small">
+                                        View as
+                                      </Button>
+                                    </form>
+                                  )}
                                   {member.role === "member" ? (
                                     <form
                                       method="POST"
@@ -352,6 +366,15 @@ const members = membersData;
                           {member.id !== user.id && (
                             <td>
                               <div class="buttons are-small">
+                                {viewAsBlocked && !viewAsBlocked.has(member.id) && (
+                                  <form method="POST" action="/view-as" style="display: inline;">
+                                    <input type="hidden" name="userId" value={member.id} />
+                                    <input type="hidden" name="returnTo" value={`/ensembles/${canonicalId}`} />
+                                    <Button type="submit" color="link" size="small">
+                                      View as
+                                    </Button>
+                                  </form>
+                                )}
                                 {member.role === "member" ? (
                                   <form
                                     method="POST"
@@ -481,6 +504,15 @@ const members = membersData;
                     {member.id !== user.id && (
                       <td>
                         <div class="buttons are-small">
+                          {viewAsBlocked && !viewAsBlocked.has(member.id) && (
+                            <form method="POST" action="/view-as" style="display: inline;">
+                              <input type="hidden" name="userId" value={member.id} />
+                              <input type="hidden" name="returnTo" value={`/ensembles/${canonicalId}`} />
+                              <Button type="submit" color="link" size="small">
+                                View as
+                              </Button>
+                            </form>
+                          )}
                           {member.role === "member" ? (
                             <form
                               method="POST"

@@ -13,7 +13,7 @@ declare namespace App {
       role: string;
       createdAt: Date;
     } | null;
-    /** Set while a site admin previews the site as a test account; `user` is then that account. */
+    /** Set while a site admin views the site as another user; `user` is then that user. */
     viewingAs: { realUser: NonNullable<Locals['user']> } | null;
   }
 }
