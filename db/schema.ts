@@ -36,6 +36,9 @@ export const Ensemble = sqliteTable('Ensemble', {
   codeOfConduct: text('codeOfConduct'),
   checkInStartMinutes: integer('checkInStartMinutes').notNull().default(30), // Minutes before event check-in opens
   checkInEndMinutes: integer('checkInEndMinutes').notNull().default(15), // Minutes after event start check-in closes
+  // Group whose members review submitted arrangements. The return type is
+  // annotated because Ensemble and Group reference each other circularly.
+  arrangementReviewGroupId: text('arrangementReviewGroupId').references((): any => Group.id),
   createdBy: text('createdBy').notNull().references(() => User.id),
   createdAt: date('createdAt').notNull().default(NOW),
 });
@@ -256,4 +259,43 @@ export const TaskCompletion = sqliteTable('TaskCompletion', {
   userId: text('userId').notNull().references(() => User.id),
   completedAt: date('completedAt').notNull().default(NOW),
   completedBy: text('completedBy').notNull().references(() => User.id),
+});
+
+export const Arrangement = sqliteTable('Arrangement', {
+  id: text('id').primaryKey(),
+  ensembleId: text('ensembleId').notNull().references(() => Ensemble.id),
+  title: text('title').notNull(),
+  composer: text('composer'),
+  arranger: text('arranger'),
+  runTime: integer('runTime'), // Runtime in seconds
+  notes: text('notes'),
+  status: text('status', { enum: ['in_review', 'approved', 'declined'] }).notNull().default('in_review'),
+  submittedBy: text('submittedBy').notNull().references(() => User.id),
+  approvedSongId: text('approvedSongId').references(() => Song.id), // Song created when adopted into the library
+  createdAt: date('createdAt').notNull().default(NOW),
+});
+
+export const ArrangementPart = sqliteTable('ArrangementPart', {
+  id: text('id').primaryKey(),
+  arrangementId: text('arrangementId').notNull().references(() => Arrangement.id),
+  partId: text('partId').notNull().references(() => Part.id),
+});
+
+export const ArrangementVersion = sqliteTable('ArrangementVersion', {
+  id: text('id').primaryKey(),
+  arrangementId: text('arrangementId').notNull().references(() => Arrangement.id),
+  versionNumber: integer('versionNumber').notNull(),
+  fileName: text('fileName').notNull(),
+  url: text('url').notNull(),
+  notes: text('notes'), // What changed in this version
+  uploadedBy: text('uploadedBy').notNull().references(() => User.id),
+  uploadedAt: date('uploadedAt').notNull().default(NOW),
+});
+
+export const ArrangementComment = sqliteTable('ArrangementComment', {
+  id: text('id').primaryKey(),
+  versionId: text('versionId').notNull().references(() => ArrangementVersion.id),
+  userId: text('userId').notNull().references(() => User.id),
+  content: text('content').notNull(),
+  createdAt: date('createdAt').notNull().default(NOW),
 });

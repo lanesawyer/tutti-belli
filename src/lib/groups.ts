@@ -1,4 +1,4 @@
-import { db, eq, and, desc, Group, GroupMembership, EnsembleMember, User } from '@db';
+import { db, eq, and, desc, Ensemble, Group, GroupMembership, EnsembleMember, User } from '@db';
 
 export async function getEnsembleGroups(ensembleId: string) {
   return await db
@@ -57,6 +57,12 @@ export async function updateGroup(
 
 export async function deleteGroup(groupId: string) {
   await db.delete(GroupMembership).where(eq(GroupMembership.groupId, groupId));
+  // Drop the arrangement-review assignment first, or the ensemble keeps a
+  // dangling pointer and reviewers silently lose access.
+  await db
+    .update(Ensemble)
+    .set({ arrangementReviewGroupId: null })
+    .where(eq(Ensemble.arrangementReviewGroupId, groupId));
   await db.delete(Group).where(eq(Group.id, groupId));
 }
 

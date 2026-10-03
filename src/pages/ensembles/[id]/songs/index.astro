@@ -92,14 +92,20 @@ const songFilesMap = buildSongFilesMap(ensembleSongIds, songFilesData);
   pageSubtitle={`Repertoire for ${ensemble.name}`}
   isAdmin={isAdmin}
 >
-  {
-    isAdmin && (
-      <Button slot="action" color="primary" id="add-song-btn">
-        <Icon icon="fa-plus" />
-        <span>Add Song</span>
-      </Button>
-    )
-  }
+  <div slot="action" class="buttons">
+    <Button href={`/ensembles/${canonicalId}/arrangements`}>
+      <Icon icon="fa-pen-nib" />
+      <span>Arrangements</span>
+    </Button>
+    {
+      isAdmin && (
+        <Button color="primary" id="add-song-btn">
+          <Icon icon="fa-plus" />
+          <span>Add Song</span>
+        </Button>
+      )
+    }
+  </div>
 
   {
     songs.length === 0 ? (
