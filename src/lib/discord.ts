@@ -7,6 +7,26 @@ export interface DiscordResult {
   error?: string;
 }
 
+const WEBHOOK_HOSTS = new Set(['discord.com', 'discordapp.com', 'ptb.discord.com', 'canary.discord.com']);
+
+/** Whether `value` is a Discord webhook URL, the only place the server will post announcements. */
+export function isDiscordWebhookUrl(value: string): boolean {
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    return false;
+  }
+  return (
+    url.protocol === 'https:' &&
+    WEBHOOK_HOSTS.has(url.hostname) &&
+    url.port === '' &&
+    url.username === '' &&
+    url.password === '' &&
+    /^\/api\/(v\d+\/)?webhooks\/\d+\/[\w-]+\/?$/.test(url.pathname)
+  );
+}
+
 export async function postAnnouncementToDiscord(
   webhookUrl: string,
   ensembleName: string,
@@ -17,6 +37,11 @@ export async function postAnnouncementToDiscord(
   if (getEnv('DISCORD_DISABLED')) {
     console.log(`[discord] disabled — skipping announcement post "${announcementTitle}"`);
     return { success: true };
+  }
+
+  if (!isDiscordWebhookUrl(webhookUrl)) {
+    console.error('[discord] refusing to post to a URL that is not a Discord webhook');
+    return { success: false, error: 'Not a Discord webhook URL' };
   }
 
   const description =
@@ -41,6 +66,7 @@ export async function postAnnouncementToDiscord(
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
+      redirect: 'error',
     });
     if (!res.ok) {
       const body = await res.text().catch(() => '');

@@ -14,6 +14,7 @@ import {
 import { validateImageFile, fileToDataUri } from '@lib/upload';
 import { generateSlug } from '@lib/slug';
 import { randomCode } from '@lib/codes';
+import { isDiscordWebhookUrl } from '@lib/discord';
 
 export const ensembles = {
   join: defineAction({
@@ -72,7 +73,11 @@ export const ensembles = {
       slug: z.string().optional(),
       description: z.string().optional(),
       discordLink: z.string().optional(),
-      discordWebhookUrl: z.string().optional(),
+      discordWebhookUrl: z
+        .string()
+        .trim()
+        .refine((value) => value === '' || isDiscordWebhookUrl(value), 'Enter a Discord webhook URL (https://discord.com/api/webhooks/...).')
+        .optional(),
       codeOfConduct: z.string().optional(),
       removeImage: z.string().optional(),
       image: z.instanceof(File).optional(),
