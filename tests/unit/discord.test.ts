@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { postAnnouncementToDiscord } from '../../src/lib/discord.ts';
+import { isDiscordWebhookUrl, postAnnouncementToDiscord } from '../../src/lib/discord.ts';
 
 const WEBHOOK_URL = 'https://discord.com/api/webhooks/123/abc';
 
@@ -12,6 +12,25 @@ function makeArgs() {
     'Jane Smith',
   ] as const;
 }
+
+describe('isDiscordWebhookUrl', () => {
+  it('accepts Discord webhook URLs', () => {
+    expect(isDiscordWebhookUrl(WEBHOOK_URL)).toBe(true);
+    expect(isDiscordWebhookUrl('https://discordapp.com/api/webhooks/123/a-b_C')).toBe(true);
+    expect(isDiscordWebhookUrl('https://canary.discord.com/api/v10/webhooks/123/abc')).toBe(true);
+  });
+
+  it('rejects anything else', () => {
+    expect(isDiscordWebhookUrl('')).toBe(false);
+    expect(isDiscordWebhookUrl('not a url')).toBe(false);
+    expect(isDiscordWebhookUrl('http://discord.com/api/webhooks/123/abc')).toBe(false);
+    expect(isDiscordWebhookUrl('https://discord.com.example.com/api/webhooks/123/abc')).toBe(false);
+    expect(isDiscordWebhookUrl('https://discord.com:8443/api/webhooks/123/abc')).toBe(false);
+    expect(isDiscordWebhookUrl('https://user@discord.com/api/webhooks/123/abc')).toBe(false);
+    expect(isDiscordWebhookUrl('https://discord.com/api/users/@me')).toBe(false);
+    expect(isDiscordWebhookUrl('http://169.254.169.254/latest/meta-data/')).toBe(false);
+  });
+});
 
 describe('postAnnouncementToDiscord', () => {
   beforeEach(() => {
@@ -78,6 +97,13 @@ describe('postAnnouncementToDiscord', () => {
 
     expect(result.success).toBe(false);
     expect(result.error).toContain('Network error');
+  });
+
+  it('refuses to post to a URL that is not a Discord webhook', async () => {
+    const result = await postAnnouncementToDiscord('https://example.com/hook', 'A', 'B', 'C', 'D');
+
+    expect(result.success).toBe(false);
+    expect(fetch).not.toHaveBeenCalled();
   });
 
   it('skips the fetch and returns success when DISCORD_DISABLED is set', async () => {
