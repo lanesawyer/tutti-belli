@@ -1,5 +1,5 @@
 ---
-import { Tag } from "astro-bulma";
+import { Table, Tag } from "astro-bulma";
 import { getAuditions } from "@lib/auditions";
 import { formatZonedDate } from "@lib/timezone";
 import DashboardSection from "@components/DashboardSection.astro";
@@ -26,7 +26,7 @@ if (open.length === 0) return;
   viewAllHref={`/ensembles/${canonicalId}/auditions`}
   viewAllColor="primary"
 >
-  <table class="table is-fullwidth is-hoverable">
+  <Table className="is-hoverable">
     <tbody>
       {
         open.map((a) => (
@@ -52,5 +52,5 @@ if (open.length === 0) return;
         ))
       }
     </tbody>
-  </table>
+  </Table>
 </DashboardSection>

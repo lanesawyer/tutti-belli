@@ -2,9 +2,7 @@ import {
   db,
   eq,
   and,
-  inArray,
   Audition,
-  AuditionSignup,
   EnsembleMember,
   Song,
   SongPart,
@@ -193,12 +191,8 @@ export async function editSong(input: EditSongInput): Promise<void> {
 export async function deleteSong(songId: string): Promise<void> {
   if (!songId) return;
 
-  const auditions = await db.select({ id: Audition.id }).from(Audition).where(eq(Audition.songId, songId)).all();
-  if (auditions.length > 0) {
-    const auditionIds = auditions.map((a) => a.id);
-    await db.delete(AuditionSignup).where(inArray(AuditionSignup.auditionId, auditionIds));
-    await db.delete(Audition).where(inArray(Audition.id, auditionIds));
-  }
+  // Auditions outlive their song so signups and posted results aren't lost.
+  await db.update(Audition).set({ songId: null }).where(eq(Audition.songId, songId));
   await db.delete(SongPart).where(eq(SongPart.songId, songId));
   await db.delete(SeasonSong).where(eq(SeasonSong.songId, songId));
 

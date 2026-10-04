@@ -68,7 +68,7 @@ describe('auditions', () => {
     expect(afterClose.mySignup?.selected).toBe(false);
   });
 
-  it('refuses signups after closing or past the deadline, and withdrawals after closing', async () => {
+  it('refuses signups after closing or past the deadline, and withdrawals only after closing', async () => {
     const { ensemble, alto, tenor, auditionId } = await setup();
     await signUpForAudition(auditionId, alto.id, undefined);
     await setAuditionStatus(auditionId, 'closed');
@@ -79,6 +79,7 @@ describe('auditions', () => {
     await editAudition(auditionId, ensemble.id, { title: 'Alto solo', deadlineDate: '2020-01-01' });
     expect((await signUpForAudition(auditionId, tenor.id, undefined)).type).toBe('error');
     expect((await view(ensemble.id, tenor.id, false)).acceptingSignups).toBe(false);
+    expect(await withdrawFromAudition(auditionId, alto.id)).toEqual({ type: 'success' });
   });
 
   it('reads the deadline in the ensemble timezone, defaulting to the end of the day', async () => {
@@ -96,13 +97,14 @@ describe('auditions', () => {
     expect(await db.select().from(Audition).where(eq(Audition.id, auditionId)).get()).toBeDefined();
   });
 
-  it('cleans up when the song or a signed-up user is deleted', async () => {
+  it('cleans up a deleted user\'s signups and keeps auditions whose song is deleted', async () => {
     const { alto, song, auditionId } = await setup();
     await signUpForAudition(auditionId, alto.id, undefined);
     expect((await deleteAccount(alto.id, 'user', 'test123')).type).toBe('redirect');
     expect(await db.select().from(AuditionSignup).where(eq(AuditionSignup.userId, alto.id)).all()).toHaveLength(0);
 
     await deleteSong(song.id);
-    expect(await db.select().from(Audition).where(eq(Audition.id, auditionId)).get()).toBeUndefined();
+    const audition = await db.select().from(Audition).where(eq(Audition.id, auditionId)).get();
+    expect(audition?.songId).toBeNull();
   });
 });

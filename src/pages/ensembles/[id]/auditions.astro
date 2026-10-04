@@ -56,7 +56,7 @@ const results = [
   [actions.auditions.delete, "Audition deleted."],
   [actions.auditions.signUp, "You're signed up."],
   [actions.auditions.withdraw, "You've withdrawn."],
-  [actions.auditions.setSelected, ""],
+  [actions.auditions.setSelected, "Selection saved."],
   [actions.auditions.removeSignup, "Signup removed."],
 ] as const;
 
@@ -80,8 +80,11 @@ const auditions = await getAuditions({
   userId: user.id,
   isAdmin,
 });
-const open = auditions.filter((a) => a.acceptingSignups);
-const closed = auditions.filter((a) => !a.acceptingSignups);
+const groups: [string, AuditionView[]][] = [
+  ["Open for Signups", auditions.filter((a) => a.acceptingSignups)],
+  ["Awaiting Results", auditions.filter((a) => !a.acceptingSignups && a.status === "open")],
+  ["Closed", auditions.filter((a) => a.status === "closed")],
+];
 const songs = isAdmin ? await getAuditionSongOptions(ensemble.id) : [];
 const preselectedSongId = Astro.url.searchParams.get("song") ?? "";
 
@@ -180,16 +183,13 @@ function deadlineInputs(a: AuditionView) {
   }
 
   {
-    [
-      ["Open for Signups", open],
-      ["Closed", closed],
-    ].map(([heading, list]) =>
-      (list as AuditionView[]).length === 0 ? null : (
+    groups.map(([heading, list]) =>
+      list.length === 0 ? null : (
         <>
           <Title as="h2" size={4} class="mt-5">
             {heading}
           </Title>
-          {(list as AuditionView[]).map((a) => {
+          {list.map((a) => {
             const deadline = deadlineLabel(a);
             const inputs = deadlineInputs(a);
             const selectedNames = a.signups.filter((s) => s.selected);
@@ -250,7 +250,7 @@ function deadlineInputs(a: AuditionView) {
                         {selectedNames.map((s) => s.name).join(", ")}
                       </p>
                     ) : (
-                      <p class="has-text-grey">No results posted.</p>
+                      <p class="has-text-grey">No one was selected.</p>
                     )}
                   </div>
                 )}
@@ -292,11 +292,19 @@ function deadlineInputs(a: AuditionView) {
                   </form>
                 )}
 
-                {!isAdmin && !a.acceptingSignups && a.status === "open" && a.mySignup && (
-                  <p class="mt-4">
-                    <Icon icon="fa-check" color="success" />
-                    You signed up. Results will be posted here.
-                  </p>
+                {!a.acceptingSignups && a.status === "open" && a.mySignup && (
+                  <form method="POST" action={actions.auditions.withdraw} class="mt-4">
+                    <input type="hidden" name="ensembleId" value={ensemble.id} />
+                    <input type="hidden" name="auditionId" value={a.id} />
+                    <p class="mb-2">
+                      <Icon icon="fa-check" color="success" />
+                      You signed up. Results will be posted here.
+                    </p>
+                    <Button type="submit" color="danger" outlined size="small">
+                      <Icon icon="fa-times" />
+                      <span>Withdraw</span>
+                    </Button>
+                  </form>
                 )}
 
                 {isAdmin && (
