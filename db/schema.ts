@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import { customType, integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import { customType, integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 
 // Mirrors @astrojs/db's date column exactly: stored as TEXT (ISO-8601),
 // surfaced as Date. CURRENT_TIMESTAMP defaults are written by SQLite as
@@ -258,3 +258,27 @@ export const TaskCompletion = sqliteTable('TaskCompletion', {
   completedAt: date('completedAt').notNull().default(NOW),
   completedBy: text('completedBy').notNull().references(() => User.id),
 });
+
+export const Audition = sqliteTable('Audition', {
+  id: text('id').primaryKey(),
+  ensembleId: text('ensembleId').notNull().references(() => Ensemble.id),
+  songId: text('songId').references(() => Song.id), // Optional: not every audition is for a song
+  title: text('title').notNull(), // e.g. "Soprano solo, mm. 32-48"
+  description: text('description'),
+  signupDeadline: date('signupDeadline'),
+  status: text('status', { enum: ['open', 'closed'] }).notNull().default('open'),
+  createdAt: date('createdAt').notNull().default(NOW),
+});
+
+export const AuditionSignup = sqliteTable(
+  'AuditionSignup',
+  {
+    id: text('id').primaryKey(),
+    auditionId: text('auditionId').notNull().references(() => Audition.id),
+    userId: text('userId').notNull().references(() => User.id),
+    note: text('note'),
+    selected: integer('selected', { mode: 'boolean' }).notNull().default(false),
+    createdAt: date('createdAt').notNull().default(NOW),
+  },
+  (t) => [uniqueIndex('AuditionSignup_auditionId_userId').on(t.auditionId, t.userId)],
+);

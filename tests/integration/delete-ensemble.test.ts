@@ -8,6 +8,7 @@ vi.mock('../../src/lib/storage.ts', () => ({
 
 import { deleteImage, deleteStorageFile } from '../../src/lib/storage.ts';
 import { deleteEnsemble } from '../../src/lib/admin.ts';
+import { createAudition, signUpForAudition } from '../../src/lib/auditions.ts';
 import {
   createUser,
   createEnsemble,
@@ -44,6 +45,7 @@ async function fullEnsemble(adminId: string, memberId: string) {
   await createSongFile(song!.id, adminId, { url: 'https://example.com/recording', category: 'link' });
   await createSeasonSong(season!.id, song!.id);
   await createEventProgramEntry(event!.id, song!.id);
+  await signUpForAudition(await createAudition(ensembleId, { title: 'Solo', songId: song!.id }), memberId, 'pick me');
   const task = await createTask(ensembleId, { seasonId: season!.id });
   await createTaskCompletion(task!.id, memberId, adminId);
   await db.insert(Attendance).values({ id: crypto.randomUUID(), eventId: event!.id, userId: memberId, checkedInMethod: 'qr' });

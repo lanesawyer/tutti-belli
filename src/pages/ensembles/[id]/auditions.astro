@@ -1,0 +1,433 @@
+---
+import {
+  Box,
+  Button,
+  Column,
+  Columns,
+  Icon,
+  Notification,
+  Select,
+  Table,
+  Tag,
+  TextInput,
+  Textarea,
+  Title,
+} from "astro-bulma";
+import EnsemblePageLayout from "@layouts/EnsemblePageLayout.astro";
+import { actions } from "astro:actions";
+import { getEnsembleBySlugOrId, getEnsembleAccess } from "@lib/ensemble";
+import { getEnsembleUrlId } from "@lib/slug";
+import {
+  getAuditions,
+  getAuditionSongOptions,
+  type AuditionView,
+} from "@lib/auditions";
+import {
+  formatZonedDate,
+  formatZonedTime,
+  instantToZonedInputs,
+} from "@lib/timezone";
+
+const user = Astro.locals.user!;
+const { id } = Astro.params;
+const ensemble = await getEnsembleBySlugOrId(id!);
+if (!ensemble) return new Response("Ensemble not found", { status: 404 });
+
+const canonicalId = getEnsembleUrlId(ensemble);
+if (Astro.request.method === "GET" && id !== canonicalId) {
+  return Astro.redirect(
+    Astro.url.pathname.replace(`/ensembles/${id}`, `/ensembles/${canonicalId}`),
+    301,
+  );
+}
+
+const access = await getEnsembleAccess(user, ensemble.id);
+if (!access) return Astro.redirect("/ensembles");
+const { membership, isAdmin } = access;
+if (!isAdmin && membership?.status !== "active") {
+  return Astro.redirect(`/ensembles/${canonicalId}`);
+}
+const canSignUp = membership?.status === "active";
+
+const results = [
+  [actions.auditions.create, "Audition created."],
+  [actions.auditions.edit, "Audition updated."],
+  [actions.auditions.setStatus, "Audition updated."],
+  [actions.auditions.delete, "Audition deleted."],
+  [actions.auditions.signUp, "You're signed up."],
+  [actions.auditions.withdraw, "You've withdrawn."],
+  [actions.auditions.setSelected, ""],
+  [actions.auditions.removeSignup, "Signup removed."],
+] as const;
+
+let message = "";
+let messageType: "success" | "danger" | undefined;
+for (const [action, success] of results) {
+  const result = Astro.getActionResult(action);
+  if (!result) continue;
+  if (result.error) {
+    message = result.error.message || "Something went wrong.";
+    messageType = "danger";
+  } else if (success) {
+    message = success;
+    messageType = "success";
+  }
+}
+
+const timeZone = ensemble.timezone;
+const auditions = await getAuditions({
+  ensembleId: ensemble.id,
+  userId: user.id,
+  isAdmin,
+});
+const open = auditions.filter((a) => a.acceptingSignups);
+const closed = auditions.filter((a) => !a.acceptingSignups);
+const songs = isAdmin ? await getAuditionSongOptions(ensemble.id) : [];
+const preselectedSongId = Astro.url.searchParams.get("song") ?? "";
+
+function deadlineLabel(a: AuditionView) {
+  if (!a.signupDeadline) return null;
+  return `${formatZonedDate(a.signupDeadline, timeZone)} at ${formatZonedTime(a.signupDeadline, timeZone)}`;
+}
+
+function deadlineInputs(a: AuditionView) {
+  return a.signupDeadline
+    ? instantToZonedInputs(a.signupDeadline, timeZone)
+    : { date: "", time: "" };
+}
+---
+
+<EnsemblePageLayout
+  title={`Auditions - ${ensemble.name}`}
+  ensembleName={ensemble.name}
+  ensembleId={canonicalId}
+  pageTitle="Auditions"
+  pageSubtitle="Solos and other parts you can try out for"
+  message={message}
+  messageType={messageType}
+  isAdmin={isAdmin}
+>
+  {
+    isAdmin && (
+      <details class="mb-5" open={auditions.length === 0 || !!preselectedSongId}>
+        <summary class="button is-primary mb-3">
+          <Icon icon="fa-plus" />
+          <span>New Audition</span>
+        </summary>
+        <Box>
+          <form method="POST" action={actions.auditions.create}>
+            <input type="hidden" name="ensembleId" value={ensemble.id} />
+            <Columns>
+              <Column>
+                <TextInput
+                  name="title"
+                  label="Title *"
+                  placeholder="Soprano solo, mm. 32–48"
+                  required
+                />
+              </Column>
+              <Column>
+                <Select name="songId" label="Song">
+                  <option value="">— Not for a specific song —</option>
+                  {songs.map((s) => (
+                    <option value={s.id} selected={s.id === preselectedSongId}>
+                      {s.name}
+                    </option>
+                  ))}
+                </Select>
+              </Column>
+            </Columns>
+            <Columns>
+              <Column>
+                <TextInput
+                  name="deadlineDate"
+                  label="Signup deadline"
+                  type="date"
+                  help="Optional. Leave blank to close signups by hand."
+                />
+              </Column>
+              <Column>
+                <TextInput
+                  name="deadlineTime"
+                  label="Deadline time"
+                  type="time"
+                  help={`${timeZone.replaceAll("_", " ")}. Defaults to 11:59 PM.`}
+                />
+              </Column>
+            </Columns>
+            <Textarea
+              name="description"
+              label="Details"
+              placeholder="What to prepare, when and where auditions happen, etc."
+              rows={3}
+            />
+            <Button type="submit" color="primary">
+              <Icon icon="fa-plus" />
+              <span>Create Audition</span>
+            </Button>
+          </form>
+        </Box>
+      </details>
+    )
+  }
+
+  {
+    auditions.length === 0 && (
+      <Notification color="info" light>
+        No auditions yet.
+      </Notification>
+    )
+  }
+
+  {
+    [
+      ["Open for Signups", open],
+      ["Closed", closed],
+    ].map(([heading, list]) =>
+      (list as AuditionView[]).length === 0 ? null : (
+        <>
+          <Title as="h2" size={4} class="mt-5">
+            {heading}
+          </Title>
+          {(list as AuditionView[]).map((a) => {
+            const deadline = deadlineLabel(a);
+            const inputs = deadlineInputs(a);
+            const selectedNames = a.signups.filter((s) => s.selected);
+            return (
+              <Box id={`audition-${a.id}`}>
+                <div class="is-flex is-justify-content-space-between is-align-items-flex-start is-flex-wrap-wrap" style="gap: 0.5rem;">
+                  <div>
+                    <Title as="h3" size={5} class="mb-2">
+                      {a.title}
+                    </Title>
+                    <div class="tags">
+                      {a.songName && (
+                        <a href={`/ensembles/${canonicalId}/songs/${a.songId}`}>
+                          <Tag color="info">
+                            <Icon icon="fa-music" size="small" />
+                            <span>{a.songName}</span>
+                          </Tag>
+                        </a>
+                      )}
+                      {a.status === "closed" ? (
+                        <Tag>Closed</Tag>
+                      ) : a.acceptingSignups ? (
+                        <Tag color="success">Open</Tag>
+                      ) : (
+                        <Tag color="warning">Deadline passed</Tag>
+                      )}
+                      {(isAdmin || a.acceptingSignups) && (
+                        <Tag light>
+                          {a.signupCount} signed up
+                        </Tag>
+                      )}
+                    </div>
+                  </div>
+                  {deadline && (
+                    <p class="is-size-7 has-text-grey">
+                      Signups {a.acceptingSignups ? "close" : "closed"}{" "}
+                      {deadline}
+                    </p>
+                  )}
+                </div>
+
+                {a.description && (
+                  <p class="mt-3" style="white-space: pre-line;">
+                    {a.description}
+                  </p>
+                )}
+
+                {!isAdmin && a.status === "closed" && (
+                  <div class="mt-4">
+                    {a.mySignup?.selected && (
+                      <Notification color="success" light>
+                        You were selected!
+                      </Notification>
+                    )}
+                    {selectedNames.length > 0 ? (
+                      <p>
+                        <strong>Selected:</strong>{" "}
+                        {selectedNames.map((s) => s.name).join(", ")}
+                      </p>
+                    ) : (
+                      <p class="has-text-grey">No results posted.</p>
+                    )}
+                  </div>
+                )}
+
+                {canSignUp && a.acceptingSignups && (
+                  <form method="POST" action={actions.auditions.signUp} class="mt-4">
+                    <input type="hidden" name="ensembleId" value={ensemble.id} />
+                    <input type="hidden" name="auditionId" value={a.id} />
+                    {a.mySignup && (
+                      <p class="mb-2">
+                        <Icon icon="fa-check" color="success" />
+                        <strong>You're signed up.</strong>
+                      </p>
+                    )}
+                    <Textarea
+                      name="note"
+                      label="Note for the directors"
+                      placeholder="Optional, e.g. availability or what you'll sing"
+                      rows={2}
+                      value={a.mySignup?.note ?? ""}
+                    />
+                    <div class="buttons">
+                      <Button type="submit" color={a.mySignup ? "link" : "primary"}>
+                        <Icon icon={a.mySignup ? "fa-save" : "fa-hand-paper"} />
+                        <span>{a.mySignup ? "Update Note" : "Sign Up"}</span>
+                      </Button>
+                      {a.mySignup && (
+                        <Button
+                          type="submit"
+                          color="danger"
+                          outlined
+                          formaction={actions.auditions.withdraw}
+                        >
+                          <Icon icon="fa-times" />
+                          <span>Withdraw</span>
+                        </Button>
+                      )}
+                    </div>
+                  </form>
+                )}
+
+                {!isAdmin && !a.acceptingSignups && a.status === "open" && a.mySignup && (
+                  <p class="mt-4">
+                    <Icon icon="fa-check" color="success" />
+                    You signed up. Results will be posted here.
+                  </p>
+                )}
+
+                {isAdmin && (
+                  <div class="mt-4">
+                    {a.signups.length === 0 ? (
+                      <p class="has-text-grey">No one has signed up yet.</p>
+                    ) : (
+                      <Table>
+                        <thead>
+                          <tr>
+                            <th>Name</th>
+                            <th>Note</th>
+                            <th>Selected</th>
+                            <th />
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {a.signups.map((s) => (
+                            <tr>
+                              <td>{s.name}</td>
+                              <td style="white-space: pre-line;">{s.note ?? ""}</td>
+                              <td>
+                                <form method="POST" action={actions.auditions.setSelected}>
+                                  <input type="hidden" name="ensembleId" value={ensemble.id} />
+                                  <input type="hidden" name="signupId" value={s.id} />
+                                  <input type="hidden" name="selected" value={s.selected ? "false" : "true"} />
+                                  <Button
+                                    type="submit"
+                                    size="small"
+                                    color={s.selected ? "success" : undefined}
+                                    title={s.selected ? "Unselect" : "Select"}
+                                  >
+                                    <Icon icon={s.selected ? "fa-star" : "fa-star-half-alt"} />
+                                    <span>{s.selected ? "Selected" : "Select"}</span>
+                                  </Button>
+                                </form>
+                              </td>
+                              <td class="has-text-right">
+                                <form method="POST" action={actions.auditions.removeSignup}>
+                                  <input type="hidden" name="ensembleId" value={ensemble.id} />
+                                  <input type="hidden" name="signupId" value={s.id} />
+                                  <Button type="submit" size="small" color="danger" outlined title="Remove signup">
+                                    <Icon icon="fa-trash-alt" />
+                                  </Button>
+                                </form>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </Table>
+                    )}
+
+                    <div class="buttons mt-3">
+                      <form method="POST" action={actions.auditions.setStatus}>
+                        <input type="hidden" name="ensembleId" value={ensemble.id} />
+                        <input type="hidden" name="auditionId" value={a.id} />
+                        <input type="hidden" name="status" value={a.status === "open" ? "closed" : "open"} />
+                        <Button type="submit" color={a.status === "open" ? "warning" : undefined}>
+                          <Icon icon={a.status === "open" ? "fa-lock" : "fa-lock-open"} />
+                          <span>{a.status === "open" ? "Close & Post Results" : "Reopen"}</span>
+                        </Button>
+                      </form>
+                    </div>
+                    <p class="help mb-3">
+                      Members only see who was selected once the audition is closed.
+                    </p>
+
+                    <details>
+                      <summary class="button is-small is-light">
+                        <Icon icon="fa-edit" />
+                        <span>Edit or delete</span>
+                      </summary>
+                      <form method="POST" action={actions.auditions.edit} class="mt-3">
+                        <input type="hidden" name="ensembleId" value={ensemble.id} />
+                        <input type="hidden" name="auditionId" value={a.id} />
+                        <Columns>
+                          <Column>
+                            <TextInput name="title" label="Title *" value={a.title} required />
+                          </Column>
+                          <Column>
+                            <Select name="songId" label="Song">
+                              <option value="">— Not for a specific song —</option>
+                              {songs.map((s) => (
+                                <option value={s.id} selected={s.id === a.songId}>
+                                  {s.name}
+                                </option>
+                              ))}
+                            </Select>
+                          </Column>
+                        </Columns>
+                        <Columns>
+                          <Column>
+                            <TextInput name="deadlineDate" label="Signup deadline" type="date" value={inputs.date} />
+                          </Column>
+                          <Column>
+                            <TextInput
+                              name="deadlineTime"
+                              label="Deadline time"
+                              type="time"
+                              value={inputs.time}
+                              help={timeZone.replaceAll("_", " ")}
+                            />
+                          </Column>
+                        </Columns>
+                        <Textarea name="description" label="Details" rows={3} value={a.description ?? ""} />
+                        <div class="buttons">
+                          <Button type="submit" color="primary">
+                            <Icon icon="fa-save" />
+                            <span>Save</span>
+                          </Button>
+                          <Button
+                            type="submit"
+                            color="danger"
+                            outlined
+                            formaction={actions.auditions.delete}
+                            formnovalidate
+                            onclick="return confirm('Delete this audition and all its signups?')"
+                          >
+                            <Icon icon="fa-trash-alt" />
+                            <span>Delete Audition</span>
+                          </Button>
+                        </div>
+                      </form>
+                    </details>
+                  </div>
+                )}
+              </Box>
+            );
+          })}
+        </>
+      ),
+    )
+  }
+</EnsemblePageLayout>

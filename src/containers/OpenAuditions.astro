@@ -1,0 +1,56 @@
+---
+import { Tag } from "astro-bulma";
+import { getAuditions } from "@lib/auditions";
+import { formatZonedDate } from "@lib/timezone";
+import DashboardSection from "@components/DashboardSection.astro";
+
+interface Props {
+  ensembleId: string;
+  canonicalId: string;
+  userId: string;
+  isAdmin: boolean;
+  timeZone: string;
+}
+
+const { ensembleId, canonicalId, userId, isAdmin, timeZone } = Astro.props;
+
+const open = (await getAuditions({ ensembleId, userId, isAdmin })).filter(
+  (a) => a.acceptingSignups,
+);
+if (open.length === 0) return;
+---
+
+<DashboardSection
+  title="Open Auditions"
+  icon="fa-microphone"
+  viewAllHref={`/ensembles/${canonicalId}/auditions`}
+  viewAllColor="primary"
+>
+  <table class="table is-fullwidth is-hoverable">
+    <tbody>
+      {
+        open.map((a) => (
+          <tr>
+            <td>
+              <a
+                href={`/ensembles/${canonicalId}/auditions#audition-${a.id}`}
+                class="has-text-weight-semibold"
+              >
+                {a.title}
+              </a>
+              <p class="is-size-7 has-text-grey">
+                {a.songName ?? ""}
+                {a.songName && a.signupDeadline && " · "}
+                {a.signupDeadline &&
+                  `Sign up by ${formatZonedDate(a.signupDeadline, timeZone)}`}
+              </p>
+            </td>
+            <td class="has-text-right" style="vertical-align: middle;">
+              {a.mySignup && <Tag color="success">Signed up</Tag>}
+            </td>
+          </tr>
+        ))
+      }
+    </tbody>
+  </table>
+</DashboardSection>
