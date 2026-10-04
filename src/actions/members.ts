@@ -33,12 +33,10 @@ export const members = {
         result.type === 'created'
           ? await sendWelcomeEmail(email, result.name, ensemble.name, result.setPasswordToken)
           : await sendAddedToEnsembleEmail(email, result.name, ensemble.name, getEnsembleUrlId(ensemble));
-      // EMAIL_DISABLED makes sends report success without sending anything.
-      const emailStatus = process.env.EMAIL_DISABLED ? 'off' : sent.success ? 'sent' : 'failed';
 
       return {
         name: result.name,
-        emailStatus,
+        emailSent: sent.success,
         setPasswordUrl:
           result.type === 'created'
             ? new URL(`/reset-password?token=${result.setPasswordToken}`, context.url.origin).toString()

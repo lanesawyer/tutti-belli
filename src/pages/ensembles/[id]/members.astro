@@ -190,20 +190,15 @@ const members = membersData;
           <Notification color="success" light>
             <p>
               Added <strong>{addResult.data.name}</strong> to {ensemble.name}.{" "}
-              {
-                {
-                  sent: "We emailed them to let them know.",
-                  off: "Email is turned off, so they haven't been told.",
-                  failed:
-                    "The email to them couldn't be sent, so they haven't been told.",
-                }[addResult.data.emailStatus]
-              }
+              {addResult.data.emailSent
+                ? "We emailed them to let them know."
+                : "The email to them couldn't be sent, so they haven't been told."}
             </p>
             {addResult.data.setPasswordUrl && (
               <div class="mt-3">
                 <p class="mb-2">
                   They're new, so they need to set a password.
-                  {addResult.data.emailStatus === "sent"
+                  {addResult.data.emailSent
                     ? " The email has this link; you can also send it yourself."
                     : " Send them this link"}{" "}
                   (valid for 7 days):
