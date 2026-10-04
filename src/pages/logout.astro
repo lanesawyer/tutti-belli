@@ -1,8 +1,4 @@
 ---
-import { deleteSession } from "@lib/session";
-
-deleteSession();
-
 Astro.cookies.delete("session", { path: "/" });
 
 return Astro.redirect("/");

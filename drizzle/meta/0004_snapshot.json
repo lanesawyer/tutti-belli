@@ -1,8 +1,8 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "a7e858ad-fa49-42e0-bd09-1bdab3457e16",
-  "prevId": "f32b8d39-4eb4-4dbc-a1f1-4e6640eefe25",
+  "id": "1e08f442-a2cc-4cea-94be-9321798625a4",
+  "prevId": "a7e858ad-fa49-42e0-bd09-1bdab3457e16",
   "tables": {
     "Announcement": {
       "name": "Announcement",
@@ -150,6 +150,191 @@
         "Attendance_userId_User_id_fk": {
           "name": "Attendance_userId_User_id_fk",
           "tableFrom": "Attendance",
+          "tableTo": "User",
+          "columnsFrom": [
+            "userId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "Audition": {
+      "name": "Audition",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "ensembleId": {
+          "name": "ensembleId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "songId": {
+          "name": "songId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "signupDeadline": {
+          "name": "signupDeadline",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'open'"
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "Audition_ensembleId_Ensemble_id_fk": {
+          "name": "Audition_ensembleId_Ensemble_id_fk",
+          "tableFrom": "Audition",
+          "tableTo": "Ensemble",
+          "columnsFrom": [
+            "ensembleId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "Audition_songId_Song_id_fk": {
+          "name": "Audition_songId_Song_id_fk",
+          "tableFrom": "Audition",
+          "tableTo": "Song",
+          "columnsFrom": [
+            "songId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "AuditionSignup": {
+      "name": "AuditionSignup",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "auditionId": {
+          "name": "auditionId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "userId": {
+          "name": "userId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "note": {
+          "name": "note",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "selected": {
+          "name": "selected",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      },
+      "indexes": {
+        "AuditionSignup_auditionId_userId": {
+          "name": "AuditionSignup_auditionId_userId",
+          "columns": [
+            "auditionId",
+            "userId"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {
+        "AuditionSignup_auditionId_Audition_id_fk": {
+          "name": "AuditionSignup_auditionId_Audition_id_fk",
+          "tableFrom": "AuditionSignup",
+          "tableTo": "Audition",
+          "columnsFrom": [
+            "auditionId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "AuditionSignup_userId_User_id_fk": {
+          "name": "AuditionSignup_userId_User_id_fk",
+          "tableFrom": "AuditionSignup",
           "tableTo": "User",
           "columnsFrom": [
             "userId"

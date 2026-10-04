@@ -1,4 +1,5 @@
-import { db, eq, User } from '@db';
+import type { AstroCookies } from 'astro';
+import { db, eq, sql, User } from '@db';
 import jwt from 'jsonwebtoken';
 
 // No fallback: a default secret would let anyone forge a session for any user.
@@ -10,12 +11,40 @@ function jwtSecret(): string {
 
 export interface SessionPayload {
   userId: string;
+  sessionVersion: number;
 }
 
-export function createSession(userId: string): string {
-  return jwt.sign({ userId } as SessionPayload, jwtSecret(), {
-    expiresIn: '30d',
+const SESSION_MAX_AGE = 60 * 60 * 24 * 30;
+
+export function createSession(userId: string, sessionVersion: number): string {
+  return jwt.sign({ userId, sessionVersion } satisfies SessionPayload, jwtSecret(), {
+    expiresIn: SESSION_MAX_AGE,
   });
+}
+
+/** Signs the user in on this browser with a session at their current version. */
+export function startSession(cookies: AstroCookies, user: { id: string; sessionVersion: number }): void {
+  cookies.set('session', createSession(user.id, user.sessionVersion), {
+    path: '/',
+    httpOnly: true,
+    secure: import.meta.env.PROD,
+    sameSite: 'lax',
+    maxAge: SESSION_MAX_AGE,
+  });
+}
+
+/** Set alongside other User columns to invalidate every session the user has, on every device. */
+export const bumpSessionVersion = sql`${User.sessionVersion} + 1`;
+
+/** Invalidates every session the user has and returns the new version. */
+export async function revokeSessions(userId: string): Promise<number | null> {
+  const user = await db
+    .update(User)
+    .set({ sessionVersion: bumpSessionVersion })
+    .where(eq(User.id, userId))
+    .returning({ sessionVersion: User.sessionVersion })
+    .get();
+  return user?.sessionVersion ?? null;
 }
 
 export function getSession(token: string | undefined): SessionPayload | null {
@@ -25,7 +54,9 @@ export function getSession(token: string | undefined): SessionPayload | null {
   try {
     const payload = jwt.verify(token, secret) as Partial<SessionPayload>;
     // Other tokens signed with the same secret (view-as) have no userId and aren't sessions.
-    return typeof payload.userId === 'string' ? (payload as SessionPayload) : null;
+    return typeof payload.userId === 'string' && typeof payload.sessionVersion === 'number'
+      ? (payload as SessionPayload)
+      : null;
   } catch {
     return null;
   }
@@ -54,15 +85,15 @@ export function readViewAsToken(token: string): { adminId: string; targetId: str
   }
 }
 
-export function deleteSession(): void {
-  // JWTs are stateless, so we just need to delete the cookie
-  // The token will expire naturally or the cookie will be cleared
+export async function getUserFromSession(token: string | undefined) {
+  return getSessionUser(getSession(token));
 }
 
-export async function getUserFromSession(token: string | undefined) {
-  const session = getSession(token);
+/** The user a verified session belongs to, or null if it was revoked. */
+export async function getSessionUser(session: SessionPayload | null) {
   if (!session) return null;
 
   const [user] = await db.select().from(User).where(eq(User.id, session.userId));
-  return user || null;
+  if (!user || session.sessionVersion !== user.sessionVersion) return null;
+  return user;
 }

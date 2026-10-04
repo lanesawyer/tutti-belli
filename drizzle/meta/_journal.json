@@ -26,8 +26,15 @@
     {
       "idx": 3,
       "version": "6",
-      "when": 1791103345079,
-      "tag": "0003_auditions",
+      "when": 1791102887176,
+      "tag": "0003_session_version",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1791137073674,
+      "tag": "0004_auditions",
       "breakpoints": true
     }
   ]
