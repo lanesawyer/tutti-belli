@@ -131,7 +131,6 @@ const members = membersData;
     <Container>
       <Breadcrumb
         items={[
-          { label: "Ensembles", href: "/ensembles" },
           { label: ensemble.name, href: `/ensembles/${canonicalId}` },
           { label: "Manage Members" },
         ]}
@@ -240,7 +239,7 @@ const members = membersData;
                   <div class="mb-5">
                     <Table
                       title={`${part.name} (${partMembers.length})`}
-                      className="has-text-primary"
+                      className="has-text-primary is-vcentered"
                     >
                       <thead>
                         <tr>
@@ -385,6 +384,7 @@ const members = membersData;
                 <div class="mb-5">
                   <Table
                     title={`No Part Assigned (${membersWithoutPart.length})`}
+                    className="is-vcentered"
                   >
                     <thead>
                       <tr>
@@ -525,7 +525,7 @@ const members = membersData;
               )}
             </>
           ) : (
-            <Table>
+            <Table className="is-vcentered">
               <thead>
                 <tr>
                   <th style="width: 60px;" />

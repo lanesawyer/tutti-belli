@@ -143,6 +143,10 @@ const viewedUser = Astro.locals.viewingAs ? Astro.locals.user : null;
         border-color: var(--body-text);
       }
 
+      :global(.table.is-vcentered td),
+      :global(.table.is-vcentered th) {
+        vertical-align: middle;
+      }
       #site-banner {
         padding: 0.6rem 1.5rem;
         text-align: center;

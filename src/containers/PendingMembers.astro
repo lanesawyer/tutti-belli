@@ -50,19 +50,21 @@ if (pendingMembers.length === 0) return;
                 </figure>
               )}
             </Fragment>
-            <p class="is-size-7 has-text-weight-semibold">{member.name}</p>
-            <p class="is-size-7 has-text-grey">{member.email}</p>
+            <p class="is-size-7 has-text-weight-semibold pending-wrap">
+              {member.name}
+            </p>
+            <p class="is-size-7 has-text-grey pending-wrap">{member.email}</p>
             <p class="is-size-7 has-text-grey-light">
               <small>
                 Applied {new Date(member.joinedAt).toLocaleDateString()}
               </small>
             </p>
           </Media>
-          <div class="buttons are-small mt-2">
+          <div class="pending-actions mt-2">
             <form
               method="POST"
               action={actions.members.approve}
-              style="display: inline; width: 48%;"
+              class="pending-action"
             >
               <input
                 type="hidden"
@@ -78,7 +80,7 @@ if (pendingMembers.length === 0) return;
             <form
               method="POST"
               action={actions.members.reject}
-              style="display: inline; width: 48%;"
+              class="pending-action"
             >
               <input
                 type="hidden"
@@ -97,3 +99,17 @@ if (pendingMembers.length === 0) return;
     }
   </Content>
 </Box>
+
+<style>
+  .pending-wrap {
+    overflow-wrap: anywhere;
+  }
+  .pending-actions {
+    display: flex;
+    gap: 0.5rem;
+  }
+  .pending-action {
+    flex: 1;
+    min-width: 0;
+  }
+</style>
