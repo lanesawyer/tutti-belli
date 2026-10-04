@@ -31,8 +31,8 @@ export const members = {
       const email = input.email.trim().toLowerCase();
       const sent =
         result.type === 'created'
-          ? await sendWelcomeEmail(email, result.name, ensemble.name, result.setPasswordToken)
-          : await sendAddedToEnsembleEmail(email, result.name, ensemble.name, getEnsembleUrlId(ensemble));
+          ? await sendWelcomeEmail(email, result.name, ensemble.name, result.setPasswordToken, context.url.origin)
+          : await sendAddedToEnsembleEmail(email, result.name, ensemble.name, getEnsembleUrlId(ensemble), context.url.origin);
 
       return {
         name: result.name,

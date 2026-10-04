@@ -27,8 +27,9 @@ export async function registerUser(params: {
   name: string;
   email: string;
   password: string;
+  siteUrl: string;
 }): Promise<{ userId: string }> {
-  const { name, email, password } = params;
+  const { name, email, password, siteUrl } = params;
 
   const existing = await db.select({ id: User.id }).from(User).where(eq(User.email, email)).get();
   if (existing) throw new Error('An account with this email already exists.');
@@ -48,7 +49,7 @@ export async function registerUser(params: {
   });
 
   // Fire-and-forget: don't block registration if email fails
-  sendEmailVerificationEmail(email, name, token).catch(() => {});
+  sendEmailVerificationEmail(email, name, token, siteUrl).catch(() => {});
 
   return { userId };
 }
@@ -176,6 +177,7 @@ export async function initiateEmailChange(
   userName: string,
   currentEmail: string,
   newEmail: string | undefined,
+  siteUrl: string,
 ): Promise<ActionResult> {
   if (!newEmail?.trim()) {
     return { type: 'error', message: 'Please enter a new email address.' };
@@ -223,7 +225,7 @@ export async function initiateEmailChange(
     expiresAt,
   });
 
-  const emailResult = await sendEmailChangeVerificationEmail(trimmedEmail, userName, token);
+  const emailResult = await sendEmailChangeVerificationEmail(trimmedEmail, userName, token, siteUrl);
   if (!emailResult.success) {
     console.error('Email change verification email failed:', emailResult.error);
     if (import.meta.env.DEV) {
@@ -234,7 +236,7 @@ export async function initiateEmailChange(
   return { type: 'redirect', url: '/profile?emailChangePending=1' };
 }
 
-export async function resendVerificationEmail(email: string): Promise<void> {
+export async function resendVerificationEmail(email: string, siteUrl: string): Promise<void> {
   const user = await db.select().from(User).where(eq(User.email, email)).get();
   if (!user || user.emailVerifiedAt) return; // silent: prevent enumeration
 
@@ -254,7 +256,7 @@ export async function resendVerificationEmail(email: string): Promise<void> {
     expiresAt,
   });
 
-  sendEmailVerificationEmail(email, user.name, token).catch(() => {});
+  sendEmailVerificationEmail(email, user.name, token, siteUrl).catch(() => {});
 }
 
 export type VerifyEmailChangeResult =

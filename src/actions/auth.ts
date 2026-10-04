@@ -93,7 +93,7 @@ export const auth = {
 
       if (user) {
         const token = await createPasswordResetToken(user.id);
-        const result = await sendPasswordResetEmail(user.email, user.name, token);
+        const result = await sendPasswordResetEmail(user.email, user.name, token, context.url.origin);
         if (!result.success) {
           console.error('Email send failed:', result.error);
           if (import.meta.env.DEV) {

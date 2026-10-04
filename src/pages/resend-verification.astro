@@ -10,7 +10,7 @@ if (Astro.request.method === "POST") {
   const formData = await Astro.request.formData();
   const email = formData.get("email")?.toString().trim().toLowerCase() ?? "";
   if (email) {
-    await resendVerificationEmail(email);
+    await resendVerificationEmail(email, Astro.url.origin);
   }
   sent = true;
 }

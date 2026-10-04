@@ -116,7 +116,7 @@ const songFilesMap = buildSongFilesMap(ensembleSongIds, songFilesData);
             <th>Runtime</th>
             <th>Parts</th>
             <th>Seasons</th>
-            <th style={isAdmin ? "width: 130px;" : "width: 50px;"}>Files</th>
+            <th style="width: 1%; white-space: nowrap;">Files</th>
           </tr>
         </thead>
         <tbody>
@@ -166,7 +166,7 @@ const songFilesMap = buildSongFilesMap(ensembleSongIds, songFilesData);
                   )}
                 </td>
                 <td>
-                  <div class="buttons are-small">
+                  <div class="buttons are-small is-flex-wrap-nowrap">
                     <Button
                       class="is-linkspan files-btn"
                       data-song-id={song.id}

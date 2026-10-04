@@ -23,6 +23,7 @@ export const announcements = {
         createdBy: user.id,
         creatorName: user.name,
         postToDiscord: input.postToDiscord === 'on',
+        siteUrl: context.url.origin,
       });
     },
   }),
