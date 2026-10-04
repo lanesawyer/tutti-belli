@@ -2,7 +2,7 @@
 import { Button, Notification, Title } from "astro-bulma";
 import SingleColumnLayout from "@layouts/SingleColumnLayout.astro";
 import { verifyEmailToken } from "@lib/profile";
-import { createSession } from "@lib/session";
+import { startSession } from "@lib/session";
 import { getRedirectUrl } from "@lib/redirect";
 
 const token = Astro.url.searchParams.get("token");
@@ -17,14 +17,7 @@ if (!token) {
   if (!result) {
     error = "This verification link is invalid or has expired.";
   } else {
-    const sessionToken = createSession(result.userId);
-    Astro.cookies.set("session", sessionToken, {
-      path: "/",
-      httpOnly: true,
-      secure: import.meta.env.PROD,
-      sameSite: "lax",
-      maxAge: 60 * 60 * 24 * 30,
-    });
+    await startSession(Astro.cookies, result.userId);
 
     return Astro.redirect(await getRedirectUrl(result.userId, customRedirect));
   }

@@ -27,10 +27,9 @@ function isPublicRoute(pathname: string): boolean {
 
 export const onRequest = defineMiddleware(async (context, next) => {
   const sessionId = context.cookies.get('session')?.value;
-  const session = getSession(sessionId);
   const user = await getUserFromSession(sessionId);
 
-  context.locals.session = session;
+  context.locals.session = user ? getSession(sessionId) : null;
   context.locals.user = user;
   context.locals.viewingAs = null;
 

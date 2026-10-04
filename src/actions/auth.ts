@@ -1,7 +1,7 @@
 import { defineAction, ActionError } from 'astro:actions';
 import { z } from 'astro/zod';
 import { getUserByEmail, verifyPassword, createPasswordResetToken } from '@lib/auth';
-import { createSession } from '@lib/session';
+import { startSession } from '@lib/session';
 import { getRedirectUrl } from '@lib/redirect';
 import { sendPasswordResetEmail } from '@lib/email';
 import { validatePasswordResetToken, resetPassword as doResetPassword } from '@lib/profile';
@@ -57,14 +57,7 @@ export const auth = {
         throw new ActionError({ code: 'FORBIDDEN', message: `unverified:${email}` });
       }
 
-      const sessionId = createSession(user.id);
-      context.cookies.set('session', sessionId, {
-        path: '/',
-        httpOnly: true,
-        secure: import.meta.env.PROD,
-        sameSite: 'lax',
-        maxAge: 60 * 60 * 24 * 30, // 30 days
-      });
+      await startSession(context.cookies, user.id);
 
       const redirectUrl = await getRedirectUrl(user.id, redirect);
       return { redirectUrl };

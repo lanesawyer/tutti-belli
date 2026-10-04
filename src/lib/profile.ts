@@ -21,6 +21,7 @@ import {
 import { validateImageFile } from './upload';
 import { deleteImage, uploadImage } from './storage';
 import { hashPassword, verifyPassword } from './auth';
+import { revokeSessions } from './session';
 import { sendEmailChangeVerificationEmail, sendEmailVerificationEmail } from './email';
 
 export async function registerUser(params: {
@@ -360,6 +361,8 @@ export async function resetPassword(
     .set({ emailVerifiedAt: now })
     .where(and(eq(User.id, record.userId), isNull(User.emailVerifiedAt)));
   await db.update(PasswordResetToken).set({ usedAt: now }).where(eq(PasswordResetToken.id, record.id));
+  // Whoever had the old password may still be signed in somewhere.
+  await revokeSessions(record.userId);
 
   return { type: 'success' };
 }

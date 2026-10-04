@@ -1,4 +1,5 @@
-import { db, eq, User } from '@db';
+import type { AstroCookies } from 'astro';
+import { db, eq, sql, User } from '@db';
 import jwt from 'jsonwebtoken';
 
 // No fallback: a default secret would let anyone forge a session for any user.
@@ -10,12 +11,41 @@ function jwtSecret(): string {
 
 export interface SessionPayload {
   userId: string;
+  // Tokens issued before revocation existed have no version and count as 0.
+  sessionVersion?: number;
 }
 
-export function createSession(userId: string): string {
-  return jwt.sign({ userId } as SessionPayload, jwtSecret(), {
-    expiresIn: '30d',
+const SESSION_MAX_AGE = 60 * 60 * 24 * 30;
+
+export function createSession(userId: string, sessionVersion: number): string {
+  return jwt.sign({ userId, sessionVersion } satisfies SessionPayload, jwtSecret(), {
+    expiresIn: SESSION_MAX_AGE,
   });
+}
+
+/** Signs the user in on this browser with a session at their current version. */
+export async function startSession(cookies: AstroCookies, userId: string): Promise<void> {
+  const user = await db.select({ sessionVersion: User.sessionVersion }).from(User).where(eq(User.id, userId)).get();
+  if (!user) throw new Error(`No user ${userId}`);
+  setSessionCookie(cookies, createSession(userId, user.sessionVersion));
+}
+
+function setSessionCookie(cookies: AstroCookies, token: string): void {
+  cookies.set('session', token, {
+    path: '/',
+    httpOnly: true,
+    secure: import.meta.env.PROD,
+    sameSite: 'lax',
+    maxAge: SESSION_MAX_AGE,
+  });
+}
+
+/** Invalidates every session the user has, on every device. */
+export async function revokeSessions(userId: string): Promise<void> {
+  await db
+    .update(User)
+    .set({ sessionVersion: sql`${User.sessionVersion} + 1` })
+    .where(eq(User.id, userId));
 }
 
 export function getSession(token: string | undefined): SessionPayload | null {
@@ -64,5 +94,6 @@ export async function getUserFromSession(token: string | undefined) {
   if (!session) return null;
 
   const [user] = await db.select().from(User).where(eq(User.id, session.userId));
-  return user || null;
+  if (!user || (session.sessionVersion ?? 0) !== user.sessionVersion) return null;
+  return user;
 }
