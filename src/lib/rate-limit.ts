@@ -50,6 +50,15 @@ export const failedLoginsByIp = new RateLimiter(50, 15 * MINUTE);
 export const passwordResetsByEmail = new RateLimiter(3, 60 * MINUTE);
 export const passwordResetsByIp = new RateLimiter(20, 60 * MINUTE);
 
+// Sign-ups send a verification email to whatever address is entered, so a bot can use them to
+// spam strangers. Cap them per client, and site-wide so a bot spread across many IPs still
+// can't send more than a trickle.
+export const registrationsByIp = new RateLimiter(5, 60 * MINUTE);
+export const registrationsSiteWide = new RateLimiter(30, 60 * MINUTE);
+
+export const verificationResendsByEmail = new RateLimiter(3, 60 * MINUTE);
+export const verificationResendsByIp = new RateLimiter(20, 60 * MINUTE);
+
 /** The longest wait among the limiters, or 0 if every one allows the request. */
 export function retryAfter(checks: [RateLimiter, string][], now = Date.now()): number {
   return Math.max(0, ...checks.map(([limiter, key]) => limiter.retryAfter(key, now)));
@@ -61,6 +70,17 @@ export function retryAfter(checks: [RateLimiter, string][], now = Date.now()): n
  */
 export function clientIp(request: Request, fallback: string | undefined): string {
   return request.headers.get('fly-client-ip') ?? fallback ?? 'unknown';
+}
+
+/** `clientIp` for an action context or the `Astro` global. */
+export function requestIp(context: { request: Request; clientAddress: string }): string {
+  let address: string | undefined;
+  try {
+    address = context.clientAddress;
+  } catch {
+    // adapter couldn't determine it
+  }
+  return clientIp(context.request, address);
 }
 
 export function tooManyAttemptsMessage(waitMs: number): string {

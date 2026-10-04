@@ -4,6 +4,14 @@ import { assertPartsInEnsemble } from './utils';
 import { getMembershipById } from '@lib/ensemble';
 import { revokeSessions, startSession } from '@lib/session';
 import {
+  registrationsByIp,
+  registrationsSiteWide,
+  requestIp,
+  retryAfter,
+  tooManyAttemptsMessage,
+} from '@lib/rate-limit';
+import {
+  registerUser,
   updateName,
   updatePhone,
   updateAvatar,
@@ -20,17 +28,27 @@ export const profile = {
       email: z.string().email('Invalid email address.'),
       password: z.string().min(6, 'Password must be at least 6 characters.'),
     }),
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    handler: async (_input) => {
-      throw new ActionError({ code: 'FORBIDDEN', message: 'Registration is currently disabled.' });
-      // handler: async ({ name, email, password }) => {
-      //   try {
-      //     await registerUser({ name, email, password });
-      //   } catch (e) {
-      //     throw new ActionError({ code: 'CONFLICT', message: (e as Error).message });
-      //   }
-      //   return { email };
-      // },
+    handler: async ({ name, email, password }, context) => {
+      // E2E runs register many accounts from localhost against a long-lived dev server
+      if (!import.meta.env.DEV) {
+        const ip = requestIp(context);
+        const wait = retryAfter([
+          [registrationsByIp, ip],
+          [registrationsSiteWide, 'all'],
+        ]);
+        if (wait) {
+          throw new ActionError({ code: 'TOO_MANY_REQUESTS', message: tooManyAttemptsMessage(wait) });
+        }
+        registrationsByIp.record(ip);
+        registrationsSiteWide.record('all');
+      }
+
+      try {
+        await registerUser({ name, email, password, siteUrl: context.url.origin });
+      } catch (e) {
+        throw new ActionError({ code: 'CONFLICT', message: (e as Error).message });
+      }
+      return { email };
     },
   }),
 
