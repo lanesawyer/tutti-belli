@@ -6,24 +6,14 @@ import { getRedirectUrl } from '@lib/redirect';
 import { sendPasswordResetEmail } from '@lib/email';
 import { validatePasswordResetToken, resetPassword as doResetPassword } from '@lib/profile';
 import {
-  clientIp,
   failedLoginsByEmail,
   failedLoginsByIp,
   passwordResetsByEmail,
   passwordResetsByIp,
+  requestIp,
   retryAfter,
   tooManyAttemptsMessage,
 } from '@lib/rate-limit';
-
-function requestIp(context: { request: Request; clientAddress: string }): string {
-  let address: string | undefined;
-  try {
-    address = context.clientAddress;
-  } catch {
-    // adapter couldn't determine it
-  }
-  return clientIp(context.request, address);
-}
 
 export const auth = {
   login: defineAction({
