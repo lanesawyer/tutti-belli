@@ -36,6 +36,7 @@ export const Ensemble = sqliteTable('Ensemble', {
   codeOfConduct: text('codeOfConduct'),
   checkInStartMinutes: integer('checkInStartMinutes').notNull().default(30), // Minutes before event check-in opens
   checkInEndMinutes: integer('checkInEndMinutes').notNull().default(15), // Minutes after event start check-in closes
+  timezone: text('timezone').notNull().default('America/Los_Angeles'), // IANA zone that event times are entered and shown in
   createdBy: text('createdBy').notNull().references(() => User.id),
   createdAt: date('createdAt').notNull().default(NOW),
 });

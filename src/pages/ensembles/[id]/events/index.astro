@@ -18,6 +18,7 @@ import { actions } from "astro:actions";
 import { getEnsembleBySlugOrId, getEnsembleAccess } from "@lib/ensemble";
 import { getEnsembleUrlId } from "@lib/slug";
 import { formatDuration } from "@lib/format";
+import { formatZonedDate, formatZonedTime } from "@lib/timezone";
 import { getEventsPageData, isRsvpEnabled } from "@lib/events";
 
 const user = Astro.locals.user!;
@@ -198,13 +199,8 @@ const pastEvents = allEvents.filter((e) => {
                           <span class="has-text-grey-light">—</span>
                         )}
                       </td>
-                      <td>{scheduledDate.toLocaleDateString()}</td>
-                      <td>
-                        {scheduledDate.toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </td>
+                      <td>{formatZonedDate(scheduledDate, ensemble.timezone)}</td>
+                      <td>{formatZonedTime(scheduledDate, ensemble.timezone)}</td>
                       <td>{event.location || "-"}</td>
                       <td>{formatDuration(event.durationMinutes)}</td>
                       <td>
@@ -416,13 +412,8 @@ const pastEvents = allEvents.filter((e) => {
                           <span class="has-text-grey-light">—</span>
                         )}
                       </td>
-                      <td>{scheduledDate.toLocaleDateString()}</td>
-                      <td>
-                        {scheduledDate.toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </td>
+                      <td>{formatZonedDate(scheduledDate, ensemble.timezone)}</td>
+                      <td>{formatZonedTime(scheduledDate, ensemble.timezone)}</td>
                       <td>{event.location || "-"}</td>
                       <td>
                         <Button
@@ -501,7 +492,13 @@ const pastEvents = allEvents.filter((e) => {
                 <TextInput name="date" label="Date *" type="date" required />
               </Column>
               <Column>
-                <TextInput name="time" label="Time *" type="time" required />
+                <TextInput
+                  name="time"
+                  label="Time *"
+                  type="time"
+                  required
+                  help={ensemble.timezone.replaceAll("_", " ")}
+                />
               </Column>
               <Column>
                 <TextInput

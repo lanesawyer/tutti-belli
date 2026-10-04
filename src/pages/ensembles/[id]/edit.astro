@@ -12,6 +12,7 @@ import {
   Icon,
   Image,
   Section,
+  Select,
   TextInput,
   Textarea,
   Title,
@@ -26,6 +27,7 @@ import {
   getEnsembleLinks,
 } from "@lib/ensemble";
 import { getEnsembleUrlId } from "@lib/slug";
+import { timeZoneOptions } from "@lib/timezone";
 
 const user = Astro.locals.user!;
 
@@ -302,6 +304,21 @@ if (updateResult?.error) {
                   help="Maximum file size: 5MB. Supported formats: JPG, PNG, GIF, WebP"
                 />
               </div>
+
+              <Select
+                name="timezone"
+                label="Timezone"
+                fullwidth
+                help="Event times are entered and shown in this timezone."
+              >
+                {
+                  timeZoneOptions().map((zone) => (
+                    <option value={zone} selected={zone === ensemble.timezone}>
+                      {zone.replaceAll("_", " ")}
+                    </option>
+                  ))
+                }
+              </Select>
 
               <div class="field">
                 <label class="label">Check-in Window Settings</label>

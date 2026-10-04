@@ -1,5 +1,6 @@
 import { db, eq, and, inArray, Ensemble, Event, EventProgram, Attendance, EventRsvp, Season, User, EnsembleMember, Song, SeasonSong, Group, GroupMembership } from '@db';
 import { randomCode } from './codes';
+import { DEFAULT_TIMEZONE, zonedTimeToInstant } from './timezone';
 
 // ─── RSVP Helpers ───────────────────────────────────────────────────────────
 
@@ -210,7 +211,7 @@ export async function createEvent(params: {
     throw new Error('No active season found. Please create and activate a season first.');
   }
 
-  const scheduledAt = new Date(`${date}T${time}`);
+  const scheduledAt = zonedTimeToInstant(date, time, await getEnsembleTimezone(ensembleId));
   const checkInCode = randomCode();
 
   await db.insert(Event).values({
@@ -229,6 +230,12 @@ export async function createEvent(params: {
   });
 }
 
+/** The IANA timezone an ensemble's event times are entered and shown in. */
+export async function getEnsembleTimezone(ensembleId: string): Promise<string> {
+  const ensemble = await db.select({ timezone: Ensemble.timezone }).from(Ensemble).where(eq(Ensemble.id, ensembleId)).get();
+  return ensemble?.timezone ?? DEFAULT_TIMEZONE;
+}
+
 export async function deleteEvent(eventId: string) {
   await db.delete(Event).where(eq(Event.id, eventId));
 }
@@ -245,7 +252,9 @@ export async function editEvent(params: {
   rsvpEnabled?: number | null;
 }) {
   const { eventId, title, description, date, time, location, durationMinutes, groupId, rsvpEnabled } = params;
-  const scheduledAt = new Date(`${date}T${time}`);
+  const event = await db.select({ ensembleId: Event.ensembleId }).from(Event).where(eq(Event.id, eventId)).get();
+  if (!event) return;
+  const scheduledAt = zonedTimeToInstant(date, time, await getEnsembleTimezone(event.ensembleId));
 
   await db.update(Event)
     .set({

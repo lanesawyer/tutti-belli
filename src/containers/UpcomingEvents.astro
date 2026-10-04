@@ -3,15 +3,17 @@ import { getUpcomingEvents } from "@lib/events";
 import DashboardSection from "@components/DashboardSection.astro";
 import { Message, Notification, Button, Content, Icon, Tag } from "astro-bulma";
 import { formatDuration } from "@lib/format";
+import { formatZonedDate, formatZonedTime } from "@lib/timezone";
 
 interface Props {
   ensembleId: string;
   canonicalId: string;
   userId: string;
   isAdmin: boolean;
+  timeZone: string;
 }
 
-const { ensembleId, canonicalId, userId, isAdmin } = Astro.props;
+const { ensembleId, canonicalId, userId, isAdmin, timeZone } = Astro.props;
 
 const { events: upcomingEvents, programByEventId } = await getUpcomingEvents({
   ensembleId,
@@ -46,7 +48,8 @@ const { events: upcomingEvents, programByEventId } = await getUpcomingEvents({
         {upcomingEvents.map((event) => {
           const scheduledDate = new Date(event.scheduledAt);
           const isToday =
-            scheduledDate.toDateString() === new Date().toDateString();
+            formatZonedDate(scheduledDate, timeZone) ===
+            formatZonedDate(new Date(), timeZone);
           const catColor =
             event.category === "performance"
               ? "warning"
@@ -77,11 +80,8 @@ const { events: upcomingEvents, programByEventId } = await getUpcomingEvents({
                 <Tag class="ml-2">{catLabel}</Tag>
               </div>
               <small slot="header" class="has-text-weight-normal">
-                {scheduledDate.toLocaleDateString()} at{" "}
-                {scheduledDate.toLocaleTimeString([], {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}{" "}
+                {formatZonedDate(scheduledDate, timeZone)} at{" "}
+                {formatZonedTime(scheduledDate, timeZone)}{" "}
                 · {formatDuration(event.durationMinutes)}
               </small>
               {event.location && (
