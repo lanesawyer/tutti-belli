@@ -31,6 +31,9 @@ const changeEmailResult = Astro.getActionResult(actions.profile.changeEmail);
 const deleteAccountResult = Astro.getActionResult(
   actions.profile.deleteAccount,
 );
+const signOutOtherDevicesResult = Astro.getActionResult(
+  actions.profile.signOutOtherDevices,
+);
 
 if (deleteAccountResult && !deleteAccountResult.error) {
   return Astro.redirect("/");
@@ -46,6 +49,8 @@ if (updatePartsResult && !updatePartsResult.error)
   return Astro.redirect("/profile?saved=1");
 if (changeEmailResult && !changeEmailResult.error)
   return Astro.redirect("/profile?emailChangePending=1");
+if (signOutOtherDevicesResult && !signOutOtherDevicesResult.error)
+  return Astro.redirect("/profile?signedOutOthers=1");
 
 const errorResult =
   updateNameResult?.error ||
@@ -53,11 +58,13 @@ const errorResult =
   updateInfoResult?.error ||
   updatePartsResult?.error ||
   changeEmailResult?.error ||
-  deleteAccountResult?.error;
+  deleteAccountResult?.error ||
+  signOutOtherDevicesResult?.error;
 
 const emailChangePending =
   Astro.url.searchParams.get("emailChangePending") === "1";
 const saved = Astro.url.searchParams.get("saved") === "1";
+const signedOutOthers = Astro.url.searchParams.get("signedOutOthers") === "1";
 
 const { memberships, partsByEnsemble, partsByMembership } =
   await getMembershipsWithParts(user.id);
@@ -370,6 +377,27 @@ const tasksByEnsemble = await getUserTasksAcrossEnsembles(user.id);
         </Box>
       )
     }
+
+    <Box class="mt-5">
+      <Title as="h2" size={4}>Sessions</Title>
+      {
+        signedOutOthers && (
+          <Notification color="success" light>
+            You've been signed out on every other device.
+          </Notification>
+        )
+      }
+      <p class="mb-4">
+        Signed in on a shared or lost device? Sign out everywhere except this
+        browser. Resetting your password does this automatically.
+      </p>
+      <form method="POST" action={actions.profile.signOutOtherDevices}>
+        <Button type="submit" color="warning" outlined>
+          <Icon icon="fa-right-from-bracket" />
+          <span>Sign Out of Other Devices</span>
+        </Button>
+      </form>
+    </Box>
 
     <Box
       class="mt-5"

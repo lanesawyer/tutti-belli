@@ -2,6 +2,7 @@ import { defineAction, ActionError } from 'astro:actions';
 import { z } from 'astro/zod';
 import { assertPartsInEnsemble } from './utils';
 import { getMembershipById } from '@lib/ensemble';
+import { revokeSessions, startSession } from '@lib/session';
 import {
   updateName,
   updatePhone,
@@ -164,6 +165,21 @@ export const profile = {
         throw new ActionError({ code: 'BAD_REQUEST', message: result.message });
       }
       context.cookies.delete('session', { path: '/' });
+    },
+  }),
+
+  signOutOtherDevices: defineAction({
+    accept: 'form',
+    handler: async (_input, context) => {
+      const user = context.locals.user;
+      if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
+      // Re-issuing the cookie here would hand the admin a session as the viewed user.
+      if (context.locals.viewingAs) {
+        throw new ActionError({ code: 'FORBIDDEN', message: 'Stop viewing as this user first.' });
+      }
+      const sessionVersion = await revokeSessions(user.id);
+      if (sessionVersion === null) throw new ActionError({ code: 'UNAUTHORIZED' });
+      startSession(context.cookies, { id: user.id, sessionVersion });
     },
   }),
 };

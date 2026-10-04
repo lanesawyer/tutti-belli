@@ -22,6 +22,7 @@ export const User = sqliteTable('User', {
   phone: text('phone'),
   role: text('role', { enum: ['admin', 'ensemble_admin', 'user'] }).notNull().default('user'),
   emailVerifiedAt: date('emailVerifiedAt'),
+  sessionVersion: integer('sessionVersion').notNull().default(0), // Bumped to sign the user out of every existing session
   createdAt: date('createdAt').notNull().default(NOW),
 });
 

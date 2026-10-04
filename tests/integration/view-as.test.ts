@@ -52,7 +52,7 @@ describe('resolveViewAs', () => {
     const admin = await createUser({ role: 'admin' });
     const member = await createUser();
 
-    expect(readViewAsToken(createSession(admin!.id))).toBeNull();
+    expect(readViewAsToken(createSession(admin!.id, 0))).toBeNull();
     expect(await getUserFromSession(createViewAsToken(admin!.id, member!.id))).toBeNull();
   });
 });

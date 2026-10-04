@@ -166,7 +166,7 @@ describe('verifyEmailToken', () => {
     const result = await verifyEmailToken(tokenRow!.token);
 
     expect(result).not.toBeNull();
-    expect(result!.userId).toBe(userId);
+    expect(result!.id).toBe(userId);
 
     const user = await db.select().from(User).where(eq(User.id, userId)).get();
     expect(user!.emailVerifiedAt).not.toBeNull();

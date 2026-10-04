@@ -21,6 +21,7 @@ import {
 import { validateImageFile } from './upload';
 import { deleteImage, uploadImage } from './storage';
 import { hashPassword, verifyPassword } from './auth';
+import { bumpSessionVersion } from './session';
 import { sendEmailChangeVerificationEmail, sendEmailVerificationEmail } from './email';
 
 export async function registerUser(params: {
@@ -292,7 +293,7 @@ export async function verifyEmailChangeToken(token: string): Promise<VerifyEmail
   return { type: 'success', newEmail: record.newEmail };
 }
 
-export async function verifyEmailToken(token: string): Promise<{ userId: string } | null> {
+export async function verifyEmailToken(token: string): Promise<{ id: string; sessionVersion: number } | null> {
   const now = new Date();
   const record = await db
     .select()
@@ -308,10 +309,15 @@ export async function verifyEmailToken(token: string): Promise<{ userId: string 
 
   if (!record) return null;
 
-  await db.update(User).set({ emailVerifiedAt: now }).where(eq(User.id, record.userId));
+  const user = await db
+    .update(User)
+    .set({ emailVerifiedAt: now })
+    .where(eq(User.id, record.userId))
+    .returning({ id: User.id, sessionVersion: User.sessionVersion })
+    .get();
   await db.update(EmailVerificationToken).set({ usedAt: now }).where(eq(EmailVerificationToken.id, record.id));
 
-  return { userId: record.userId };
+  return user ?? null;
 }
 
 export async function validatePasswordResetToken(token: string): Promise<boolean> {
@@ -352,7 +358,11 @@ export async function resetPassword(
   if (!record) return { type: 'invalid' };
 
   const passwordHash = await hashPassword(password);
-  await db.update(User).set({ passwordHash }).where(eq(User.id, record.userId));
+  // Whoever had the old password may still be signed in somewhere.
+  await db
+    .update(User)
+    .set({ passwordHash, sessionVersion: bumpSessionVersion })
+    .where(eq(User.id, record.userId));
   // The link came by email, so using it proves the address. Accounts added by an admin start
   // unverified and get verified here when the person sets their first password.
   await db

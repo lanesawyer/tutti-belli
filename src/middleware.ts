@@ -1,5 +1,5 @@
 import { defineMiddleware } from 'astro:middleware';
-import { getSession, getUserFromSession } from './lib/session';
+import { getSession, getSessionUser } from './lib/session';
 import { resolveViewAs, VIEW_AS_COOKIE } from './lib/view-as';
 
 // Public routes that don't require authentication
@@ -28,9 +28,9 @@ function isPublicRoute(pathname: string): boolean {
 export const onRequest = defineMiddleware(async (context, next) => {
   const sessionId = context.cookies.get('session')?.value;
   const session = getSession(sessionId);
-  const user = await getUserFromSession(sessionId);
+  const user = await getSessionUser(session);
 
-  context.locals.session = session;
+  context.locals.session = user ? session : null;
   context.locals.user = user;
   context.locals.viewingAs = null;
 
