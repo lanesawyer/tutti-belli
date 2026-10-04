@@ -1,5 +1,4 @@
 import { describe, it, expect } from 'vitest';
-import jwt from 'jsonwebtoken';
 import { createSession, getSession, getUserFromSession, revokeSessions } from '../../src/lib/session.ts';
 import { createPasswordResetToken } from '../../src/lib/auth.ts';
 import { resetPassword } from '../../src/lib/profile.ts';
@@ -59,17 +58,14 @@ describe('session revocation', () => {
   it('rejects tokens issued before revokeSessions', async () => {
     const user = await createUser({ email: 'revoke@test.com', name: 'Revoke' });
     const oldToken = createSession(user!.id, 0);
-    await revokeSessions(user!.id);
+    const newVersion = await revokeSessions(user!.id);
+    expect(newVersion).toBe(1);
     expect(await getUserFromSession(oldToken)).toBeNull();
-    expect((await getUserFromSession(createSession(user!.id, 1)))?.id).toBe(user!.id);
+    expect((await getUserFromSession(createSession(user!.id, newVersion!)))?.id).toBe(user!.id);
   });
 
-  it('accepts tokens issued before versions existed until the first revocation', async () => {
-    const user = await createUser({ email: 'legacy-token@test.com', name: 'Legacy' });
-    const legacyToken = jwt.sign({ userId: user!.id }, process.env.JWT_SECRET!, { expiresIn: '30d' });
-    expect((await getUserFromSession(legacyToken))?.id).toBe(user!.id);
-    await revokeSessions(user!.id);
-    expect(await getUserFromSession(legacyToken)).toBeNull();
+  it('returns null when revoking a user that does not exist', async () => {
+    expect(await revokeSessions('nonexistent-user-id')).toBeNull();
   });
 
   it('signs the user out everywhere when they reset their password', async () => {

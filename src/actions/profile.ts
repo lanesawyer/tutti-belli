@@ -177,8 +177,9 @@ export const profile = {
       if (context.locals.viewingAs) {
         throw new ActionError({ code: 'FORBIDDEN', message: 'Stop viewing as this user first.' });
       }
-      await revokeSessions(user.id);
-      await startSession(context.cookies, user.id);
+      const sessionVersion = await revokeSessions(user.id);
+      if (sessionVersion === null) throw new ActionError({ code: 'UNAUTHORIZED' });
+      startSession(context.cookies, { id: user.id, sessionVersion });
     },
   }),
 };

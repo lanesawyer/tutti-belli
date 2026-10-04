@@ -17,9 +17,9 @@ if (!token) {
   if (!result) {
     error = "This verification link is invalid or has expired.";
   } else {
-    await startSession(Astro.cookies, result.userId);
+    startSession(Astro.cookies, result);
 
-    return Astro.redirect(await getRedirectUrl(result.userId, customRedirect));
+    return Astro.redirect(await getRedirectUrl(result.id, customRedirect));
   }
 }
 ---

@@ -57,7 +57,7 @@ export const auth = {
         throw new ActionError({ code: 'FORBIDDEN', message: `unverified:${email}` });
       }
 
-      await startSession(context.cookies, user.id);
+      startSession(context.cookies, user);
 
       const redirectUrl = await getRedirectUrl(user.id, redirect);
       return { redirectUrl };

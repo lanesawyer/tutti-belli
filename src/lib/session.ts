@@ -11,8 +11,7 @@ function jwtSecret(): string {
 
 export interface SessionPayload {
   userId: string;
-  // Tokens issued before revocation existed have no version and count as 0.
-  sessionVersion?: number;
+  sessionVersion: number;
 }
 
 const SESSION_MAX_AGE = 60 * 60 * 24 * 30;
@@ -24,14 +23,8 @@ export function createSession(userId: string, sessionVersion: number): string {
 }
 
 /** Signs the user in on this browser with a session at their current version. */
-export async function startSession(cookies: AstroCookies, userId: string): Promise<void> {
-  const user = await db.select({ sessionVersion: User.sessionVersion }).from(User).where(eq(User.id, userId)).get();
-  if (!user) throw new Error(`No user ${userId}`);
-  setSessionCookie(cookies, createSession(userId, user.sessionVersion));
-}
-
-function setSessionCookie(cookies: AstroCookies, token: string): void {
-  cookies.set('session', token, {
+export function startSession(cookies: AstroCookies, user: { id: string; sessionVersion: number }): void {
+  cookies.set('session', createSession(user.id, user.sessionVersion), {
     path: '/',
     httpOnly: true,
     secure: import.meta.env.PROD,
@@ -40,12 +33,18 @@ function setSessionCookie(cookies: AstroCookies, token: string): void {
   });
 }
 
-/** Invalidates every session the user has, on every device. */
-export async function revokeSessions(userId: string): Promise<void> {
-  await db
+/** Set alongside other User columns to invalidate every session the user has, on every device. */
+export const bumpSessionVersion = sql`${User.sessionVersion} + 1`;
+
+/** Invalidates every session the user has and returns the new version. */
+export async function revokeSessions(userId: string): Promise<number | null> {
+  const user = await db
     .update(User)
-    .set({ sessionVersion: sql`${User.sessionVersion} + 1` })
-    .where(eq(User.id, userId));
+    .set({ sessionVersion: bumpSessionVersion })
+    .where(eq(User.id, userId))
+    .returning({ sessionVersion: User.sessionVersion })
+    .get();
+  return user?.sessionVersion ?? null;
 }
 
 export function getSession(token: string | undefined): SessionPayload | null {
@@ -55,7 +54,9 @@ export function getSession(token: string | undefined): SessionPayload | null {
   try {
     const payload = jwt.verify(token, secret) as Partial<SessionPayload>;
     // Other tokens signed with the same secret (view-as) have no userId and aren't sessions.
-    return typeof payload.userId === 'string' ? (payload as SessionPayload) : null;
+    return typeof payload.userId === 'string' && typeof payload.sessionVersion === 'number'
+      ? (payload as SessionPayload)
+      : null;
   } catch {
     return null;
   }
@@ -84,16 +85,15 @@ export function readViewAsToken(token: string): { adminId: string; targetId: str
   }
 }
 
-export function deleteSession(): void {
-  // JWTs are stateless, so we just need to delete the cookie
-  // The token will expire naturally or the cookie will be cleared
+export async function getUserFromSession(token: string | undefined) {
+  return getSessionUser(getSession(token));
 }
 
-export async function getUserFromSession(token: string | undefined) {
-  const session = getSession(token);
+/** The user a verified session belongs to, or null if it was revoked. */
+export async function getSessionUser(session: SessionPayload | null) {
   if (!session) return null;
 
   const [user] = await db.select().from(User).where(eq(User.id, session.userId));
-  if (!user || (session.sessionVersion ?? 0) !== user.sessionVersion) return null;
+  if (!user || session.sessionVersion !== user.sessionVersion) return null;
   return user;
 }
