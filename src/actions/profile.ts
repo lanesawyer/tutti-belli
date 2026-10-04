@@ -144,7 +144,7 @@ export const profile = {
     handler: async ({ newEmail }, context) => {
       const user = context.locals.user;
       if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
-      const result = await initiateEmailChange(user.id, user.name, user.email, newEmail);
+      const result = await initiateEmailChange(user.id, user.name, user.email, newEmail, context.url.origin);
       if (result.type === 'error') {
         throw new ActionError({ code: 'BAD_REQUEST', message: result.message });
       }
