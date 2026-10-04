@@ -351,6 +351,12 @@ export async function resetPassword(
 
   const passwordHash = await hashPassword(password);
   await db.update(User).set({ passwordHash }).where(eq(User.id, record.userId));
+  // The link came by email, so using it proves the address. Accounts added by an admin start
+  // unverified and get verified here when the person sets their first password.
+  await db
+    .update(User)
+    .set({ emailVerifiedAt: now })
+    .where(and(eq(User.id, record.userId), isNull(User.emailVerifiedAt)));
   await db.update(PasswordResetToken).set({ usedAt: now }).where(eq(PasswordResetToken.id, record.id));
 
   return { type: 'success' };
