@@ -13,5 +13,7 @@ declare namespace App {
       role: string;
       createdAt: Date;
     } | null;
+    /** Set while a site admin views the site as another user; `user` is then that user. */
+    viewingAs: { realUser: NonNullable<Locals['user']> } | null;
   }
 }

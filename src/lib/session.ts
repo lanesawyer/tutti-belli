@@ -23,8 +23,32 @@ export function getSession(token: string | undefined): SessionPayload | null {
   const secret = jwtSecret();
 
   try {
-    const payload = jwt.verify(token, secret) as SessionPayload;
-    return payload;
+    const payload = jwt.verify(token, secret) as Partial<SessionPayload>;
+    // Other tokens signed with the same secret (view-as) have no userId and aren't sessions.
+    return typeof payload.userId === 'string' ? (payload as SessionPayload) : null;
+  } catch {
+    return null;
+  }
+}
+
+interface ViewAsPayload {
+  purpose: 'view-as';
+  adminId: string;
+  targetId: string;
+}
+
+/** A short-lived token that lets a site admin browse the site as another user. */
+export function createViewAsToken(adminId: string, targetId: string): string {
+  return jwt.sign({ purpose: 'view-as', adminId, targetId } satisfies ViewAsPayload, jwtSecret(), {
+    expiresIn: '1h',
+  });
+}
+
+export function readViewAsToken(token: string): { adminId: string; targetId: string } | null {
+  try {
+    const payload = jwt.verify(token, jwtSecret()) as Partial<ViewAsPayload>;
+    if (payload.purpose !== 'view-as' || !payload.adminId || !payload.targetId) return null;
+    return { adminId: payload.adminId, targetId: payload.targetId };
   } catch {
     return null;
   }

@@ -11,6 +11,9 @@ function getEnv(key: string, fallback = ''): string {
   return process.env[key] || fallback;
 }
 
+// Every sender takes `siteUrl`: the origin of the request that triggered the email (the
+// action's or page's url.origin), so links point at whichever domain the person is using.
+
 export interface EmailResult {
   success: boolean;
   error?: string;
@@ -76,11 +79,11 @@ export async function sendAnnouncementEmail(
   announcementTitle: string,
   announcementContent: string,
   authorName: string,
+  siteUrl: string,
 ): Promise<EmailResult> {
   if (recipients.length === 0) return { success: true };
 
   const fromEmail = getEnv('EMAIL_FROM', 'noreply@example.com');
-  const siteUrl = getEnv('SITE', 'http://localhost:4321');
   const announcementsUrl = new URL(`/ensembles/${ensembleId}/announcements`, siteUrl).toString();
 
   return sendEmailBatch(
@@ -117,9 +120,9 @@ export async function sendEmailChangeVerificationEmail(
   toEmail: string,
   toName: string,
   verifyToken: string,
+  siteUrl: string,
 ): Promise<EmailResult> {
   const fromEmail = getEnv('EMAIL_FROM', 'noreply@example.com');
-  const siteUrl = getEnv('SITE', 'http://localhost:4321');
   const verifyUrl = new URL(`/verify-email-change?token=${verifyToken}`, siteUrl).toString();
 
   return sendEmail(
@@ -159,9 +162,9 @@ export async function sendEmailVerificationEmail(
   toEmail: string,
   toName: string,
   verifyToken: string,
+  siteUrl: string,
 ): Promise<EmailResult> {
   const fromEmail = getEnv('EMAIL_FROM', 'noreply@example.com');
-  const siteUrl = getEnv('SITE', 'http://localhost:4321');
   const verifyUrl = new URL(`/verify-email?token=${verifyToken}`, siteUrl).toString();
 
   return sendEmail(
@@ -200,9 +203,9 @@ export async function sendPasswordResetEmail(
   toEmail: string,
   toName: string,
   resetToken: string,
+  siteUrl: string,
 ): Promise<EmailResult> {
   const fromEmail = getEnv('EMAIL_FROM', 'noreply@example.com');
-  const siteUrl = getEnv('SITE', 'http://localhost:4321');
   const resetUrl = new URL(`/reset-password?token=${resetToken}`, siteUrl).toString();
 
   return sendEmail(
@@ -234,5 +237,79 @@ export async function sendPasswordResetEmail(
       `,
     },
     'password reset email',
+  );
+}
+
+function emailButton(href: string, label: string): string {
+  return `
+          <p style="margin: 32px 0;">
+            <a
+              href="${href}"
+              style="background-color: #485fc7; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;"
+            >
+              ${label}
+            </a>
+          </p>`;
+}
+
+/** For someone a site admin added who had no account yet: set a password to get in. */
+export async function sendWelcomeEmail(
+  toEmail: string,
+  toName: string,
+  ensembleName: string,
+  setPasswordToken: string,
+  siteUrl: string,
+): Promise<EmailResult> {
+  const setPasswordUrl = new URL(`/reset-password?token=${setPasswordToken}`, siteUrl).toString();
+
+  return sendEmail(
+    {
+      from: getEnv('EMAIL_FROM', 'noreply@example.com'),
+      to: toEmail,
+      subject: `You've been added to ${ensembleName}`,
+      html: `
+        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2>Welcome to ${ensembleName}</h2>
+          <p>Hi ${toName},</p>
+          <p>You've been added to <strong>${ensembleName}</strong> on Tutti Belli. Choose a password to sign in.</p>
+          ${emailButton(setPasswordUrl, 'Set Your Password')}
+          <p>This link will expire in 7 days.</p>
+          <hr style="border: none; border-top: 1px solid #eee; margin: 32px 0;" />
+          <p style="color: #888; font-size: 0.875rem;">
+            If the button above doesn't work, copy and paste this URL into your browser:<br />
+            <a href="${setPasswordUrl}" style="color: #485fc7;">${setPasswordUrl}</a>
+          </p>
+        </div>
+      `,
+    },
+    'welcome email',
+  );
+}
+
+/** For someone who already had an account and was added to another ensemble. */
+export async function sendAddedToEnsembleEmail(
+  toEmail: string,
+  toName: string,
+  ensembleName: string,
+  ensembleId: string,
+  siteUrl: string,
+): Promise<EmailResult> {
+  const ensembleUrl = new URL(`/ensembles/${ensembleId}`, siteUrl).toString();
+
+  return sendEmail(
+    {
+      from: getEnv('EMAIL_FROM', 'noreply@example.com'),
+      to: toEmail,
+      subject: `You've been added to ${ensembleName}`,
+      html: `
+        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2>You've been added to ${ensembleName}</h2>
+          <p>Hi ${toName},</p>
+          <p>You're now a member of <strong>${ensembleName}</strong> on Tutti Belli.</p>
+          ${emailButton(ensembleUrl, `Open ${ensembleName}`)}
+        </div>
+      `,
+    },
+    'added to ensemble email',
   );
 }

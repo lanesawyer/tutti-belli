@@ -16,6 +16,7 @@ import { uploadImage } from '@lib/storage';
 import { generateSlug } from '@lib/slug';
 import { randomCode } from '@lib/codes';
 import { isDiscordWebhookUrl } from '@lib/discord';
+import { isValidTimeZone } from '@lib/timezone';
 
 export const ensembles = {
   join: defineAction({
@@ -84,6 +85,7 @@ export const ensembles = {
       image: z.instanceof(File).optional(),
       checkInStartMinutes: z.coerce.number().int().min(0).default(30),
       checkInEndMinutes: z.coerce.number().int().min(0).default(15),
+      timezone: z.string().refine(isValidTimeZone, 'Choose a valid timezone.').optional(),
     }),
     handler: async (input, context) => {
       const user = context.locals.user;
@@ -133,6 +135,7 @@ export const ensembles = {
         imageUrl,
         checkInStartMinutes: input.checkInStartMinutes,
         checkInEndMinutes: input.checkInEndMinutes,
+        timezone: input.timezone,
       });
 
       return { newSlug };

@@ -71,7 +71,6 @@ const currentPath = Astro.url.pathname;
   <Breadcrumb
     slot="before"
     items={[
-      { label: "Ensembles", href: "/ensembles" },
       { label: ensembleName, href: `/ensembles/${ensembleId}` },
       ...extraBreadcrumbs.map(([label, href]) => ({ label, href })),
       { label: pageTitle },

@@ -3,6 +3,8 @@ import { registerUser, resendVerificationEmail, updateName, updatePhone, deleteA
 import { db, User, EnsembleMember, MemberPart, EmailVerificationToken, EmailChangeToken, PasswordResetToken, eq } from '@db';
 import { createUser, createEnsemble, createMembership, createPart, createMemberPart } from './fixtures.ts';
 
+const SITE = 'http://localhost:4321';
+
 // Mock email module — we don't want to call the real Resend API in tests
 vi.mock('../../src/lib/email.ts', () => ({
   sendEmailVerificationEmail: vi.fn().mockResolvedValue({ success: true }),
@@ -17,6 +19,7 @@ describe('registerUser', () => {
       name: 'Alice Smith',
       email: 'alice@test.com',
       password: 'password123',
+      siteUrl: SITE,
     });
     expect(result.userId).toBeDefined();
 
@@ -31,6 +34,7 @@ describe('registerUser', () => {
       name: 'Bob Jones',
       email: 'bob@test.com',
       password: 'secret123',
+      siteUrl: SITE,
     });
     const user = await db.select().from(User).where(eq(User.id, result.userId)).get();
     expect(user!.passwordHash).not.toBe('secret123');
@@ -38,9 +42,9 @@ describe('registerUser', () => {
   });
 
   it('throws an error if the email is already in use', async () => {
-    await registerUser({ name: 'First', email: 'dup@test.com', password: 'pass1' });
+    await registerUser({ name: 'First', email: 'dup@test.com', password: 'pass1', siteUrl: SITE });
     await expect(
-      registerUser({ name: 'Second', email: 'dup@test.com', password: 'pass2' })
+      registerUser({ name: 'Second', email: 'dup@test.com', password: 'pass2', siteUrl: SITE })
     ).rejects.toThrow('already exists');
   });
 
@@ -49,6 +53,7 @@ describe('registerUser', () => {
       name: 'Carol White',
       email: 'carol@test.com',
       password: 'password123',
+      siteUrl: SITE,
     });
     const token = await db
       .select()
@@ -65,6 +70,7 @@ describe('registerUser', () => {
       name: 'Dan Brown',
       email: 'dan@test.com',
       password: 'password123',
+      siteUrl: SITE,
     });
     const user = await db.select().from(User).where(eq(User.id, userId)).get();
     expect(user!.emailVerifiedAt).toBeNull();
@@ -77,6 +83,7 @@ describe('resendVerificationEmail', () => {
       name: 'Eve Green',
       email: 'eve@test.com',
       password: 'password123',
+      siteUrl: SITE,
     });
 
     // Mark the original token as used to simulate an expired/used token
@@ -85,7 +92,7 @@ describe('resendVerificationEmail', () => {
       .set({ usedAt: new Date() })
       .where(eq(EmailVerificationToken.userId, userId));
 
-    await resendVerificationEmail('eve@test.com');
+    await resendVerificationEmail('eve@test.com', SITE);
 
     const tokens = await db
       .select()
@@ -101,9 +108,10 @@ describe('resendVerificationEmail', () => {
       name: 'Frank Black',
       email: 'frank@test.com',
       password: 'password123',
+      siteUrl: SITE,
     });
 
-    await resendVerificationEmail('frank@test.com');
+    await resendVerificationEmail('frank@test.com', SITE);
 
     const tokens = await db
       .select()
@@ -117,7 +125,7 @@ describe('resendVerificationEmail', () => {
 
   it('does nothing silently for an unknown email', async () => {
     await expect(
-      resendVerificationEmail('nobody@test.com')
+      resendVerificationEmail('nobody@test.com', SITE)
     ).resolves.toBeUndefined();
   });
 
@@ -129,7 +137,7 @@ describe('resendVerificationEmail', () => {
       .where(eq(User.id, user!.id));
 
     await expect(
-      resendVerificationEmail(user!.email)
+      resendVerificationEmail(user!.email, SITE)
     ).resolves.toBeUndefined();
 
     const tokens = await db
@@ -147,6 +155,7 @@ describe('verifyEmailToken', () => {
       name: 'Verify User',
       email: 'verify-valid@test.com',
       password: 'password123',
+      siteUrl: SITE,
     });
     const tokenRow = await db
       .select()
@@ -180,6 +189,7 @@ describe('verifyEmailToken', () => {
       name: 'Used Token User',
       email: 'verify-used@test.com',
       password: 'password123',
+      siteUrl: SITE,
     });
     const tokenRow = await db
       .select()
@@ -197,6 +207,7 @@ describe('verifyEmailToken', () => {
       name: 'Expired Token User',
       email: 'verify-expired@test.com',
       password: 'password123',
+      siteUrl: SITE,
     });
     const tokenRow = await db
       .select()

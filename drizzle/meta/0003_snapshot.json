@@ -1,8 +1,8 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "f32b8d39-4eb4-4dbc-a1f1-4e6640eefe25",
-  "prevId": "ef2b5774-02fc-423e-937a-a05d285c737e",
+  "id": "da66d50a-70dc-418a-922e-7772287c1857",
+  "prevId": "f32b8d39-4eb4-4dbc-a1f1-4e6640eefe25",
   "tables": {
     "Announcement": {
       "name": "Announcement",
@@ -80,6 +80,360 @@
           "tableTo": "User",
           "columnsFrom": [
             "createdBy"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "Arrangement": {
+      "name": "Arrangement",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "ensembleId": {
+          "name": "ensembleId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "composer": {
+          "name": "composer",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "arranger": {
+          "name": "arranger",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "runTime": {
+          "name": "runTime",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'in_review'"
+        },
+        "submittedBy": {
+          "name": "submittedBy",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "approvedSongId": {
+          "name": "approvedSongId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "Arrangement_ensembleId_Ensemble_id_fk": {
+          "name": "Arrangement_ensembleId_Ensemble_id_fk",
+          "tableFrom": "Arrangement",
+          "tableTo": "Ensemble",
+          "columnsFrom": [
+            "ensembleId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "Arrangement_submittedBy_User_id_fk": {
+          "name": "Arrangement_submittedBy_User_id_fk",
+          "tableFrom": "Arrangement",
+          "tableTo": "User",
+          "columnsFrom": [
+            "submittedBy"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "Arrangement_approvedSongId_Song_id_fk": {
+          "name": "Arrangement_approvedSongId_Song_id_fk",
+          "tableFrom": "Arrangement",
+          "tableTo": "Song",
+          "columnsFrom": [
+            "approvedSongId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "ArrangementComment": {
+      "name": "ArrangementComment",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "versionId": {
+          "name": "versionId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "userId": {
+          "name": "userId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "content": {
+          "name": "content",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "ArrangementComment_versionId_ArrangementVersion_id_fk": {
+          "name": "ArrangementComment_versionId_ArrangementVersion_id_fk",
+          "tableFrom": "ArrangementComment",
+          "tableTo": "ArrangementVersion",
+          "columnsFrom": [
+            "versionId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "ArrangementComment_userId_User_id_fk": {
+          "name": "ArrangementComment_userId_User_id_fk",
+          "tableFrom": "ArrangementComment",
+          "tableTo": "User",
+          "columnsFrom": [
+            "userId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "ArrangementPart": {
+      "name": "ArrangementPart",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "arrangementId": {
+          "name": "arrangementId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "partId": {
+          "name": "partId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "ArrangementPart_arrangementId_Arrangement_id_fk": {
+          "name": "ArrangementPart_arrangementId_Arrangement_id_fk",
+          "tableFrom": "ArrangementPart",
+          "tableTo": "Arrangement",
+          "columnsFrom": [
+            "arrangementId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "ArrangementPart_partId_Part_id_fk": {
+          "name": "ArrangementPart_partId_Part_id_fk",
+          "tableFrom": "ArrangementPart",
+          "tableTo": "Part",
+          "columnsFrom": [
+            "partId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "ArrangementVersion": {
+      "name": "ArrangementVersion",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "arrangementId": {
+          "name": "arrangementId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "versionNumber": {
+          "name": "versionNumber",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "fileName": {
+          "name": "fileName",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "url": {
+          "name": "url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "uploadedBy": {
+          "name": "uploadedBy",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "uploadedAt": {
+          "name": "uploadedAt",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "ArrangementVersion_arrangementId_Arrangement_id_fk": {
+          "name": "ArrangementVersion_arrangementId_Arrangement_id_fk",
+          "tableFrom": "ArrangementVersion",
+          "tableTo": "Arrangement",
+          "columnsFrom": [
+            "arrangementId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "ArrangementVersion_uploadedBy_User_id_fk": {
+          "name": "ArrangementVersion_uploadedBy_User_id_fk",
+          "tableFrom": "ArrangementVersion",
+          "tableTo": "User",
+          "columnsFrom": [
+            "uploadedBy"
           ],
           "columnsTo": [
             "id"
@@ -405,6 +759,13 @@
           "autoincrement": false,
           "default": "'America/Los_Angeles'"
         },
+        "arrangementReviewGroupId": {
+          "name": "arrangementReviewGroupId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "createdBy": {
           "name": "createdBy",
           "type": "text",
@@ -431,6 +792,19 @@
         }
       },
       "foreignKeys": {
+        "Ensemble_arrangementReviewGroupId_Group_id_fk": {
+          "name": "Ensemble_arrangementReviewGroupId_Group_id_fk",
+          "tableFrom": "Ensemble",
+          "tableTo": "Group",
+          "columnsFrom": [
+            "arrangementReviewGroupId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
         "Ensemble_createdBy_User_id_fk": {
           "name": "Ensemble_createdBy_User_id_fk",
           "tableFrom": "Ensemble",

@@ -176,6 +176,14 @@ const activeBanner = await getActiveBanner();
             <td>
               {u.id !== user.id && (
                 <div class="buttons are-small">
+                  {u.role !== "admin" && (
+                    <form method="POST" action="/view-as" style="display: inline;">
+                      <input type="hidden" name="userId" value={u.id} />
+                      <Button type="submit" color="link" size="small">
+                        View as
+                      </Button>
+                    </form>
+                  )}
                   <form
                     method="POST"
                     action={actions.admin.toggleAdmin}

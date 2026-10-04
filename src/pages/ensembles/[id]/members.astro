@@ -7,9 +7,13 @@ import {
   Icon,
   Image,
   Level,
+  Modal,
+  Notification,
   Section,
+  Select,
   Subtitle,
   Table,
+  TextInput,
   Title,
 } from "astro-bulma";
 import BaseLayout from "@layouts/BaseLayout.astro";
@@ -24,6 +28,8 @@ import {
   getMemberPartAssignments,
 } from "@lib/ensemble";
 import { getEnsembleUrlId } from "@lib/slug";
+import { getSiteAdminIds } from "@lib/admin";
+import { isSiteAdmin } from "@lib/permissions";
 
 const user = Astro.locals.user!;
 
@@ -48,6 +54,12 @@ const { isAdmin } = access;
 if (!isAdmin) {
   return new Response("Unauthorized", { status: 403 });
 }
+
+// Site admins can view the site as any member who isn't also a site admin.
+const viewAsBlocked = isSiteAdmin(user) ? await getSiteAdminIds() : null;
+
+const canAddMembers = isSiteAdmin(user);
+const addResult = Astro.getActionResult(actions.members.add);
 
 const removeResult = Astro.getActionResult(actions.members.remove);
 const promoteResult = Astro.getActionResult(actions.members.promote);
@@ -119,7 +131,6 @@ const members = membersData;
     <Container>
       <Breadcrumb
         items={[
-          { label: "Ensembles", href: "/ensembles" },
           { label: ensemble.name, href: `/ensembles/${canonicalId}` },
           { label: "Manage Members" },
         ]}
@@ -135,6 +146,16 @@ const members = membersData;
           </div>
         </Fragment>
         <Fragment slot="right">
+          {
+            canAddMembers && (
+              <div class="level-item">
+                <Button color="primary" id="add-member-btn">
+                  <Icon icon="fa-user-plus" />
+                  <span>Add Member</span>
+                </Button>
+              </div>
+            )
+          }
           <div class="level-item">
             <Button href={`/ensembles/${canonicalId}/member-attendance`}>
               <Icon icon="fa-chart-bar" />
@@ -156,6 +177,56 @@ const members = membersData;
         </Fragment>
       </Level>
 
+      {
+        addResult?.error && (
+          <Notification color="danger" light>
+            {addResult.error.message || "Couldn't add that member."}
+          </Notification>
+        )
+      }
+      {
+        addResult?.data && (
+          <Notification color="success" light>
+            <p>
+              Added <strong>{addResult.data.name}</strong> to {ensemble.name}.{" "}
+              {addResult.data.emailSent
+                ? "We emailed them to let them know."
+                : "The email to them couldn't be sent, so they haven't been told."}
+            </p>
+            {addResult.data.setPasswordUrl && (
+              <div class="mt-3">
+                <p class="mb-2">
+                  They're new, so they need to set a password.
+                  {addResult.data.emailSent
+                    ? " The email has this link; you can also send it yourself."
+                    : " Send them this link"}{" "}
+                  (valid for 7 days):
+                </p>
+                <div class="field has-addons">
+                  <div class="control is-expanded">
+                    <input
+                      id="set-password-url"
+                      class="input is-small"
+                      readonly
+                      value={addResult.data.setPasswordUrl}
+                    />
+                  </div>
+                  <div class="control">
+                    <button
+                      type="button"
+                      class="button is-small"
+                      id="copy-set-password-url"
+                    >
+                      Copy
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </Notification>
+        )
+      }
+
       <Box>
         {
           allParts.length > 0 ? (
@@ -168,7 +239,7 @@ const members = membersData;
                   <div class="mb-5">
                     <Table
                       title={`${part.name} (${partMembers.length})`}
-                      className="has-text-primary"
+                      className="has-text-primary is-vcentered"
                     >
                       <thead>
                         <tr>
@@ -217,6 +288,15 @@ const members = membersData;
                             {member.id !== user.id && (
                               <td>
                                 <div class="buttons are-small">
+                                  {viewAsBlocked && !viewAsBlocked.has(member.id) && (
+                                    <form method="POST" action="/view-as" style="display: inline;">
+                                      <input type="hidden" name="userId" value={member.id} />
+                                      <input type="hidden" name="returnTo" value={`/ensembles/${canonicalId}`} />
+                                      <Button type="submit" color="link" size="small">
+                                        View as
+                                      </Button>
+                                    </form>
+                                  )}
                                   {member.role === "member" ? (
                                     <form
                                       method="POST"
@@ -304,6 +384,7 @@ const members = membersData;
                 <div class="mb-5">
                   <Table
                     title={`No Part Assigned (${membersWithoutPart.length})`}
+                    className="is-vcentered"
                   >
                     <thead>
                       <tr>
@@ -352,6 +433,15 @@ const members = membersData;
                           {member.id !== user.id && (
                             <td>
                               <div class="buttons are-small">
+                                {viewAsBlocked && !viewAsBlocked.has(member.id) && (
+                                  <form method="POST" action="/view-as" style="display: inline;">
+                                    <input type="hidden" name="userId" value={member.id} />
+                                    <input type="hidden" name="returnTo" value={`/ensembles/${canonicalId}`} />
+                                    <Button type="submit" color="link" size="small">
+                                      View as
+                                    </Button>
+                                  </form>
+                                )}
                                 {member.role === "member" ? (
                                   <form
                                     method="POST"
@@ -435,7 +525,7 @@ const members = membersData;
               )}
             </>
           ) : (
-            <Table>
+            <Table className="is-vcentered">
               <thead>
                 <tr>
                   <th style="width: 60px;" />
@@ -481,6 +571,15 @@ const members = membersData;
                     {member.id !== user.id && (
                       <td>
                         <div class="buttons are-small">
+                          {viewAsBlocked && !viewAsBlocked.has(member.id) && (
+                            <form method="POST" action="/view-as" style="display: inline;">
+                              <input type="hidden" name="userId" value={member.id} />
+                              <input type="hidden" name="returnTo" value={`/ensembles/${canonicalId}`} />
+                              <Button type="submit" color="link" size="small">
+                                View as
+                              </Button>
+                            </form>
+                          )}
                           {member.role === "member" ? (
                             <form
                               method="POST"
@@ -557,4 +656,55 @@ const members = membersData;
       </Box>
     </Container>
   </Section>
+
+  {
+    canAddMembers && (
+      <Modal id="add-member-modal" title="Add Member">
+        <form id="addMemberForm" method="POST" action={actions.members.add}>
+          <input type="hidden" name="ensembleId" value={ensemble.id} />
+          <TextInput name="email" type="email" label="Email *" required />
+          <TextInput
+            name="name"
+            label="Name"
+            help="Needed if they don't have an account yet."
+          />
+          <Select name="role" label="Role" fullwidth>
+            <option value="member" selected>
+              Member
+            </option>
+            <option value="admin">Ensemble admin</option>
+          </Select>
+          <p class="help">
+            New people get an account and an email with a link to set their
+            password. People who already have an account get an email saying
+            they were added.
+          </p>
+        </form>
+        <div slot="footer">
+          <Button type="submit" form="addMemberForm" color="primary">
+            <Icon icon="fa-user-plus" />
+            <span>Add Member</span>
+          </Button>
+          <Button type="button" data-modal-close>
+            Cancel
+          </Button>
+        </div>
+      </Modal>
+    )
+  }
+
+  <script is:inline>
+    document.addEventListener("astro:page-load", () => {
+      document.getElementById("add-member-btn")?.addEventListener("click", () => {
+        document.getElementById("add-member-modal")?.classList.add("is-active");
+      });
+      document
+        .getElementById("copy-set-password-url")
+        ?.addEventListener("click", (event) => {
+          const input = document.getElementById("set-password-url");
+          navigator.clipboard.writeText(input.value);
+          event.currentTarget.textContent = "Copied";
+        });
+    });
+  </script>
 </BaseLayout>

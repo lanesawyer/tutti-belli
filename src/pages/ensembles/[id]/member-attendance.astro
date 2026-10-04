@@ -83,7 +83,6 @@ const selectedSeason = seasons.find((s) => s.id === seasonId);
     <Container>
       <Breadcrumb
         items={[
-          { label: "Ensembles", href: "/ensembles" },
           { label: ensemble.name, href: `/ensembles/${canonicalId}` },
           { label: "Members", href: `/ensembles/${canonicalId}/members` },
           { label: "Attendance" },
@@ -142,7 +141,7 @@ const selectedSeason = seasons.find((s) => s.id === seasonId);
           stats.length === 0 ? (
             <p class="has-text-grey">No active members found.</p>
           ) : (
-            <Table>
+            <Table className="is-vcentered">
               <thead>
                 <tr>
                   <th style="width: 60px;" />

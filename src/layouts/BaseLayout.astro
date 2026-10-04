@@ -14,6 +14,7 @@ interface Props {
 const { title } = Astro.props;
 
 const activeBanner = await getActiveBanner();
+const viewedUser = Astro.locals.viewingAs ? Astro.locals.user : null;
 ---
 
 <!doctype html>
@@ -142,6 +143,10 @@ const activeBanner = await getActiveBanner();
         border-color: var(--body-text);
       }
 
+      :global(.table.is-vcentered td),
+      :global(.table.is-vcentered th) {
+        vertical-align: middle;
+      }
       #site-banner {
         padding: 0.6rem 1.5rem;
         text-align: center;
@@ -167,6 +172,14 @@ const activeBanner = await getActiveBanner();
         background-color: #00d1b2;
         color: #fff;
       }
+      #view-as-banner {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem 1rem;
+        padding: 0.5rem 1rem;
+      }
       .site-banner-link {
         background-color: #485fc7;
         color: #fff;
@@ -175,6 +188,20 @@ const activeBanner = await getActiveBanner();
   </head>
   <body style="min-height: 100vh; display: flex; flex-direction: column;">
     <div id="site-header" style="position: sticky; top: 0; z-index: 30;">
+      {
+        viewedUser && (
+          <div id="view-as-banner" class="site-banner-link">
+            <span>
+              Viewing as <strong>{viewedUser.name}</strong> ({viewedUser.email})
+            </span>
+            <form method="POST" action="/view-as/exit">
+              <button type="submit" class="button is-small is-light">
+                Exit
+              </button>
+            </form>
+          </div>
+        )
+      }
       {
         activeBanner && (
           <div id="site-banner" class={`site-banner-${activeBanner.color}`}>

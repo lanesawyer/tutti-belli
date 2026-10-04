@@ -18,9 +18,9 @@ export async function getUserByEmail(email: string) {
   return user ?? null;
 }
 
-export async function createPasswordResetToken(userId: string): Promise<string> {
+export async function createPasswordResetToken(userId: string, ttlMs = 60 * 60 * 1000): Promise<string> {
   const token = crypto.randomUUID();
-  const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+  const expiresAt = new Date(Date.now() + ttlMs);
   await db.insert(PasswordResetToken).values({
     id: crypto.randomUUID(),
     userId,
