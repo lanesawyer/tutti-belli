@@ -29,20 +29,21 @@ export const members = {
       if (result.type === 'error') throw new ActionError({ code: 'BAD_REQUEST', message: result.message });
 
       const email = input.email.trim().toLowerCase();
+      const sent =
+        result.type === 'created'
+          ? await sendWelcomeEmail(email, result.name, ensemble.name, result.setPasswordToken)
+          : await sendAddedToEnsembleEmail(email, result.name, ensemble.name, getEnsembleUrlId(ensemble));
       // EMAIL_DISABLED makes sends report success without sending anything.
-      const emailOn = !process.env.EMAIL_DISABLED;
-      if (result.type === 'created') {
-        const sent = await sendWelcomeEmail(email, result.name, ensemble.name, result.setPasswordToken);
-        return {
-          name: result.name,
-          created: true,
-          emailSent: emailOn && sent.success,
-          setPasswordUrl: new URL(`/reset-password?token=${result.setPasswordToken}`, context.url.origin).toString(),
-        };
-      }
+      const emailStatus = process.env.EMAIL_DISABLED ? 'off' : sent.success ? 'sent' : 'failed';
 
-      const sent = await sendAddedToEnsembleEmail(email, result.name, ensemble.name, getEnsembleUrlId(ensemble));
-      return { name: result.name, created: false, emailSent: emailOn && sent.success, setPasswordUrl: null };
+      return {
+        name: result.name,
+        emailStatus,
+        setPasswordUrl:
+          result.type === 'created'
+            ? new URL(`/reset-password?token=${result.setPasswordToken}`, context.url.origin).toString()
+            : null,
+      };
     },
   }),
 
