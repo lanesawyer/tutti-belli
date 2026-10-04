@@ -2,6 +2,7 @@ import {
   db,
   eq,
   and,
+  Arrangement,
   EnsembleMember,
   Song,
   SongPart,
@@ -197,6 +198,7 @@ export async function deleteSong(songId: string): Promise<void> {
   await Promise.all(files.map((f) => deleteStorageFile(f.url)));
   await db.delete(SongFile).where(eq(SongFile.songId, songId));
 
+  await db.update(Arrangement).set({ approvedSongId: null }).where(eq(Arrangement.approvedSongId, songId));
   await db.delete(Song).where(eq(Song.id, songId));
 }
 

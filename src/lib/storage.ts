@@ -1,4 +1,11 @@
-import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand, NoSuchKey } from '@aws-sdk/client-s3';
+import {
+  S3Client,
+  PutObjectCommand,
+  GetObjectCommand,
+  DeleteObjectCommand,
+  CopyObjectCommand,
+  NoSuchKey,
+} from '@aws-sdk/client-s3';
 import { IMAGE_EXTENSIONS } from './upload';
 
 // Song files live in a Tigris bucket. `fly storage create -a <app>` sets these variables on the
@@ -52,10 +59,44 @@ async function putFile(key: string, file: File): Promise<void> {
 
 /** Uploads a song file and returns its object key, which is what SongFile.url stores. */
 export async function uploadSongFile(file: File, ensembleId: string): Promise<string> {
+  return uploadEnsembleFile(file, ensembleId, 'songs');
+}
+
+/** Uploads an arrangement version and returns its object key, which is what ArrangementVersion.url stores. */
+export async function uploadArrangementFile(file: File, ensembleId: string): Promise<string> {
+  return uploadEnsembleFile(file, ensembleId, 'arrangements');
+}
+
+async function uploadEnsembleFile(file: File, ensembleId: string, folder: string): Promise<string> {
   const sanitizedName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-  const key = `${ensembleId}/songs/${crypto.randomUUID()}-${sanitizedName}`;
+  const key = `${ensembleId}/${folder}/${crypto.randomUUID()}-${sanitizedName}`;
   await putFile(key, file);
   return key;
+}
+
+/**
+ * Duplicate a stored object so the copy has an independent lifecycle. Used when
+ * an arrangement is adopted into the library: the song's file and the
+ * arrangement's version history must survive each other's deletion.
+ */
+export async function copyStorageFile(key: string, ensembleId: string, folder: string): Promise<string> {
+  const fileName = key.split('/').pop() ?? 'file';
+  const destinationKey = `${ensembleId}/${folder}/${crypto.randomUUID()}-${fileName}`;
+
+  if (process.env.STORAGE_DISABLED) {
+    console.log(`[storage] disabled — skipping copy of "${key}"`);
+    return destinationKey;
+  }
+
+  const { client, bucket } = storage();
+  await client.send(
+    new CopyObjectCommand({
+      Bucket: bucket,
+      CopySource: `${bucket}/${key}`,
+      Key: destinationKey,
+    })
+  );
+  return destinationKey;
 }
 
 const IMAGE_PATH = /^\/images\/((?:avatars|ensembles)\/[0-9a-f-]{36}\.(?:png|jpg|webp|gif))$/;

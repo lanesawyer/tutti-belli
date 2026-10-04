@@ -20,6 +20,7 @@ import {
 } from '@db';
 import { validateImageFile } from './upload';
 import { deleteImage, uploadImage } from './storage';
+import { deleteUserArrangements } from './arrangements';
 import { hashPassword, verifyPassword } from './auth';
 import { sendEmailChangeVerificationEmail, sendEmailVerificationEmail } from './email';
 
@@ -382,6 +383,7 @@ async function deleteUserData(userId: string): Promise<void> {
   await db.delete(SeasonMembership).where(eq(SeasonMembership.userId, userId));
   await db.delete(TaskCompletion).where(eq(TaskCompletion.userId, userId));
   await db.delete(GroupMembership).where(eq(GroupMembership.userId, userId));
+  await deleteUserArrangements(userId);
   await db.delete(EnsembleMember).where(eq(EnsembleMember.userId, userId));
   await db.delete(User).where(eq(User.id, userId));
   await deleteImage(user?.avatarUrl);

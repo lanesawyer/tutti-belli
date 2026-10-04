@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { db, GroupMembership, eq } from '@db';
+import { db, Ensemble, Group, GroupMembership, eq } from '@db';
 import { createUser, createEnsemble, createGroup, createGroupMembership } from './fixtures.ts';
+import { deleteGroup } from '../../src/lib/groups.ts';
 
 describe('GroupMembership role', () => {
   it('defaults to null role when not specified', async () => {
@@ -83,5 +84,42 @@ describe('GroupMembership role', () => {
     expect(leads[0].userId).toBe(admin!.id);
     expect(regulars).toHaveLength(1);
     expect(regulars[0].userId).toBe(member!.id);
+  });
+});
+
+// Set directly rather than via @lib/arrangements: that module imports
+// storage.ts, which has module-level S3 side effects.
+async function assignReviewGroup(ensembleId: string, groupId: string) {
+  await db.update(Ensemble).set({ arrangementReviewGroupId: groupId }).where(eq(Ensemble.id, ensembleId));
+}
+
+describe('deleteGroup', () => {
+  it('clears the arrangement review assignment so no dangling group id remains', async () => {
+    const owner = await createUser();
+    const ensemble = await createEnsemble(owner!.id);
+    const group = await createGroup(ensemble!.id, { name: 'Artistic Guild' });
+    await assignReviewGroup(ensemble!.id, group!.id);
+
+    await deleteGroup(group!.id);
+
+    const after = await db.select().from(Ensemble).where(eq(Ensemble.id, ensemble!.id)).get();
+    expect(after!.arrangementReviewGroupId).toBeNull();
+    const remaining = await db.select().from(Group).where(eq(Group.id, group!.id)).get();
+    expect(remaining).toBeUndefined();
+  });
+
+  it("leaves another ensemble's review group untouched", async () => {
+    const owner = await createUser();
+    const ensembleA = await createEnsemble(owner!.id);
+    const ensembleB = await createEnsemble(owner!.id);
+    const groupA = await createGroup(ensembleA!.id);
+    const groupB = await createGroup(ensembleB!.id);
+    await assignReviewGroup(ensembleA!.id, groupA!.id);
+    await assignReviewGroup(ensembleB!.id, groupB!.id);
+
+    await deleteGroup(groupA!.id);
+
+    const b = await db.select().from(Ensemble).where(eq(Ensemble.id, ensembleB!.id)).get();
+    expect(b!.arrangementReviewGroupId).toBe(groupB!.id);
   });
 });
