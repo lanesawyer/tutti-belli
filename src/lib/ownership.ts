@@ -5,6 +5,8 @@ import {
   inArray,
   Announcement,
   Attendance,
+  Audition,
+  AuditionSignup,
   EnsembleInvite,
   EnsembleLink,
   EnsembleMember,
@@ -21,6 +23,8 @@ import {
 export type OwnedKind =
   | 'announcement'
   | 'attendance'
+  | 'audition'
+  | 'auditionSignup'
   | 'event'
   | 'group'
   | 'invite'
@@ -46,6 +50,8 @@ function ownerQuery(kind: OwnedKind, id: string) {
   switch (kind) {
     case 'announcement':
       return db.select({ ensembleId: Announcement.ensembleId }).from(Announcement).where(eq(Announcement.id, id)).get();
+    case 'audition':
+      return db.select({ ensembleId: Audition.ensembleId }).from(Audition).where(eq(Audition.id, id)).get();
     case 'event':
       return db.select({ ensembleId: Event.ensembleId }).from(Event).where(eq(Event.id, id)).get();
     case 'group':
@@ -70,6 +76,13 @@ function ownerQuery(kind: OwnedKind, id: string) {
         .from(SongFile)
         .innerJoin(Song, eq(SongFile.songId, Song.id))
         .where(eq(SongFile.id, id))
+        .get();
+    case 'auditionSignup':
+      return db
+        .select({ ensembleId: Audition.ensembleId })
+        .from(AuditionSignup)
+        .innerJoin(Audition, eq(AuditionSignup.auditionId, Audition.id))
+        .where(eq(AuditionSignup.id, id))
         .get();
     case 'attendance':
       return db

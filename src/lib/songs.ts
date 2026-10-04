@@ -2,6 +2,7 @@ import {
   db,
   eq,
   and,
+  Audition,
   EnsembleMember,
   Song,
   SongPart,
@@ -190,6 +191,8 @@ export async function editSong(input: EditSongInput): Promise<void> {
 export async function deleteSong(songId: string): Promise<void> {
   if (!songId) return;
 
+  // Auditions outlive their song so signups and posted results aren't lost.
+  await db.update(Audition).set({ songId: null }).where(eq(Audition.songId, songId));
   await db.delete(SongPart).where(eq(SongPart.songId, songId));
   await db.delete(SeasonSong).where(eq(SeasonSong.songId, songId));
 

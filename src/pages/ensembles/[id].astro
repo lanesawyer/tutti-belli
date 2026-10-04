@@ -16,6 +16,7 @@ import RecentAnnouncements from "@containers/RecentAnnouncements.astro";
 import UpcomingEvents from "@containers/UpcomingEvents.astro";
 import EnsembleMembers from "@containers/EnsembleMembers.astro";
 import SeasonRepertoire from "@containers/SeasonRepertoire.astro";
+import OpenAuditions from "@containers/OpenAuditions.astro";
 import EnsembleLinks from "@containers/EnsembleLinks.astro";
 import MyTasks from "@containers/MyTasks.astro";
 import AdminTools from "@containers/AdminTools.astro";
@@ -147,6 +148,14 @@ const currentSeason = await getActiveSeasonForEnsemble(ensemble.id);
           />
 
           <UpcomingEvents
+            ensembleId={ensemble.id}
+            canonicalId={canonicalId}
+            userId={user.id}
+            isAdmin={isAdmin}
+            timeZone={ensemble.timezone}
+          />
+
+          <OpenAuditions
             ensembleId={ensemble.id}
             canonicalId={canonicalId}
             userId={user.id}
