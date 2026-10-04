@@ -101,6 +101,7 @@ export async function updateEnsemble(
     imageUrl?: string | null;
     checkInStartMinutes: number;
     checkInEndMinutes: number;
+    timezone?: string;
   },
 ) {
   const before = await db.select({ imageUrl: Ensemble.imageUrl }).from(Ensemble).where(eq(Ensemble.id, ensembleId)).get();

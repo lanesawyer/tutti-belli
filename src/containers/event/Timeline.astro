@@ -1,14 +1,17 @@
 ---
 import { getTimedProgramEntries } from "@lib/events";
+import { formatZonedTime } from "@lib/timezone";
 
 interface Props {
   eventId: string;
   isPerformance: boolean;
   scheduledAt: Date;
   durationMinutes: number;
+  timeZone: string;
 }
 
-const { eventId, isPerformance, scheduledAt, durationMinutes } = Astro.props;
+const { eventId, isPerformance, scheduledAt, durationMinutes, timeZone } =
+  Astro.props;
 
 const timedEntries = isPerformance ? [] : await getTimedProgramEntries(eventId);
 
@@ -17,7 +20,7 @@ const markers = [0, durationMinutes / 2, durationMinutes].map((offset) => {
   const d = new Date(scheduledAt.getTime() + offset * 60 * 1000);
   return {
     pct: ((offset / durationMinutes) * 100).toFixed(2),
-    label: d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }),
+    label: formatZonedTime(d, timeZone),
   };
 });
 

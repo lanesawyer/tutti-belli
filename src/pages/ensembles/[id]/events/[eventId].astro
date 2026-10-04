@@ -32,6 +32,11 @@ import {
 } from "@lib/events";
 import { getEnsembleGroups } from "@lib/groups";
 import { formatDuration } from "@lib/format";
+import {
+  formatZonedDate,
+  formatZonedTime,
+  instantToZonedInputs,
+} from "@lib/timezone";
 import Timeline from "@containers/event/Timeline.astro";
 
 const user = Astro.locals.user!;
@@ -153,8 +158,10 @@ const isPast = endTime < new Date();
 const isUserCheckedIn = attendedUserIds.has(user.id);
 
 // Prepare date/time for form inputs
-const dateValue = scheduledDate.toISOString().split("T")[0];
-const timeValue = scheduledDate.toTimeString().slice(0, 5);
+const { date: dateValue, time: timeValue } = instantToZonedInputs(
+  scheduledDate,
+  ensemble.timezone,
+);
 
 // Fetch program data for all event types (rehearsal + performance)
 const { programEntries, availableSeasonSongs } = await getEventProgramData(
@@ -233,18 +240,11 @@ const programLabel = isPerformance ? "Set List" : "Rehearsal Plan";
           <Subtitle as="p">
             <span class="icon-text">
               <Icon icon="fa-calendar" />
-              <span>{scheduledDate.toLocaleDateString()}</span>
+              <span>{formatZonedDate(scheduledDate, ensemble.timezone)}</span>
             </span>
             <span class="ml-3 icon-text">
               <Icon icon="fa-clock" />
-              <span
-                >{
-                  scheduledDate.toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })
-                }</span
-              >
+              <span>{formatZonedTime(scheduledDate, ensemble.timezone)}</span>
             </span>
             <span class="ml-3 icon-text">
               <Icon icon="fa-hourglass-half" />
@@ -590,12 +590,9 @@ const programLabel = isPerformance ? "Set List" : "Rehearsal Plan";
                         )}
                         <td>
                           {attendance ? (
-                            new Date(attendance.checkedInAt).toLocaleTimeString(
-                              [],
-                              {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              },
+                            formatZonedTime(
+                              new Date(attendance.checkedInAt),
+                              ensemble.timezone,
                             )
                           ) : (
                             <span class="has-text-grey-light">—</span>
@@ -713,6 +710,7 @@ const programLabel = isPerformance ? "Set List" : "Rehearsal Plan";
       isPerformance={isPerformance}
       scheduledAt={scheduledDate}
       durationMinutes={event.durationMinutes}
+      timeZone={ensemble.timezone}
     />
 
     {
@@ -979,6 +977,7 @@ const programLabel = isPerformance ? "Set List" : "Rehearsal Plan";
                     type="time"
                     value={timeValue}
                     required
+                    help={ensemble.timezone.replaceAll("_", " ")}
                   />
                 </Column>
                 <Column size={4}>

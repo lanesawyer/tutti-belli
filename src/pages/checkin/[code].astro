@@ -11,6 +11,11 @@ import {
 import SingleColumnLayout from "@layouts/SingleColumnLayout.astro";
 import { actions } from "astro:actions";
 import { getCheckInPageData } from "@lib/ensemble/check-in";
+import {
+  DEFAULT_TIMEZONE,
+  formatZonedDate,
+  formatZonedTime,
+} from "@lib/timezone";
 
 const user = Astro.locals.user;
 if (!user) {
@@ -36,6 +41,7 @@ const message =
   result?.error?.message ?? (success ? "Successfully checked in!" : "");
 
 const scheduledDate = new Date(event.scheduledAt);
+const timeZone = ensemble?.timezone ?? DEFAULT_TIMEZONE;
 const isPerformance = event.category === "performance";
 ---
 
@@ -57,18 +63,11 @@ const isPerformance = event.category === "performance";
       <p>
         <span class="icon-text">
           <Icon icon="fa-calendar" />
-          <span>{scheduledDate.toLocaleDateString()}</span>
+          <span>{formatZonedDate(scheduledDate, timeZone)}</span>
         </span>
         <span class="ml-3 icon-text">
           <Icon icon="fa-clock" />
-          <span
-            >{
-              scheduledDate.toLocaleTimeString([], {
-                hour: "2-digit",
-                minute: "2-digit",
-              })
-            }</span
-          >
+          <span>{formatZonedTime(scheduledDate, timeZone)}</span>
         </span>
       </p>
       {
