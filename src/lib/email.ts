@@ -11,6 +11,14 @@ function getEnv(key: string, fallback = ''): string {
   return process.env[key] || fallback;
 }
 
+/**
+ * Base URL for links in emails. `site` in astro.config.mjs (the production URL) is baked in at
+ * build time; set SITE to point links somewhere else, such as http://localhost:4321 in dev.
+ */
+function siteUrl(): string {
+  return process.env.SITE || import.meta.env.SITE || 'http://localhost:4321';
+}
+
 export interface EmailResult {
   success: boolean;
   error?: string;
@@ -80,8 +88,7 @@ export async function sendAnnouncementEmail(
   if (recipients.length === 0) return { success: true };
 
   const fromEmail = getEnv('EMAIL_FROM', 'noreply@example.com');
-  const siteUrl = getEnv('SITE', 'http://localhost:4321');
-  const announcementsUrl = new URL(`/ensembles/${ensembleId}/announcements`, siteUrl).toString();
+  const announcementsUrl = new URL(`/ensembles/${ensembleId}/announcements`, siteUrl()).toString();
 
   return sendEmailBatch(
     recipients.map(({ email, name }) => ({
@@ -119,8 +126,7 @@ export async function sendEmailChangeVerificationEmail(
   verifyToken: string,
 ): Promise<EmailResult> {
   const fromEmail = getEnv('EMAIL_FROM', 'noreply@example.com');
-  const siteUrl = getEnv('SITE', 'http://localhost:4321');
-  const verifyUrl = new URL(`/verify-email-change?token=${verifyToken}`, siteUrl).toString();
+  const verifyUrl = new URL(`/verify-email-change?token=${verifyToken}`, siteUrl()).toString();
 
   return sendEmail(
     {
@@ -161,8 +167,7 @@ export async function sendEmailVerificationEmail(
   verifyToken: string,
 ): Promise<EmailResult> {
   const fromEmail = getEnv('EMAIL_FROM', 'noreply@example.com');
-  const siteUrl = getEnv('SITE', 'http://localhost:4321');
-  const verifyUrl = new URL(`/verify-email?token=${verifyToken}`, siteUrl).toString();
+  const verifyUrl = new URL(`/verify-email?token=${verifyToken}`, siteUrl()).toString();
 
   return sendEmail(
     {
@@ -202,8 +207,7 @@ export async function sendPasswordResetEmail(
   resetToken: string,
 ): Promise<EmailResult> {
   const fromEmail = getEnv('EMAIL_FROM', 'noreply@example.com');
-  const siteUrl = getEnv('SITE', 'http://localhost:4321');
-  const resetUrl = new URL(`/reset-password?token=${resetToken}`, siteUrl).toString();
+  const resetUrl = new URL(`/reset-password?token=${resetToken}`, siteUrl()).toString();
 
   return sendEmail(
     {
@@ -256,8 +260,7 @@ export async function sendWelcomeEmail(
   ensembleName: string,
   setPasswordToken: string,
 ): Promise<EmailResult> {
-  const siteUrl = getEnv('SITE', 'http://localhost:4321');
-  const setPasswordUrl = new URL(`/reset-password?token=${setPasswordToken}`, siteUrl).toString();
+  const setPasswordUrl = new URL(`/reset-password?token=${setPasswordToken}`, siteUrl()).toString();
 
   return sendEmail(
     {
@@ -290,8 +293,7 @@ export async function sendAddedToEnsembleEmail(
   ensembleName: string,
   ensembleId: string,
 ): Promise<EmailResult> {
-  const siteUrl = getEnv('SITE', 'http://localhost:4321');
-  const ensembleUrl = new URL(`/ensembles/${ensembleId}`, siteUrl).toString();
+  const ensembleUrl = new URL(`/ensembles/${ensembleId}`, siteUrl()).toString();
 
   return sendEmail(
     {
