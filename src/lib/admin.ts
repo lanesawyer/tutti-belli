@@ -4,6 +4,8 @@ import {
   inArray,
   Announcement,
   Attendance,
+  Audition,
+  AuditionSignup,
   Ensemble,
   EnsembleInvite,
   EnsembleLink,
@@ -86,6 +88,12 @@ export async function deleteEnsemble(ensembleId: string) {
     await db.delete(EventRsvp).where(inArray(EventRsvp.eventId, eventIds));
     await db.delete(EventProgram).where(inArray(EventProgram.eventId, eventIds));
     await db.delete(Event).where(inArray(Event.id, eventIds));
+  }
+
+  const auditionIds = ids(await db.select({ id: Audition.id }).from(Audition).where(eq(Audition.ensembleId, ensembleId)).all());
+  if (auditionIds.length > 0) {
+    await db.delete(AuditionSignup).where(inArray(AuditionSignup.auditionId, auditionIds));
+    await db.delete(Audition).where(inArray(Audition.id, auditionIds));
   }
 
   const songIds = ids(await db.select({ id: Song.id }).from(Song).where(eq(Song.ensembleId, ensembleId)).all());

@@ -18,6 +18,7 @@ import SongPdfFile from "@components/song/SongPdfFile.astro";
 import SongAudioFile from "@components/song/SongAudioFile.astro";
 import SongLinkFile from "@components/song/SongLinkFile.astro";
 import { getEnsembleUrlId } from "@lib/slug";
+import { getAuditions } from "@lib/auditions";
 import { actions } from "astro:actions";
 
 const user = Astro.locals.user!;
@@ -47,6 +48,10 @@ if (id !== canonicalId) {
 
 const membership = await getMembership(ensemble.id, user.id);
 const isAdmin = canManageEnsemble(user, membership);
+const auditions =
+  isAdmin || membership?.status === "active"
+    ? await getAuditions({ ensembleId: ensemble.id, userId: user.id, isAdmin, songId: song.id })
+    : [];
 
 const deleteFileResult = Astro.getActionResult(actions.songs.deleteFile);
 if (deleteFileResult && !deleteFileResult.error) {
@@ -137,6 +142,47 @@ const linkFiles = songFiles.filter((f) => f.category === "link");
       }
     </Columns>
   </Box>
+
+  {
+    (auditions.length > 0 || isAdmin) && (
+      <Box class="mb-5">
+        <Title as="h2" size={4}>
+          <span class="icon-text">
+            <Icon icon="fa-microphone" />
+            <span>Auditions</span>
+          </span>
+        </Title>
+        {auditions.length > 0 && (
+          <ul class="mb-3">
+            {auditions.map((a) => (
+              <li class="mb-1">
+                <a href={`/ensembles/${canonicalId}/auditions#audition-${a.id}`}>
+                  {a.title}
+                </a>{" "}
+                {a.acceptingSignups ? (
+                  <Tag color="success">Open</Tag>
+                ) : (
+                  <Tag>Closed</Tag>
+                )}{" "}
+                {a.mySignup && <Tag color="info">Signed up</Tag>}
+              </li>
+            ))}
+          </ul>
+        )}
+        {isAdmin && (
+          <Button
+            href={`/ensembles/${canonicalId}/auditions?song=${song.id}`}
+            size="small"
+            color="primary"
+            outlined
+          >
+            <Icon icon="fa-plus" />
+            <span>New Audition for This Song</span>
+          </Button>
+        )}
+      </Box>
+    )
+  }
 
   <!-- Resources section -->
   <Title as="h2" size={4}>

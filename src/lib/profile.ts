@@ -17,6 +17,7 @@ import {
   EmailChangeToken,
   EmailVerificationToken,
   TaskCompletion,
+  AuditionSignup,
 } from '@db';
 import { validateImageFile } from './upload';
 import { deleteImage, uploadImage } from './storage';
@@ -391,6 +392,7 @@ async function deleteUserData(userId: string): Promise<void> {
   await db.delete(Attendance).where(eq(Attendance.userId, userId));
   await db.delete(SeasonMembership).where(eq(SeasonMembership.userId, userId));
   await db.delete(TaskCompletion).where(eq(TaskCompletion.userId, userId));
+  await db.delete(AuditionSignup).where(eq(AuditionSignup.userId, userId));
   await db.delete(GroupMembership).where(eq(GroupMembership.userId, userId));
   await db.delete(EnsembleMember).where(eq(EnsembleMember.userId, userId));
   await db.delete(User).where(eq(User.id, userId));

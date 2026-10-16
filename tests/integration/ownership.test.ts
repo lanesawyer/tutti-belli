@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { db, Announcement, Attendance, EnsembleLink } from '@db';
+import { db, Announcement, Attendance, AuditionSignup, EnsembleLink } from '@db';
+import { createAudition } from '../../src/lib/auditions.ts';
 import {
   getOwningEnsembleId,
   isInEnsemble,
@@ -46,9 +47,15 @@ async function ensembleWithEverything(adminId: string) {
   const linkId = crypto.randomUUID();
   await db.insert(EnsembleLink).values({ id: linkId, ensembleId: ensemble.id, label: 'Site', url: 'https://example.com' });
 
+  const auditionId = await createAudition(ensemble.id, { title: 'Solo', songId: song.id });
+  const auditionSignupId = crypto.randomUUID();
+  await db.insert(AuditionSignup).values({ id: auditionSignupId, auditionId, userId: member.id });
+
   const ids: Record<OwnedKind, string> = {
     announcement: announcementId,
     attendance: attendanceId,
+    audition: auditionId,
+    auditionSignup: auditionSignupId,
     event: event.id,
     group: (await createGroup(ensemble.id))!.id,
     invite: (await createInvite(ensemble.id, adminId))!.id,
