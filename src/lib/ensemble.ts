@@ -26,14 +26,19 @@ export async function getEnsembleMembership(ensembleId: string, userId: string) 
 
 /**
  * Fetch membership and derive isAdmin for a user in an ensemble.
- * Returns null if the user has no access (not a member and not a site admin).
+ * Returns null if the user has no access: not a site admin, and not an active member.
+ * Pending members only get access with `allowPending`, for the page that tells them they're waiting.
  */
 export async function getEnsembleAccess(
   user: { id: string; role: string },
   ensembleId: string,
+  { allowPending = false } = {},
 ) {
   const membership = await getEnsembleMembership(ensembleId, user.id);
-  if (!membership && !isSiteAdmin(user)) return null;
+  if (!isSiteAdmin(user)) {
+    if (!membership) return null;
+    if (membership.status !== 'active' && !allowPending) return null;
+  }
   const isAdmin = canManageEnsemble(user, membership);
   return { membership, isAdmin };
 }

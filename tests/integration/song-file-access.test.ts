@@ -77,4 +77,15 @@ describe('getSongFileWithAccess', () => {
 
     expect(result).toBeNull();
   });
+
+  it('returns null for a pending member', async () => {
+    const admin = await createUser();
+    const pending = await createUser();
+    const ensemble = await createEnsemble(admin!.id);
+    await createMembership(ensemble!.id, pending!.id, { status: 'pending' });
+    const song = await createSong(ensemble!.id);
+    const file = await createSongFile(song!.id, admin!.id);
+
+    expect(await getSongFileWithAccess(file!.id, pending!.id)).toBeNull();
+  });
 });
