@@ -20,7 +20,7 @@ export async function assertEnsembleAdmin(ensembleId: string, user: { id: string
 export async function assertEnsembleMember(ensembleId: string, user: { id: string; role: string }) {
   const membership = await getEnsembleMembership(ensembleId, user.id);
 
-  if (!membership) {
+  if (membership?.status !== 'active') {
     throw new ActionError({ code: 'FORBIDDEN' });
   }
 

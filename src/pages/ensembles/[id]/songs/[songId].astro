@@ -12,8 +12,8 @@ import {
   Title,
 } from "astro-bulma";
 import EnsemblePageLayout from "@layouts/EnsemblePageLayout.astro";
-import { getSongDetailData, getMembership, formatRuntime } from "@lib/songs";
-import { canManageEnsemble } from "@lib/permissions";
+import { getSongDetailData, formatRuntime } from "@lib/songs";
+import { getEnsembleAccess } from "@lib/ensemble";
 import SongPdfFile from "@components/song/SongPdfFile.astro";
 import SongAudioFile from "@components/song/SongAudioFile.astro";
 import SongLinkFile from "@components/song/SongLinkFile.astro";
@@ -45,8 +45,9 @@ if (id !== canonicalId) {
   );
 }
 
-const membership = await getMembership(ensemble.id, user.id);
-const isAdmin = canManageEnsemble(user, membership);
+const access = await getEnsembleAccess(user, ensemble.id);
+if (!access) return Astro.redirect("/ensembles");
+const { isAdmin } = access;
 
 const deleteFileResult = Astro.getActionResult(actions.songs.deleteFile);
 if (deleteFileResult && !deleteFileResult.error) {

@@ -12,10 +12,9 @@ import {
   Title,
 } from "astro-bulma";
 import EnsemblePageLayout from "@layouts/EnsemblePageLayout.astro";
-import { canManageEnsemble } from "@lib/permissions";
+import { getEnsembleAccess } from "@lib/ensemble";
 import {
   getSongsPageData,
-  getMembership,
   buildSongPartsMap,
   buildSongSeasonsMap,
   buildSongFilesMap,
@@ -49,8 +48,9 @@ if (id !== canonicalId) {
   );
 }
 
-const membership = await getMembership(ensemble.id, user.id);
-const isAdmin = canManageEnsemble(user, membership);
+const access = await getEnsembleAccess(user, ensemble.id);
+if (!access) return Astro.redirect("/ensembles");
+const { isAdmin } = access;
 
 const addResult = Astro.getActionResult(actions.songs.add);
 const editResult = Astro.getActionResult(actions.songs.edit);

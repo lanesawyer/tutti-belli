@@ -66,14 +66,6 @@ export async function getSongsPageData(ensembleId: string) {
   return { ensemble, songs, parts, seasons, songPartsData, seasonSongsData, songFilesData };
 }
 
-export async function getMembership(ensembleId: string, userId: string) {
-  return db
-    .select()
-    .from(EnsembleMember)
-    .where(and(eq(EnsembleMember.ensembleId, ensembleId), eq(EnsembleMember.userId, userId)))
-    .get();
-}
-
 export async function getSongFileWithAccess(fileId: string, userId: string) {
   const row = await db
     .select({ url: SongFile.url, name: SongFile.name, ensembleId: Song.ensembleId })
@@ -90,7 +82,7 @@ export async function getSongFileWithAccess(fileId: string, userId: string) {
     .where(and(eq(EnsembleMember.ensembleId, row.ensembleId), eq(EnsembleMember.userId, userId)))
     .get();
 
-  if (!membership) return null;
+  if (membership?.status !== 'active') return null;
 
   return { url: row.url, name: row.name };
 }

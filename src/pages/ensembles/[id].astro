@@ -44,7 +44,7 @@ if (Astro.request.method === "GET" && id !== canonicalId) {
   return Astro.redirect(`/ensembles/${canonicalId}`, 301);
 }
 
-const access = await getEnsembleAccess(user, ensemble.id);
+const access = await getEnsembleAccess(user, ensemble.id, { allowPending: true });
 if (!access) return Astro.redirect("/ensembles");
 const { membership, isAdmin } = access;
 const isPending = !isAdmin && membership?.status === "pending";
