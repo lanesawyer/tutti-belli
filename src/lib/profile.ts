@@ -10,13 +10,10 @@ import {
   EnsembleMember,
   Part,
   MemberPart,
-  Attendance,
-  SeasonMembership,
-  GroupMembership,
   PasswordResetToken,
   EmailChangeToken,
   EmailVerificationToken,
-  TaskCompletion,
+  runBatch,
 } from '@db';
 import { validateImageFile } from './upload';
 import { deleteImage, uploadImage } from './storage';
@@ -38,16 +35,12 @@ export async function registerUser(params: {
   const userId = crypto.randomUUID();
   const passwordHash = await hashPassword(password);
 
-  await db.insert(User).values({ id: userId, email, passwordHash, name, role: 'user' });
-
   const token = crypto.randomUUID();
   const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
-  await db.insert(EmailVerificationToken).values({
-    id: crypto.randomUUID(),
-    userId,
-    token,
-    expiresAt,
-  });
+  await db.batch([
+    db.insert(User).values({ id: userId, email, passwordHash, name, role: 'user' }),
+    db.insert(EmailVerificationToken).values({ id: crypto.randomUUID(), userId, token, expiresAt }),
+  ]);
 
   // Fire-and-forget: don't block registration if email fails
   sendEmailVerificationEmail(email, name, token, siteUrl).catch(() => {});
@@ -163,13 +156,13 @@ export async function updateParts(
   partIds: string[]
 ): Promise<ActionResult | null> {
   if (!membershipId) return null;
-  await db.delete(MemberPart).where(eq(MemberPart.membershipId, membershipId));
   const uniquePartIds = [...new Set(partIds)];
-  if (uniquePartIds.length > 0) {
-    await db.insert(MemberPart).values(
-      uniquePartIds.map((partId) => ({ id: crypto.randomUUID(), membershipId, partId }))
-    );
-  }
+  await runBatch([
+    db.delete(MemberPart).where(eq(MemberPart.membershipId, membershipId)),
+    ...uniquePartIds.map((partId) =>
+      db.insert(MemberPart).values({ id: crypto.randomUUID(), membershipId, partId }).onConflictDoNothing(),
+    ),
+  ]);
   return { type: 'redirect', url: '/profile' };
 }
 
@@ -204,27 +197,22 @@ export async function initiateEmailChange(
 
   // Invalidate any existing pending email change for this user
   const now = new Date();
-  await db
-    .update(EmailChangeToken)
-    .set({ usedAt: now })
-    .where(
-      and(
-        eq(EmailChangeToken.userId, userId),
-        isNull(EmailChangeToken.usedAt),
-        gt(EmailChangeToken.expiresAt, now),
-      )
-    );
-
   const token = crypto.randomUUID();
   const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
 
-  await db.insert(EmailChangeToken).values({
-    id: crypto.randomUUID(),
-    userId,
-    token,
-    newEmail: trimmedEmail,
-    expiresAt,
-  });
+  await db.batch([
+    db
+      .update(EmailChangeToken)
+      .set({ usedAt: now })
+      .where(
+        and(
+          eq(EmailChangeToken.userId, userId),
+          isNull(EmailChangeToken.usedAt),
+          gt(EmailChangeToken.expiresAt, now),
+        )
+      ),
+    db.insert(EmailChangeToken).values({ id: crypto.randomUUID(), userId, token, newEmail: trimmedEmail, expiresAt }),
+  ]);
 
   const emailResult = await sendEmailChangeVerificationEmail(trimmedEmail, userName, token, siteUrl);
   if (!emailResult.success) {
@@ -243,19 +231,15 @@ export async function resendVerificationEmail(email: string, siteUrl: string): P
 
   // Invalidate any existing pending tokens
   const now = new Date();
-  await db
-    .update(EmailVerificationToken)
-    .set({ usedAt: now })
-    .where(and(eq(EmailVerificationToken.userId, user.id), isNull(EmailVerificationToken.usedAt)));
-
   const token = crypto.randomUUID();
   const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
-  await db.insert(EmailVerificationToken).values({
-    id: crypto.randomUUID(),
-    userId: user.id,
-    token,
-    expiresAt,
-  });
+  await db.batch([
+    db
+      .update(EmailVerificationToken)
+      .set({ usedAt: now })
+      .where(and(eq(EmailVerificationToken.userId, user.id), isNull(EmailVerificationToken.usedAt))),
+    db.insert(EmailVerificationToken).values({ id: crypto.randomUUID(), userId: user.id, token, expiresAt }),
+  ]);
 
   sendEmailVerificationEmail(email, user.name, token, siteUrl).catch(() => {});
 }
@@ -287,8 +271,10 @@ export async function verifyEmailChangeToken(token: string): Promise<VerifyEmail
     return { type: 'conflict' };
   }
 
-  await db.update(User).set({ email: record.newEmail }).where(eq(User.id, record.userId));
-  await db.update(EmailChangeToken).set({ usedAt: now }).where(eq(EmailChangeToken.id, record.id));
+  await db.batch([
+    db.update(User).set({ email: record.newEmail }).where(eq(User.id, record.userId)),
+    db.update(EmailChangeToken).set({ usedAt: now }).where(eq(EmailChangeToken.id, record.id)),
+  ]);
 
   return { type: 'success', newEmail: record.newEmail };
 }
@@ -309,13 +295,14 @@ export async function verifyEmailToken(token: string): Promise<{ id: string; ses
 
   if (!record) return null;
 
-  const user = await db
-    .update(User)
-    .set({ emailVerifiedAt: now })
-    .where(eq(User.id, record.userId))
-    .returning({ id: User.id, sessionVersion: User.sessionVersion })
-    .get();
-  await db.update(EmailVerificationToken).set({ usedAt: now }).where(eq(EmailVerificationToken.id, record.id));
+  const [[user]] = await db.batch([
+    db
+      .update(User)
+      .set({ emailVerifiedAt: now })
+      .where(eq(User.id, record.userId))
+      .returning({ id: User.id, sessionVersion: User.sessionVersion }),
+    db.update(EmailVerificationToken).set({ usedAt: now }).where(eq(EmailVerificationToken.id, record.id)),
+  ]);
 
   return user ?? null;
 }
@@ -358,43 +345,27 @@ export async function resetPassword(
   if (!record) return { type: 'invalid' };
 
   const passwordHash = await hashPassword(password);
-  // Whoever had the old password may still be signed in somewhere.
-  await db
-    .update(User)
-    .set({ passwordHash, sessionVersion: bumpSessionVersion })
-    .where(eq(User.id, record.userId));
-  // The link came by email, so using it proves the address. Accounts added by an admin start
-  // unverified and get verified here when the person sets their first password.
-  await db
-    .update(User)
-    .set({ emailVerifiedAt: now })
-    .where(and(eq(User.id, record.userId), isNull(User.emailVerifiedAt)));
-  await db.update(PasswordResetToken).set({ usedAt: now }).where(eq(PasswordResetToken.id, record.id));
+  await db.batch([
+    // Whoever had the old password may still be signed in somewhere.
+    db
+      .update(User)
+      .set({ passwordHash, sessionVersion: bumpSessionVersion })
+      .where(eq(User.id, record.userId)),
+    // The link came by email, so using it proves the address. Accounts added by an admin start
+    // unverified and get verified here when the person sets their first password.
+    db
+      .update(User)
+      .set({ emailVerifiedAt: now })
+      .where(and(eq(User.id, record.userId), isNull(User.emailVerifiedAt))),
+    db.update(PasswordResetToken).set({ usedAt: now }).where(eq(PasswordResetToken.id, record.id)),
+  ]);
 
   return { type: 'success' };
 }
 
 async function deleteUserData(userId: string): Promise<void> {
-  const user = await db.select({ avatarUrl: User.avatarUrl }).from(User).where(eq(User.id, userId)).get();
-  const memberships = await db
-    .select({ id: EnsembleMember.id })
-    .from(EnsembleMember)
-    .where(eq(EnsembleMember.userId, userId))
-    .all();
-  const membershipIds = memberships.map((m) => m.id);
-  if (membershipIds.length > 0) {
-    await db.delete(MemberPart).where(inArray(MemberPart.membershipId, membershipIds));
-  }
-  await db.delete(EmailVerificationToken).where(eq(EmailVerificationToken.userId, userId));
-  await db.delete(EmailChangeToken).where(eq(EmailChangeToken.userId, userId));
-  await db.delete(PasswordResetToken).where(eq(PasswordResetToken.userId, userId));
-  await db.delete(Attendance).where(eq(Attendance.userId, userId));
-  await db.delete(SeasonMembership).where(eq(SeasonMembership.userId, userId));
-  await db.delete(TaskCompletion).where(eq(TaskCompletion.userId, userId));
-  await db.delete(GroupMembership).where(eq(GroupMembership.userId, userId));
-  await db.delete(EnsembleMember).where(eq(EnsembleMember.userId, userId));
-  await db.delete(User).where(eq(User.id, userId));
-  await deleteImage(user?.avatarUrl);
+  const deleted = await db.delete(User).where(eq(User.id, userId)).returning({ avatarUrl: User.avatarUrl }).get();
+  await deleteImage(deleted?.avatarUrl);
 }
 
 // Self-service account deletion: requires password, blocks admins from deleting themselves.

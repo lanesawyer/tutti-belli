@@ -19,13 +19,14 @@ export async function getUserByEmail(email: string) {
 }
 
 export async function createPasswordResetToken(userId: string, ttlMs = 60 * 60 * 1000): Promise<string> {
+  const { token, insert } = passwordResetTokenInsert(userId, ttlMs);
+  await insert;
+  return token;
+}
+
+/** The insert for a new reset token, unexecuted, so it can run inside a batch. */
+export function passwordResetTokenInsert(userId: string, ttlMs = 60 * 60 * 1000) {
   const token = crypto.randomUUID();
   const expiresAt = new Date(Date.now() + ttlMs);
-  await db.insert(PasswordResetToken).values({
-    id: crypto.randomUUID(),
-    userId,
-    token,
-    expiresAt,
-  });
-  return token;
+  return { token, insert: db.insert(PasswordResetToken).values({ id: crypto.randomUUID(), userId, token, expiresAt }) };
 }

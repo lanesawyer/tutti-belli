@@ -7,15 +7,11 @@ export async function getActiveBanner() {
 }
 
 export async function setBanner(message: string, color: BannerColor) {
-  // Deactivate any existing banners
-  await db.update(SiteBanner).set({ isActive: 0 });
-
-  await db.insert(SiteBanner).values({
-    id: crypto.randomUUID(),
-    message,
-    color,
-    isActive: 1,
-  });
+  await db.batch([
+    // Deactivate any existing banners
+    db.update(SiteBanner).set({ isActive: 0 }),
+    db.insert(SiteBanner).values({ id: crypto.randomUUID(), message, color, isActive: 1 }),
+  ]);
 }
 
 export async function clearBanner() {

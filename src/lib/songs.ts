@@ -11,6 +11,7 @@ import {
   Season,
   SeasonSong,
   User,
+  runBatch,
 } from '@db';
 import { uploadSongFile, validateSongFile, deleteStorageFile } from './storage';
 import { getEnsembleBySlugOrId } from './ensemble';
@@ -40,7 +41,7 @@ export async function getSongDetailData(ensembleId: string, songId: string) {
           uploaderName: User.name,
         })
         .from(SongFile)
-        .innerJoin(User, eq(SongFile.uploadedBy, User.id))
+        .leftJoin(User, eq(SongFile.uploadedBy, User.id))
         .where(eq(SongFile.songId, songId))
         .all(),
     ]);
@@ -146,14 +147,18 @@ export async function addSong(ensembleId: string, input: SongInput): Promise<voi
   const runTime = input.runTimeMinutes * 60 + input.runTimeSeconds || null;
 
   const songId = crypto.randomUUID();
-  await db.insert(Song).values({ id: songId, ensembleId, name, composer, arranger, runTime });
+  await runBatch([db.insert(Song).values({ id: songId, ensembleId, name, composer, arranger, runTime }), ...songLinkInserts(songId, input)]);
+}
 
-  for (const partId of input.parts) {
-    await db.insert(SongPart).values({ id: crypto.randomUUID(), songId, partId });
-  }
-  for (const seasonId of input.seasons) {
-    await db.insert(SeasonSong).values({ id: crypto.randomUUID(), songId, seasonId });
-  }
+function songLinkInserts(songId: string, input: SongInput) {
+  return [
+    ...[...new Set(input.parts)].map((partId) =>
+      db.insert(SongPart).values({ id: crypto.randomUUID(), songId, partId }).onConflictDoNothing(),
+    ),
+    ...[...new Set(input.seasons)].map((seasonId) =>
+      db.insert(SeasonSong).values({ id: crypto.randomUUID(), songId, seasonId }).onConflictDoNothing(),
+    ),
+  ];
 }
 
 export interface EditSongInput extends SongInput {
@@ -169,30 +174,24 @@ export async function editSong(input: EditSongInput): Promise<void> {
   const arranger = input.arranger?.trim() || null;
   const runTime = input.runTimeMinutes * 60 + input.runTimeSeconds || null;
 
-  await db.update(Song).set({ name, composer, arranger, runTime }).where(eq(Song.id, songId));
-
-  await db.delete(SongPart).where(eq(SongPart.songId, songId));
-  await db.delete(SeasonSong).where(eq(SeasonSong.songId, songId));
-
-  for (const partId of input.parts) {
-    await db.insert(SongPart).values({ id: crypto.randomUUID(), songId, partId });
-  }
-  for (const seasonId of input.seasons) {
-    await db.insert(SeasonSong).values({ id: crypto.randomUUID(), songId, seasonId });
-  }
+  await runBatch([
+    db.update(Song).set({ name, composer, arranger, runTime }).where(eq(Song.id, songId)),
+    db.delete(SongPart).where(eq(SongPart.songId, songId)),
+    db.delete(SeasonSong).where(eq(SeasonSong.songId, songId)),
+    ...songLinkInserts(songId, input),
+  ]);
 }
 
 export async function deleteSong(songId: string): Promise<void> {
   if (!songId) return;
 
-  await db.delete(SongPart).where(eq(SongPart.songId, songId));
-  await db.delete(SeasonSong).where(eq(SeasonSong.songId, songId));
-
-  const files = await db.select().from(SongFile).where(eq(SongFile.songId, songId)).all();
-  await Promise.all(files.map((f) => deleteStorageFile(f.url)));
-  await db.delete(SongFile).where(eq(SongFile.songId, songId));
-
-  await db.delete(Song).where(eq(Song.id, songId));
+  // The file list is read in the same batch as the delete, and storage is only touched once the
+  // rows are gone, so a failed delete never leaves rows pointing at deleted files.
+  const [files] = await db.batch([
+    db.select({ url: SongFile.url, category: SongFile.category }).from(SongFile).where(eq(SongFile.songId, songId)),
+    db.delete(Song).where(eq(Song.id, songId)),
+  ]);
+  await Promise.all(files.filter((f) => f.category !== 'link').map((f) => deleteStorageFile(f.url)));
 }
 
 export interface AddSongFileInput {

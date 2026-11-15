@@ -114,7 +114,7 @@ const announcements = await getEnsembleAnnouncements(ensemble.id);
                   {announcement.content}
                 </p>
               </td>
-              <td>{announcement.creatorName}</td>
+              <td>{announcement.creatorName ?? "Former member"}</td>
               <td>
                 {new Date(announcement.createdAt).toLocaleDateString()}
                 {announcement.updatedAt.getTime() !==
