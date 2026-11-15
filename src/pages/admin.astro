@@ -132,7 +132,7 @@ const activeBanner = await getActiveBanner();
                       type="submit"
                       color="danger"
                       size="small"
-                      onclick="return confirm('Are you sure you want to delete this ensemble?')"
+                      data-confirm="Are you sure you want to delete this ensemble?"
                     >
                       Delete
                     </Button>
@@ -212,7 +212,7 @@ const activeBanner = await getActiveBanner();
                       type="submit"
                       color="danger"
                       size="small"
-                      onclick={`return confirm('Delete user "${u.name}"? This cannot be undone.')`}
+                      data-confirm={`Delete user "${u.name}"? This cannot be undone.`}
                     >
                       Delete
                     </Button>
