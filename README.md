@@ -18,7 +18,7 @@ A web app for running musical ensembles: members and voice parts, seasons, rehea
 
 ### Prerequisites
 
-Node.js 24.15.0 and pnpm 11.15.1. Both are pinned in `package.json` (`engines`, `volta`, and `devEngines`), and `engineStrict` is on, so other versions refuse to install.
+Node.js 24.15.0 and pnpm 11.15.1. Both are pinned in `mise.toml`, so `mise install` sets them up ([mise](https://mise.jdx.dev)). `package.json` pins the same versions (`engines` and `devEngines`), and `engineStrict` is on, so other versions refuse to install.
 
 ### Setup
 

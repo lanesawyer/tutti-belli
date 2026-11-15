@@ -6,8 +6,8 @@ if [ "${CLAUDE_CODE_REMOTE:-}" != "true" ]; then
 fi
 
 # Read pinned versions from package.json
-NODE_VERSION=$(node -e "const p=require('$CLAUDE_PROJECT_DIR/package.json'); console.log(p.volta?.node || p.engines?.node || '24')")
-PNPM_VERSION=$(node -e "const p=require('$CLAUDE_PROJECT_DIR/package.json'); console.log(p.volta?.pnpm || p.engines?.pnpm || '10')")
+NODE_VERSION=$(node -e "const p=require('$CLAUDE_PROJECT_DIR/package.json'); console.log(p.engines?.node || '24')")
+PNPM_VERSION=$(node -e "const p=require('$CLAUDE_PROJECT_DIR/package.json'); console.log(p.engines?.pnpm || '10')")
 
 # Ensure nvm is available and install the pinned Node version
 export NVM_DIR="/opt/nvm"
