@@ -21,6 +21,7 @@ vi.mock("@lib/storage", async (importOriginal) => ({
 vi.mock("@lib/email", () => ({
   sendAnnouncementEmail: vi.fn().mockResolvedValue({ success: true }),
   sendEmailChangeVerificationEmail: vi.fn().mockResolvedValue({ success: true }),
+  sendEmailChangeRequestedEmail: vi.fn().mockResolvedValue({ success: true }),
   sendEmailVerificationEmail: vi.fn().mockResolvedValue({ success: true }),
   sendPasswordResetEmail: vi.fn().mockResolvedValue({ success: true }),
   sendWelcomeEmail: vi.fn().mockResolvedValue({ success: true }),

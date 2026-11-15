@@ -2,6 +2,7 @@
 import { Button, Notification, Title } from "astro-bulma";
 import SingleColumnLayout from "@layouts/SingleColumnLayout.astro";
 import { verifyEmailChangeToken } from "@lib/profile";
+import { startSession } from "@lib/session";
 
 const token = Astro.url.searchParams.get("token");
 let error = "";
@@ -20,6 +21,10 @@ if (!token) {
     error =
       "That email address has since been taken by another account. Please go back to your profile and request a new email change.";
   } else {
+    // Re-issuing the cookie while viewing as someone would hand the admin that user's session.
+    if (Astro.locals.user?.id === result.user.id && !Astro.locals.viewingAs) {
+      startSession(Astro.cookies, result.user);
+    }
     newEmailDisplay = result.newEmail;
     success = true;
   }

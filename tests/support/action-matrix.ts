@@ -638,7 +638,7 @@ export const matrix: Record<string, MatrixEntry> = {
   },
   "profile.changeEmail": {
     access: "authenticated",
-    fields: () => ({ newEmail: "moved@test.com" }),
+    fields: () => ({ newEmail: "moved@test.com", password: WORLD_PASSWORD }),
     verify: async (w) => {
       const token = await db
         .select()
