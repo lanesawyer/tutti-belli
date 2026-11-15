@@ -85,6 +85,44 @@ describe("protected routes", () => {
   });
 });
 
+describe("security headers", () => {
+  function expectSecurityHeaders(response: Response) {
+    expect(response.headers.get("x-content-type-options")).toBe("nosniff");
+    expect(response.headers.get("referrer-policy")).toBe("strict-origin-when-cross-origin");
+    expect(response.headers.get("x-frame-options")).toBe("DENY");
+    expect(response.headers.get("permissions-policy")).toContain("camera=()");
+    expect(response.headers.get("content-security-policy-report-only")).toContain(
+      "frame-ancestors 'none'",
+    );
+    // Vitest is not a production build.
+    expect(response.headers.has("strict-transport-security")).toBe(false);
+  }
+
+  it("adds them to a page response", async () => {
+    expectSecurityHeaders((await run("/login")).response);
+  });
+
+  it("adds them to the login redirect", async () => {
+    const result = await run("/ensembles");
+    expectLoginRedirect(result, "/ensembles");
+    expectSecurityHeaders(result.response);
+  });
+
+  it("keeps a header the route set itself", async () => {
+    const context = createTestContext({ path: "/login" });
+    const response = (await onRequest(
+      context,
+      async () =>
+        new Response("file", {
+          headers: { "Content-Type": "application/pdf", "X-Frame-Options": "SAMEORIGIN" },
+        }),
+    )) as Response;
+    expect(response.headers.get("content-type")).toBe("application/pdf");
+    expect(response.headers.get("x-frame-options")).toBe("SAMEORIGIN");
+    expect(response.headers.get("x-content-type-options")).toBe("nosniff");
+  });
+});
+
 describe("errors", () => {
   it("logs an error thrown while handling the request with its method and path", async () => {
     const error = new Error("boom");
