@@ -147,7 +147,7 @@ export async function isUserInEnsemble(userId: string, ensembleId: string): Prom
       and(
         eq(EnsembleMember.userId, userId),
         eq(EnsembleMember.ensembleId, ensembleId),
-        eq(EnsembleMember.status, 'active'),
+        eq(EnsembleMember.status, "active"),
       ),
     )
     .get();
