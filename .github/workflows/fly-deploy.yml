@@ -5,14 +5,25 @@ on:
   push:
     branches:
       - main
+
+permissions:
+  contents: read
+
 jobs:
+  ci:
+    name: CI
+    uses: ./.github/workflows/ci.yml
+    secrets:
+      JWT_SECRET: ${{ secrets.JWT_SECRET }}
+
   deploy:
     name: Deploy app
+    needs: ci
     runs-on: ubuntu-latest
     concurrency: deploy-group # optional: ensure only one action runs at a time
     steps:
-      - uses: actions/checkout@v6
-      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+      - uses: superfly/flyctl-actions/setup-flyctl@fc53c09e1bc3be6f54706524e3b82c4f462f77be # 1.5
       # The database credentials are runtime secrets, not build args, so they never end up in
       # the image. --stage applies them with the deploy below instead of restarting the app now.
       - name: Stage database secrets

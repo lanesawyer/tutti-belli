@@ -288,15 +288,32 @@ const members = membersData;
                             {member.id !== user.id && (
                               <td>
                                 <div class="buttons are-small">
-                                  {viewAsBlocked && !viewAsBlocked.has(member.id) && (
-                                    <form method="POST" action="/view-as" style="display: inline;">
-                                      <input type="hidden" name="userId" value={member.id} />
-                                      <input type="hidden" name="returnTo" value={`/ensembles/${canonicalId}`} />
-                                      <Button type="submit" color="link" size="small">
-                                        View as
-                                      </Button>
-                                    </form>
-                                  )}
+                                  {viewAsBlocked &&
+                                    !viewAsBlocked.has(member.id) && (
+                                      <form
+                                        method="POST"
+                                        action="/view-as"
+                                        style="display: inline;"
+                                      >
+                                        <input
+                                          type="hidden"
+                                          name="userId"
+                                          value={member.id}
+                                        />
+                                        <input
+                                          type="hidden"
+                                          name="returnTo"
+                                          value={`/ensembles/${canonicalId}`}
+                                        />
+                                        <Button
+                                          type="submit"
+                                          color="link"
+                                          size="small"
+                                        >
+                                          View as
+                                        </Button>
+                                      </form>
+                                    )}
                                   {member.role === "member" ? (
                                     <form
                                       method="POST"
@@ -433,15 +450,32 @@ const members = membersData;
                           {member.id !== user.id && (
                             <td>
                               <div class="buttons are-small">
-                                {viewAsBlocked && !viewAsBlocked.has(member.id) && (
-                                  <form method="POST" action="/view-as" style="display: inline;">
-                                    <input type="hidden" name="userId" value={member.id} />
-                                    <input type="hidden" name="returnTo" value={`/ensembles/${canonicalId}`} />
-                                    <Button type="submit" color="link" size="small">
-                                      View as
-                                    </Button>
-                                  </form>
-                                )}
+                                {viewAsBlocked &&
+                                  !viewAsBlocked.has(member.id) && (
+                                    <form
+                                      method="POST"
+                                      action="/view-as"
+                                      style="display: inline;"
+                                    >
+                                      <input
+                                        type="hidden"
+                                        name="userId"
+                                        value={member.id}
+                                      />
+                                      <input
+                                        type="hidden"
+                                        name="returnTo"
+                                        value={`/ensembles/${canonicalId}`}
+                                      />
+                                      <Button
+                                        type="submit"
+                                        color="link"
+                                        size="small"
+                                      >
+                                        View as
+                                      </Button>
+                                    </form>
+                                  )}
                                 {member.role === "member" ? (
                                   <form
                                     method="POST"
@@ -572,9 +606,21 @@ const members = membersData;
                       <td>
                         <div class="buttons are-small">
                           {viewAsBlocked && !viewAsBlocked.has(member.id) && (
-                            <form method="POST" action="/view-as" style="display: inline;">
-                              <input type="hidden" name="userId" value={member.id} />
-                              <input type="hidden" name="returnTo" value={`/ensembles/${canonicalId}`} />
+                            <form
+                              method="POST"
+                              action="/view-as"
+                              style="display: inline;"
+                            >
+                              <input
+                                type="hidden"
+                                name="userId"
+                                value={member.id}
+                              />
+                              <input
+                                type="hidden"
+                                name="returnTo"
+                                value={`/ensembles/${canonicalId}`}
+                              />
                               <Button type="submit" color="link" size="small">
                                 View as
                               </Button>
@@ -695,9 +741,13 @@ const members = membersData;
 
   <script is:inline>
     document.addEventListener("astro:page-load", () => {
-      document.getElementById("add-member-btn")?.addEventListener("click", () => {
-        document.getElementById("add-member-modal")?.classList.add("is-active");
-      });
+      document
+        .getElementById("add-member-btn")
+        ?.addEventListener("click", () => {
+          document
+            .getElementById("add-member-modal")
+            ?.classList.add("is-active");
+        });
       document
         .getElementById("copy-set-password-url")
         ?.addEventListener("click", (event) => {
