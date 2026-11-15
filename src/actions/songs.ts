@@ -1,6 +1,11 @@
 import { defineAction, ActionError } from "astro:actions";
 import { z } from "astro/zod";
-import { assertEnsembleAdmin, assertInEnsemble } from "./utils";
+import {
+  assertEnsembleAdmin,
+  assertInEnsemble,
+  assertPartsInEnsemble,
+  assertSeasonsInEnsemble,
+} from "./utils";
 import { addSong, editSong, deleteSong, addSongFile, deleteSongFile } from "@lib/songs";
 
 export const songs = {
@@ -36,6 +41,8 @@ export const songs = {
       const user = context.locals.user;
       if (!user) throw new ActionError({ code: "UNAUTHORIZED" });
       await assertEnsembleAdmin(input.ensembleId, user);
+      await assertPartsInEnsemble(input.parts, input.ensembleId);
+      await assertSeasonsInEnsemble(input.seasons, input.ensembleId);
 
       await addSong(input.ensembleId, input);
     },
@@ -75,6 +82,8 @@ export const songs = {
       if (!user) throw new ActionError({ code: "UNAUTHORIZED" });
       await assertEnsembleAdmin(input.ensembleId, user);
       await assertInEnsemble("song", input.songId, input.ensembleId);
+      await assertPartsInEnsemble(input.parts, input.ensembleId);
+      await assertSeasonsInEnsemble(input.seasons, input.ensembleId);
 
       await editSong(input);
     },

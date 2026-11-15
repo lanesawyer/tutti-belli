@@ -10,6 +10,7 @@ import {
   updateProgramSongNotes,
   updateProgramEntry,
   reorderProgramSongs,
+  getEvent,
   getEventPageData,
   setRsvp,
   removeRsvp,
@@ -873,5 +874,29 @@ describe("getEventPageData — group scoping", () => {
 
     expect(group).toBeNull();
     expect(allMembers).toHaveLength(2);
+  });
+});
+
+describe("getEvent", () => {
+  it("returns the event only for the ensemble it belongs to", async () => {
+    const admin = await createUser({ role: "admin" });
+    const a = await createEnsemble(admin!.id);
+    const b = await createEnsemble(admin!.id);
+    const event = await createEvent(a!.id, (await createSeason(a!.id))!.id);
+
+    expect((await getEvent(a!.id, event!.id))?.id).toBe(event!.id);
+    expect(await getEvent(b!.id, event!.id)).toBeNull();
+  });
+});
+
+describe("getEventPageData — ensemble scoping", () => {
+  it("returns no event when it belongs to another ensemble", async () => {
+    const admin = await createUser({ role: "admin" });
+    const a = await createEnsemble(admin!.id);
+    const b = await createEnsemble(admin!.id);
+    const event = await createEvent(a!.id, (await createSeason(a!.id))!.id);
+
+    const { event: found } = await getEventPageData(b!.id, event!.id);
+    expect(found).toBeNull();
   });
 });

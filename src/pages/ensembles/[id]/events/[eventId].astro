@@ -23,6 +23,7 @@ import QRCode from "qrcode";
 import { ensembleAdminTools } from "@lib/config";
 import { getEnsembleBySlugOrId, getEnsembleAccess } from "@lib/ensemble";
 import { getEnsembleUrlId } from "@lib/slug";
+import { siteLink } from "@lib/site-url";
 import {
   getEvent,
   getEventProgramData,
@@ -59,7 +60,7 @@ const access = await getEnsembleAccess(user, ensemble.id);
 if (!access) return Astro.redirect("/ensembles");
 const { isAdmin } = access;
 
-const event = await getEvent(eventId);
+const event = await getEvent(ensemble.id, eventId);
 if (!event) {
   return Astro.redirect(`/ensembles/${canonicalId}/events`);
 }
@@ -79,7 +80,7 @@ const isTooLate = now > checkInEndTime;
 // Re-fetch event after a potential edit so the page reflects the latest values
 const editResult = Astro.getActionResult(actions.events.edit);
 if (editResult && !editResult.error) {
-  const updatedEvent = await getEvent(eventId);
+  const updatedEvent = await getEvent(ensemble.id, eventId);
   if (updatedEvent) Object.assign(event, updatedEvent);
 }
 
@@ -127,7 +128,7 @@ const rsvpNoCount = rsvpRecords.filter((r) => r.response === "no").length;
 const rsvpNoResponseCount = allMembers.length - rsvpYesCount - rsvpNoCount;
 
 // Generate QR code for check-in
-const checkInUrl = `${Astro.url.origin}/checkin/${event.checkInCode}`;
+const checkInUrl = siteLink(`/checkin/${encodeURIComponent(event.checkInCode)}`);
 const qrCodeDataUrl = await QRCode.toDataURL(checkInUrl, {
   width: 300,
   margin: 2,

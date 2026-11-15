@@ -216,3 +216,9 @@ const viewedUser = Astro.locals.viewingAs ? Astro.locals.user : null;
     <Footer />
   </body>
 </html>
+
+<script>
+  import { installConfirmHandler } from "@lib/confirm";
+
+  installConfirmHandler(document, (message) => window.confirm(message));
+</script>

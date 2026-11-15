@@ -486,33 +486,64 @@ const songFilesMap = buildSongFilesMap(ensembleSongIds, songFilesData);
           const files = songFilesMapJS.get(songId) || [];
           const container = document.getElementById("filesModalList");
           if (files.length === 0) {
-            container.innerHTML = '<p class="has-text-grey">No files yet.</p>';
+            const empty = document.createElement("p");
+            empty.className = "has-text-grey";
+            empty.textContent = "No files yet.";
+            container.replaceChildren(empty);
             return;
           }
-          container.innerHTML = files
-            .map(
-              (f) => `
-        <div class="is-flex is-align-items-center mb-2" style="gap: 0.5rem;">
-          <span class="tag ${categoryTagClass(f.category)} is-small" style="flex-shrink:0;">${categoryLabel(f.category)}</span>
-          <a href="/files/${f.id}" class="has-text-weight-medium"
-             style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${f.name}</a>
-          ${
-            isAdmin
-              ? `
-          <form method="POST" action="/_actions/songs.deleteFile" style="flex-shrink:0;" onsubmit="return confirm('Delete this file?');">
-            <input type="hidden" name="ensembleId" value="${ensembleId}" />
-            <input type="hidden" name="fileId" value="${f.id}" />
-            <button type="submit" class="button is-danger is-small">
-              <span class="icon is-small"><i class="fas fa-trash"></i></span>
-            </button>
-          </form>
-          `
-              : ""
+          container.replaceChildren(...files.map(fileRow));
+        }
+
+        function hiddenInput(name, value) {
+          const input = document.createElement("input");
+          input.type = "hidden";
+          input.name = name;
+          input.value = value;
+          return input;
+        }
+
+        function fileRow(f) {
+          const row = document.createElement("div");
+          row.className = "is-flex is-align-items-center mb-2";
+          row.style.gap = "0.5rem";
+
+          const tag = document.createElement("span");
+          tag.className = `tag ${categoryTagClass(f.category)} is-small`;
+          tag.style.flexShrink = "0";
+          tag.textContent = categoryLabel(f.category);
+
+          const link = document.createElement("a");
+          link.href = `/files/${encodeURIComponent(f.id)}`;
+          link.className = "has-text-weight-medium song-file-name";
+          link.style.cssText =
+            "flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;";
+          link.textContent = f.name;
+
+          row.append(tag, link);
+
+          if (isAdmin) {
+            const form = document.createElement("form");
+            form.method = "POST";
+            form.action = "?_action=songs.deleteFile";
+            form.style.flexShrink = "0";
+            form.dataset.confirm = "Delete this file?";
+
+            const button = document.createElement("button");
+            button.type = "submit";
+            button.className = "button is-danger is-small";
+            const icon = document.createElement("span");
+            icon.className = "icon is-small";
+            const glyph = document.createElement("i");
+            glyph.className = "fas fa-trash";
+            icon.append(glyph);
+            button.append(icon);
+
+            form.append(hiddenInput("ensembleId", ensembleId), hiddenInput("fileId", f.id), button);
+            row.append(form);
           }
-        </div>
-      `,
-            )
-            .join("");
+
+          return row;
         }
 
         document.querySelectorAll(".files-btn").forEach((btn) => {

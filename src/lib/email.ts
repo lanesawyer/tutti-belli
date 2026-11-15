@@ -1,4 +1,5 @@
 import { Resend } from "resend";
+import { siteLink } from "./site-url";
 
 interface SendParams {
   from: string;
@@ -11,8 +12,28 @@ function getEnv(key: string, fallback = ""): string {
   return process.env[key] || fallback;
 }
 
-// Every sender takes `siteUrl`: the origin of the request that triggered the email (the
-// action's or page's url.origin), so links point at whichever domain the person is using.
+const HTML_ESCAPES: Record<string, string> = {
+  "&": "&amp;",
+  "<": "&lt;",
+  ">": "&gt;",
+  '"': "&quot;",
+  "'": "&#39;",
+};
+
+/** Escapes text for HTML element content and quoted attribute values. */
+export function escapeHtml(value: string): string {
+  return value.replace(/[&<>"']/g, (char) => HTML_ESCAPES[char]);
+}
+
+/** Plain text as HTML: escaped, with line breaks kept as `<br />`. */
+export function textToHtml(value: string): string {
+  return escapeHtml(value).replace(/\r\n|\r|\n/g, "<br />");
+}
+
+/** A header-safe subject: control characters, including CR and LF, become spaces. */
+export function emailSubject(value: string): string {
+  return value.replace(/[\p{Cc}\u2028\u2029]+/gu, " ").trim();
+}
 
 export interface EmailResult {
   success: boolean;
@@ -38,7 +59,10 @@ async function sendEmail(params: SendParams, logContext: string): Promise<EmailR
 
   console.log(`[email] ${logContext} to="${params.to}"`);
   try {
-    const { error: sendError } = await result.client.emails.send(params);
+    const { error: sendError } = await result.client.emails.send({
+      ...params,
+      subject: emailSubject(params.subject),
+    });
     if (sendError) {
       console.error(`Failed to send ${logContext}:`, sendError);
       return { success: false, error: sendError.message };
@@ -60,7 +84,9 @@ async function sendEmailBatch(paramsList: SendParams[], logContext: string): Pro
 
   console.log(`[email] ${logContext} to ${paramsList.length} recipients`);
   try {
-    const { error: sendError } = await result.client.batch.send(paramsList);
+    const { error: sendError } = await result.client.batch.send(
+      paramsList.map((params) => ({ ...params, subject: emailSubject(params.subject) })),
+    );
     if (sendError) {
       console.error(`Failed to send ${logContext}:`, sendError);
       return { success: false, error: sendError.message };
@@ -79,12 +105,11 @@ export async function sendAnnouncementEmail(
   announcementTitle: string,
   announcementContent: string,
   authorName: string,
-  siteUrl: string,
 ): Promise<EmailResult> {
   if (recipients.length === 0) return { success: true };
 
   const fromEmail = getEnv("EMAIL_FROM", "noreply@example.com");
-  const announcementsUrl = new URL(`/ensembles/${ensembleId}/announcements`, siteUrl).toString();
+  const announcementsUrl = siteLink(`/ensembles/${encodeURIComponent(ensembleId)}/announcements`);
 
   return sendEmailBatch(
     recipients.map(({ email, name }) => ({
@@ -93,21 +118,14 @@ export async function sendAnnouncementEmail(
       subject: `[${ensembleName}] ${announcementTitle}`,
       html: `
         <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2>${announcementTitle}</h2>
-          <p>Hi ${name},</p>
-          <p><strong>${authorName}</strong> posted a new announcement in <strong>${ensembleName}</strong>:</p>
-          <div style="background-color: #f5f5f5; border-left: 4px solid #485fc7; padding: 16px; margin: 24px 0; white-space: pre-wrap;">${announcementContent}</div>
-          <p style="margin: 32px 0;">
-            <a
-              href="${announcementsUrl}"
-              style="background-color: #485fc7; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;"
-            >
-              View Announcements
-            </a>
-          </p>
+          <h2>${escapeHtml(announcementTitle)}</h2>
+          <p>Hi ${escapeHtml(name)},</p>
+          <p><strong>${escapeHtml(authorName)}</strong> posted a new announcement in <strong>${escapeHtml(ensembleName)}</strong>:</p>
+          <div style="background-color: #f5f5f5; border-left: 4px solid #485fc7; padding: 16px; margin: 24px 0;">${textToHtml(announcementContent)}</div>
+          ${emailButton(announcementsUrl, "View Announcements")}
           <hr style="border: none; border-top: 1px solid #eee; margin: 32px 0;" />
           <p style="color: #888; font-size: 0.875rem;">
-            You're receiving this because you're a member of ${ensembleName}.
+            You're receiving this because you're a member of ${escapeHtml(ensembleName)}.
           </p>
         </div>
       `,
@@ -120,10 +138,9 @@ export async function sendEmailChangeVerificationEmail(
   toEmail: string,
   toName: string,
   verifyToken: string,
-  siteUrl: string,
 ): Promise<EmailResult> {
   const fromEmail = getEnv("EMAIL_FROM", "noreply@example.com");
-  const verifyUrl = new URL(`/verify-email-change?token=${verifyToken}`, siteUrl).toString();
+  const verifyUrl = siteLink("/verify-email-change", { token: verifyToken });
 
   return sendEmail(
     {
@@ -133,24 +150,13 @@ export async function sendEmailChangeVerificationEmail(
       html: `
         <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
           <h2>Verify your new email address</h2>
-          <p>Hi ${toName},</p>
-          <p>We received a request to change your account email to <strong>${toEmail}</strong>.</p>
+          <p>Hi ${escapeHtml(toName)},</p>
+          <p>We received a request to change your account email to <strong>${escapeHtml(toEmail)}</strong>.</p>
           <p>Click the button below to confirm this change. Your current email will continue to work for login until you verify the new one.</p>
-          <p style="margin: 32px 0;">
-            <a
-              href="${verifyUrl}"
-              style="background-color: #485fc7; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;"
-            >
-              Verify New Email
-            </a>
-          </p>
+          ${emailButton(verifyUrl, "Verify New Email")}
           <p>This link will expire in 1 hour.</p>
           <p>If you didn't request this change, you can safely ignore this email.</p>
-          <hr style="border: none; border-top: 1px solid #eee; margin: 32px 0;" />
-          <p style="color: #888; font-size: 0.875rem;">
-            If the button above doesn't work, copy and paste this URL into your browser:<br />
-            <a href="${verifyUrl}" style="color: #485fc7;">${verifyUrl}</a>
-          </p>
+          ${linkFallback(verifyUrl)}
         </div>
       `,
     },
@@ -162,10 +168,9 @@ export async function sendEmailVerificationEmail(
   toEmail: string,
   toName: string,
   verifyToken: string,
-  siteUrl: string,
 ): Promise<EmailResult> {
   const fromEmail = getEnv("EMAIL_FROM", "noreply@example.com");
-  const verifyUrl = new URL(`/verify-email?token=${verifyToken}`, siteUrl).toString();
+  const verifyUrl = siteLink("/verify-email", { token: verifyToken });
 
   return sendEmail(
     {
@@ -175,23 +180,12 @@ export async function sendEmailVerificationEmail(
       html: `
         <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
           <h2>Welcome to Ensemble!</h2>
-          <p>Hi ${toName},</p>
+          <p>Hi ${escapeHtml(toName)},</p>
           <p>Thanks for signing up! Please verify your email address to activate your account.</p>
-          <p style="margin: 32px 0;">
-            <a
-              href="${verifyUrl}"
-              style="background-color: #485fc7; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;"
-            >
-              Verify Email Address
-            </a>
-          </p>
+          ${emailButton(verifyUrl, "Verify Email Address")}
           <p>This link will expire in 1 hour.</p>
           <p>If you didn't create an account, you can safely ignore this email.</p>
-          <hr style="border: none; border-top: 1px solid #eee; margin: 32px 0;" />
-          <p style="color: #888; font-size: 0.875rem;">
-            If the button above doesn't work, copy and paste this URL into your browser:<br />
-            <a href="${verifyUrl}" style="color: #485fc7;">${verifyUrl}</a>
-          </p>
+          ${linkFallback(verifyUrl)}
         </div>
       `,
     },
@@ -203,10 +197,9 @@ export async function sendPasswordResetEmail(
   toEmail: string,
   toName: string,
   resetToken: string,
-  siteUrl: string,
 ): Promise<EmailResult> {
   const fromEmail = getEnv("EMAIL_FROM", "noreply@example.com");
-  const resetUrl = new URL(`/reset-password?token=${resetToken}`, siteUrl).toString();
+  const resetUrl = passwordSetUrl(resetToken);
 
   return sendEmail(
     {
@@ -216,23 +209,12 @@ export async function sendPasswordResetEmail(
       html: `
         <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
           <h2>Reset your password</h2>
-          <p>Hi ${toName},</p>
+          <p>Hi ${escapeHtml(toName)},</p>
           <p>We received a request to reset your password. Click the button below to choose a new one.</p>
-          <p style="margin: 32px 0;">
-            <a
-              href="${resetUrl}"
-              style="background-color: #485fc7; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;"
-            >
-              Reset Password
-            </a>
-          </p>
+          ${emailButton(resetUrl, "Reset Password")}
           <p>This link will expire in 1 hour.</p>
           <p>If you didn't request a password reset, you can safely ignore this email.</p>
-          <hr style="border: none; border-top: 1px solid #eee; margin: 32px 0;" />
-          <p style="color: #888; font-size: 0.875rem;">
-            If the button above doesn't work, copy and paste this URL into your browser:<br />
-            <a href="${resetUrl}" style="color: #485fc7;">${resetUrl}</a>
-          </p>
+          ${linkFallback(resetUrl)}
         </div>
       `,
     },
@@ -240,15 +222,29 @@ export async function sendPasswordResetEmail(
   );
 }
 
+/** The reset-password link, which also lets a newly added member choose their first password. */
+export function passwordSetUrl(token: string): string {
+  return siteLink("/reset-password", { token });
+}
+
 function emailButton(href: string, label: string): string {
   return `
           <p style="margin: 32px 0;">
             <a
-              href="${href}"
+              href="${escapeHtml(href)}"
               style="background-color: #485fc7; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;"
             >
-              ${label}
+              ${escapeHtml(label)}
             </a>
+          </p>`;
+}
+
+function linkFallback(href: string): string {
+  return `
+          <hr style="border: none; border-top: 1px solid #eee; margin: 32px 0;" />
+          <p style="color: #888; font-size: 0.875rem;">
+            If the button above doesn't work, copy and paste this URL into your browser:<br />
+            <a href="${escapeHtml(href)}" style="color: #485fc7;">${escapeHtml(href)}</a>
           </p>`;
 }
 
@@ -258,9 +254,8 @@ export async function sendWelcomeEmail(
   toName: string,
   ensembleName: string,
   setPasswordToken: string,
-  siteUrl: string,
 ): Promise<EmailResult> {
-  const setPasswordUrl = new URL(`/reset-password?token=${setPasswordToken}`, siteUrl).toString();
+  const setPasswordUrl = passwordSetUrl(setPasswordToken);
 
   return sendEmail(
     {
@@ -269,16 +264,12 @@ export async function sendWelcomeEmail(
       subject: `You've been added to ${ensembleName}`,
       html: `
         <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2>Welcome to ${ensembleName}</h2>
-          <p>Hi ${toName},</p>
-          <p>You've been added to <strong>${ensembleName}</strong> on Tutti Belli. Choose a password to sign in.</p>
+          <h2>Welcome to ${escapeHtml(ensembleName)}</h2>
+          <p>Hi ${escapeHtml(toName)},</p>
+          <p>You've been added to <strong>${escapeHtml(ensembleName)}</strong> on Tutti Belli. Choose a password to sign in.</p>
           ${emailButton(setPasswordUrl, "Set Your Password")}
           <p>This link will expire in 7 days.</p>
-          <hr style="border: none; border-top: 1px solid #eee; margin: 32px 0;" />
-          <p style="color: #888; font-size: 0.875rem;">
-            If the button above doesn't work, copy and paste this URL into your browser:<br />
-            <a href="${setPasswordUrl}" style="color: #485fc7;">${setPasswordUrl}</a>
-          </p>
+          ${linkFallback(setPasswordUrl)}
         </div>
       `,
     },
@@ -292,9 +283,8 @@ export async function sendAddedToEnsembleEmail(
   toName: string,
   ensembleName: string,
   ensembleId: string,
-  siteUrl: string,
 ): Promise<EmailResult> {
-  const ensembleUrl = new URL(`/ensembles/${ensembleId}`, siteUrl).toString();
+  const ensembleUrl = siteLink(`/ensembles/${encodeURIComponent(ensembleId)}`);
 
   return sendEmail(
     {
@@ -303,9 +293,9 @@ export async function sendAddedToEnsembleEmail(
       subject: `You've been added to ${ensembleName}`,
       html: `
         <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2>You've been added to ${ensembleName}</h2>
-          <p>Hi ${toName},</p>
-          <p>You're now a member of <strong>${ensembleName}</strong> on Tutti Belli.</p>
+          <h2>You've been added to ${escapeHtml(ensembleName)}</h2>
+          <p>Hi ${escapeHtml(toName)},</p>
+          <p>You're now a member of <strong>${escapeHtml(ensembleName)}</strong> on Tutti Belli.</p>
           ${emailButton(ensembleUrl, `Open ${ensembleName}`)}
         </div>
       `,

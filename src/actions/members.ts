@@ -8,7 +8,7 @@ import {
   removeMember,
   setMemberRole,
 } from "@lib/ensemble";
-import { sendAddedToEnsembleEmail, sendWelcomeEmail } from "@lib/email";
+import { passwordSetUrl, sendAddedToEnsembleEmail, sendWelcomeEmail } from "@lib/email";
 import { getEnsembleUrlId } from "@lib/slug";
 
 export const members = {
@@ -38,31 +38,18 @@ export const members = {
       const email = input.email.trim().toLowerCase();
       const sent =
         result.type === "created"
-          ? await sendWelcomeEmail(
-              email,
-              result.name,
-              ensemble.name,
-              result.setPasswordToken,
-              context.url.origin,
-            )
+          ? await sendWelcomeEmail(email, result.name, ensemble.name, result.setPasswordToken)
           : await sendAddedToEnsembleEmail(
               email,
               result.name,
               ensemble.name,
               getEnsembleUrlId(ensemble),
-              context.url.origin,
             );
 
       return {
         name: result.name,
         emailSent: sent.success,
-        setPasswordUrl:
-          result.type === "created"
-            ? new URL(
-                `/reset-password?token=${result.setPasswordToken}`,
-                context.url.origin,
-              ).toString()
-            : null,
+        setPasswordUrl: result.type === "created" ? passwordSetUrl(result.setPasswordToken) : null,
       };
     },
   }),
