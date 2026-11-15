@@ -22,81 +22,57 @@ if (pendingMembers.length === 0) return;
       <span>Pending Members ({pendingMembers.length})</span>
     </span>
   </Title>
-  <p class="mb-4 is-size-7">
-    These members are awaiting approval to join the ensemble
-  </p>
+  <p class="mb-4 is-size-7">These members are awaiting approval to join the ensemble</p>
 
   <Content>
-    {
-      pendingMembers.map((member) => (
-        <Box class="p-2 mb-2">
-          <Media>
-            <Fragment slot="left">
-              {member.avatarUrl ? (
-                <Image
-                  src={member.avatarUrl}
-                  alt={member.name}
-                  size="32x32"
-                  rounded
-                  imgStyle="object-fit: cover;"
-                />
-              ) : (
-                <figure class="image is-32x32">
-                  <div
-                    style={`width: 32px; height: 32px; border-radius: 50%; background-color: ${getColorFromInitials(getInitials(member.name))}; display: flex; align-items: center; justify-content: center; color: white; font-size: 0.75rem; font-weight: bold;`}
-                  >
-                    {getInitials(member.name)}
-                  </div>
-                </figure>
-              )}
-            </Fragment>
-            <p class="is-size-7 has-text-weight-semibold pending-wrap">
-              {member.name}
-            </p>
-            <p class="is-size-7 has-text-grey pending-wrap">{member.email}</p>
-            <p class="is-size-7 has-text-grey-light">
-              <small>
-                Applied {new Date(member.joinedAt).toLocaleDateString()}
-              </small>
-            </p>
-          </Media>
-          <div class="pending-actions mt-2">
-            <form
-              method="POST"
-              action={actions.members.approve}
-              class="pending-action"
-            >
-              <input
-                type="hidden"
-                name="membershipId"
-                value={member.membershipId}
+    {pendingMembers.map((member) => (
+      <Box class="p-2 mb-2">
+        <Media>
+          <Fragment slot="left">
+            {member.avatarUrl ? (
+              <Image
+                src={member.avatarUrl}
+                alt={member.name}
+                size="32x32"
+                rounded
+                imgStyle="object-fit: cover;"
               />
-              <input type="hidden" name="ensembleId" value={ensembleId} />
-              <Button type="submit" color="success" size="small" fullwidth>
-                <Icon icon="fa-check" />
-                <span>Approve</span>
-              </Button>
-            </form>
-            <form
-              method="POST"
-              action={actions.members.reject}
-              class="pending-action"
-            >
-              <input
-                type="hidden"
-                name="membershipId"
-                value={member.membershipId}
-              />
-              <input type="hidden" name="ensembleId" value={ensembleId} />
-              <Button type="submit" color="danger" size="small" fullwidth>
-                <Icon icon="fa-times" />
-                <span>Reject</span>
-              </Button>
-            </form>
-          </div>
-        </Box>
-      ))
-    }
+            ) : (
+              <figure class="image is-32x32">
+                <div
+                  style={`width: 32px; height: 32px; border-radius: 50%; background-color: ${getColorFromInitials(getInitials(member.name))}; display: flex; align-items: center; justify-content: center; color: white; font-size: 0.75rem; font-weight: bold;`}
+                >
+                  {getInitials(member.name)}
+                </div>
+              </figure>
+            )}
+          </Fragment>
+          <p class="is-size-7 has-text-weight-semibold pending-wrap">{member.name}</p>
+          <p class="is-size-7 has-text-grey pending-wrap">{member.email}</p>
+          <p class="is-size-7 has-text-grey-light">
+            <small>Applied {new Date(member.joinedAt).toLocaleDateString()}</small>
+          </p>
+        </Media>
+        <div class="pending-actions mt-2">
+          <form method="POST" action={actions.members.approve} class="pending-action">
+            <input type="hidden" name="membershipId" value={member.membershipId} />
+            <input type="hidden" name="ensembleId" value={ensembleId} />
+            <Button type="submit" color="success" size="small" fullwidth>
+              <Icon icon="fa-check" />
+              <span>Approve</span>
+            </Button>
+          </form>
+          <form method="POST" action={actions.members.reject} class="pending-action">
+            <input type="hidden" name="membershipId" value={member.membershipId} />
+            <input type="hidden" name="ensembleId" value={ensembleId} />
+            <Button type="submit" color="danger" size="small" fullwidth>
+              <Icon icon="fa-times" />
+              <span>Reject</span>
+            </Button>
+          </form>
+        </div>
+      </Box>
+    ))}
   </Content>
 </Box>
 

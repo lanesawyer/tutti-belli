@@ -17,17 +17,13 @@ const { canonicalId } = Astro.props;
     </span>
   </Title>
 
-  <div
-    style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem;"
-  >
-    {
-      ensembleAdminTools.map((tool) => (
-        <a href={tool.href(canonicalId)} class="button admin-tool-btn">
-          <i class={`fas ${tool.icon} mb-1`} style="font-size: 1.25rem;" />
-          <span class="is-size-7">{tool.label}</span>
-        </a>
-      ))
-    }
+  <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem;">
+    {ensembleAdminTools.map((tool) => (
+      <a href={tool.href(canonicalId)} class="button admin-tool-btn">
+        <i class={`fas ${tool.icon} mb-1`} style="font-size: 1.25rem;" />
+        <span class="is-size-7">{tool.label}</span>
+      </a>
+    ))}
   </div>
 </Box>
 

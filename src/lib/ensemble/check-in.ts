@@ -1,4 +1,4 @@
-import { db, eq, Event, Ensemble } from '@db';
+import { db, eq, Event, Ensemble } from "@db";
 
 export type CheckInPageData = {
   event: typeof Event.$inferSelect;
@@ -17,17 +17,15 @@ export async function getCheckInPageData(code: string): Promise<CheckInPageData 
 
   if (!event) return null;
 
-  const ensemble = await db
-    .select()
-    .from(Ensemble)
-    .where(eq(Ensemble.id, event.ensembleId))
-    .get();
+  const ensemble = await db.select().from(Ensemble).where(eq(Ensemble.id, event.ensembleId)).get();
 
   if (!ensemble) return null;
 
   const now = new Date();
   const scheduledTime = new Date(event.scheduledAt);
-  const checkInStartTime = new Date(scheduledTime.getTime() - ensemble.checkInStartMinutes * 60 * 1000);
+  const checkInStartTime = new Date(
+    scheduledTime.getTime() - ensemble.checkInStartMinutes * 60 * 1000,
+  );
   const checkInEndTime = new Date(scheduledTime.getTime() + ensemble.checkInEndMinutes * 60 * 1000);
 
   const isTooEarly = now < checkInStartTime;

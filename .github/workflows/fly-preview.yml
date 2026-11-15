@@ -24,7 +24,7 @@ jobs:
       name: preview
       url: https://tutti-belli-pr-${{ github.event.pull_request.number }}.fly.dev
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - uses: superfly/flyctl-actions/setup-flyctl@master
 
@@ -97,8 +97,11 @@ jobs:
       # Generate one with: fly tokens create org -o <your-org-slug>
       - name: Create Fly app if it doesn't exist
         run: |
-          flyctl apps list --json | jq -e ".[] | select(.Name == \"$APP_NAME\")" > /dev/null 2>&1 || \
+          if ! flyctl apps list --json | jq -e ".[] | select(.Name == \"$APP_NAME\")" > /dev/null 2>&1; then
             flyctl apps create "$APP_NAME"
+            # Each preview signs sessions with its own secret, never production's.
+            flyctl secrets set JWT_SECRET="$(openssl rand -hex 32)" --app "$APP_NAME" > /dev/null
+          fi
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_ORG_TOKEN }}
 
@@ -120,14 +123,7 @@ jobs:
 
       - name: Set runtime secrets
         run: |
-          if [ -z "$JWT_SECRET" ]; then
-            echo "::error::The JWT_SECRET repository secret is not set, so nobody could log in to the preview."
-            exit 1
-          fi
           flyctl secrets set \
-            JWT_SECRET="$JWT_SECRET" \
-            EMAIL_API_KEY="$EMAIL_API_KEY" \
-            EMAIL_FROM="$EMAIL_FROM" \
             ASTRO_DB_REMOTE_URL="$ASTRO_DB_REMOTE_URL" \
             ASTRO_DB_APP_TOKEN="$ASTRO_DB_APP_TOKEN" \
             SITE_URL="https://$APP_NAME.fly.dev" \
@@ -136,9 +132,6 @@ jobs:
           FLY_API_TOKEN: ${{ secrets.FLY_ORG_TOKEN }}
           ASTRO_DB_REMOTE_URL: ${{ steps.turso.outputs.db_url }}
           ASTRO_DB_APP_TOKEN: ${{ steps.turso.outputs.db_token }}
-          JWT_SECRET: ${{ secrets.JWT_SECRET }}
-          EMAIL_API_KEY: ${{ secrets.EMAIL_API_KEY }}
-          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
 
       - name: Deploy to preview app
         run: |
@@ -151,7 +144,7 @@ jobs:
           FLY_API_TOKEN: ${{ secrets.FLY_ORG_TOKEN }}
 
       - name: Comment preview URL on PR
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const appName = process.env.APP_NAME;

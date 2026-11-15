@@ -19,99 +19,72 @@ const latestAnnouncements = await getEnsembleAnnouncements(ensembleId, 3);
   viewAllHref={`/ensembles/${canonicalId}/announcements`}
   viewAllColor="link"
 >
-  {
-    latestAnnouncements.length === 0 ? (
-      <Notification color="info" light>
-        <p class="has-text-centered">No announcements yet.</p>
-        {isAdmin && (
-          <p class="has-text-centered mt-2">
-            <Button
-              href={`/ensembles/${canonicalId}/announcements`}
-              color="link"
-              size="small"
-            >
-              Create First Announcement
-            </Button>
-          </p>
-        )}
-      </Notification>
-    ) : (
-      <div class="ann-carousel">
-        <div class="ann-slides" style="height: 16rem; overflow-y: auto;">
-          {latestAnnouncements.map((announcement, i) => (
-            <div
-              class="ann-slide"
-              data-index={i}
-              style={i === 0 ? "" : "display:none"}
-            >
-              <Message color="link" style="margin-bottom: 0;">
-                <p slot="header">{announcement.title}</p>
-                <small slot="header" class="has-text-weight-normal">
-                  {new Date(announcement.createdAt).toLocaleDateString()}
+  {latestAnnouncements.length === 0 ? (
+    <Notification color="info" light>
+      <p class="has-text-centered">No announcements yet.</p>
+      {isAdmin && (
+        <p class="has-text-centered mt-2">
+          <Button href={`/ensembles/${canonicalId}/announcements`} color="link" size="small">
+            Create First Announcement
+          </Button>
+        </p>
+      )}
+    </Notification>
+  ) : (
+    <div class="ann-carousel">
+      <div class="ann-slides" style="height: 16rem; overflow-y: auto;">
+        {latestAnnouncements.map((announcement, i) => (
+          <div class="ann-slide" data-index={i} style={i === 0 ? "" : "display:none"}>
+            <Message color="link" style="margin-bottom: 0;">
+              <p slot="header">{announcement.title}</p>
+              <small slot="header" class="has-text-weight-normal">
+                {new Date(announcement.createdAt).toLocaleDateString()}
+              </small>
+              <p style="white-space: pre-wrap;">{announcement.content}</p>
+              <p class="mt-2">
+                <small>
+                  <em>— {announcement.creatorName ?? "Former member"}</em>
                 </small>
-                <p style="white-space: pre-wrap;">{announcement.content}</p>
-                <p class="mt-2">
-                  <small>
-                    <em>— {announcement.creatorName ?? "Former member"}</em>
-                  </small>
-                </p>
-              </Message>
-            </div>
-          ))}
-          <div
-            class="ann-slide"
-            data-index={latestAnnouncements.length}
-            style="display:none"
-          >
-            <div class="has-text-centered" style="padding: 2rem 1rem;">
-              <p class="mb-4 has-text-grey">
-                See all announcements from this ensemble.
               </p>
-              <Button
-                href={`/ensembles/${canonicalId}/announcements`}
-                color="link"
-              >
-                <Icon icon="fa-bullhorn" />
-                <span>View All Announcements</span>
-              </Button>
-            </div>
+            </Message>
           </div>
-        </div>
-
-        <div class="ann-nav">
-          <button
-            class="ann-arrow"
-            id="ann-prev"
-            aria-label="Previous announcement"
-          >
-            <Icon icon="fa-chevron-left" />
-          </button>
-          <div class="ann-dots">
-            {latestAnnouncements.map((_, i) => (
-              <button
-                class="ann-dot"
-                class:list={[{ "ann-dot-active": i === 0 }]}
-                data-target={i}
-                aria-label={`Announcement ${i + 1}`}
-              />
-            ))}
-            <button
-              class="ann-dot ann-dot-viewall"
-              data-target={latestAnnouncements.length}
-              aria-label="View all"
-            />
+        ))}
+        <div class="ann-slide" data-index={latestAnnouncements.length} style="display:none">
+          <div class="has-text-centered" style="padding: 2rem 1rem;">
+            <p class="mb-4 has-text-grey">See all announcements from this ensemble.</p>
+            <Button href={`/ensembles/${canonicalId}/announcements`} color="link">
+              <Icon icon="fa-bullhorn" />
+              <span>View All Announcements</span>
+            </Button>
           </div>
-          <button
-            class="ann-arrow"
-            id="ann-next"
-            aria-label="Next announcement"
-          >
-            <Icon icon="fa-chevron-right" />
-          </button>
         </div>
       </div>
-    )
-  }
+
+      <div class="ann-nav">
+        <button class="ann-arrow" id="ann-prev" aria-label="Previous announcement">
+          <Icon icon="fa-chevron-left" />
+        </button>
+        <div class="ann-dots">
+          {latestAnnouncements.map((_, i) => (
+            <button
+              class="ann-dot"
+              class:list={[{ "ann-dot-active": i === 0 }]}
+              data-target={i}
+              aria-label={`Announcement ${i + 1}`}
+            />
+          ))}
+          <button
+            class="ann-dot ann-dot-viewall"
+            data-target={latestAnnouncements.length}
+            aria-label="View all"
+          />
+        </div>
+        <button class="ann-arrow" id="ann-next" aria-label="Next announcement">
+          <Icon icon="fa-chevron-right" />
+        </button>
+      </div>
+    </div>
+  )}
 </DashboardSection>
 
 <style>
@@ -184,12 +157,8 @@ const latestAnnouncements = await getEnsembleAnnouncements(ensembleId, 3);
 <script>
   document.addEventListener("astro:page-load", () => {
     document.querySelectorAll(".ann-carousel").forEach((carousel) => {
-      const slides = Array.from(
-        carousel.querySelectorAll<HTMLElement>(".ann-slide"),
-      );
-      const dots = Array.from(
-        carousel.querySelectorAll<HTMLElement>(".ann-dot"),
-      );
+      const slides = Array.from(carousel.querySelectorAll<HTMLElement>(".ann-slide"));
+      const dots = Array.from(carousel.querySelectorAll<HTMLElement>(".ann-dot"));
       const prevBtn = carousel.querySelector<HTMLButtonElement>("#ann-prev");
       const nextBtn = carousel.querySelector<HTMLButtonElement>("#ann-next");
       let current = 0;
@@ -207,9 +176,7 @@ const latestAnnouncements = await getEnsembleAnnouncements(ensembleId, 3);
 
       dots.forEach((dot, i) => dot.addEventListener("click", () => goTo(i)));
       prevBtn?.addEventListener("click", () => goTo(Math.max(0, current - 1)));
-      nextBtn?.addEventListener("click", () =>
-        goTo(Math.min(slides.length - 1, current + 1)),
-      );
+      nextBtn?.addEventListener("click", () => goTo(Math.min(slides.length - 1, current + 1)));
 
       goTo(0);
     });

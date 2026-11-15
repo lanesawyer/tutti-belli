@@ -1,6 +1,6 @@
-import { db, eq, SiteBanner } from '@db';
+import { db, eq, SiteBanner } from "@db";
 
-export type BannerColor = 'primary' | 'link' | 'info' | 'success' | 'warning' | 'danger';
+export type BannerColor = "primary" | "link" | "info" | "success" | "warning" | "danger";
 
 export async function getActiveBanner() {
   return (await db.select().from(SiteBanner).where(eq(SiteBanner.isActive, 1)).get()) ?? null;

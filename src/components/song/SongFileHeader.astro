@@ -24,36 +24,28 @@ const { name, category, uploaderName, uploadedAt, href } = Astro.props;
   >
     {categoryLabel(category)}
   </span>
-  {
-    href ? (
-      <a
-        href={href}
-        class="has-text-weight-medium"
-        style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        {name}
-      </a>
-    ) : (
-      <span
-        class="has-text-weight-medium"
-        style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"
-      >
-        {name}
-      </span>
-    )
-  }
-  <span
-    class="has-text-grey is-size-7"
-    style="flex-shrink:0; white-space:nowrap;"
-  >
+  {href ? (
+    <a
+      href={href}
+      class="has-text-weight-medium"
+      style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      {name}
+    </a>
+  ) : (
+    <span
+      class="has-text-weight-medium"
+      style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"
+    >
+      {name}
+    </span>
+  )}
+  <span class="has-text-grey is-size-7" style="flex-shrink:0; white-space:nowrap;">
     {uploaderName} &middot; {new Date(uploadedAt).toLocaleDateString()}
   </span>
-  <div
-    class="is-flex is-align-items-center"
-    style="gap: 0.5rem; flex-shrink: 0;"
-  >
+  <div class="is-flex is-align-items-center" style="gap: 0.5rem; flex-shrink: 0;">
     <slot />
   </div>
 </div>

@@ -12,39 +12,46 @@ import {
   SeasonSong,
   User,
   runBatch,
-} from '@db';
-import { uploadSongFile, validateSongFile, deleteStorageFile } from './storage';
-import { getEnsembleBySlugOrId } from './ensemble';
+} from "@db";
+import { uploadSongFile, validateSongFile, deleteStorageFile } from "./storage";
+import { getEnsembleBySlugOrId } from "./ensemble";
 
 // ─── Queries ────────────────────────────────────────────────────────────────
 
 export async function getSongDetailData(ensembleId: string, songId: string) {
   const ensemble = await getEnsembleBySlugOrId(ensembleId);
   if (!ensemble) {
-    return { ensemble: null, song: null, parts: [], seasons: [], songPartsData: [], seasonSongsData: [], songFiles: [] };
+    return {
+      ensemble: null,
+      song: null,
+      parts: [],
+      seasons: [],
+      songPartsData: [],
+      seasonSongsData: [],
+      songFiles: [],
+    };
   }
 
-  const [song, parts, seasons, songPartsData, seasonSongsData, songFiles] =
-    await Promise.all([
-      db.select().from(Song).where(eq(Song.id, songId)).get(),
-      db.select().from(Part).where(eq(Part.ensembleId, ensemble.id)).all(),
-      db.select().from(Season).where(eq(Season.ensembleId, ensemble.id)).all(),
-      db.select().from(SongPart).where(eq(SongPart.songId, songId)).all(),
-      db.select().from(SeasonSong).where(eq(SeasonSong.songId, songId)).all(),
-      db
-        .select({
-          id: SongFile.id,
-          name: SongFile.name,
-          url: SongFile.url,
-          category: SongFile.category,
-          uploadedAt: SongFile.uploadedAt,
-          uploaderName: User.name,
-        })
-        .from(SongFile)
-        .leftJoin(User, eq(SongFile.uploadedBy, User.id))
-        .where(eq(SongFile.songId, songId))
-        .all(),
-    ]);
+  const [song, parts, seasons, songPartsData, seasonSongsData, songFiles] = await Promise.all([
+    db.select().from(Song).where(eq(Song.id, songId)).get(),
+    db.select().from(Part).where(eq(Part.ensembleId, ensemble.id)).all(),
+    db.select().from(Season).where(eq(Season.ensembleId, ensemble.id)).all(),
+    db.select().from(SongPart).where(eq(SongPart.songId, songId)).all(),
+    db.select().from(SeasonSong).where(eq(SeasonSong.songId, songId)).all(),
+    db
+      .select({
+        id: SongFile.id,
+        name: SongFile.name,
+        url: SongFile.url,
+        category: SongFile.category,
+        uploadedAt: SongFile.uploadedAt,
+        uploaderName: User.name,
+      })
+      .from(SongFile)
+      .leftJoin(User, eq(SongFile.uploadedBy, User.id))
+      .where(eq(SongFile.songId, songId))
+      .all(),
+  ]);
 
   return { ensemble, song, parts, seasons, songPartsData, seasonSongsData, songFiles };
 }
@@ -52,20 +59,30 @@ export async function getSongDetailData(ensembleId: string, songId: string) {
 export async function getSongsPageData(ensembleId: string) {
   const ensemble = await getEnsembleBySlugOrId(ensembleId);
   if (!ensemble) {
-    return { ensemble: null, songs: [], parts: [], seasons: [], songPartsData: [], seasonSongsData: [], songFilesData: [] };
+    return {
+      ensemble: null,
+      songs: [],
+      parts: [],
+      seasons: [],
+      songPartsData: [],
+      seasonSongsData: [],
+      songFilesData: [],
+    };
   }
 
-  const ensembleSongIds = db.select({ id: Song.id }).from(Song).where(eq(Song.ensembleId, ensemble.id));
+  const ensembleSongIds = db
+    .select({ id: Song.id })
+    .from(Song)
+    .where(eq(Song.ensembleId, ensemble.id));
 
-  const [songs, parts, seasons, songPartsData, seasonSongsData, songFilesData] =
-    await Promise.all([
-      db.select().from(Song).where(eq(Song.ensembleId, ensemble.id)).all(),
-      db.select().from(Part).where(eq(Part.ensembleId, ensemble.id)).all(),
-      db.select().from(Season).where(eq(Season.ensembleId, ensemble.id)).all(),
-      db.select().from(SongPart).where(inArray(SongPart.songId, ensembleSongIds)).all(),
-      db.select().from(SeasonSong).where(inArray(SeasonSong.songId, ensembleSongIds)).all(),
-      db.select().from(SongFile).where(inArray(SongFile.songId, ensembleSongIds)).all(),
-    ]);
+  const [songs, parts, seasons, songPartsData, seasonSongsData, songFilesData] = await Promise.all([
+    db.select().from(Song).where(eq(Song.ensembleId, ensemble.id)).all(),
+    db.select().from(Part).where(eq(Part.ensembleId, ensemble.id)).all(),
+    db.select().from(Season).where(eq(Season.ensembleId, ensemble.id)).all(),
+    db.select().from(SongPart).where(inArray(SongPart.songId, ensembleSongIds)).all(),
+    db.select().from(SeasonSong).where(inArray(SeasonSong.songId, ensembleSongIds)).all(),
+    db.select().from(SongFile).where(inArray(SongFile.songId, ensembleSongIds)).all(),
+  ]);
 
   return { ensemble, songs, parts, seasons, songPartsData, seasonSongsData, songFilesData };
 }
@@ -86,7 +103,7 @@ export async function getSongFileWithAccess(fileId: string, userId: string) {
     .where(and(eq(EnsembleMember.ensembleId, row.ensembleId), eq(EnsembleMember.userId, userId)))
     .get();
 
-  if (membership?.status !== 'active') return null;
+  if (membership?.status !== "active") return null;
 
   return { url: row.url, name: row.name };
 }
@@ -113,7 +130,7 @@ export function buildSongSeasonsMap(seasonSongsData: { songId: string; seasonId:
 
 export function buildSongFilesMap<T extends { songId: string }>(
   songIds: Set<string>,
-  filesData: T[]
+  filesData: T[],
 ) {
   const map = new Map<string, T[]>();
   for (const file of filesData) {
@@ -126,7 +143,7 @@ export function buildSongFilesMap<T extends { songId: string }>(
 
 // ─── Actions ────────────────────────────────────────────────────────────────
 
-const VALID_CATEGORIES = ['sheet_music', 'rehearsal_track', 'other', 'link'] as const;
+const VALID_CATEGORIES = ["sheet_music", "rehearsal_track", "other", "link"] as const;
 
 export interface SongInput {
   name: string;
@@ -147,7 +164,10 @@ export async function addSong(ensembleId: string, input: SongInput): Promise<voi
   const runTime = input.runTimeMinutes * 60 + input.runTimeSeconds || null;
 
   const songId = crypto.randomUUID();
-  await runBatch([db.insert(Song).values({ id: songId, ensembleId, name, composer, arranger, runTime }), ...songLinkInserts(songId, input)]);
+  await runBatch([
+    db.insert(Song).values({ id: songId, ensembleId, name, composer, arranger, runTime }),
+    ...songLinkInserts(songId, input),
+  ]);
 }
 
 function songLinkInserts(songId: string, input: SongInput) {
@@ -156,7 +176,10 @@ function songLinkInserts(songId: string, input: SongInput) {
       db.insert(SongPart).values({ id: crypto.randomUUID(), songId, partId }).onConflictDoNothing(),
     ),
     ...[...new Set(input.seasons)].map((seasonId) =>
-      db.insert(SeasonSong).values({ id: crypto.randomUUID(), songId, seasonId }).onConflictDoNothing(),
+      db
+        .insert(SeasonSong)
+        .values({ id: crypto.randomUUID(), songId, seasonId })
+        .onConflictDoNothing(),
     ),
   ];
 }
@@ -188,10 +211,15 @@ export async function deleteSong(songId: string): Promise<void> {
   // The file list is read in the same batch as the delete, and storage is only touched once the
   // rows are gone, so a failed delete never leaves rows pointing at deleted files.
   const [files] = await db.batch([
-    db.select({ url: SongFile.url, category: SongFile.category }).from(SongFile).where(eq(SongFile.songId, songId)),
+    db
+      .select({ url: SongFile.url, category: SongFile.category })
+      .from(SongFile)
+      .where(eq(SongFile.songId, songId)),
     db.delete(Song).where(eq(Song.id, songId)),
   ]);
-  await Promise.all(files.filter((f) => f.category !== 'link').map((f) => deleteStorageFile(f.url)));
+  await Promise.all(
+    files.filter((f) => f.category !== "link").map((f) => deleteStorageFile(f.url)),
+  );
 }
 
 export interface AddSongFileInput {
@@ -205,33 +233,35 @@ export interface AddSongFileInput {
 export async function addSongFile(
   input: AddSongFileInput,
   uploadedBy: string,
-  ensembleId?: string
+  ensembleId?: string,
 ): Promise<{ error?: string }> {
   const { songId } = input;
   const name = input.fileName.trim();
   const category = (VALID_CATEGORIES as readonly string[]).includes(input.category)
     ? (input.category as (typeof VALID_CATEGORIES)[number])
-    : 'other';
+    : "other";
 
   if (!songId || !name) return {};
 
   let url: string;
 
-  if (category === 'link') {
-    url = input.fileUrl?.trim() ?? '';
-    if (!url) return { error: 'A URL is required for links.' };
+  if (category === "link") {
+    url = input.fileUrl?.trim() ?? "";
+    if (!url) return { error: "A URL is required for links." };
     // Links render as <a href> for every member, so only allow web URLs (no javascript: etc.).
-    if (!/^https?:\/\//i.test(url)) return { error: 'Links must start with http:// or https://.' };
+    if (!/^https?:\/\//i.test(url)) return { error: "Links must start with http:// or https://." };
   } else if (input.file && input.file.size > 0) {
-    if (!ensembleId) return { error: 'Missing ensemble context for upload.' };
+    if (!ensembleId) return { error: "Missing ensemble context for upload." };
     const validation = validateSongFile(input.file);
     if (!validation.valid) return { error: validation.error };
     url = await uploadSongFile(input.file, ensembleId);
   } else {
-    return { error: 'A file is required.' };
+    return { error: "A file is required." };
   }
 
-  await db.insert(SongFile).values({ id: crypto.randomUUID(), songId, name, url, category, uploadedBy });
+  await db
+    .insert(SongFile)
+    .values({ id: crypto.randomUUID(), songId, name, url, category, uploadedBy });
   return {};
 }
 
@@ -239,38 +269,38 @@ export async function deleteSongFile(fileId: string): Promise<void> {
   if (!fileId) return;
 
   const file = await db.select().from(SongFile).where(eq(SongFile.id, fileId)).get();
-  if (file && file.category !== 'link') await deleteStorageFile(file.url);
+  if (file && file.category !== "link") await deleteStorageFile(file.url);
   await db.delete(SongFile).where(eq(SongFile.id, fileId));
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 export function formatRuntime(seconds: number | null): string {
-  if (!seconds) return '-';
+  if (!seconds) return "-";
   const mins = Math.floor(seconds / 60);
   const secs = seconds % 60;
-  return `${mins}:${secs.toString().padStart(2, '0')}`;
+  return `${mins}:${secs.toString().padStart(2, "0")}`;
 }
 
 export function categoryLabel(cat: string): string {
-  if (cat === 'sheet_music') return 'Sheet Music';
-  if (cat === 'rehearsal_track') return 'Rehearsal Track';
-  if (cat === 'link') return 'Link';
-  return 'Other';
+  if (cat === "sheet_music") return "Sheet Music";
+  if (cat === "rehearsal_track") return "Rehearsal Track";
+  if (cat === "link") return "Link";
+  return "Other";
 }
 
 export function categoryTagClass(cat: string): string {
-  if (cat === 'sheet_music') return 'is-success';
-  if (cat === 'rehearsal_track') return 'is-warning';
-  if (cat === 'link') return 'is-info';
-  return 'is-light';
+  if (cat === "sheet_music") return "is-success";
+  if (cat === "rehearsal_track") return "is-warning";
+  if (cat === "link") return "is-info";
+  return "is-light";
 }
 
 export function getYouTubeId(url: string): string | null {
   try {
     const u = new URL(url);
-    if (u.hostname === 'youtu.be') return u.pathname.slice(1).split('?')[0];
-    if (u.hostname.includes('youtube.com')) return u.searchParams.get('v');
+    if (u.hostname === "youtu.be") return u.pathname.slice(1).split("?")[0];
+    if (u.hostname.includes("youtube.com")) return u.searchParams.get("v");
   } catch {}
   return null;
 }
@@ -284,7 +314,13 @@ export async function getActiveSeasonRepertoire(ensembleId: string) {
     .get();
   if (!season) return null;
   const songs = await db
-    .select({ id: Song.id, name: Song.name, composer: Song.composer, arranger: Song.arranger, runTime: Song.runTime })
+    .select({
+      id: Song.id,
+      name: Song.name,
+      composer: Song.composer,
+      arranger: Song.arranger,
+      runTime: Song.runTime,
+    })
     .from(SeasonSong)
     .innerJoin(Song, eq(SeasonSong.songId, Song.id))
     .where(eq(SeasonSong.seasonId, season.id))

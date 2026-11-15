@@ -14,12 +14,12 @@ import {
   EmailChangeToken,
   EmailVerificationToken,
   runBatch,
-} from '@db';
-import { validateImageFile } from './upload';
-import { deleteImage, uploadImage } from './storage';
-import { hashPassword, verifyPassword } from './auth';
-import { bumpSessionVersion } from './session';
-import { sendEmailChangeVerificationEmail, sendEmailVerificationEmail } from './email';
+} from "@db";
+import { validateImageFile } from "./upload";
+import { deleteImage, uploadImage } from "./storage";
+import { hashPassword, verifyPassword } from "./auth";
+import { bumpSessionVersion } from "./session";
+import { sendEmailChangeVerificationEmail, sendEmailVerificationEmail } from "./email";
 
 export async function registerUser(params: {
   name: string;
@@ -29,7 +29,7 @@ export async function registerUser(params: {
   const { name, email, password } = params;
 
   const existing = await db.select({ id: User.id }).from(User).where(eq(User.email, email)).get();
-  if (existing) throw new Error('An account with this email already exists.');
+  if (existing) throw new Error("An account with this email already exists.");
 
   const userId = crypto.randomUUID();
   const passwordHash = await hashPassword(password);
@@ -37,7 +37,7 @@ export async function registerUser(params: {
   const token = crypto.randomUUID();
   const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
   await db.batch([
-    db.insert(User).values({ id: userId, email, passwordHash, name, role: 'user' }),
+    db.insert(User).values({ id: userId, email, passwordHash, name, role: "user" }),
     db.insert(EmailVerificationToken).values({ id: crypto.randomUUID(), userId, token, expiresAt }),
   ]);
 
@@ -47,9 +47,7 @@ export async function registerUser(params: {
   return { userId };
 }
 
-export type ActionResult =
-  | { type: 'redirect'; url: string }
-  | { type: 'error'; message: string };
+export type ActionResult = { type: "redirect"; url: string } | { type: "error"; message: string };
 
 export async function getMembershipsWithParts(userId: string) {
   const memberships = await db
@@ -65,12 +63,15 @@ export async function getMembershipsWithParts(userId: string) {
 
   const membershipIds = memberships.map((m) => m.membershipId);
   const ensembleIds = memberships.map((m) => m.ensembleId);
-  const allParts =
-    ensembleIds.length > 0 ? await db.select().from(Part).all() : [];
+  const allParts = ensembleIds.length > 0 ? await db.select().from(Part).all() : [];
 
   const memberPartRows =
     membershipIds.length > 0
-      ? await db.select().from(MemberPart).where(inArray(MemberPart.membershipId, membershipIds)).all()
+      ? await db
+          .select()
+          .from(MemberPart)
+          .where(inArray(MemberPart.membershipId, membershipIds))
+          .all()
       : [];
 
   const partsByMembership = new Map<string, (typeof allParts)[number][]>();
@@ -102,34 +103,31 @@ export async function getMembershipsWithParts(userId: string) {
   return { memberships, partsByEnsemble, partsByMembership };
 }
 
-export async function updateName(
-  userId: string,
-  name: string | undefined
-): Promise<ActionResult> {
+export async function updateName(userId: string, name: string | undefined): Promise<ActionResult> {
   if (!name?.trim()) {
-    return { type: 'error', message: 'Name cannot be empty' };
+    return { type: "error", message: "Name cannot be empty" };
   }
   await db.update(User).set({ name: name.trim() }).where(eq(User.id, userId));
-  return { type: 'redirect', url: '/profile' };
+  return { type: "redirect", url: "/profile" };
 }
 
 export async function updatePhone(
   userId: string,
-  phone: string | undefined
+  phone: string | undefined,
 ): Promise<ActionResult> {
   const trimmed = phone?.trim() || null;
   if (trimmed && !/^\d{3}-\d{3}-\d{4}$/.test(trimmed)) {
-    return { type: 'error', message: 'Phone number must be in the format 333-333-3333' };
+    return { type: "error", message: "Phone number must be in the format 333-333-3333" };
   }
   await db.update(User).set({ phone: trimmed }).where(eq(User.id, userId));
-  return { type: 'redirect', url: '/profile' };
+  return { type: "redirect", url: "/profile" };
 }
 
 export async function updateAvatar(
   userId: string,
   currentAvatarUrl: string | null | undefined,
   avatarFile: File,
-  removeAvatar: boolean
+  removeAvatar: boolean,
 ): Promise<ActionResult> {
   let avatarUrl = currentAvatarUrl ?? null;
 
@@ -140,29 +138,32 @@ export async function updateAvatar(
   if (avatarFile && avatarFile.size > 0) {
     const validation = validateImageFile(avatarFile, 2);
     if (!validation.valid) {
-      return { type: 'error', message: validation.error! };
+      return { type: "error", message: validation.error! };
     }
-    avatarUrl = await uploadImage(avatarFile, 'avatars');
+    avatarUrl = await uploadImage(avatarFile, "avatars");
   }
 
   await db.update(User).set({ avatarUrl }).where(eq(User.id, userId));
   if (currentAvatarUrl && currentAvatarUrl !== avatarUrl) await deleteImage(currentAvatarUrl);
-  return { type: 'redirect', url: '/profile' };
+  return { type: "redirect", url: "/profile" };
 }
 
 export async function updateParts(
   membershipId: string | undefined,
-  partIds: string[]
+  partIds: string[],
 ): Promise<ActionResult | null> {
   if (!membershipId) return null;
   const uniquePartIds = [...new Set(partIds)];
   await runBatch([
     db.delete(MemberPart).where(eq(MemberPart.membershipId, membershipId)),
     ...uniquePartIds.map((partId) =>
-      db.insert(MemberPart).values({ id: crypto.randomUUID(), membershipId, partId }).onConflictDoNothing(),
+      db
+        .insert(MemberPart)
+        .values({ id: crypto.randomUUID(), membershipId, partId })
+        .onConflictDoNothing(),
     ),
   ]);
-  return { type: 'redirect', url: '/profile' };
+  return { type: "redirect", url: "/profile" };
 }
 
 export async function initiateEmailChange(
@@ -172,17 +173,17 @@ export async function initiateEmailChange(
   newEmail: string | undefined,
 ): Promise<ActionResult> {
   if (!newEmail?.trim()) {
-    return { type: 'error', message: 'Please enter a new email address.' };
+    return { type: "error", message: "Please enter a new email address." };
   }
 
   const trimmedEmail = newEmail.trim().toLowerCase();
 
-  if (!trimmedEmail.includes('@')) {
-    return { type: 'error', message: 'Please enter a valid email address.' };
+  if (!trimmedEmail.includes("@")) {
+    return { type: "error", message: "Please enter a valid email address." };
   }
 
   if (trimmedEmail === currentEmail.toLowerCase()) {
-    return { type: 'error', message: 'That is already your current email address.' };
+    return { type: "error", message: "That is already your current email address." };
   }
 
   const [existingUser] = await db
@@ -190,7 +191,7 @@ export async function initiateEmailChange(
     .from(User)
     .where(eq(User.email, trimmedEmail));
   if (existingUser) {
-    return { type: 'error', message: 'That email address is already in use.' };
+    return { type: "error", message: "That email address is already in use." };
   }
 
   // Invalidate any existing pending email change for this user
@@ -207,20 +208,22 @@ export async function initiateEmailChange(
           eq(EmailChangeToken.userId, userId),
           isNull(EmailChangeToken.usedAt),
           gt(EmailChangeToken.expiresAt, now),
-        )
+        ),
       ),
-    db.insert(EmailChangeToken).values({ id: crypto.randomUUID(), userId, token, newEmail: trimmedEmail, expiresAt }),
+    db
+      .insert(EmailChangeToken)
+      .values({ id: crypto.randomUUID(), userId, token, newEmail: trimmedEmail, expiresAt }),
   ]);
 
   const emailResult = await sendEmailChangeVerificationEmail(trimmedEmail, userName, token);
   if (!emailResult.success) {
-    console.error('Email change verification email failed:', emailResult.error);
+    console.error("Email change verification email failed:", emailResult.error);
     if (import.meta.env.DEV) {
-      return { type: 'error', message: `Email failed: ${emailResult.error}` };
+      return { type: "error", message: `Email failed: ${emailResult.error}` };
     }
   }
 
-  return { type: 'redirect', url: '/profile?emailChangePending=1' };
+  return { type: "redirect", url: "/profile?emailChangePending=1" };
 }
 
 export async function resendVerificationEmail(email: string): Promise<void> {
@@ -235,17 +238,21 @@ export async function resendVerificationEmail(email: string): Promise<void> {
     db
       .update(EmailVerificationToken)
       .set({ usedAt: now })
-      .where(and(eq(EmailVerificationToken.userId, user.id), isNull(EmailVerificationToken.usedAt))),
-    db.insert(EmailVerificationToken).values({ id: crypto.randomUUID(), userId: user.id, token, expiresAt }),
+      .where(
+        and(eq(EmailVerificationToken.userId, user.id), isNull(EmailVerificationToken.usedAt)),
+      ),
+    db
+      .insert(EmailVerificationToken)
+      .values({ id: crypto.randomUUID(), userId: user.id, token, expiresAt }),
   ]);
 
   sendEmailVerificationEmail(email, user.name, token).catch(() => {});
 }
 
 export type VerifyEmailChangeResult =
-  | { type: 'success'; newEmail: string }
-  | { type: 'conflict' }
-  | { type: 'invalid' };
+  | { type: "success"; newEmail: string }
+  | { type: "conflict" }
+  | { type: "invalid" };
 
 export async function verifyEmailChangeToken(token: string): Promise<VerifyEmailChangeResult> {
   const now = new Date();
@@ -260,13 +267,19 @@ export async function verifyEmailChangeToken(token: string): Promise<VerifyEmail
       ),
     );
 
-  if (!record) return { type: 'invalid' };
+  if (!record) return { type: "invalid" };
 
-  const [conflict] = await db.select({ id: User.id }).from(User).where(eq(User.email, record.newEmail));
+  const [conflict] = await db
+    .select({ id: User.id })
+    .from(User)
+    .where(eq(User.email, record.newEmail));
 
   if (conflict) {
-    await db.update(EmailChangeToken).set({ usedAt: now }).where(eq(EmailChangeToken.id, record.id));
-    return { type: 'conflict' };
+    await db
+      .update(EmailChangeToken)
+      .set({ usedAt: now })
+      .where(eq(EmailChangeToken.id, record.id));
+    return { type: "conflict" };
   }
 
   await db.batch([
@@ -274,10 +287,12 @@ export async function verifyEmailChangeToken(token: string): Promise<VerifyEmail
     db.update(EmailChangeToken).set({ usedAt: now }).where(eq(EmailChangeToken.id, record.id)),
   ]);
 
-  return { type: 'success', newEmail: record.newEmail };
+  return { type: "success", newEmail: record.newEmail };
 }
 
-export async function verifyEmailToken(token: string): Promise<{ id: string; sessionVersion: number } | null> {
+export async function verifyEmailToken(
+  token: string,
+): Promise<{ id: string; sessionVersion: number } | null> {
   const now = new Date();
   const record = await db
     .select()
@@ -299,7 +314,10 @@ export async function verifyEmailToken(token: string): Promise<{ id: string; ses
       .set({ emailVerifiedAt: now })
       .where(eq(User.id, record.userId))
       .returning({ id: User.id, sessionVersion: User.sessionVersion }),
-    db.update(EmailVerificationToken).set({ usedAt: now }).where(eq(EmailVerificationToken.id, record.id)),
+    db
+      .update(EmailVerificationToken)
+      .set({ usedAt: now })
+      .where(eq(EmailVerificationToken.id, record.id)),
   ]);
 
   return user ?? null;
@@ -323,9 +341,9 @@ export async function validatePasswordResetToken(token: string): Promise<boolean
 export async function resetPassword(
   token: string,
   password: string,
-): Promise<{ type: 'success' } | { type: 'invalid' } | { type: 'error'; message: string }> {
+): Promise<{ type: "success" } | { type: "invalid" } | { type: "error"; message: string }> {
   if (!password || password.length < 6) {
-    return { type: 'error', message: 'Password must be at least 6 characters.' };
+    return { type: "error", message: "Password must be at least 6 characters." };
   }
 
   const now = new Date();
@@ -340,7 +358,7 @@ export async function resetPassword(
       ),
     );
 
-  if (!record) return { type: 'invalid' };
+  if (!record) return { type: "invalid" };
 
   const passwordHash = await hashPassword(password);
   await db.batch([
@@ -358,11 +376,15 @@ export async function resetPassword(
     db.update(PasswordResetToken).set({ usedAt: now }).where(eq(PasswordResetToken.id, record.id)),
   ]);
 
-  return { type: 'success' };
+  return { type: "success" };
 }
 
 async function deleteUserData(userId: string): Promise<void> {
-  const deleted = await db.delete(User).where(eq(User.id, userId)).returning({ avatarUrl: User.avatarUrl }).get();
+  const deleted = await db
+    .delete(User)
+    .where(eq(User.id, userId))
+    .returning({ avatarUrl: User.avatarUrl })
+    .get();
   await deleteImage(deleted?.avatarUrl);
 }
 
@@ -370,26 +392,26 @@ async function deleteUserData(userId: string): Promise<void> {
 export async function deleteAccount(
   userId: string,
   role: string,
-  password: string | undefined
+  password: string | undefined,
 ): Promise<ActionResult> {
-  if (role === 'admin') {
+  if (role === "admin") {
     return {
-      type: 'error',
-      message: 'Site administrators cannot delete their own account. Transfer admin rights first.',
+      type: "error",
+      message: "Site administrators cannot delete their own account. Transfer admin rights first.",
     };
   }
   if (!password) {
-    return { type: 'error', message: 'Password is required to delete your account.' };
+    return { type: "error", message: "Password is required to delete your account." };
   }
 
   const fullUser = await db.select().from(User).where(eq(User.id, userId)).get();
   const valid = fullUser ? await verifyPassword(password, fullUser.passwordHash) : false;
   if (!valid) {
-    return { type: 'error', message: 'Incorrect password. Account not deleted.' };
+    return { type: "error", message: "Incorrect password. Account not deleted." };
   }
 
   await deleteUserData(userId);
-  return { type: 'redirect', url: '/' };
+  return { type: "redirect", url: "/" };
 }
 
 // Admin-initiated deletion: no password required, can delete any non-self user.

@@ -1,5 +1,5 @@
-import bcrypt from 'bcryptjs';
-import { db, eq, User, PasswordResetToken } from '@db';
+import bcrypt from "bcryptjs";
+import { db, eq, User, PasswordResetToken } from "@db";
 
 export async function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, 10);
@@ -18,7 +18,10 @@ export async function getUserByEmail(email: string) {
   return user ?? null;
 }
 
-export async function createPasswordResetToken(userId: string, ttlMs = 60 * 60 * 1000): Promise<string> {
+export async function createPasswordResetToken(
+  userId: string,
+  ttlMs = 60 * 60 * 1000,
+): Promise<string> {
   const { token, insert } = passwordResetTokenInsert(userId, ttlMs);
   await insert;
   return token;
@@ -28,5 +31,10 @@ export async function createPasswordResetToken(userId: string, ttlMs = 60 * 60 *
 export function passwordResetTokenInsert(userId: string, ttlMs = 60 * 60 * 1000) {
   const token = crypto.randomUUID();
   const expiresAt = new Date(Date.now() + ttlMs);
-  return { token, insert: db.insert(PasswordResetToken).values({ id: crypto.randomUUID(), userId, token, expiresAt }) };
+  return {
+    token,
+    insert: db
+      .insert(PasswordResetToken)
+      .values({ id: crypto.randomUUID(), userId, token, expiresAt }),
+  };
 }

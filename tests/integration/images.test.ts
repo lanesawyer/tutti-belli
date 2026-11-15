@@ -1,21 +1,23 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { db, eq, Ensemble, User } from '@db';
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { db, eq, Ensemble, User } from "@db";
 
-vi.mock('../../src/lib/storage.ts', () => ({
-  uploadImage: vi.fn(async (_file: File, kind: string) => `/images/${kind}/00000000-0000-4000-8000-000000000001.png`),
+vi.mock("../../src/lib/storage.ts", () => ({
+  uploadImage: vi.fn(
+    async (_file: File, kind: string) => `/images/${kind}/00000000-0000-4000-8000-000000000001.png`,
+  ),
   deleteImage: vi.fn(async () => {}),
 }));
 
-import { deleteImage, uploadImage } from '../../src/lib/storage.ts';
-import { updateEnsemble } from '../../src/lib/ensemble.ts';
-import { deleteEnsemble } from '../../src/lib/admin.ts';
-import { adminDeleteUser, updateAvatar } from '../../src/lib/profile.ts';
-import { createUser, createEnsemble } from './fixtures.ts';
+import { deleteImage, uploadImage } from "../../src/lib/storage.ts";
+import { updateEnsemble } from "../../src/lib/ensemble.ts";
+import { deleteEnsemble } from "../../src/lib/admin.ts";
+import { adminDeleteUser, updateAvatar } from "../../src/lib/profile.ts";
+import { createUser, createEnsemble } from "./fixtures.ts";
 
-const OLD = '/images/avatars/00000000-0000-4000-8000-000000000000.png';
-const NEW = '/images/avatars/00000000-0000-4000-8000-000000000001.png';
-const png = () => new File([new Uint8Array(8)], 'me.png', { type: 'image/png' });
-const noFile = () => new File([], '');
+const OLD = "/images/avatars/00000000-0000-4000-8000-000000000000.png";
+const NEW = "/images/avatars/00000000-0000-4000-8000-000000000001.png";
+const png = () => new File([new Uint8Array(8)], "me.png", { type: "image/png" });
+const noFile = () => new File([], "");
 
 beforeEach(() => {
   vi.mocked(deleteImage).mockClear();
@@ -32,18 +34,18 @@ async function avatarOf(userId: string) {
   return (await db.select().from(User).where(eq(User.id, userId)).get())!.avatarUrl;
 }
 
-describe('updateAvatar', () => {
-  it('uploads the new avatar to storage and deletes the old one', async () => {
+describe("updateAvatar", () => {
+  it("uploads the new avatar to storage and deletes the old one", async () => {
     const user = await userWithAvatar(OLD);
 
     await updateAvatar(user.id, OLD, png(), false);
 
-    expect(uploadImage).toHaveBeenCalledWith(expect.any(File), 'avatars');
+    expect(uploadImage).toHaveBeenCalledWith(expect.any(File), "avatars");
     expect(await avatarOf(user.id)).toBe(NEW);
     expect(deleteImage).toHaveBeenCalledWith(OLD);
   });
 
-  it('deletes the avatar when it is removed', async () => {
+  it("deletes the avatar when it is removed", async () => {
     const user = await userWithAvatar(OLD);
 
     await updateAvatar(user.id, OLD, noFile(), true);
@@ -52,7 +54,7 @@ describe('updateAvatar', () => {
     expect(deleteImage).toHaveBeenCalledWith(OLD);
   });
 
-  it('leaves storage alone when the avatar is unchanged', async () => {
+  it("leaves storage alone when the avatar is unchanged", async () => {
     const user = await userWithAvatar(OLD);
 
     await updateAvatar(user.id, OLD, noFile(), false);
@@ -62,19 +64,19 @@ describe('updateAvatar', () => {
     expect(deleteImage).not.toHaveBeenCalled();
   });
 
-  it('rejects SVG without uploading it', async () => {
+  it("rejects SVG without uploading it", async () => {
     const user = await userWithAvatar(null);
-    const svg = new File(['<svg/>'], 'me.svg', { type: 'image/svg+xml' });
+    const svg = new File(["<svg/>"], "me.svg", { type: "image/svg+xml" });
 
     const result = await updateAvatar(user.id, null, svg, false);
 
-    expect(result.type).toBe('error');
+    expect(result.type).toBe("error");
     expect(uploadImage).not.toHaveBeenCalled();
   });
 });
 
-describe('deleting records with images', () => {
-  it('deletes the avatar of a deleted user', async () => {
+describe("deleting records with images", () => {
+  it("deletes the avatar of a deleted user", async () => {
     const user = await userWithAvatar(OLD);
 
     await adminDeleteUser(user.id);
@@ -82,7 +84,7 @@ describe('deleting records with images', () => {
     expect(deleteImage).toHaveBeenCalledWith(OLD);
   });
 
-  it('deletes the image of a deleted ensemble', async () => {
+  it("deletes the image of a deleted ensemble", async () => {
     const admin = await createUser();
     const ensemble = await createEnsemble(admin!.id);
     await db.update(Ensemble).set({ imageUrl: OLD }).where(eq(Ensemble.id, ensemble!.id));
@@ -93,9 +95,9 @@ describe('deleting records with images', () => {
   });
 });
 
-describe('updateEnsemble', () => {
+describe("updateEnsemble", () => {
   const fields = {
-    name: 'Choir',
+    name: "Choir",
     slug: null,
     description: null,
     discordLink: null,
@@ -105,7 +107,7 @@ describe('updateEnsemble', () => {
     checkInEndMinutes: 15,
   };
 
-  it('deletes the old image when it is replaced, and keeps it when the image is left out', async () => {
+  it("deletes the old image when it is replaced, and keeps it when the image is left out", async () => {
     const admin = await createUser();
     const ensemble = await createEnsemble(admin!.id);
     await db.update(Ensemble).set({ imageUrl: OLD }).where(eq(Ensemble.id, ensemble!.id));

@@ -1,20 +1,37 @@
-import type { LibSQLDatabase } from 'drizzle-orm/libsql';
-import bcrypt from 'bcryptjs';
-import { User, Ensemble, EnsembleMember, Part, MemberPart, EnsembleInvite, Season, SeasonMembership, Event, EventProgram, Announcement, Group, GroupMembership, Song, SongPart, SeasonSong } from './schema.ts';
+import type { LibSQLDatabase } from "drizzle-orm/libsql";
+import bcrypt from "bcryptjs";
+import {
+  User,
+  Ensemble,
+  EnsembleMember,
+  Part,
+  MemberPart,
+  EnsembleInvite,
+  Season,
+  SeasonMembership,
+  Event,
+  EventProgram,
+  Announcement,
+  Group,
+  GroupMembership,
+  Song,
+  SongPart,
+  SeasonSong,
+} from "./schema.ts";
 
 export default async function seed(db: LibSQLDatabase) {
   // Create a default admin user
   // Password: admin123
   const adminId = crypto.randomUUID();
-  const passwordHash = await bcrypt.hash('admin123', 10);
-  
+  const passwordHash = await bcrypt.hash("admin123", 10);
+
   await db.insert(User).values([
     {
       id: adminId,
-      email: 'admin@example.com',
+      email: "admin@example.com",
       passwordHash: passwordHash,
-      name: 'Site Administrator',
-      role: 'admin',
+      name: "Site Administrator",
+      role: "admin",
       emailVerifiedAt: new Date(),
     },
   ]);
@@ -22,15 +39,15 @@ export default async function seed(db: LibSQLDatabase) {
   // Create a test user
   // Password: test123
   const testUserId = crypto.randomUUID();
-  const testPasswordHash = await bcrypt.hash('test123', 10);
+  const testPasswordHash = await bcrypt.hash("test123", 10);
 
   await db.insert(User).values([
     {
       id: testUserId,
-      email: 'test@example.com',
+      email: "test@example.com",
       passwordHash: testPasswordHash,
-      name: 'Test User',
-      role: 'user',
+      name: "Test User",
+      role: "user",
       emailVerifiedAt: new Date(),
     },
   ]);
@@ -38,15 +55,15 @@ export default async function seed(db: LibSQLDatabase) {
   // Create an ensemble admin user (not site admin, but admin of specific ensemble)
   // Password: ensadmin123
   const ensembleAdminId = crypto.randomUUID();
-  const ensembleAdminPasswordHash = await bcrypt.hash('ensadmin123', 10);
+  const ensembleAdminPasswordHash = await bcrypt.hash("ensadmin123", 10);
 
   await db.insert(User).values([
     {
       id: ensembleAdminId,
-      email: 'ensadmin@example.com',
+      email: "ensadmin@example.com",
       passwordHash: ensembleAdminPasswordHash,
-      name: 'Ensemble Admin User',
-      role: 'ensemble_admin',
+      name: "Ensemble Admin User",
+      role: "ensemble_admin",
       emailVerifiedAt: new Date(),
     },
   ]);
@@ -56,10 +73,10 @@ export default async function seed(db: LibSQLDatabase) {
   await db.insert(Ensemble).values([
     {
       id: ensembleId,
-      name: 'Chamber Orchestra',
-      slug: 'chamber-orchestra',
-      description: 'A test ensemble for development and testing',
-      discordLink: 'https://discord.gg/example',
+      name: "Chamber Orchestra",
+      slug: "chamber-orchestra",
+      description: "A test ensemble for development and testing",
+      discordLink: "https://discord.gg/example",
       codeOfConduct: `Welcome to the Chamber Orchestra!
 
 We are committed to creating a positive and inclusive environment for all members. Please review and follow these guidelines:
@@ -107,31 +124,31 @@ Thank you for being part of our musical community!`,
     {
       id: sopranoId,
       ensembleId: ensembleId,
-      name: 'Soprano',
+      name: "Soprano",
       sortOrder: 1,
     },
     {
       id: altoId,
       ensembleId: ensembleId,
-      name: 'Alto',
+      name: "Alto",
       sortOrder: 2,
     },
     {
       id: tenorId,
       ensembleId: ensembleId,
-      name: 'Tenor',
+      name: "Tenor",
       sortOrder: 3,
     },
     {
       id: baritoneId,
       ensembleId: ensembleId,
-      name: 'Baritone',
+      name: "Baritone",
       sortOrder: 4,
     },
     {
       id: bassId,
       ensembleId: ensembleId,
-      name: 'Bass',
+      name: "Bass",
       sortOrder: 5,
     },
   ]);
@@ -143,8 +160,8 @@ Thank you for being part of our musical community!`,
       id: adminMembershipId,
       ensembleId: ensembleId,
       userId: adminId,
-      role: 'admin',
-      status: 'active',
+      role: "admin",
+      status: "active",
     },
   ]);
 
@@ -155,8 +172,8 @@ Thank you for being part of our musical community!`,
       id: ensAdminMembershipId,
       ensembleId: ensembleId,
       userId: ensembleAdminId,
-      role: 'admin',
-      status: 'active',
+      role: "admin",
+      status: "active",
     },
   ]);
 
@@ -167,8 +184,8 @@ Thank you for being part of our musical community!`,
       id: testMembershipId,
       ensembleId: ensembleId,
       userId: testUserId,
-      role: 'member',
-      status: 'active',
+      role: "member",
+      status: "active",
     },
   ]);
 
@@ -185,7 +202,7 @@ Thank you for being part of our musical community!`,
     {
       id: crypto.randomUUID(),
       ensembleId: ensembleId,
-      code: 'TEST1234',
+      code: "TEST1234",
       createdBy: adminId,
     },
   ]);
@@ -201,7 +218,7 @@ Thank you for being part of our musical community!`,
     {
       id: seasonId,
       ensembleId: ensembleId,
-      name: 'Spring 2026',
+      name: "Spring 2026",
       startDate: seasonStartDate,
       endDate: seasonEndDate,
       isActive: 1,
@@ -235,16 +252,16 @@ Thank you for being part of our musical community!`,
     {
       id: sectionLeadersGroupId,
       ensembleId: ensembleId,
-      name: 'Section Leaders',
-      description: 'Leaders of each vocal section',
-      color: 'primary',
+      name: "Section Leaders",
+      description: "Leaders of each vocal section",
+      color: "primary",
     },
     {
       id: boardMembersGroupId,
       ensembleId: ensembleId,
-      name: 'Board Members',
-      description: 'Ensemble board and decision makers',
-      color: 'warning',
+      name: "Board Members",
+      description: "Ensemble board and decision makers",
+      color: "warning",
     },
   ]);
 
@@ -254,7 +271,7 @@ Thank you for being part of our musical community!`,
       id: crypto.randomUUID(),
       groupId: sectionLeadersGroupId,
       userId: adminId,
-      role: 'lead',
+      role: "lead",
     },
     {
       id: crypto.randomUUID(),
@@ -265,7 +282,7 @@ Thank you for being part of our musical community!`,
       id: crypto.randomUUID(),
       groupId: boardMembersGroupId,
       userId: adminId,
-      role: 'lead',
+      role: "lead",
     },
     {
       id: crypto.randomUUID(),
@@ -285,30 +302,33 @@ Thank you for being part of our musical community!`,
     {
       id: crypto.randomUUID(),
       ensembleId: ensembleId,
-      title: 'Welcome to the Spring 2026 Season!',
-      content: 'We\'re excited to begin our Spring 2026 season together! Please make sure to check the rehearsal schedule and mark your calendars. Don\'t forget to join our Discord server to stay connected with everyone between rehearsals.',
+      title: "Welcome to the Spring 2026 Season!",
+      content:
+        "We're excited to begin our Spring 2026 season together! Please make sure to check the rehearsal schedule and mark your calendars. Don't forget to join our Discord server to stay connected with everyone between rehearsals.",
       createdBy: adminId,
       createdAt: olderAnnouncementDate,
     },
     {
       id: crypto.randomUUID(),
       ensembleId: ensembleId,
-      title: 'Reminder: Concert Attire',
-      content: 'Just a friendly reminder that our spring concert is coming up next month. Please ensure you have your concert attire ready. If you need assistance with ordering, please reach out to the board members.',
+      title: "Reminder: Concert Attire",
+      content:
+        "Just a friendly reminder that our spring concert is coming up next month. Please ensure you have your concert attire ready. If you need assistance with ordering, please reach out to the board members.",
       createdBy: ensembleAdminId,
       createdAt: recentAnnouncementDate,
     },
     {
       id: crypto.randomUUID(),
       ensembleId: ensembleId,
-      title: 'New Check-In System',
-      content: 'We\'ve implemented a new digital check-in system for rehearsals! When you arrive at rehearsal, look for the check-in code displayed on the screen. Use the code to mark your attendance through the app. The check-in window opens 30 minutes before rehearsal starts.',
+      title: "New Check-In System",
+      content:
+        "We've implemented a new digital check-in system for rehearsals! When you arrive at rehearsal, look for the check-in code displayed on the screen. Use the code to mark your attendance through the app. The check-in window opens 30 minutes before rehearsal starts.",
       createdBy: adminId,
     },
     {
       id: crypto.randomUUID(),
       ensembleId: ensembleId,
-      title: 'Spring Concert — Everything You Need to Know',
+      title: "Spring Concert — Everything You Need to Know",
       content: `Dear Chamber Orchestra family,
 
 We are just six weeks away from our Spring 2026 Concert, and we want to make sure everyone has all the details they need to prepare. Please read this announcement carefully from top to bottom — there is important information for every single member.
@@ -387,12 +407,12 @@ The Chamber Orchestra Leadership Team`,
       id: crypto.randomUUID(),
       ensembleId: ensembleId,
       seasonId: seasonId,
-      category: 'rehearsal',
-      title: 'Past Rehearsal',
-      description: 'A rehearsal that already happened for testing',
+      category: "rehearsal",
+      title: "Past Rehearsal",
+      description: "A rehearsal that already happened for testing",
       scheduledAt: pastDate,
       durationMinutes: 90,
-      location: 'Music Hall, Room 101',
+      location: "Music Hall, Room 101",
       checkInCode: crypto.randomUUID().substring(0, 8).toUpperCase(),
     },
   ]);
@@ -406,13 +426,13 @@ The Chamber Orchestra Leadership Team`,
       id: currentRehearsalId,
       ensembleId: ensembleId,
       seasonId: seasonId,
-      category: 'rehearsal',
-      title: 'Current Rehearsal (Check-in Available)',
-      description: 'This rehearsal is happening right now - test check-in functionality',
+      category: "rehearsal",
+      title: "Current Rehearsal (Check-in Available)",
+      description: "This rehearsal is happening right now - test check-in functionality",
       scheduledAt: currentDate,
       durationMinutes: 120, // 2 hours
-      location: 'Music Hall, Room 101',
-      checkInCode: 'CHECKIN1',
+      location: "Music Hall, Room 101",
+      checkInCode: "CHECKIN1",
     },
   ]);
 
@@ -426,12 +446,12 @@ The Chamber Orchestra Leadership Team`,
       id: crypto.randomUUID(),
       ensembleId: ensembleId,
       seasonId: seasonId,
-      category: 'rehearsal',
-      title: 'Weekly Rehearsal',
-      description: 'Regular practice session',
+      category: "rehearsal",
+      title: "Weekly Rehearsal",
+      description: "Regular practice session",
       scheduledAt: futureDate,
       durationMinutes: 90,
-      location: 'Music Hall, Room 101',
+      location: "Music Hall, Room 101",
       checkInCode: crypto.randomUUID().substring(0, 8).toUpperCase(),
     },
   ]);
@@ -447,13 +467,13 @@ The Chamber Orchestra Leadership Team`,
       id: performanceId,
       ensembleId: ensembleId,
       seasonId: seasonId,
-      category: 'performance',
-      title: 'Spring Concert 2026',
-      description: 'Our annual spring concert featuring the full season repertoire.',
+      category: "performance",
+      title: "Spring Concert 2026",
+      description: "Our annual spring concert featuring the full season repertoire.",
       scheduledAt: performanceDate,
       durationMinutes: 120,
-      location: 'Westfield Arts Center, Grand Hall',
-      checkInCode: 'CONCERT1',
+      location: "Westfield Arts Center, Grand Hall",
+      checkInCode: "CONCERT1",
     },
   ]);
 
@@ -468,41 +488,41 @@ The Chamber Orchestra Leadership Team`,
     {
       id: song1Id,
       ensembleId: ensembleId,
-      name: 'Ave Maria',
-      composer: 'Franz Biebl',
+      name: "Ave Maria",
+      composer: "Franz Biebl",
       arranger: null,
       runTime: 240, // 4:00
     },
     {
       id: song2Id,
       ensembleId: ensembleId,
-      name: 'Shenandoah',
-      composer: 'Traditional',
-      arranger: 'James Erb',
+      name: "Shenandoah",
+      composer: "Traditional",
+      arranger: "James Erb",
       runTime: 195, // 3:15
     },
     {
       id: song3Id,
       ensembleId: ensembleId,
-      name: 'Lux Aurumque',
-      composer: 'Eric Whitacre',
+      name: "Lux Aurumque",
+      composer: "Eric Whitacre",
       arranger: null,
       runTime: 225, // 3:45
     },
     {
       id: song4Id,
       ensembleId: ensembleId,
-      name: 'The Seal Lullaby',
-      composer: 'Eric Whitacre',
+      name: "The Seal Lullaby",
+      composer: "Eric Whitacre",
       arranger: null,
       runTime: 270, // 4:30
     },
     {
       id: song5Id,
       ensembleId: ensembleId,
-      name: 'Sure On This Shining Night',
-      composer: 'Samuel Barber',
-      arranger: 'Morten Lauridsen',
+      name: "Sure On This Shining Night",
+      composer: "Samuel Barber",
+      arranger: "Morten Lauridsen",
       runTime: 180, // 3:00
     },
   ]);
@@ -560,47 +580,86 @@ The Chamber Orchestra Leadership Team`,
 
   // Add season songs to the spring concert program
   await db.insert(EventProgram).values([
-    { id: crypto.randomUUID(), eventId: performanceId, type: 'song', songId: song3Id, sortOrder: 1 }, // Lux Aurumque
-    { id: crypto.randomUUID(), eventId: performanceId, type: 'song', songId: song2Id, sortOrder: 2 }, // Shenandoah
-    { id: crypto.randomUUID(), eventId: performanceId, type: 'song', songId: song1Id, sortOrder: 3 }, // Ave Maria
+    {
+      id: crypto.randomUUID(),
+      eventId: performanceId,
+      type: "song",
+      songId: song3Id,
+      sortOrder: 1,
+    }, // Lux Aurumque
+    {
+      id: crypto.randomUUID(),
+      eventId: performanceId,
+      type: "song",
+      songId: song2Id,
+      sortOrder: 2,
+    }, // Shenandoah
+    {
+      id: crypto.randomUUID(),
+      eventId: performanceId,
+      type: "song",
+      songId: song1Id,
+      sortOrder: 3,
+    }, // Ave Maria
   ]);
 
   // Add season songs and a break to the current rehearsal plan
   await db.insert(EventProgram).values([
-    { id: crypto.randomUUID(), eventId: currentRehearsalId, type: 'song', songId: song1Id, sortOrder: 1, length: 10 }, // Ave Maria
-    { id: crypto.randomUUID(), eventId: currentRehearsalId, type: 'break', label: 'Break', sortOrder: 2, length: 10 },
-    { id: crypto.randomUUID(), eventId: currentRehearsalId, type: 'song', songId: song2Id, sortOrder: 3, length: 10 }, // Shenandoah
+    {
+      id: crypto.randomUUID(),
+      eventId: currentRehearsalId,
+      type: "song",
+      songId: song1Id,
+      sortOrder: 1,
+      length: 10,
+    }, // Ave Maria
+    {
+      id: crypto.randomUUID(),
+      eventId: currentRehearsalId,
+      type: "break",
+      label: "Break",
+      sortOrder: 2,
+      length: 10,
+    },
+    {
+      id: crypto.randomUUID(),
+      eventId: currentRehearsalId,
+      type: "song",
+      songId: song2Id,
+      sortOrder: 3,
+      length: 10,
+    }, // Shenandoah
   ]);
 
-  console.log('✓ Seeded database successfully!');
-  console.log('');
-  console.log('Site Admin Account:');
-  console.log('  Email: admin@example.com');
-  console.log('  Password: admin123');
-  console.log('');
-  console.log('Ensemble Admin Account (admin of Chamber Orchestra):');
-  console.log('  Email: ensadmin@example.com');
-  console.log('  Password: ensadmin123');
-  console.log('');
-  console.log('Test User Account (regular member):');
-  console.log('  Email: test@example.com');
-  console.log('  Password: test123');
-  console.log('');
-  console.log('Test Ensemble: Chamber Orchestra');
-  console.log('  Invite Code: TEST1234');
-  console.log('  Current Season: Spring 2026');
-  console.log('  Check-in window: 30 minutes before to 15 minutes after event start');
-  console.log('');
-  console.log('Test Events:');
-  console.log('  - Past rehearsal (1 month ago)');
-  console.log('  - Current rehearsal (happening now - check-in code: CHECKIN1)');
-  console.log('  - Weekly rehearsal (1 week from now)');
-  console.log('  - Spring Concert 2026 performance (3 weeks from now - check-in code: CONCERT1)');
-  console.log('');
-  console.log('Sample Songs:');
-  console.log('  - 5 songs with various composers and arrangers');
-  console.log('  - 3 songs assigned to Spring 2026 season');
-  console.log('  - All songs have parts assigned');
-  console.log('');
-  console.log('⚠️  Remember to change passwords in production!');
+  console.log("✓ Seeded database successfully!");
+  console.log("");
+  console.log("Site Admin Account:");
+  console.log("  Email: admin@example.com");
+  console.log("  Password: admin123");
+  console.log("");
+  console.log("Ensemble Admin Account (admin of Chamber Orchestra):");
+  console.log("  Email: ensadmin@example.com");
+  console.log("  Password: ensadmin123");
+  console.log("");
+  console.log("Test User Account (regular member):");
+  console.log("  Email: test@example.com");
+  console.log("  Password: test123");
+  console.log("");
+  console.log("Test Ensemble: Chamber Orchestra");
+  console.log("  Invite Code: TEST1234");
+  console.log("  Current Season: Spring 2026");
+  console.log("  Check-in window: 30 minutes before to 15 minutes after event start");
+  console.log("");
+  console.log("Test Events:");
+  console.log("  - Past rehearsal (1 month ago)");
+  console.log("  - Current rehearsal (happening now - check-in code: CHECKIN1)");
+  console.log("  - Weekly rehearsal (1 week from now)");
+  console.log("  - Spring Concert 2026 performance (3 weeks from now - check-in code: CONCERT1)");
+  console.log("");
+  console.log("Sample Songs:");
+  console.log("  - 5 songs with various composers and arrangers");
+  console.log("  - 3 songs assigned to Spring 2026 season");
+  console.log("  - All songs have parts assigned");
+  console.log("");
+  console.log("⚠️  Remember to change passwords in production!");
 }

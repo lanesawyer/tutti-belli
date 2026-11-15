@@ -16,22 +16,22 @@ import {
   Song,
   SongFile,
   Task,
-} from '@db';
+} from "@db";
 
 export type OwnedKind =
-  | 'announcement'
-  | 'attendance'
-  | 'event'
-  | 'group'
-  | 'invite'
-  | 'link'
-  | 'membership'
-  | 'part'
-  | 'programEntry'
-  | 'season'
-  | 'song'
-  | 'songFile'
-  | 'task';
+  | "announcement"
+  | "attendance"
+  | "event"
+  | "group"
+  | "invite"
+  | "link"
+  | "membership"
+  | "part"
+  | "programEntry"
+  | "season"
+  | "song"
+  | "songFile"
+  | "task";
 
 /**
  * The ensemble a record belongs to, or null if it doesn't exist. Actions take the target's ID
@@ -44,41 +44,61 @@ export async function getOwningEnsembleId(kind: OwnedKind, id: string): Promise<
 
 function ownerQuery(kind: OwnedKind, id: string) {
   switch (kind) {
-    case 'announcement':
-      return db.select({ ensembleId: Announcement.ensembleId }).from(Announcement).where(eq(Announcement.id, id)).get();
-    case 'event':
+    case "announcement":
+      return db
+        .select({ ensembleId: Announcement.ensembleId })
+        .from(Announcement)
+        .where(eq(Announcement.id, id))
+        .get();
+    case "event":
       return db.select({ ensembleId: Event.ensembleId }).from(Event).where(eq(Event.id, id)).get();
-    case 'group':
+    case "group":
       return db.select({ ensembleId: Group.ensembleId }).from(Group).where(eq(Group.id, id)).get();
-    case 'invite':
-      return db.select({ ensembleId: EnsembleInvite.ensembleId }).from(EnsembleInvite).where(eq(EnsembleInvite.id, id)).get();
-    case 'link':
-      return db.select({ ensembleId: EnsembleLink.ensembleId }).from(EnsembleLink).where(eq(EnsembleLink.id, id)).get();
-    case 'membership':
-      return db.select({ ensembleId: EnsembleMember.ensembleId }).from(EnsembleMember).where(eq(EnsembleMember.id, id)).get();
-    case 'part':
+    case "invite":
+      return db
+        .select({ ensembleId: EnsembleInvite.ensembleId })
+        .from(EnsembleInvite)
+        .where(eq(EnsembleInvite.id, id))
+        .get();
+    case "link":
+      return db
+        .select({ ensembleId: EnsembleLink.ensembleId })
+        .from(EnsembleLink)
+        .where(eq(EnsembleLink.id, id))
+        .get();
+    case "membership":
+      return db
+        .select({ ensembleId: EnsembleMember.ensembleId })
+        .from(EnsembleMember)
+        .where(eq(EnsembleMember.id, id))
+        .get();
+    case "part":
       return db.select({ ensembleId: Part.ensembleId }).from(Part).where(eq(Part.id, id)).get();
-    case 'season':
-      return db.select({ ensembleId: Season.ensembleId }).from(Season).where(eq(Season.id, id)).get();
-    case 'song':
+    case "season":
+      return db
+        .select({ ensembleId: Season.ensembleId })
+        .from(Season)
+        .where(eq(Season.id, id))
+        .get();
+    case "song":
       return db.select({ ensembleId: Song.ensembleId }).from(Song).where(eq(Song.id, id)).get();
-    case 'task':
+    case "task":
       return db.select({ ensembleId: Task.ensembleId }).from(Task).where(eq(Task.id, id)).get();
-    case 'songFile':
+    case "songFile":
       return db
         .select({ ensembleId: Song.ensembleId })
         .from(SongFile)
         .innerJoin(Song, eq(SongFile.songId, Song.id))
         .where(eq(SongFile.id, id))
         .get();
-    case 'attendance':
+    case "attendance":
       return db
         .select({ ensembleId: Event.ensembleId })
         .from(Attendance)
         .innerJoin(Event, eq(Attendance.eventId, Event.id))
         .where(eq(Attendance.id, id))
         .get();
-    case 'programEntry':
+    case "programEntry":
       return db
         .select({ ensembleId: Event.ensembleId })
         .from(EventProgram)
@@ -88,7 +108,11 @@ function ownerQuery(kind: OwnedKind, id: string) {
   }
 }
 
-export async function isInEnsemble(kind: OwnedKind, id: string, ensembleId: string): Promise<boolean> {
+export async function isInEnsemble(
+  kind: OwnedKind,
+  id: string,
+  ensembleId: string,
+): Promise<boolean> {
   return (await getOwningEnsembleId(kind, id)) === ensembleId;
 }
 
@@ -114,12 +138,18 @@ export async function seasonsInEnsemble(seasonIds: string[], ensembleId: string)
   return rows.length === new Set(seasonIds).size;
 }
 
-/** Whether the user has a membership (any status) in the ensemble. */
+/** Whether the user is an active member of the ensemble. */
 export async function isUserInEnsemble(userId: string, ensembleId: string): Promise<boolean> {
   const row = await db
     .select({ id: EnsembleMember.id })
     .from(EnsembleMember)
-    .where(and(eq(EnsembleMember.userId, userId), eq(EnsembleMember.ensembleId, ensembleId)))
+    .where(
+      and(
+        eq(EnsembleMember.userId, userId),
+        eq(EnsembleMember.ensembleId, ensembleId),
+        eq(EnsembleMember.status, 'active'),
+      ),
+    )
     .get();
   return Boolean(row);
 }

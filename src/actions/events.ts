@@ -1,7 +1,12 @@
-import { defineAction, ActionError } from 'astro:actions';
-import { z } from 'astro/zod';
-import { canManageEnsemble } from '@lib/permissions';
-import { assertEnsembleAdmin, assertEnsembleMember, assertInEnsemble, assertUserInEnsemble } from './utils';
+import { defineAction, ActionError } from "astro:actions";
+import { z } from "astro/zod";
+import { canManageEnsemble } from "@lib/permissions";
+import {
+  assertEnsembleAdmin,
+  assertEnsembleMember,
+  assertInEnsemble,
+  assertUserInEnsemble,
+} from "./utils";
 import {
   createEvent,
   deleteEvent,
@@ -18,61 +23,61 @@ import {
   updateProgramSongNotes,
   updateProgramEntry,
   reorderProgramSongs,
-} from '@lib/events';
+} from "@lib/events";
 
 export const events = {
   create: defineAction({
-    accept: 'form',
+    accept: "form",
     input: z.object({
       ensembleId: z.string(),
-      title: z.string().min(1, 'Title is required.'),
+      title: z.string().min(1, "Title is required."),
       description: z.string().optional(),
-      date: z.string().min(1, 'Date is required.'),
-      time: z.string().min(1, 'Time is required.'),
+      date: z.string().min(1, "Date is required."),
+      time: z.string().min(1, "Time is required."),
       location: z.string().optional(),
       durationMinutes: z.coerce.number().int().min(15).max(480).default(90),
-      category: z.enum(['rehearsal', 'performance', 'social', 'sectional']).default('rehearsal'),
+      category: z.enum(["rehearsal", "performance", "social", "sectional"]).default("rehearsal"),
       groupId: z.string().optional(),
       rsvpEnabled: z.string().optional(),
     }),
     handler: async (input, context) => {
       const user = context.locals.user;
-      if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
+      if (!user) throw new ActionError({ code: "UNAUTHORIZED" });
       await assertEnsembleAdmin(input.ensembleId, user);
-      if (input.groupId) await assertInEnsemble('group', input.groupId, input.ensembleId);
-      const rsvpEnabled = input.rsvpEnabled === '1' ? 1 : input.rsvpEnabled === '0' ? 0 : null;
+      if (input.groupId) await assertInEnsemble("group", input.groupId, input.ensembleId);
+      const rsvpEnabled = input.rsvpEnabled === "1" ? 1 : input.rsvpEnabled === "0" ? 0 : null;
       try {
         await createEvent({ ...input, groupId: input.groupId || undefined, rsvpEnabled });
       } catch (e) {
-        throw new ActionError({ code: 'BAD_REQUEST', message: (e as Error).message });
+        throw new ActionError({ code: "BAD_REQUEST", message: (e as Error).message });
       }
     },
   }),
 
   delete: defineAction({
-    accept: 'form',
+    accept: "form",
     input: z.object({
       ensembleId: z.string(),
       eventId: z.string(),
     }),
     handler: async ({ ensembleId, eventId }, context) => {
       const user = context.locals.user;
-      if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
+      if (!user) throw new ActionError({ code: "UNAUTHORIZED" });
       await assertEnsembleAdmin(ensembleId, user);
-      await assertInEnsemble('event', eventId, ensembleId);
+      await assertInEnsemble("event", eventId, ensembleId);
       await deleteEvent(eventId);
     },
   }),
 
   edit: defineAction({
-    accept: 'form',
+    accept: "form",
     input: z.object({
       ensembleId: z.string(),
       eventId: z.string(),
-      title: z.string().min(1, 'Title is required.'),
+      title: z.string().min(1, "Title is required."),
       description: z.string().optional(),
-      date: z.string().min(1, 'Date is required.'),
-      time: z.string().min(1, 'Time is required.'),
+      date: z.string().min(1, "Date is required."),
+      time: z.string().min(1, "Time is required."),
       location: z.string().optional(),
       durationMinutes: z.coerce.number().int().min(15).max(480).default(90),
       groupId: z.string().optional(),
@@ -80,37 +85,37 @@ export const events = {
     }),
     handler: async ({ ensembleId, rsvpEnabled: rsvpRaw, ...params }, context) => {
       const user = context.locals.user;
-      if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
+      if (!user) throw new ActionError({ code: "UNAUTHORIZED" });
       await assertEnsembleAdmin(ensembleId, user);
-      await assertInEnsemble('event', params.eventId, ensembleId);
-      if (params.groupId) await assertInEnsemble('group', params.groupId, ensembleId);
-      const rsvpEnabled = rsvpRaw === '1' ? 1 : rsvpRaw === '0' ? 0 : null;
+      await assertInEnsemble("event", params.eventId, ensembleId);
+      if (params.groupId) await assertInEnsemble("group", params.groupId, ensembleId);
+      const rsvpEnabled = rsvpRaw === "1" ? 1 : rsvpRaw === "0" ? 0 : null;
       await editEvent({ ...params, groupId: params.groupId || null, rsvpEnabled });
     },
   }),
 
   checkIn: defineAction({
-    accept: 'form',
+    accept: "form",
     input: z.object({
       ensembleId: z.string(),
       eventId: z.string(),
     }),
     handler: async ({ ensembleId, eventId }, context) => {
       const user = context.locals.user;
-      if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
+      if (!user) throw new ActionError({ code: "UNAUTHORIZED" });
       const membership = await assertEnsembleMember(ensembleId, user);
-      await assertInEnsemble('event', eventId, ensembleId);
+      await assertInEnsemble("event", eventId, ensembleId);
       const isAdmin = canManageEnsemble(user, membership);
       try {
         await checkInToEvent({ eventId, userId: user.id, ensembleId, isAdmin });
       } catch (e) {
-        throw new ActionError({ code: 'FORBIDDEN', message: (e as Error).message });
+        throw new ActionError({ code: "FORBIDDEN", message: (e as Error).message });
       }
     },
   }),
 
   addAttendance: defineAction({
-    accept: 'form',
+    accept: "form",
     input: z.object({
       ensembleId: z.string(),
       eventId: z.string(),
@@ -118,62 +123,62 @@ export const events = {
     }),
     handler: async ({ ensembleId, eventId, userId }, context) => {
       const user = context.locals.user;
-      if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
+      if (!user) throw new ActionError({ code: "UNAUTHORIZED" });
       await assertEnsembleAdmin(ensembleId, user);
-      await assertInEnsemble('event', eventId, ensembleId);
+      await assertInEnsemble("event", eventId, ensembleId);
       await assertUserInEnsemble(userId, ensembleId);
       await addAttendance(eventId, userId);
     },
   }),
 
   removeAttendance: defineAction({
-    accept: 'form',
+    accept: "form",
     input: z.object({
       ensembleId: z.string(),
       attendanceId: z.string(),
     }),
     handler: async ({ ensembleId, attendanceId }, context) => {
       const user = context.locals.user;
-      if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
+      if (!user) throw new ActionError({ code: "UNAUTHORIZED" });
       await assertEnsembleAdmin(ensembleId, user);
-      await assertInEnsemble('attendance', attendanceId, ensembleId);
+      await assertInEnsemble("attendance", attendanceId, ensembleId);
       await removeAttendance(attendanceId);
     },
   }),
 
   rsvp: defineAction({
-    accept: 'form',
+    accept: "form",
     input: z.object({
       ensembleId: z.string(),
       eventId: z.string(),
-      response: z.enum(['yes', 'no']),
+      response: z.enum(["yes", "no"]),
     }),
     handler: async ({ ensembleId, eventId, response }, context) => {
       const user = context.locals.user;
-      if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
+      if (!user) throw new ActionError({ code: "UNAUTHORIZED" });
       await assertEnsembleMember(ensembleId, user);
-      await assertInEnsemble('event', eventId, ensembleId);
+      await assertInEnsemble("event", eventId, ensembleId);
       await setRsvp(eventId, user.id, response);
     },
   }),
 
   removeRsvp: defineAction({
-    accept: 'form',
+    accept: "form",
     input: z.object({
       ensembleId: z.string(),
       eventId: z.string(),
     }),
     handler: async ({ ensembleId, eventId }, context) => {
       const user = context.locals.user;
-      if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
+      if (!user) throw new ActionError({ code: "UNAUTHORIZED" });
       await assertEnsembleMember(ensembleId, user);
-      await assertInEnsemble('event', eventId, ensembleId);
+      await assertInEnsemble("event", eventId, ensembleId);
       await removeRsvp(eventId, user.id);
     },
   }),
 
   addProgramSong: defineAction({
-    accept: 'form',
+    accept: "form",
     input: z.object({
       ensembleId: z.string(),
       eventId: z.string(),
@@ -183,50 +188,50 @@ export const events = {
     }),
     handler: async ({ ensembleId, eventId, songId, length, notes }, context) => {
       const user = context.locals.user;
-      if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
+      if (!user) throw new ActionError({ code: "UNAUTHORIZED" });
       await assertEnsembleAdmin(ensembleId, user);
-      await assertInEnsemble('event', eventId, ensembleId);
-      await assertInEnsemble('song', songId, ensembleId);
+      await assertInEnsemble("event", eventId, ensembleId);
+      await assertInEnsemble("song", songId, ensembleId);
       await addProgramSong(eventId, songId, length, notes);
     },
   }),
 
   addProgramItem: defineAction({
-    accept: 'form',
+    accept: "form",
     input: z.object({
       ensembleId: z.string(),
       eventId: z.string(),
-      type: z.enum(['break', 'other']),
+      type: z.enum(["break", "other"]),
       label: z.string().min(1),
       length: z.coerce.number().int().min(1).max(480).optional(),
       notes: z.string().optional(),
     }),
     handler: async ({ ensembleId, eventId, type, label, length, notes }, context) => {
       const user = context.locals.user;
-      if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
+      if (!user) throw new ActionError({ code: "UNAUTHORIZED" });
       await assertEnsembleAdmin(ensembleId, user);
-      await assertInEnsemble('event', eventId, ensembleId);
+      await assertInEnsemble("event", eventId, ensembleId);
       await addProgramItem(eventId, type, label, length, notes);
     },
   }),
 
   removeProgramSong: defineAction({
-    accept: 'form',
+    accept: "form",
     input: z.object({
       ensembleId: z.string(),
       programEntryId: z.string(),
     }),
     handler: async ({ ensembleId, programEntryId }, context) => {
       const user = context.locals.user;
-      if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
+      if (!user) throw new ActionError({ code: "UNAUTHORIZED" });
       await assertEnsembleAdmin(ensembleId, user);
-      await assertInEnsemble('programEntry', programEntryId, ensembleId);
+      await assertInEnsemble("programEntry", programEntryId, ensembleId);
       await removeProgramSong(programEntryId);
     },
   }),
 
   updateProgramSongNotes: defineAction({
-    accept: 'form',
+    accept: "form",
     input: z.object({
       ensembleId: z.string(),
       programEntryId: z.string(),
@@ -234,15 +239,15 @@ export const events = {
     }),
     handler: async ({ ensembleId, programEntryId, notes }, context) => {
       const user = context.locals.user;
-      if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
+      if (!user) throw new ActionError({ code: "UNAUTHORIZED" });
       await assertEnsembleAdmin(ensembleId, user);
-      await assertInEnsemble('programEntry', programEntryId, ensembleId);
+      await assertInEnsemble("programEntry", programEntryId, ensembleId);
       await updateProgramSongNotes(programEntryId, notes);
     },
   }),
 
   updateProgramEntry: defineAction({
-    accept: 'form',
+    accept: "form",
     input: z.object({
       ensembleId: z.string(),
       programEntryId: z.string(),
@@ -253,15 +258,15 @@ export const events = {
     }),
     handler: async ({ ensembleId, programEntryId, label, notes, length, sortOrder }, context) => {
       const user = context.locals.user;
-      if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
+      if (!user) throw new ActionError({ code: "UNAUTHORIZED" });
       await assertEnsembleAdmin(ensembleId, user);
-      await assertInEnsemble('programEntry', programEntryId, ensembleId);
+      await assertInEnsemble("programEntry", programEntryId, ensembleId);
       await updateProgramEntry(programEntryId, { label, notes, length: length ?? null, sortOrder });
     },
   }),
 
   reorderProgramSongs: defineAction({
-    accept: 'form',
+    accept: "form",
     input: z.object({
       ensembleId: z.string(),
       eventId: z.string(),
@@ -269,31 +274,31 @@ export const events = {
     }),
     handler: async ({ ensembleId, eventId, orderedEntryIds }, context) => {
       const user = context.locals.user;
-      if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
+      if (!user) throw new ActionError({ code: "UNAUTHORIZED" });
       await assertEnsembleAdmin(ensembleId, user);
-      await assertInEnsemble('event', eventId, ensembleId);
+      await assertInEnsemble("event", eventId, ensembleId);
       let ids: string[];
       try {
         ids = JSON.parse(orderedEntryIds);
       } catch {
-        throw new ActionError({ code: 'BAD_REQUEST', message: 'Invalid order data.' });
+        throw new ActionError({ code: "BAD_REQUEST", message: "Invalid order data." });
       }
       await reorderProgramSongs(eventId, ids);
     },
   }),
 
   checkInByCode: defineAction({
-    accept: 'form',
+    accept: "form",
     input: z.object({
       code: z.string(),
     }),
     handler: async ({ code }, context) => {
       const user = context.locals.user;
-      if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
+      if (!user) throw new ActionError({ code: "UNAUTHORIZED" });
       try {
         return await checkInByCode({ code, userId: user.id });
       } catch (e) {
-        throw new ActionError({ code: 'FORBIDDEN', message: (e as Error).message });
+        throw new ActionError({ code: "FORBIDDEN", message: (e as Error).message });
       }
     },
   }),

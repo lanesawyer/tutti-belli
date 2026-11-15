@@ -1,7 +1,7 @@
-import { db, eq, EnsembleMember, Ensemble } from '@db';
-import { getEnsembleUrlId } from './slug';
+import { db, eq, EnsembleMember, Ensemble } from "@db";
+import { getEnsembleUrlId } from "./slug";
 
-const ORIGIN = 'http://tutti-belli.invalid';
+const ORIGIN = "http://tutti-belli.invalid";
 
 /**
  * Returns the redirect as a same-site path, or null if it would leave the site. The value comes
@@ -10,7 +10,7 @@ const ORIGIN = 'http://tutti-belli.invalid';
  * every variant.
  */
 export function safeRedirectPath(redirect: string | null | undefined): string | null {
-  if (!redirect || !redirect.startsWith('/')) return null;
+  if (!redirect || !redirect.startsWith("/")) return null;
   let url: URL;
   try {
     url = new URL(redirect, ORIGIN);
@@ -21,7 +21,10 @@ export function safeRedirectPath(redirect: string | null | undefined): string | 
   return url.pathname + url.search + url.hash;
 }
 
-export async function getRedirectUrl(userId: string, customRedirect?: string | null): Promise<string> {
+export async function getRedirectUrl(
+  userId: string,
+  customRedirect?: string | null,
+): Promise<string> {
   const safe = safeRedirectPath(customRedirect);
   if (safe) {
     return safe;
@@ -46,5 +49,5 @@ export async function getRedirectUrl(userId: string, customRedirect?: string | n
   }
 
   // Otherwise, show the ensembles list
-  return '/ensembles';
+  return "/ensembles";
 }

@@ -24,27 +24,23 @@ const {
   <Level class="mb-4">
     <div class="level-item" slot="left">
       <Title as="h2" size={4}>
-        {
-          icon ? (
-            <span class="icon-text">
-              <Icon icon={icon} />
-              <span>{title}</span>
-            </span>
-          ) : (
-            title
-          )
-        }
+        {icon ? (
+          <span class="icon-text">
+            <Icon icon={icon} />
+            <span>{title}</span>
+          </span>
+        ) : (
+          title
+        )}
       </Title>
     </div>
-    {
-      viewAllHref && (
-        <div class="level-item" slot="right">
-          <Button href={viewAllHref} size="small" color={viewAllColor}>
-            {viewAllLabel}
-          </Button>
-        </div>
-      )
-    }
+    {viewAllHref && (
+      <div class="level-item" slot="right">
+        <Button href={viewAllHref} size="small" color={viewAllColor}>
+          {viewAllLabel}
+        </Button>
+      </div>
+    )}
   </Level>
 
   <slot />

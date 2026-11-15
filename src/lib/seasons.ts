@@ -1,4 +1,15 @@
-import { db, eq, and, desc, Season, SeasonMembership, EnsembleMember, Event, User, runBatch } from '@db';
+import {
+  db,
+  eq,
+  and,
+  desc,
+  Season,
+  SeasonMembership,
+  EnsembleMember,
+  Event,
+  User,
+  runBatch,
+} from "@db";
 
 export async function getEnsembleSeasons(ensembleId: string) {
   return await db
@@ -39,10 +50,21 @@ export async function createSeason(
   endDate: Date | undefined,
   setActive: boolean,
 ) {
-  const deactivateOthers = setActive ? [db.update(Season).set({ isActive: 0 }).where(eq(Season.ensembleId, ensembleId))] : [];
+  const deactivateOthers = setActive
+    ? [db.update(Season).set({ isActive: 0 }).where(eq(Season.ensembleId, ensembleId))]
+    : [];
   await runBatch([
     ...deactivateOthers,
-    db.insert(Season).values({ id: crypto.randomUUID(), ensembleId, name, startDate, endDate, isActive: setActive ? 1 : 0 }),
+    db
+      .insert(Season)
+      .values({
+        id: crypto.randomUUID(),
+        ensembleId,
+        name,
+        startDate,
+        endDate,
+        isActive: setActive ? 1 : 0,
+      }),
   ]);
 }
 
@@ -54,14 +76,21 @@ export async function updateSeason(
   endDate: Date | undefined,
   setActive: boolean,
 ) {
-  const deactivateOthers = setActive ? [db.update(Season).set({ isActive: 0 }).where(eq(Season.ensembleId, ensembleId))] : [];
+  const deactivateOthers = setActive
+    ? [db.update(Season).set({ isActive: 0 }).where(eq(Season.ensembleId, ensembleId))]
+    : [];
   await runBatch([
     ...deactivateOthers,
-    db.update(Season).set({ name, startDate, endDate, isActive: setActive ? 1 : 0 }).where(eq(Season.id, seasonId)),
+    db
+      .update(Season)
+      .set({ name, startDate, endDate, isActive: setActive ? 1 : 0 })
+      .where(eq(Season.id, seasonId)),
   ]);
 }
 
-export async function deleteSeason(seasonId: string): Promise<{ ok: true } | { ok: false; error: string }> {
+export async function deleteSeason(
+  seasonId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
   const hasEvents = await db
     .select()
     .from(Event)
@@ -70,7 +99,7 @@ export async function deleteSeason(seasonId: string): Promise<{ ok: true } | { o
     .get();
 
   if (hasEvents) {
-    return { ok: false, error: 'Cannot delete a season that has rehearsals.' };
+    return { ok: false, error: "Cannot delete a season that has rehearsals." };
   }
 
   await db.delete(Season).where(eq(Season.id, seasonId));

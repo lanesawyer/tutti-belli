@@ -1,6 +1,24 @@
-import { db, eq, and, inArray, Ensemble, Event, EventProgram, Attendance, EventRsvp, Season, User, EnsembleMember, Song, SeasonSong, Group, GroupMembership, runBatch } from '@db';
-import { randomCode } from './codes';
-import { DEFAULT_TIMEZONE, zonedTimeToInstant } from './timezone';
+import {
+  db,
+  eq,
+  and,
+  inArray,
+  Ensemble,
+  Event,
+  EventProgram,
+  Attendance,
+  EventRsvp,
+  Season,
+  User,
+  EnsembleMember,
+  Song,
+  SeasonSong,
+  Group,
+  GroupMembership,
+  runBatch,
+} from "@db";
+import { randomCode } from "./codes";
+import { DEFAULT_TIMEZONE, zonedTimeToInstant } from "./timezone";
 
 // ─── RSVP Helpers ───────────────────────────────────────────────────────────
 
@@ -21,12 +39,22 @@ export function isRsvpEnabled(event: { category: string; rsvpEnabled: number | n
 // ─── Queries ────────────────────────────────────────────────────────────────
 
 export async function getEvent(ensembleId: string, eventId: string) {
-  return (await db.select().from(Event).where(and(eq(Event.id, eventId), eq(Event.ensembleId, ensembleId))).get()) ?? null;
+  return (
+    (await db
+      .select()
+      .from(Event)
+      .where(and(eq(Event.id, eventId), eq(Event.ensembleId, ensembleId)))
+      .get()) ?? null
+  );
 }
 
 export async function getEventPageData(ensembleId: string, eventId: string) {
   const [event, ensembleData, attendanceRecords, rsvpRecords] = await Promise.all([
-    db.select().from(Event).where(and(eq(Event.id, eventId), eq(Event.ensembleId, ensembleId))).get(),
+    db
+      .select()
+      .from(Event)
+      .where(and(eq(Event.id, eventId), eq(Event.ensembleId, ensembleId)))
+      .get(),
     db.select().from(Ensemble).where(eq(Ensemble.id, ensembleId)).get(),
     db
       .select({
@@ -58,17 +86,19 @@ export async function getEventPageData(ensembleId: string, eventId: string) {
 
   if (event?.groupId) {
     const [groupRow, groupMembers] = await Promise.all([
-      db.select({ id: Group.id, name: Group.name, color: Group.color })
+      db
+        .select({ id: Group.id, name: Group.name, color: Group.color })
         .from(Group)
         .where(eq(Group.id, event.groupId))
         .get(),
-      db.select({ id: User.id, name: User.name, email: User.email })
+      db
+        .select({ id: User.id, name: User.name, email: User.email })
         .from(GroupMembership)
         .innerJoin(User, eq(GroupMembership.userId, User.id))
-        .innerJoin(EnsembleMember, and(
-          eq(EnsembleMember.userId, User.id),
-          eq(EnsembleMember.ensembleId, ensembleId),
-        ))
+        .innerJoin(
+          EnsembleMember,
+          and(eq(EnsembleMember.userId, User.id), eq(EnsembleMember.ensembleId, ensembleId)),
+        )
         .where(eq(GroupMembership.groupId, event.groupId))
         .all(),
     ]);
@@ -93,7 +123,14 @@ export async function getEventPageData(ensembleId: string, eventId: string) {
       .all();
   }
 
-  return { event: event ?? null, ensembleData: ensembleData ?? null, attendanceRecords, rsvpRecords, allMembers, group };
+  return {
+    event: event ?? null,
+    ensembleData: ensembleData ?? null,
+    attendanceRecords,
+    rsvpRecords,
+    allMembers,
+    group,
+  };
 }
 
 export async function getEventProgramData(eventId: string, seasonId: string) {
@@ -124,8 +161,8 @@ export async function getEventProgramData(eventId: string, seasonId: string) {
       .all(),
   ]);
 
-  const programSongIds = new Set(programEntries.map(e => e.songId).filter(Boolean));
-  const availableSeasonSongs = allSeasonSongs.filter(s => !programSongIds.has(s.id));
+  const programSongIds = new Set(programEntries.map((e) => e.songId).filter(Boolean));
+  const availableSeasonSongs = allSeasonSongs.filter((s) => !programSongIds.has(s.id));
 
   return { programEntries, availableSeasonSongs };
 }
@@ -169,16 +206,16 @@ export async function getEventsPageData(ensembleId: string, userId: string) {
   ]);
 
   // Fetch the current user's RSVPs for all events in one query
-  const userRsvpMap = new Map<string, 'yes' | 'no'>();
+  const userRsvpMap = new Map<string, "yes" | "no">();
   if (events.length > 0) {
-    const eventIds = events.map(e => e.id);
+    const eventIds = events.map((e) => e.id);
     const rsvps = await db
       .select({ eventId: EventRsvp.eventId, response: EventRsvp.response })
       .from(EventRsvp)
       .where(and(eq(EventRsvp.userId, userId), inArray(EventRsvp.eventId, eventIds)))
       .all();
     for (const r of rsvps) {
-      userRsvpMap.set(r.eventId, r.response as 'yes' | 'no');
+      userRsvpMap.set(r.eventId, r.response as "yes" | "no");
     }
   }
 
@@ -195,11 +232,22 @@ export async function createEvent(params: {
   time: string;
   location?: string;
   durationMinutes: number;
-  category: 'rehearsal' | 'performance' | 'social' | 'sectional';
+  category: "rehearsal" | "performance" | "social" | "sectional";
   groupId?: string;
   rsvpEnabled?: number | null;
 }) {
-  const { ensembleId, title, description, date, time, location, durationMinutes, category, groupId, rsvpEnabled } = params;
+  const {
+    ensembleId,
+    title,
+    description,
+    date,
+    time,
+    location,
+    durationMinutes,
+    category,
+    groupId,
+    rsvpEnabled,
+  } = params;
 
   const activeSeason = await db
     .select()
@@ -208,7 +256,7 @@ export async function createEvent(params: {
     .get();
 
   if (!activeSeason) {
-    throw new Error('No active season found. Please create and activate a season first.');
+    throw new Error("No active season found. Please create and activate a season first.");
   }
 
   const scheduledAt = zonedTimeToInstant(date, time, await getEnsembleTimezone(ensembleId));
@@ -220,10 +268,10 @@ export async function createEvent(params: {
     seasonId: activeSeason.id,
     category,
     title,
-    description: description || '',
+    description: description || "",
     scheduledAt,
     durationMinutes,
-    location: location || '',
+    location: location || "",
     checkInCode,
     groupId: groupId || null,
     rsvpEnabled: rsvpEnabled ?? null,
@@ -232,7 +280,11 @@ export async function createEvent(params: {
 
 /** The IANA timezone an ensemble's event times are entered and shown in. */
 export async function getEnsembleTimezone(ensembleId: string): Promise<string> {
-  const ensemble = await db.select({ timezone: Ensemble.timezone }).from(Ensemble).where(eq(Ensemble.id, ensembleId)).get();
+  const ensemble = await db
+    .select({ timezone: Ensemble.timezone })
+    .from(Ensemble)
+    .where(eq(Ensemble.id, ensembleId))
+    .get();
   return ensemble?.timezone ?? DEFAULT_TIMEZONE;
 }
 
@@ -251,18 +303,33 @@ export async function editEvent(params: {
   groupId?: string | null;
   rsvpEnabled?: number | null;
 }) {
-  const { eventId, title, description, date, time, location, durationMinutes, groupId, rsvpEnabled } = params;
-  const event = await db.select({ ensembleId: Event.ensembleId }).from(Event).where(eq(Event.id, eventId)).get();
+  const {
+    eventId,
+    title,
+    description,
+    date,
+    time,
+    location,
+    durationMinutes,
+    groupId,
+    rsvpEnabled,
+  } = params;
+  const event = await db
+    .select({ ensembleId: Event.ensembleId })
+    .from(Event)
+    .where(eq(Event.id, eventId))
+    .get();
   if (!event) return;
   const scheduledAt = zonedTimeToInstant(date, time, await getEnsembleTimezone(event.ensembleId));
 
-  await db.update(Event)
+  await db
+    .update(Event)
     .set({
       title: title.trim(),
-      description: description?.trim() || '',
+      description: description?.trim() || "",
       scheduledAt,
       durationMinutes,
-      location: location?.trim() || '',
+      location: location?.trim() || "",
       groupId: groupId || null,
       rsvpEnabled: rsvpEnabled ?? null,
     })
@@ -282,42 +349,56 @@ export async function checkInToEvent(params: {
     db.select().from(Ensemble).where(eq(Ensemble.id, ensembleId)).get(),
   ]);
 
-  if (!event) throw new Error('Event not found.');
-  if (!ensembleData) throw new Error('Ensemble not found.');
+  if (!event) throw new Error("Event not found.");
+  if (!ensembleData) throw new Error("Ensemble not found.");
 
   const now = new Date();
   const scheduledTime = new Date(event.scheduledAt);
-  const checkInStartTime = new Date(scheduledTime.getTime() - (ensembleData.checkInStartMinutes * 60 * 1000));
-  const checkInEndTime = new Date(scheduledTime.getTime() + (ensembleData.checkInEndMinutes * 60 * 1000));
+  const checkInStartTime = new Date(
+    scheduledTime.getTime() - ensembleData.checkInStartMinutes * 60 * 1000,
+  );
+  const checkInEndTime = new Date(
+    scheduledTime.getTime() + ensembleData.checkInEndMinutes * 60 * 1000,
+  );
   const canCheckIn = now >= checkInStartTime && now <= checkInEndTime;
 
   if (!canCheckIn && !isAdmin) {
     const isTooEarly = now < checkInStartTime;
     if (isTooEarly) {
-      const minutesUntilOpen = Math.ceil((checkInStartTime.getTime() - now.getTime()) / (60 * 1000));
-      throw new Error(`Check-in opens ${ensembleData.checkInStartMinutes} minutes before the event (in ${minutesUntilOpen} minutes).`);
+      const minutesUntilOpen = Math.ceil(
+        (checkInStartTime.getTime() - now.getTime()) / (60 * 1000),
+      );
+      throw new Error(
+        `Check-in opens ${ensembleData.checkInStartMinutes} minutes before the event (in ${minutesUntilOpen} minutes).`,
+      );
     } else {
-      throw new Error(`Check-in closed ${ensembleData.checkInEndMinutes} minutes after event start.`);
+      throw new Error(
+        `Check-in closed ${ensembleData.checkInEndMinutes} minutes after event start.`,
+      );
     }
   }
 
-  await recordCheckIn(eventId, userId, 'manual');
+  await recordCheckIn(eventId, userId, "manual");
 }
 
-async function recordCheckIn(eventId: string, userId: string, checkedInMethod: 'manual' | 'qr') {
+async function recordCheckIn(eventId: string, userId: string, checkedInMethod: "manual" | "qr") {
   const inserted = await db
     .insert(Attendance)
     .values({ id: crypto.randomUUID(), eventId, userId, checkedInMethod })
     .onConflictDoNothing({ target: [Attendance.eventId, Attendance.userId] })
     .returning({ id: Attendance.id });
-  if (inserted.length === 0) throw new Error('You have already checked in for this event.');
+  if (inserted.length === 0) throw new Error("You have already checked in for this event.");
 }
 
 export async function checkInByCode(params: { code: string; userId: string }) {
   const { code, userId } = params;
 
-  const event = await db.select().from(Event).where(eq(Event.checkInCode, code.toUpperCase())).get();
-  if (!event) throw new Error('Invalid check-in code.');
+  const event = await db
+    .select()
+    .from(Event)
+    .where(eq(Event.checkInCode, code.toUpperCase()))
+    .get();
+  if (!event) throw new Error("Invalid check-in code.");
 
   // Codes are shown on screen and in QR codes at the venue, so knowing one isn't proof of membership.
   const membership = await db
@@ -327,29 +408,39 @@ export async function checkInByCode(params: { code: string; userId: string }) {
       and(
         eq(EnsembleMember.ensembleId, event.ensembleId),
         eq(EnsembleMember.userId, userId),
-        eq(EnsembleMember.status, 'active'),
+        eq(EnsembleMember.status, "active"),
       ),
     )
     .get();
-  if (!membership) throw new Error('Invalid check-in code.');
+  if (!membership) throw new Error("Invalid check-in code.");
 
-  const ensembleData = await db.select().from(Ensemble).where(eq(Ensemble.id, event.ensembleId)).get();
-  if (!ensembleData) throw new Error('Ensemble not found.');
+  const ensembleData = await db
+    .select()
+    .from(Ensemble)
+    .where(eq(Ensemble.id, event.ensembleId))
+    .get();
+  if (!ensembleData) throw new Error("Ensemble not found.");
 
   const now = new Date();
   const scheduledTime = new Date(event.scheduledAt);
-  const checkInStartTime = new Date(scheduledTime.getTime() - ensembleData.checkInStartMinutes * 60 * 1000);
-  const checkInEndTime = new Date(scheduledTime.getTime() + ensembleData.checkInEndMinutes * 60 * 1000);
+  const checkInStartTime = new Date(
+    scheduledTime.getTime() - ensembleData.checkInStartMinutes * 60 * 1000,
+  );
+  const checkInEndTime = new Date(
+    scheduledTime.getTime() + ensembleData.checkInEndMinutes * 60 * 1000,
+  );
 
   if (now < checkInStartTime) {
     const minutesUntilOpen = Math.ceil((checkInStartTime.getTime() - now.getTime()) / (60 * 1000));
-    throw new Error(`Check-in opens ${ensembleData.checkInStartMinutes} minutes before the event (in ${minutesUntilOpen} minutes).`);
+    throw new Error(
+      `Check-in opens ${ensembleData.checkInStartMinutes} minutes before the event (in ${minutesUntilOpen} minutes).`,
+    );
   }
   if (now > checkInEndTime) {
     throw new Error(`Check-in closed ${ensembleData.checkInEndMinutes} minutes after event start.`);
   }
 
-  await recordCheckIn(event.id, userId, 'qr');
+  await recordCheckIn(event.id, userId, "qr");
 
   return { eventId: event.id, ensembleId: event.ensembleId };
 }
@@ -357,7 +448,7 @@ export async function checkInByCode(params: { code: string; userId: string }) {
 export async function addAttendance(eventId: string, userId: string) {
   await db
     .insert(Attendance)
-    .values({ id: crypto.randomUUID(), eventId, userId, checkedInMethod: 'admin' })
+    .values({ id: crypto.randomUUID(), eventId, userId, checkedInMethod: "admin" })
     .onConflictDoNothing({ target: [Attendance.eventId, Attendance.userId] });
 }
 
@@ -365,7 +456,7 @@ export async function removeAttendance(attendanceId: string) {
   await db.delete(Attendance).where(eq(Attendance.id, attendanceId));
 }
 
-export async function setRsvp(eventId: string, userId: string, response: 'yes' | 'no') {
+export async function setRsvp(eventId: string, userId: string, response: "yes" | "no") {
   const respondedAt = new Date();
   await db
     .insert(EventRsvp)
@@ -377,17 +468,21 @@ export async function setRsvp(eventId: string, userId: string, response: 'yes' |
 }
 
 export async function removeRsvp(eventId: string, userId: string) {
-  await db.delete(EventRsvp)
+  await db
+    .delete(EventRsvp)
     .where(and(eq(EventRsvp.eventId, eventId), eq(EventRsvp.userId, userId)));
 }
 
-export async function getRsvpForUser(eventId: string, userId: string): Promise<'yes' | 'no' | null> {
+export async function getRsvpForUser(
+  eventId: string,
+  userId: string,
+): Promise<"yes" | "no" | null> {
   const record = await db
     .select({ response: EventRsvp.response })
     .from(EventRsvp)
     .where(and(eq(EventRsvp.eventId, eventId), eq(EventRsvp.userId, userId)))
     .get();
-  return record ? (record.response as 'yes' | 'no') : null;
+  return record ? (record.response as "yes" | "no") : null;
 }
 
 async function nextSortOrder(eventId: string): Promise<number> {
@@ -396,14 +491,19 @@ async function nextSortOrder(eventId: string): Promise<number> {
     .from(EventProgram)
     .where(eq(EventProgram.eventId, eventId))
     .all();
-  return rows.length > 0 ? Math.max(...rows.map(p => p.sortOrder)) + 1 : 1;
+  return rows.length > 0 ? Math.max(...rows.map((p) => p.sortOrder)) + 1 : 1;
 }
 
-export async function addProgramSong(eventId: string, songId: string, length?: number, notes?: string) {
+export async function addProgramSong(
+  eventId: string,
+  songId: string,
+  length?: number,
+  notes?: string,
+) {
   await db.insert(EventProgram).values({
     id: crypto.randomUUID(),
     eventId,
-    type: 'song',
+    type: "song",
     songId,
     sortOrder: await nextSortOrder(eventId),
     length: length || undefined,
@@ -411,7 +511,13 @@ export async function addProgramSong(eventId: string, songId: string, length?: n
   });
 }
 
-export async function addProgramItem(eventId: string, type: 'break' | 'other', label: string, durationMinutes?: number, notes?: string) {
+export async function addProgramItem(
+  eventId: string,
+  type: "break" | "other",
+  label: string,
+  durationMinutes?: number,
+  notes?: string,
+) {
   await db.insert(EventProgram).values({
     id: crypto.randomUUID(),
     eventId,
@@ -430,19 +536,25 @@ export async function updateProgramSongNotes(programEntryId: string, notes: stri
     .where(eq(EventProgram.id, programEntryId));
 }
 
-export async function updateProgramEntry(programEntryId: string, params: { label?: string; notes?: string; length?: number | null; sortOrder?: number }) {
+export async function updateProgramEntry(
+  programEntryId: string,
+  params: { label?: string; notes?: string; length?: number | null; sortOrder?: number },
+) {
   const updates: Record<string, unknown> = {};
-  if ('label' in params) updates.label = params.label?.trim() || null;
-  if ('notes' in params) updates.notes = params.notes?.trim() || null;
-  if ('length' in params) updates.length = params.length ?? null;
-  if ('sortOrder' in params) updates.sortOrder = params.sortOrder;
+  if ("label" in params) updates.label = params.label?.trim() || null;
+  if ("notes" in params) updates.notes = params.notes?.trim() || null;
+  if ("length" in params) updates.length = params.length ?? null;
+  if ("sortOrder" in params) updates.sortOrder = params.sortOrder;
   await db.update(EventProgram).set(updates).where(eq(EventProgram.id, programEntryId));
 }
 
 export async function reorderProgramSongs(eventId: string, orderedEntryIds: string[]) {
   await runBatch(
     orderedEntryIds.map((id, index) =>
-      db.update(EventProgram).set({ sortOrder: index + 1 }).where(and(eq(EventProgram.id, id), eq(EventProgram.eventId, eventId))),
+      db
+        .update(EventProgram)
+        .set({ sortOrder: index + 1 })
+        .where(and(eq(EventProgram.id, id), eq(EventProgram.eventId, eventId))),
     ),
   );
 }
@@ -455,13 +567,27 @@ export async function removeProgramSong(programEntryId: string) {
  * The next events (still running or upcoming) the user can see, with each one's song program.
  * Group-restricted events are visible to that group's members and to admins.
  */
-export async function getUpcomingEvents(params: { ensembleId: string; userId: string; isAdmin: boolean; limit?: number }) {
+export async function getUpcomingEvents(params: {
+  ensembleId: string;
+  userId: string;
+  isAdmin: boolean;
+  limit?: number;
+}) {
   const { ensembleId, userId, isAdmin, limit = 10 } = params;
-  const events = await db.select().from(Event).where(eq(Event.ensembleId, ensembleId)).orderBy(Event.scheduledAt).all();
+  const events = await db
+    .select()
+    .from(Event)
+    .where(eq(Event.ensembleId, ensembleId))
+    .orderBy(Event.scheduledAt)
+    .all();
 
   const userGroupIds = new Set(
     (
-      await db.select({ groupId: GroupMembership.groupId }).from(GroupMembership).where(eq(GroupMembership.userId, userId)).all()
+      await db
+        .select({ groupId: GroupMembership.groupId })
+        .from(GroupMembership)
+        .where(eq(GroupMembership.userId, userId))
+        .all()
     ).map((g) => g.groupId),
   );
 
@@ -485,7 +611,12 @@ export async function getUpcomingEvents(params: { ensembleId: string; userId: st
           })
           .from(EventProgram)
           .innerJoin(Song, eq(EventProgram.songId, Song.id))
-          .where(inArray(EventProgram.eventId, upcoming.map((e) => e.id)))
+          .where(
+            inArray(
+              EventProgram.eventId,
+              upcoming.map((e) => e.id),
+            ),
+          )
           .orderBy(EventProgram.sortOrder)
           .all()
       : [];
@@ -515,5 +646,8 @@ export async function getTimedProgramEntries(eventId: string) {
     .all();
   return rows
     .filter((r) => r.length != null)
-    .map((r) => ({ ...r, displayName: r.type === 'song' ? (r.songName ?? '') : (r.label ?? r.type) }));
+    .map((r) => ({
+      ...r,
+      displayName: r.type === "song" ? (r.songName ?? "") : (r.label ?? r.type),
+    }));
 }

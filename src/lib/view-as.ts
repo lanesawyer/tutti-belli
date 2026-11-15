@@ -1,11 +1,14 @@
-import { db, eq, User } from '@db';
-import { isSiteAdmin } from './permissions';
-import { readViewAsToken } from './session';
+import { db, eq, User } from "@db";
+import { isSiteAdmin } from "./permissions";
+import { readViewAsToken } from "./session";
 
-export const VIEW_AS_COOKIE = 'view_as';
+export const VIEW_AS_COOKIE = "view_as";
 
 /** Site admins can view the site as any other user who isn't a site admin. */
-export function canViewAs(admin: { id: string; role: string }, target: { id: string; role: string }): boolean {
+export function canViewAs(
+  admin: { id: string; role: string },
+  target: { id: string; role: string },
+): boolean {
   return isSiteAdmin(admin) && !isSiteAdmin(target) && admin.id !== target.id;
 }
 

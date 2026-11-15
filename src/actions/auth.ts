@@ -1,10 +1,10 @@
-import { defineAction, ActionError } from 'astro:actions';
-import { z } from 'astro/zod';
-import { getUserByEmail, verifyPassword, createPasswordResetToken } from '@lib/auth';
-import { startSession } from '@lib/session';
-import { getRedirectUrl } from '@lib/redirect';
-import { sendPasswordResetEmail } from '@lib/email';
-import { validatePasswordResetToken, resetPassword as doResetPassword } from '@lib/profile';
+import { defineAction, ActionError } from "astro:actions";
+import { z } from "astro/zod";
+import { getUserByEmail, verifyPassword, createPasswordResetToken } from "@lib/auth";
+import { startSession } from "@lib/session";
+import { getRedirectUrl } from "@lib/redirect";
+import { sendPasswordResetEmail } from "@lib/email";
+import { validatePasswordResetToken, resetPassword as doResetPassword } from "@lib/profile";
 import {
   failedLoginsByEmail,
   failedLoginsByIp,
@@ -13,14 +13,14 @@ import {
   requestIp,
   retryAfter,
   tooManyAttemptsMessage,
-} from '@lib/rate-limit';
+} from "@lib/rate-limit";
 
 export const auth = {
   login: defineAction({
-    accept: 'form',
+    accept: "form",
     input: z.object({
-      email: z.string().min(1, 'Email is required.'),
-      password: z.string().min(1, 'Password is required.'),
+      email: z.string().min(1, "Email is required."),
+      password: z.string().min(1, "Password is required."),
       redirect: z.string().optional(),
     }),
     handler: async ({ email, password, redirect }, context) => {
@@ -31,7 +31,7 @@ export const auth = {
         [failedLoginsByIp, ip],
       ]);
       if (wait) {
-        throw new ActionError({ code: 'TOO_MANY_REQUESTS', message: tooManyAttemptsMessage(wait) });
+        throw new ActionError({ code: "TOO_MANY_REQUESTS", message: tooManyAttemptsMessage(wait) });
       }
 
       const user = await getUserByEmail(email);
@@ -39,12 +39,12 @@ export const auth = {
       if (!user || !(await verifyPassword(password, user.passwordHash))) {
         failedLoginsByEmail.record(emailKey);
         failedLoginsByIp.record(ip);
-        throw new ActionError({ code: 'UNAUTHORIZED', message: 'Invalid email or password' });
+        throw new ActionError({ code: "UNAUTHORIZED", message: "Invalid email or password" });
       }
       failedLoginsByEmail.reset(emailKey);
 
       if (!user.emailVerifiedAt) {
-        throw new ActionError({ code: 'FORBIDDEN', message: `unverified:${email}` });
+        throw new ActionError({ code: "FORBIDDEN", message: `unverified:${email}` });
       }
 
       startSession(context.cookies, user);
@@ -55,9 +55,9 @@ export const auth = {
   }),
 
   forgotPassword: defineAction({
-    accept: 'form',
+    accept: "form",
     input: z.object({
-      email: z.string().min(1, 'Email is required.'),
+      email: z.string().min(1, "Email is required."),
     }),
     handler: async ({ email }, context) => {
       const emailKey = email.trim().toLowerCase();
@@ -67,7 +67,7 @@ export const auth = {
         [passwordResetsByIp, ip],
       ]);
       if (wait) {
-        throw new ActionError({ code: 'TOO_MANY_REQUESTS', message: tooManyAttemptsMessage(wait) });
+        throw new ActionError({ code: "TOO_MANY_REQUESTS", message: tooManyAttemptsMessage(wait) });
       }
       passwordResetsByEmail.record(emailKey);
       passwordResetsByIp.record(ip);
@@ -78,9 +78,12 @@ export const auth = {
         const token = await createPasswordResetToken(user.id);
         const result = await sendPasswordResetEmail(user.email, user.name, token);
         if (!result.success) {
-          console.error('Email send failed:', result.error);
+          console.error("Email send failed:", result.error);
           if (import.meta.env.DEV) {
-            throw new ActionError({ code: 'INTERNAL_SERVER_ERROR', message: `Email failed: ${result.error}` });
+            throw new ActionError({
+              code: "INTERNAL_SERVER_ERROR",
+              message: `Email failed: ${result.error}`,
+            });
           }
         }
       }
@@ -89,34 +92,34 @@ export const auth = {
   }),
 
   resetPassword: defineAction({
-    accept: 'form',
+    accept: "form",
     input: z.object({
       token: z.string().min(1),
-      password: z.string().min(6, 'Password must be at least 6 characters.'),
-      confirmPassword: z.string().min(1, 'Please confirm your password.'),
+      password: z.string().min(6, "Password must be at least 6 characters."),
+      confirmPassword: z.string().min(1, "Please confirm your password."),
     }),
     handler: async ({ token, password, confirmPassword }) => {
       if (password !== confirmPassword) {
-        throw new ActionError({ code: 'BAD_REQUEST', message: 'Passwords do not match.' });
+        throw new ActionError({ code: "BAD_REQUEST", message: "Passwords do not match." });
       }
 
       const valid = await validatePasswordResetToken(token);
       if (!valid) {
         throw new ActionError({
-          code: 'BAD_REQUEST',
-          message: 'This password reset link is invalid or has expired. Please request a new one.',
+          code: "BAD_REQUEST",
+          message: "This password reset link is invalid or has expired. Please request a new one.",
         });
       }
 
       const result = await doResetPassword(token, password);
-      if (result.type === 'invalid') {
+      if (result.type === "invalid") {
         throw new ActionError({
-          code: 'BAD_REQUEST',
-          message: 'This password reset link is invalid or has expired. Please request a new one.',
+          code: "BAD_REQUEST",
+          message: "This password reset link is invalid or has expired. Please request a new one.",
         });
       }
-      if (result.type === 'error') {
-        throw new ActionError({ code: 'BAD_REQUEST', message: result.message });
+      if (result.type === "error") {
+        throw new ActionError({ code: "BAD_REQUEST", message: result.message });
       }
     },
   }),
