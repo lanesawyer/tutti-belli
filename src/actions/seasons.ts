@@ -1,83 +1,78 @@
-import { defineAction, ActionError } from 'astro:actions';
-import { z } from 'astro/zod';
-import { assertEnsembleAdmin, assertInEnsemble, assertUserInEnsemble } from './utils';
-import {
-  createSeason,
-  updateSeason,
-  deleteSeason,
-  toggleSeasonMember,
-} from '@lib/seasons';
+import { defineAction, ActionError } from "astro:actions";
+import { z } from "astro/zod";
+import { assertEnsembleAdmin, assertInEnsemble, assertUserInEnsemble } from "./utils";
+import { createSeason, updateSeason, deleteSeason, toggleSeasonMember } from "@lib/seasons";
 
 export const seasons = {
   create: defineAction({
-    accept: 'form',
+    accept: "form",
     input: z.object({
       ensembleId: z.string(),
-      name: z.string().min(1, 'Season name is required.'),
+      name: z.string().min(1, "Season name is required."),
       startDate: z.string().optional(),
       endDate: z.string().optional(),
-      setActive: z.enum(['on']).optional(),
+      setActive: z.enum(["on"]).optional(),
     }),
     handler: async (input, context) => {
       const user = context.locals.user;
-      if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
+      if (!user) throw new ActionError({ code: "UNAUTHORIZED" });
       await assertEnsembleAdmin(input.ensembleId, user);
       await createSeason(
         input.ensembleId,
         input.name.trim(),
         input.startDate ? new Date(input.startDate) : undefined,
         input.endDate ? new Date(input.endDate) : undefined,
-        input.setActive === 'on',
+        input.setActive === "on",
       );
     },
   }),
 
   update: defineAction({
-    accept: 'form',
+    accept: "form",
     input: z.object({
       ensembleId: z.string(),
       seasonId: z.string(),
-      name: z.string().min(1, 'Season name is required.'),
+      name: z.string().min(1, "Season name is required."),
       startDate: z.string().optional(),
       endDate: z.string().optional(),
-      setActive: z.enum(['on']).optional(),
+      setActive: z.enum(["on"]).optional(),
     }),
     handler: async (input, context) => {
       const user = context.locals.user;
-      if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
+      if (!user) throw new ActionError({ code: "UNAUTHORIZED" });
       await assertEnsembleAdmin(input.ensembleId, user);
-      await assertInEnsemble('season', input.seasonId, input.ensembleId);
+      await assertInEnsemble("season", input.seasonId, input.ensembleId);
       await updateSeason(
         input.seasonId,
         input.ensembleId,
         input.name.trim(),
         input.startDate ? new Date(input.startDate) : undefined,
         input.endDate ? new Date(input.endDate) : undefined,
-        input.setActive === 'on',
+        input.setActive === "on",
       );
     },
   }),
 
   delete: defineAction({
-    accept: 'form',
+    accept: "form",
     input: z.object({
       ensembleId: z.string(),
       seasonId: z.string(),
     }),
     handler: async (input, context) => {
       const user = context.locals.user;
-      if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
+      if (!user) throw new ActionError({ code: "UNAUTHORIZED" });
       await assertEnsembleAdmin(input.ensembleId, user);
-      await assertInEnsemble('season', input.seasonId, input.ensembleId);
+      await assertInEnsemble("season", input.seasonId, input.ensembleId);
       const result = await deleteSeason(input.seasonId);
       if (!result.ok) {
-        throw new ActionError({ code: 'BAD_REQUEST', message: result.error });
+        throw new ActionError({ code: "BAD_REQUEST", message: result.error });
       }
     },
   }),
 
   toggleMember: defineAction({
-    accept: 'form',
+    accept: "form",
     input: z.object({
       ensembleId: z.string(),
       seasonId: z.string(),
@@ -85,9 +80,9 @@ export const seasons = {
     }),
     handler: async (input, context) => {
       const user = context.locals.user;
-      if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
+      if (!user) throw new ActionError({ code: "UNAUTHORIZED" });
       await assertEnsembleAdmin(input.ensembleId, user);
-      await assertInEnsemble('season', input.seasonId, input.ensembleId);
+      await assertInEnsemble("season", input.seasonId, input.ensembleId);
       await assertUserInEnsemble(input.userId, input.ensembleId);
       await toggleSeasonMember(input.seasonId, input.userId);
     },

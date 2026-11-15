@@ -1,12 +1,12 @@
-import type { APIRoute } from 'astro';
+import type { APIRoute } from "astro";
 import {
   getEnsembleBySlugOrId,
   getEnsembleAccess,
   getEnsembleMembersWithUsers,
   getEnsembleParts,
   getMemberPartAssignments,
-} from '@lib/ensemble';
-import { toCSV, csvResponse, type CsvColumn } from '@lib/csv';
+} from "@lib/ensemble";
+import { toCSV, csvResponse, type CsvColumn } from "@lib/csv";
 
 type MemberRow = Awaited<ReturnType<typeof getEnsembleMembersWithUsers>>[number] & {
   parts: string;
@@ -14,13 +14,13 @@ type MemberRow = Awaited<ReturnType<typeof getEnsembleMembersWithUsers>>[number]
 
 export const GET: APIRoute = async ({ params, locals }) => {
   const user = locals.user;
-  if (!user) return new Response('Unauthorized', { status: 401 });
+  if (!user) return new Response("Unauthorized", { status: 401 });
 
   const ensemble = await getEnsembleBySlugOrId(params.id!);
-  if (!ensemble) return new Response('Not found', { status: 404 });
+  if (!ensemble) return new Response("Not found", { status: 404 });
 
   const access = await getEnsembleAccess(user, ensemble.id);
-  if (!access?.isAdmin) return new Response('Forbidden', { status: 403 });
+  if (!access?.isAdmin) return new Response("Forbidden", { status: 403 });
 
   const members = await getEnsembleMembersWithUsers(ensemble.id);
   const allParts = await getEnsembleParts(ensemble.id);
@@ -37,15 +37,15 @@ export const GET: APIRoute = async ({ params, locals }) => {
 
   const rows: MemberRow[] = members.map((m) => ({
     ...m,
-    parts: (partsByMembership.get(m.membershipId) ?? []).join('; '),
+    parts: (partsByMembership.get(m.membershipId) ?? []).join("; "),
   }));
 
   const columns: CsvColumn<MemberRow>[] = [
-    { header: 'Name', value: (r) => r.name },
-    { header: 'Email', value: (r) => r.email },
-    { header: 'Role', value: (r) => r.role },
-    { header: 'Parts', value: (r) => r.parts },
-    { header: 'Joined', value: (r) => new Date(r.joinedAt).toISOString().slice(0, 10) },
+    { header: "Name", value: (r) => r.name },
+    { header: "Email", value: (r) => r.email },
+    { header: "Role", value: (r) => r.role },
+    { header: "Parts", value: (r) => r.parts },
+    { header: "Joined", value: (r) => new Date(r.joinedAt).toISOString().slice(0, 10) },
   ];
 
   const csv = toCSV(rows, columns);

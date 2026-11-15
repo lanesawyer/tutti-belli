@@ -1,15 +1,15 @@
-import { db, eq, Ensemble } from '@db';
+import { db, eq, Ensemble } from "@db";
 
 export function generateSlug(name: string): string {
   return name
     .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9\s-]/g, '')
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9\s-]/g, "")
     .trim()
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-|-$/g, '');
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
 }
 
 /**
@@ -18,8 +18,11 @@ export function generateSlug(name: string): string {
 export async function findUniqueSlug(name: string, uuid: string): Promise<string> {
   const candidate = generateSlug(name);
   if (!candidate) return uuid;
-  const existing = await db.select({ id: Ensemble.id }).from(Ensemble)
-    .where(eq(Ensemble.slug, candidate)).get();
+  const existing = await db
+    .select({ id: Ensemble.id })
+    .from(Ensemble)
+    .where(eq(Ensemble.slug, candidate))
+    .get();
   return existing ? uuid : candidate;
 }
 

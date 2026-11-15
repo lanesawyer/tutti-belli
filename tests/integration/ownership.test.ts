@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { db, Announcement, Attendance, EnsembleLink } from '@db';
+import { describe, it, expect } from "vitest";
+import { db, Announcement, Attendance, EnsembleLink } from "@db";
 import {
   getOwningEnsembleId,
   isInEnsemble,
@@ -7,7 +7,7 @@ import {
   partsInEnsemble,
   seasonsInEnsemble,
   type OwnedKind,
-} from '../../src/lib/ownership.ts';
+} from "../../src/lib/ownership.ts";
 import {
   createUser,
   createEnsemble,
@@ -21,7 +21,7 @@ import {
   createSongFile,
   createEventProgramEntry,
   createTask,
-} from './fixtures.ts';
+} from "./fixtures.ts";
 
 // One record of every kind in an ensemble, so each can be checked against a second ensemble.
 async function ensembleWithEverything(adminId: string) {
@@ -38,14 +38,18 @@ async function ensembleWithEverything(adminId: string) {
   await db.insert(Announcement).values({
     id: announcementId,
     ensembleId: ensemble.id,
-    title: 'Hello',
-    content: 'World',
+    title: "Hello",
+    content: "World",
     createdBy: adminId,
   });
   const attendanceId = crypto.randomUUID();
-  await db.insert(Attendance).values({ id: attendanceId, eventId: event.id, userId: member.id, checkedInMethod: 'admin' });
+  await db
+    .insert(Attendance)
+    .values({ id: attendanceId, eventId: event.id, userId: member.id, checkedInMethod: "admin" });
   const linkId = crypto.randomUUID();
-  await db.insert(EnsembleLink).values({ id: linkId, ensembleId: ensemble.id, label: 'Site', url: 'https://example.com' });
+  await db
+    .insert(EnsembleLink)
+    .values({ id: linkId, ensembleId: ensemble.id, label: "Site", url: "https://example.com" });
 
   const ids: Record<OwnedKind, string> = {
     announcement: announcementId,
@@ -65,9 +69,9 @@ async function ensembleWithEverything(adminId: string) {
   return { ensemble, member, ids };
 }
 
-describe('getOwningEnsembleId / isInEnsemble', () => {
-  it('ties every kind of record to its own ensemble and no other', async () => {
-    const admin = await createUser({ role: 'admin' });
+describe("getOwningEnsembleId / isInEnsemble", () => {
+  it("ties every kind of record to its own ensemble and no other", async () => {
+    const admin = await createUser({ role: "admin" });
     const a = await ensembleWithEverything(admin!.id);
     const b = await ensembleWithEverything(admin!.id);
 
@@ -78,17 +82,17 @@ describe('getOwningEnsembleId / isInEnsemble', () => {
     }
   });
 
-  it('returns null for a record that does not exist', async () => {
-    const admin = await createUser({ role: 'admin' });
+  it("returns null for a record that does not exist", async () => {
+    const admin = await createUser({ role: "admin" });
     const ensemble = await createEnsemble(admin!.id);
-    expect(await getOwningEnsembleId('membership', 'missing')).toBeNull();
-    expect(await isInEnsemble('songFile', 'missing', ensemble!.id)).toBe(false);
+    expect(await getOwningEnsembleId("membership", "missing")).toBeNull();
+    expect(await isInEnsemble("songFile", "missing", ensemble!.id)).toBe(false);
   });
 });
 
-describe('isUserInEnsemble', () => {
-  it('is true only for users with a membership in that ensemble', async () => {
-    const admin = await createUser({ role: 'admin' });
+describe("isUserInEnsemble", () => {
+  it("is true only for users with a membership in that ensemble", async () => {
+    const admin = await createUser({ role: "admin" });
     const a = await ensembleWithEverything(admin!.id);
     const b = await ensembleWithEverything(admin!.id);
     expect(await isUserInEnsemble(a.member.id, a.ensemble.id)).toBe(true);
@@ -96,34 +100,34 @@ describe('isUserInEnsemble', () => {
   });
 });
 
-describe('partsInEnsemble', () => {
-  it('accepts only parts that all belong to the ensemble', async () => {
-    const admin = await createUser({ role: 'admin' });
+describe("partsInEnsemble", () => {
+  it("accepts only parts that all belong to the ensemble", async () => {
+    const admin = await createUser({ role: "admin" });
     const a = await createEnsemble(admin!.id);
     const b = await createEnsemble(admin!.id);
-    const a1 = await createPart(a!.id, { name: 'Soprano' });
-    const a2 = await createPart(a!.id, { name: 'Alto' });
-    const b1 = await createPart(b!.id, { name: 'Tenor' });
+    const a1 = await createPart(a!.id, { name: "Soprano" });
+    const a2 = await createPart(a!.id, { name: "Alto" });
+    const b1 = await createPart(b!.id, { name: "Tenor" });
 
     expect(await partsInEnsemble([a1!.id, a2!.id], a!.id)).toBe(true);
     expect(await partsInEnsemble([a1!.id, b1!.id], a!.id)).toBe(false);
-    expect(await partsInEnsemble(['missing'], a!.id)).toBe(false);
+    expect(await partsInEnsemble(["missing"], a!.id)).toBe(false);
     expect(await partsInEnsemble([], a!.id)).toBe(true);
   });
 });
 
-describe('seasonsInEnsemble', () => {
-  it('accepts only seasons that all belong to the ensemble', async () => {
-    const admin = await createUser({ role: 'admin' });
+describe("seasonsInEnsemble", () => {
+  it("accepts only seasons that all belong to the ensemble", async () => {
+    const admin = await createUser({ role: "admin" });
     const a = await createEnsemble(admin!.id);
     const b = await createEnsemble(admin!.id);
-    const a1 = await createSeason(a!.id, { name: 'Fall' });
-    const a2 = await createSeason(a!.id, { name: 'Spring' });
-    const b1 = await createSeason(b!.id, { name: 'Other' });
+    const a1 = await createSeason(a!.id, { name: "Fall" });
+    const a2 = await createSeason(a!.id, { name: "Spring" });
+    const b1 = await createSeason(b!.id, { name: "Other" });
 
     expect(await seasonsInEnsemble([a1!.id, a2!.id], a!.id)).toBe(true);
     expect(await seasonsInEnsemble([a1!.id, b1!.id], a!.id)).toBe(false);
-    expect(await seasonsInEnsemble(['missing'], a!.id)).toBe(false);
+    expect(await seasonsInEnsemble(["missing"], a!.id)).toBe(false);
     expect(await seasonsInEnsemble([], a!.id)).toBe(true);
   });
 });

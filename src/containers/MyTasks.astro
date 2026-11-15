@@ -12,50 +12,42 @@ interface Props {
 
 const { ensembleId, userId, seasonId, canonicalId, isAdmin } = Astro.props;
 
-const myTasks = await getTasksWithCompletionsForUser(
-  ensembleId,
-  userId,
-  seasonId,
-);
+const myTasks = await getTasksWithCompletionsForUser(ensembleId, userId, seasonId);
 ---
 
-{
-  myTasks.length > 0 && (
-    <Box class="mb-5">
-      <Title as="h2" size={5} class="mb-4">
-        <span class="icon-text">
-          <Icon icon="fa-tasks" />
-          <span>My Tasks</span>
-        </span>
-      </Title>
-      <ul>
-        {myTasks.map((task) => (
-          <li class="mb-2">
-            <span class="icon-text">
-              {task.completed ? (
-                <Icon icon="fa-check-circle" color="success" />
-              ) : (
-                <Icon icon="fa-circle" variant="far" color="grey-light" />
-              )}
-              <span class:list={["ml-1", { "has-text-grey": task.completed }]}>
-                {task.title}
-              </span>
-            </span>
-          </li>
-        ))}
-      </ul>
-      {isAdmin && (
-        <Button
-          href={`/ensembles/${canonicalId}/tasks`}
-          size="small"
-          color="link"
-          fullwidth
-          class="mt-3"
-        >
-          <Icon icon="fa-tasks" />
-          <span>Manage Tasks</span>
-        </Button>
-      )}
-    </Box>
-  )
-}
+{myTasks.length > 0 && (
+  <Box class="mb-5">
+    <Title as="h2" size={5} class="mb-4">
+      <span class="icon-text">
+        <Icon icon="fa-tasks" />
+        <span>My Tasks</span>
+      </span>
+    </Title>
+    <ul>
+      {myTasks.map((task) => (
+        <li class="mb-2">
+          <span class="icon-text">
+            {task.completed ? (
+              <Icon icon="fa-check-circle" color="success" />
+            ) : (
+              <Icon icon="fa-circle" variant="far" color="grey-light" />
+            )}
+            <span class:list={["ml-1", { "has-text-grey": task.completed }]}>{task.title}</span>
+          </span>
+        </li>
+      ))}
+    </ul>
+    {isAdmin && (
+      <Button
+        href={`/ensembles/${canonicalId}/tasks`}
+        size="small"
+        color="link"
+        fullwidth
+        class="mt-3"
+      >
+        <Icon icon="fa-tasks" />
+        <span>Manage Tasks</span>
+      </Button>
+    )}
+  </Box>
+)}

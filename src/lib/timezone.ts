@@ -2,11 +2,11 @@
  * Event times are entered and shown as wall-clock time in the ensemble's timezone, but stored
  * as absolute instants. The server runs in UTC, so nothing here may rely on its local time.
  */
-export const DEFAULT_TIMEZONE = 'America/Los_Angeles';
+export const DEFAULT_TIMEZONE = "America/Los_Angeles";
 
 export function isValidTimeZone(timeZone: string): boolean {
   try {
-    new Intl.DateTimeFormat('en-US', { timeZone });
+    new Intl.DateTimeFormat("en-US", { timeZone });
     return true;
   } catch {
     return false;
@@ -14,23 +14,30 @@ export function isValidTimeZone(timeZone: string): boolean {
 }
 
 export function timeZoneOptions(): string[] {
-  return Intl.supportedValuesOf('timeZone');
+  return Intl.supportedValuesOf("timeZone");
 }
 
 /** The wall-clock parts of an instant in a timezone. */
 function zonedParts(instant: Date, timeZone: string) {
-  const parts = new Intl.DateTimeFormat('en-US', {
+  const parts = new Intl.DateTimeFormat("en-US", {
     timeZone,
-    hourCycle: 'h23',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
+    hourCycle: "h23",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
   }).formatToParts(instant);
   const get = (type: string) => Number(parts.find((p) => p.type === type)!.value);
-  return { year: get('year'), month: get('month'), day: get('day'), hour: get('hour'), minute: get('minute'), second: get('second') };
+  return {
+    year: get("year"),
+    month: get("month"),
+    day: get("day"),
+    hour: get("hour"),
+    minute: get("minute"),
+    second: get("second"),
+  };
 }
 
 /** How far the timezone's wall clock is ahead of UTC at an instant, in milliseconds. */
@@ -45,8 +52,8 @@ function offsetMs(instant: Date, timeZone: string): number {
  * A time skipped by a daylight-saving jump resolves to the hour after; a repeated one, to the first.
  */
 export function zonedTimeToInstant(date: string, time: string, timeZone: string): Date {
-  const [year, month, day] = date.split('-').map(Number);
-  const [hour, minute] = time.split(':').map(Number);
+  const [year, month, day] = date.split("-").map(Number);
+  const [hour, minute] = time.split(":").map(Number);
   const wallAsUtc = Date.UTC(year, month - 1, day, hour, minute);
   const dayMs = 24 * 60 * 60 * 1000;
   const offsetBefore = offsetMs(new Date(wallAsUtc - dayMs), timeZone);
@@ -61,16 +68,22 @@ export function zonedTimeToInstant(date: string, time: string, timeZone: string)
 }
 
 /** An instant as the date and time values for `<input type="date">` and `<input type="time">`. */
-export function instantToZonedInputs(instant: Date, timeZone: string): { date: string; time: string } {
+export function instantToZonedInputs(
+  instant: Date,
+  timeZone: string,
+): { date: string; time: string } {
   const p = zonedParts(instant, timeZone);
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return { date: `${p.year}-${pad(p.month)}-${pad(p.day)}`, time: `${pad(p.hour)}:${pad(p.minute)}` };
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return {
+    date: `${p.year}-${pad(p.month)}-${pad(p.day)}`,
+    time: `${pad(p.hour)}:${pad(p.minute)}`,
+  };
 }
 
 export function formatZonedDate(instant: Date, timeZone: string): string {
-  return instant.toLocaleDateString('en-US', { timeZone });
+  return instant.toLocaleDateString("en-US", { timeZone });
 }
 
 export function formatZonedTime(instant: Date, timeZone: string): string {
-  return instant.toLocaleTimeString('en-US', { timeZone, hour: 'numeric', minute: '2-digit' });
+  return instant.toLocaleTimeString("en-US", { timeZone, hour: "numeric", minute: "2-digit" });
 }
