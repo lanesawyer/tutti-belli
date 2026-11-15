@@ -40,8 +40,7 @@ if (Astro.request.method === "GET" && id !== canonicalId) {
 }
 
 const access = await getEnsembleAccess(user, ensemble.id);
-if (!access)
-  return new Response("Unauthorized - Not a member", { status: 403 });
+if (!access) return new Response("Unauthorized - Not a member", { status: 403 });
 const { isAdmin } = access;
 
 const createResult = Astro.getActionResult(actions.groups.create);
@@ -104,280 +103,232 @@ const colorOptions = [
   messageType={messageType}
   isAdmin={isAdmin}
 >
-  {
-    isAdmin && (
-      <Button slot="action" color="primary" id="create-group-btn">
-        <Icon icon="fa-plus" />
-        <span>Create Group</span>
-      </Button>
-    )
-  }
+  {isAdmin && (
+    <Button slot="action" color="primary" id="create-group-btn">
+      <Icon icon="fa-plus" />
+      <span>Create Group</span>
+    </Button>
+  )}
 
-  {
-    groups.length === 0 ? (
-      <Notification color="info" light>
-        No groups yet. {isAdmin && "Create one to organize your members!"}
-      </Notification>
-    ) : (
-      <Table>
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Description</th>
-            <th>Members</th>
-            {isAdmin && <th style="width: 160px;">Actions</th>}
-          </tr>
-        </thead>
-        <tbody>
-          {groups.map((group) => {
-            const members = membershipsByGroupId[group.id] || [];
-            const leads = members.filter((m) => m.role === "lead");
-            const regulars = members.filter((m) => m.role !== "lead");
-            return (
-              <tr>
-                <td>
-                  <Tag color={group.color as Color} class="mr-2">
-                    {group.name}
-                  </Tag>
-                </td>
-                <td>{group.description || "-"}</td>
-                <td>
-                  {members.length > 0 ? (
-                    <div>
-                      {leads.length > 0 && (
-                        <div class="tags are-small mb-1">
-                          {leads.map((m) => (
-                            <Tag color="warning">
-                              <Icon icon="fa-star is-size-7 mr-1" />
-                              {m.userName}
-                            </Tag>
-                          ))}
-                        </div>
-                      )}
-                      {regulars.length > 0 && (
-                        <div class="tags are-small">
-                          {regulars.map((m) => (
-                            <Tag>{m.userName}</Tag>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <span class="has-text-grey-light is-italic">None</span>
-                  )}
-                </td>
-                {isAdmin && (
-                  <td>
-                    <div class="buttons are-small">
-                      <Button
-                        color="info"
-                        class="manage-members-btn"
-                        data-group-id={group.id}
-                      >
-                        <Icon icon="fa-users" />
-                      </Button>
-                      <Button
-                        color="warning"
-                        class="edit-group-btn"
-                        data-group-id={group.id}
-                        data-group-name={group.name}
-                        data-group-description={group.description || ""}
-                        data-group-color={group.color}
-                      >
-                        <Icon icon="fa-edit" />
-                      </Button>
-                      <Button
-                        color="danger"
-                        class="delete-group-btn"
-                        data-group-id={group.id}
-                      >
-                        <Icon icon="fa-trash" />
-                      </Button>
-                    </div>
-                  </td>
+  {groups.length === 0 ? (
+    <Notification color="info" light>
+      No groups yet. {isAdmin && "Create one to organize your members!"}
+    </Notification>
+  ) : (
+    <Table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Description</th>
+          <th>Members</th>
+          {isAdmin && <th style="width: 160px;">Actions</th>}
+        </tr>
+      </thead>
+      <tbody>
+        {groups.map((group) => {
+          const members = membershipsByGroupId[group.id] || [];
+          const leads = members.filter((m) => m.role === "lead");
+          const regulars = members.filter((m) => m.role !== "lead");
+          return (
+            <tr>
+              <td>
+                <Tag color={group.color as Color} class="mr-2">
+                  {group.name}
+                </Tag>
+              </td>
+              <td>{group.description || "-"}</td>
+              <td>
+                {members.length > 0 ? (
+                  <div>
+                    {leads.length > 0 && (
+                      <div class="tags are-small mb-1">
+                        {leads.map((m) => (
+                          <Tag color="warning">
+                            <Icon icon="fa-star is-size-7 mr-1" />
+                            {m.userName}
+                          </Tag>
+                        ))}
+                      </div>
+                    )}
+                    {regulars.length > 0 && (
+                      <div class="tags are-small">
+                        {regulars.map((m) => (
+                          <Tag>{m.userName}</Tag>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <span class="has-text-grey-light is-italic">None</span>
                 )}
-              </tr>
-            );
-          })}
-        </tbody>
-      </Table>
-    )
-  }
+              </td>
+              {isAdmin && (
+                <td>
+                  <div class="buttons are-small">
+                    <Button color="info" class="manage-members-btn" data-group-id={group.id}>
+                      <Icon icon="fa-users" />
+                    </Button>
+                    <Button
+                      color="warning"
+                      class="edit-group-btn"
+                      data-group-id={group.id}
+                      data-group-name={group.name}
+                      data-group-description={group.description || ""}
+                      data-group-color={group.color}
+                    >
+                      <Icon icon="fa-edit" />
+                    </Button>
+                    <Button color="danger" class="delete-group-btn" data-group-id={group.id}>
+                      <Icon icon="fa-trash" />
+                    </Button>
+                  </div>
+                </td>
+              )}
+            </tr>
+          );
+        })}
+      </tbody>
+    </Table>
+  )}
 
   <Fragment slot="modals">
     <!-- Create Group Modal -->
-    {
-      isAdmin && (
-        <Modal id="create-modal" title="Create Group">
-          <form id="createForm" method="POST" action={actions.groups.create}>
-            <input type="hidden" name="ensembleId" value={ensemble.id} />
+    {isAdmin && (
+      <Modal id="create-modal" title="Create Group">
+        <form id="createForm" method="POST" action={actions.groups.create}>
+          <input type="hidden" name="ensembleId" value={ensemble.id} />
 
-            <TextInput
-              name="name"
-              id="create-name"
-              label="Group Name *"
-              placeholder="e.g., Section Leaders, Board Members"
-              required
-            />
+          <TextInput
+            name="name"
+            id="create-name"
+            label="Group Name *"
+            placeholder="e.g., Section Leaders, Board Members"
+            required
+          />
 
-            <Textarea
-              id="create-description"
-              name="description"
-              label="Description"
-              placeholder="Optional description of the group's purpose"
-              rows={3}
-            />
+          <Textarea
+            id="create-description"
+            name="description"
+            label="Description"
+            placeholder="Optional description of the group's purpose"
+            rows={3}
+          />
 
-            <Select
-              id="create-color"
-              name="color"
-              label="Badge Color"
-              fullwidth
-            >
-              {colorOptions.map((option) => (
-                <option value={option.value} selected={option.value === "info"}>
-                  {option.label}
-                </option>
-              ))}
-            </Select>
-          </form>
+          <Select id="create-color" name="color" label="Badge Color" fullwidth>
+            {colorOptions.map((option) => (
+              <option value={option.value} selected={option.value === "info"}>
+                {option.label}
+              </option>
+            ))}
+          </Select>
+        </form>
 
-          <div slot="footer">
-            <Button type="submit" form="createForm" color="primary">
-              Create Group
-            </Button>
-            <Button type="button" data-modal-close>
-              Cancel
-            </Button>
-          </div>
-        </Modal>
-      )
-    }
+        <div slot="footer">
+          <Button type="submit" form="createForm" color="primary">
+            Create Group
+          </Button>
+          <Button type="button" data-modal-close>
+            Cancel
+          </Button>
+        </div>
+      </Modal>
+    )}
 
     <!-- Edit Group Modal -->
-    {
-      isAdmin && (
-        <Modal id="edit-modal" title="Edit Group">
-          <form id="editForm" method="POST" action={actions.groups.update}>
-            <input type="hidden" name="ensembleId" value={ensemble.id} />
-            <input type="hidden" name="groupId" id="edit-groupId" />
+    {isAdmin && (
+      <Modal id="edit-modal" title="Edit Group">
+        <form id="editForm" method="POST" action={actions.groups.update}>
+          <input type="hidden" name="ensembleId" value={ensemble.id} />
+          <input type="hidden" name="groupId" id="edit-groupId" />
 
-            <TextInput
-              name="name"
-              id="edit-name"
-              label="Group Name *"
-              required
-            />
+          <TextInput name="name" id="edit-name" label="Group Name *" required />
 
-            <Textarea
-              id="edit-description"
-              name="description"
-              label="Description"
-              rows={3}
-            />
+          <Textarea id="edit-description" name="description" label="Description" rows={3} />
 
-            <Select id="edit-color" name="color" label="Badge Color" fullwidth>
-              {colorOptions.map((option) => (
-                <option value={option.value}>{option.label}</option>
-              ))}
-            </Select>
-          </form>
+          <Select id="edit-color" name="color" label="Badge Color" fullwidth>
+            {colorOptions.map((option) => (
+              <option value={option.value}>{option.label}</option>
+            ))}
+          </Select>
+        </form>
 
-          <div slot="footer">
-            <Button type="submit" form="editForm" color="primary">
-              Save Changes
-            </Button>
-            <Button type="button" data-modal-close>
-              Cancel
-            </Button>
-          </div>
-        </Modal>
-      )
-    }
+        <div slot="footer">
+          <Button type="submit" form="editForm" color="primary">
+            Save Changes
+          </Button>
+          <Button type="button" data-modal-close>
+            Cancel
+          </Button>
+        </div>
+      </Modal>
+    )}
 
     <!-- Manage Members Modal -->
-    {
-      isAdmin && (
-        <Modal id="members-modal" title="Manage Group Members">
-          <input type="hidden" id="members-groupId" />
-          <p class="mb-3">
-            Select which members belong to this group and assign roles:
-          </p>
-          {allMembers.map((member) => (
-            <div class="field">
-              <div class="is-flex is-align-items-center" style="gap: 0.75rem;">
-                <Checkbox
-                  name="member"
-                  class="member-checkbox"
-                  data-user-id={member.id}
-                  label={member.name}
-                  standalone
-                />
-                <span class="member-role-select" style="display: none;">
-                  <Select name="role" standalone size="small">
-                    <option value="">Member</option>
-                    <option value="lead">Lead</option>
-                  </Select>
-                </span>
-              </div>
+    {isAdmin && (
+      <Modal id="members-modal" title="Manage Group Members">
+        <input type="hidden" id="members-groupId" />
+        <p class="mb-3">Select which members belong to this group and assign roles:</p>
+        {allMembers.map((member) => (
+          <div class="field">
+            <div class="is-flex is-align-items-center" style="gap: 0.75rem;">
+              <Checkbox
+                name="member"
+                class="member-checkbox"
+                data-user-id={member.id}
+                label={member.name}
+                standalone
+              />
+              <span class="member-role-select" style="display: none;">
+                <Select name="role" standalone size="small">
+                  <option value="">Member</option>
+                  <option value="lead">Lead</option>
+                </Select>
+              </span>
             </div>
-          ))}
-
-          <div slot="footer">
-            <Button type="button" id="close-members-btn">
-              Done
-            </Button>
           </div>
-        </Modal>
-      )
-    }
+        ))}
+
+        <div slot="footer">
+          <Button type="button" id="close-members-btn">
+            Done
+          </Button>
+        </div>
+      </Modal>
+    )}
 
     <!-- Delete Confirmation Modal -->
-    {
-      isAdmin && (
-        <Modal id="delete-modal" title="Delete Group">
-          <p>
-            Are you sure you want to delete this group? This action cannot be
-            undone.
-          </p>
-          <form id="deleteForm" method="POST" action={actions.groups.delete}>
-            <input type="hidden" name="ensembleId" value={ensemble.id} />
-            <input type="hidden" name="groupId" id="delete-groupId" />
-          </form>
+    {isAdmin && (
+      <Modal id="delete-modal" title="Delete Group">
+        <p>Are you sure you want to delete this group? This action cannot be undone.</p>
+        <form id="deleteForm" method="POST" action={actions.groups.delete}>
+          <input type="hidden" name="ensembleId" value={ensemble.id} />
+          <input type="hidden" name="groupId" id="delete-groupId" />
+        </form>
 
-          <div slot="footer">
-            <Button type="submit" form="deleteForm" color="danger">
-              Delete Group
-            </Button>
-            <Button type="button" data-modal-close>
-              Cancel
-            </Button>
-          </div>
-        </Modal>
-      )
-    }
+        <div slot="footer">
+          <Button type="submit" form="deleteForm" color="danger">
+            Delete Group
+          </Button>
+          <Button type="button" data-modal-close>
+            Cancel
+          </Button>
+        </div>
+      </Modal>
+    )}
 
-    <script
-      is:inline
-      define:vars={{ membershipsByGroupId, ensembleId: ensemble.id }}
-    >
+    <script is:inline define:vars={{ membershipsByGroupId, ensembleId: ensemble.id }}>
       document.addEventListener("astro:page-load", () => {
-        document
-          .getElementById("create-group-btn")
-          ?.addEventListener("click", () => {
-            document.getElementById("create-modal")?.classList.add("is-active");
-          });
+        document.getElementById("create-group-btn")?.addEventListener("click", () => {
+          document.getElementById("create-modal")?.classList.add("is-active");
+        });
 
         document.querySelectorAll(".edit-group-btn").forEach((btn) => {
           btn.addEventListener("click", () => {
-            document.getElementById("edit-groupId").value =
-              btn.getAttribute("data-group-id");
-            document.getElementById("edit-name").value =
-              btn.getAttribute("data-group-name");
+            document.getElementById("edit-groupId").value = btn.getAttribute("data-group-id");
+            document.getElementById("edit-name").value = btn.getAttribute("data-group-name");
             document.getElementById("edit-description").value =
               btn.getAttribute("data-group-description");
-            document.getElementById("edit-color").value =
-              btn.getAttribute("data-group-color");
+            document.getElementById("edit-color").value = btn.getAttribute("data-group-color");
             document.getElementById("edit-modal")?.classList.add("is-active");
           });
         });
@@ -390,31 +341,24 @@ const colorOptions = [
             const groupMembers = membershipsByGroupId[groupId] || [];
             const memberMap = new Map(groupMembers.map((m) => [m.userId, m]));
 
-            document
-              .querySelectorAll(".member-checkbox")
-              .forEach((checkbox) => {
-                const userId = checkbox.getAttribute("data-user-id");
-                const membership = memberMap.get(userId);
-                checkbox.querySelector("input").checked = !!membership;
+            document.querySelectorAll(".member-checkbox").forEach((checkbox) => {
+              const userId = checkbox.getAttribute("data-user-id");
+              const membership = memberMap.get(userId);
+              checkbox.querySelector("input").checked = !!membership;
 
-                const roleSelect = checkbox
-                  .closest(".is-flex")
-                  ?.querySelector(".member-role-select");
-                if (roleSelect) {
-                  if (membership) {
-                    roleSelect.style.display = "";
-                    roleSelect.querySelector("select").value =
-                      membership.role || "";
-                  } else {
-                    roleSelect.style.display = "none";
-                    roleSelect.querySelector("select").value = "";
-                  }
+              const roleSelect = checkbox.closest(".is-flex")?.querySelector(".member-role-select");
+              if (roleSelect) {
+                if (membership) {
+                  roleSelect.style.display = "";
+                  roleSelect.querySelector("select").value = membership.role || "";
+                } else {
+                  roleSelect.style.display = "none";
+                  roleSelect.querySelector("select").value = "";
                 }
-              });
+              }
+            });
 
-            document
-              .getElementById("members-modal")
-              ?.classList.add("is-active");
+            document.getElementById("members-modal")?.classList.add("is-active");
           });
         });
 
@@ -422,9 +366,7 @@ const colorOptions = [
           checkbox.addEventListener("change", async () => {
             const groupId = document.getElementById("members-groupId").value;
             const userId = checkbox.getAttribute("data-user-id");
-            const roleSelect = checkbox
-              .closest(".is-flex")
-              ?.querySelector(".member-role-select");
+            const roleSelect = checkbox.closest(".is-flex")?.querySelector(".member-role-select");
 
             const formData = new FormData();
             formData.append("ensembleId", ensembleId);
@@ -449,42 +391,35 @@ const colorOptions = [
         });
 
         document.querySelectorAll(".member-role-select").forEach((wrapper) => {
-          wrapper
-            .querySelector("select")
-            .addEventListener("change", async (e) => {
-              const groupId = document.getElementById("members-groupId").value;
-              const userId = wrapper
-                .closest(".is-flex")
-                ?.querySelector(".member-checkbox")
-                ?.getAttribute("data-user-id");
-              const role = e.target.value;
+          wrapper.querySelector("select").addEventListener("change", async (e) => {
+            const groupId = document.getElementById("members-groupId").value;
+            const userId = wrapper
+              .closest(".is-flex")
+              ?.querySelector(".member-checkbox")
+              ?.getAttribute("data-user-id");
+            const role = e.target.value;
 
-              const formData = new FormData();
-              formData.append("ensembleId", ensembleId);
-              formData.append("groupId", groupId);
-              formData.append("userId", userId);
-              formData.append("role", role);
+            const formData = new FormData();
+            formData.append("ensembleId", ensembleId);
+            formData.append("groupId", groupId);
+            formData.append("userId", userId);
+            formData.append("role", role);
 
-              await fetch("/_actions/groups.setMemberRole", {
-                method: "POST",
-                body: formData,
-              });
+            await fetch("/_actions/groups.setMemberRole", {
+              method: "POST",
+              body: formData,
             });
+          });
         });
 
-        document
-          .getElementById("close-members-btn")
-          ?.addEventListener("click", () => {
-            document
-              .getElementById("members-modal")
-              ?.classList.remove("is-active");
-            window.location.reload();
-          });
+        document.getElementById("close-members-btn")?.addEventListener("click", () => {
+          document.getElementById("members-modal")?.classList.remove("is-active");
+          window.location.reload();
+        });
 
         document.querySelectorAll(".delete-group-btn").forEach((btn) => {
           btn.addEventListener("click", () => {
-            document.getElementById("delete-groupId").value =
-              btn.getAttribute("data-group-id");
+            document.getElementById("delete-groupId").value = btn.getAttribute("data-group-id");
             document.getElementById("delete-modal")?.classList.add("is-active");
           });
         });

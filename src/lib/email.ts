@@ -1,5 +1,5 @@
-import { Resend } from 'resend';
-import { siteLink } from './site-url';
+import { Resend } from "resend";
+import { siteLink } from "./site-url";
 
 interface SendParams {
   from: string;
@@ -8,16 +8,16 @@ interface SendParams {
   html: string;
 }
 
-function getEnv(key: string, fallback = ''): string {
+function getEnv(key: string, fallback = ""): string {
   return process.env[key] || fallback;
 }
 
 const HTML_ESCAPES: Record<string, string> = {
-  '&': '&amp;',
-  '<': '&lt;',
-  '>': '&gt;',
-  '"': '&quot;',
-  "'": '&#39;',
+  "&": "&amp;",
+  "<": "&lt;",
+  ">": "&gt;",
+  '"': "&quot;",
+  "'": "&#39;",
 };
 
 /** Escapes text for HTML element content and quoted attribute values. */
@@ -27,12 +27,12 @@ export function escapeHtml(value: string): string {
 
 /** Plain text as HTML: escaped, with line breaks kept as `<br />`. */
 export function textToHtml(value: string): string {
-  return escapeHtml(value).replace(/\r\n|\r|\n/g, '<br />');
+  return escapeHtml(value).replace(/\r\n|\r|\n/g, "<br />");
 }
 
 /** A header-safe subject: control characters, including CR and LF, become spaces. */
 export function emailSubject(value: string): string {
-  return value.replace(/[\p{Cc}\u2028\u2029]+/gu, ' ').trim();
+  return value.replace(/[\p{Cc}\u2028\u2029]+/gu, " ").trim();
 }
 
 export interface EmailResult {
@@ -41,25 +41,49 @@ export interface EmailResult {
 }
 
 function getClient(): { client: Resend; fromEmail: string } | { error: EmailResult } {
-  const apiKey = getEnv('EMAIL_API_KEY');
+  const apiKey = getEnv("EMAIL_API_KEY");
   if (!apiKey) {
-    console.error('EMAIL_API_KEY is not set');
-    return { error: { success: false, error: 'Email service is not configured' } };
+    console.error("EMAIL_API_KEY is not set");
+    return { error: { success: false, error: "Email service is not configured" } };
   }
-  return { client: new Resend(apiKey), fromEmail: getEnv('EMAIL_FROM', 'noreply@example.com') };
+  return { client: new Resend(apiKey), fromEmail: getEnv("EMAIL_FROM", "noreply@example.com") };
+}
+
+const HTML_UNESCAPES: Record<string, string> = Object.fromEntries(
+  Object.entries(HTML_ESCAPES).map(([char, entity]) => [entity, char]),
+);
+
+function emailLinks(html: string): string[] {
+  const links = [...html.matchAll(/href="([^"]*)"/g)].map((match) =>
+    match[1].replace(/&(?:amp|lt|gt|quot|#39);/g, (entity) => HTML_UNESCAPES[entity]),
+  );
+  return [...new Set(links)];
+}
+
+/** With sending disabled (local dev, tests, PR previews), the log stands in for the inbox. */
+function logUnsentEmail(params: SendParams, logContext: string): void {
+  console.log(
+    `[email] disabled — skipping ${logContext} to="${params.to}" subject="${emailSubject(params.subject)}"`,
+  );
+  for (const link of emailLinks(params.html)) {
+    console.log(`[email]   link: ${link}`);
+  }
 }
 
 async function sendEmail(params: SendParams, logContext: string): Promise<EmailResult> {
-  if (getEnv('EMAIL_DISABLED')) {
-    console.log(`[email] disabled — skipping ${logContext} to="${params.to}"`);
+  if (getEnv("EMAIL_DISABLED")) {
+    logUnsentEmail(params, logContext);
     return { success: true };
   }
   const result = getClient();
-  if ('error' in result) return result.error;
+  if ("error" in result) return result.error;
 
   console.log(`[email] ${logContext} to="${params.to}"`);
   try {
-    const { error: sendError } = await result.client.emails.send({ ...params, subject: emailSubject(params.subject) });
+    const { error: sendError } = await result.client.emails.send({
+      ...params,
+      subject: emailSubject(params.subject),
+    });
     if (sendError) {
       console.error(`Failed to send ${logContext}:`, sendError);
       return { success: false, error: sendError.message };
@@ -72,12 +96,12 @@ async function sendEmail(params: SendParams, logContext: string): Promise<EmailR
 }
 
 async function sendEmailBatch(paramsList: SendParams[], logContext: string): Promise<EmailResult> {
-  if (getEnv('EMAIL_DISABLED')) {
-    console.log(`[email] disabled — skipping ${logContext} to ${paramsList.length} recipients`);
+  if (getEnv("EMAIL_DISABLED")) {
+    for (const params of paramsList) logUnsentEmail(params, logContext);
     return { success: true };
   }
   const result = getClient();
-  if ('error' in result) return result.error;
+  if ("error" in result) return result.error;
 
   console.log(`[email] ${logContext} to ${paramsList.length} recipients`);
   try {
@@ -105,7 +129,7 @@ export async function sendAnnouncementEmail(
 ): Promise<EmailResult> {
   if (recipients.length === 0) return { success: true };
 
-  const fromEmail = getEnv('EMAIL_FROM', 'noreply@example.com');
+  const fromEmail = getEnv("EMAIL_FROM", "noreply@example.com");
   const announcementsUrl = siteLink(`/ensembles/${encodeURIComponent(ensembleId)}/announcements`);
 
   return sendEmailBatch(
@@ -119,7 +143,7 @@ export async function sendAnnouncementEmail(
           <p>Hi ${escapeHtml(name)},</p>
           <p><strong>${escapeHtml(authorName)}</strong> posted a new announcement in <strong>${escapeHtml(ensembleName)}</strong>:</p>
           <div style="background-color: #f5f5f5; border-left: 4px solid #485fc7; padding: 16px; margin: 24px 0;">${textToHtml(announcementContent)}</div>
-          ${emailButton(announcementsUrl, 'View Announcements')}
+          ${emailButton(announcementsUrl, "View Announcements")}
           <hr style="border: none; border-top: 1px solid #eee; margin: 32px 0;" />
           <p style="color: #888; font-size: 0.875rem;">
             You're receiving this because you're a member of ${escapeHtml(ensembleName)}.
@@ -127,7 +151,7 @@ export async function sendAnnouncementEmail(
         </div>
       `,
     })),
-    'announcement emails',
+    "announcement emails",
   );
 }
 
@@ -136,28 +160,28 @@ export async function sendEmailChangeVerificationEmail(
   toName: string,
   verifyToken: string,
 ): Promise<EmailResult> {
-  const fromEmail = getEnv('EMAIL_FROM', 'noreply@example.com');
-  const verifyUrl = siteLink('/verify-email-change', { token: verifyToken });
+  const fromEmail = getEnv("EMAIL_FROM", "noreply@example.com");
+  const verifyUrl = siteLink("/verify-email-change", { token: verifyToken });
 
   return sendEmail(
     {
       from: fromEmail,
       to: toEmail,
-      subject: 'Verify your new email address',
+      subject: "Verify your new email address",
       html: `
         <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
           <h2>Verify your new email address</h2>
           <p>Hi ${escapeHtml(toName)},</p>
           <p>We received a request to change your account email to <strong>${escapeHtml(toEmail)}</strong>.</p>
           <p>Click the button below to confirm this change. Your current email will continue to work for login until you verify the new one.</p>
-          ${emailButton(verifyUrl, 'Verify New Email')}
+          ${emailButton(verifyUrl, "Verify New Email")}
           <p>This link will expire in 1 hour.</p>
           <p>If you didn't request this change, you can safely ignore this email.</p>
           ${linkFallback(verifyUrl)}
         </div>
       `,
     },
-    'email change verification email',
+    "email change verification email",
   );
 }
 
@@ -166,27 +190,27 @@ export async function sendEmailVerificationEmail(
   toName: string,
   verifyToken: string,
 ): Promise<EmailResult> {
-  const fromEmail = getEnv('EMAIL_FROM', 'noreply@example.com');
-  const verifyUrl = siteLink('/verify-email', { token: verifyToken });
+  const fromEmail = getEnv("EMAIL_FROM", "noreply@example.com");
+  const verifyUrl = siteLink("/verify-email", { token: verifyToken });
 
   return sendEmail(
     {
       from: fromEmail,
       to: toEmail,
-      subject: 'Verify your email address',
+      subject: "Verify your email address",
       html: `
         <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
           <h2>Welcome to Ensemble!</h2>
           <p>Hi ${escapeHtml(toName)},</p>
           <p>Thanks for signing up! Please verify your email address to activate your account.</p>
-          ${emailButton(verifyUrl, 'Verify Email Address')}
+          ${emailButton(verifyUrl, "Verify Email Address")}
           <p>This link will expire in 1 hour.</p>
           <p>If you didn't create an account, you can safely ignore this email.</p>
           ${linkFallback(verifyUrl)}
         </div>
       `,
     },
-    'email verification email',
+    "email verification email",
   );
 }
 
@@ -195,33 +219,33 @@ export async function sendPasswordResetEmail(
   toName: string,
   resetToken: string,
 ): Promise<EmailResult> {
-  const fromEmail = getEnv('EMAIL_FROM', 'noreply@example.com');
+  const fromEmail = getEnv("EMAIL_FROM", "noreply@example.com");
   const resetUrl = passwordSetUrl(resetToken);
 
   return sendEmail(
     {
       from: fromEmail,
       to: toEmail,
-      subject: 'Reset your password',
+      subject: "Reset your password",
       html: `
         <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
           <h2>Reset your password</h2>
           <p>Hi ${escapeHtml(toName)},</p>
           <p>We received a request to reset your password. Click the button below to choose a new one.</p>
-          ${emailButton(resetUrl, 'Reset Password')}
+          ${emailButton(resetUrl, "Reset Password")}
           <p>This link will expire in 1 hour.</p>
           <p>If you didn't request a password reset, you can safely ignore this email.</p>
           ${linkFallback(resetUrl)}
         </div>
       `,
     },
-    'password reset email',
+    "password reset email",
   );
 }
 
 /** The reset-password link, which also lets a newly added member choose their first password. */
 export function passwordSetUrl(token: string): string {
-  return siteLink('/reset-password', { token });
+  return siteLink("/reset-password", { token });
 }
 
 function emailButton(href: string, label: string): string {
@@ -256,7 +280,7 @@ export async function sendWelcomeEmail(
 
   return sendEmail(
     {
-      from: getEnv('EMAIL_FROM', 'noreply@example.com'),
+      from: getEnv("EMAIL_FROM", "noreply@example.com"),
       to: toEmail,
       subject: `You've been added to ${ensembleName}`,
       html: `
@@ -264,13 +288,13 @@ export async function sendWelcomeEmail(
           <h2>Welcome to ${escapeHtml(ensembleName)}</h2>
           <p>Hi ${escapeHtml(toName)},</p>
           <p>You've been added to <strong>${escapeHtml(ensembleName)}</strong> on Tutti Belli. Choose a password to sign in.</p>
-          ${emailButton(setPasswordUrl, 'Set Your Password')}
+          ${emailButton(setPasswordUrl, "Set Your Password")}
           <p>This link will expire in 7 days.</p>
           ${linkFallback(setPasswordUrl)}
         </div>
       `,
     },
-    'welcome email',
+    "welcome email",
   );
 }
 
@@ -285,7 +309,7 @@ export async function sendAddedToEnsembleEmail(
 
   return sendEmail(
     {
-      from: getEnv('EMAIL_FROM', 'noreply@example.com'),
+      from: getEnv("EMAIL_FROM", "noreply@example.com"),
       to: toEmail,
       subject: `You've been added to ${ensembleName}`,
       html: `
@@ -297,6 +321,6 @@ export async function sendAddedToEnsembleEmail(
         </div>
       `,
     },
-    'added to ensemble email',
+    "added to ensemble email",
   );
 }

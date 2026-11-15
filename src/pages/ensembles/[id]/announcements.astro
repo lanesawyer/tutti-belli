@@ -34,8 +34,7 @@ if (Astro.request.method === "GET" && id !== canonicalId) {
 }
 
 const access = await getEnsembleAccess(user, ensemble.id);
-if (!access)
-  return new Response("Unauthorized - Not a member", { status: 403 });
+if (!access) return new Response("Unauthorized - Not a member", { status: 403 });
 const { isAdmin } = access;
 
 const createResult = Astro.getActionResult(actions.announcements.create);
@@ -77,218 +76,160 @@ const announcements = await getEnsembleAnnouncements(ensemble.id);
   messageType={messageType}
   isAdmin={isAdmin}
 >
-  {
-    isAdmin && (
-      <Button slot="action" color="primary" id="create-announcement-btn">
-        <Icon icon="fa-plus" />
-        <span>New Announcement</span>
-      </Button>
-    )
-  }
+  {isAdmin && (
+    <Button slot="action" color="primary" id="create-announcement-btn">
+      <Icon icon="fa-plus" />
+      <span>New Announcement</span>
+    </Button>
+  )}
 
-  {
-    announcements.length === 0 ? (
-      <Notification color="info" light>
-        No announcements yet.
-        {isAdmin && ' Click "New Announcement" to post one.'}
-      </Notification>
-    ) : (
-      <Table>
-        <thead>
+  {announcements.length === 0 ? (
+    <Notification color="info" light>
+      No announcements yet.
+      {isAdmin && ' Click "New Announcement" to post one.'}
+    </Notification>
+  ) : (
+    <Table>
+      <thead>
+        <tr>
+          <th>Title</th>
+          <th>Posted By</th>
+          <th>Date</th>
+          {isAdmin && <th style="width: 110px;">Actions</th>}
+        </tr>
+      </thead>
+      <tbody>
+        {announcements.map((announcement) => (
           <tr>
-            <th>Title</th>
-            <th>Posted By</th>
-            <th>Date</th>
-            {isAdmin && <th style="width: 110px;">Actions</th>}
-          </tr>
-        </thead>
-        <tbody>
-          {announcements.map((announcement) => (
-            <tr>
-              <td>
-                <strong>{announcement.title}</strong>
-                <p
-                  class="has-text-grey is-size-7 mt-1"
-                  style="white-space: pre-wrap; max-width: 500px; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;"
-                >
-                  {announcement.content}
-                </p>
-              </td>
-              <td>{announcement.creatorName}</td>
-              <td>
-                {new Date(announcement.createdAt).toLocaleDateString()}
-                {announcement.updatedAt.getTime() !==
-                  announcement.createdAt.getTime() && (
-                  <Tag size="small" class="ml-1">
-                    edited
-                  </Tag>
-                )}
-              </td>
-              {isAdmin && (
-                <td>
-                  <div class="buttons are-small">
-                    <Button
-                      color="warning"
-                      class="edit-announcement-btn"
-                      data-announcement-id={announcement.id}
-                      data-announcement-title={announcement.title}
-                      data-announcement-content={announcement.content}
-                    >
-                      <Icon icon="fa-edit" />
-                    </Button>
-                    <Button
-                      color="danger"
-                      class="delete-announcement-btn"
-                      data-announcement-id={announcement.id}
-                    >
-                      <Icon icon="fa-trash" />
-                    </Button>
-                  </div>
-                </td>
+            <td>
+              <strong>{announcement.title}</strong>
+              <p
+                class="has-text-grey is-size-7 mt-1"
+                style="white-space: pre-wrap; max-width: 500px; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;"
+              >
+                {announcement.content}
+              </p>
+            </td>
+            <td>{announcement.creatorName}</td>
+            <td>
+              {new Date(announcement.createdAt).toLocaleDateString()}
+              {announcement.updatedAt.getTime() !== announcement.createdAt.getTime() && (
+                <Tag size="small" class="ml-1">
+                  edited
+                </Tag>
               )}
-            </tr>
-          ))}
-        </tbody>
-      </Table>
-    )
-  }
+            </td>
+            {isAdmin && (
+              <td>
+                <div class="buttons are-small">
+                  <Button
+                    color="warning"
+                    class="edit-announcement-btn"
+                    data-announcement-id={announcement.id}
+                    data-announcement-title={announcement.title}
+                    data-announcement-content={announcement.content}
+                  >
+                    <Icon icon="fa-edit" />
+                  </Button>
+                  <Button
+                    color="danger"
+                    class="delete-announcement-btn"
+                    data-announcement-id={announcement.id}
+                  >
+                    <Icon icon="fa-trash" />
+                  </Button>
+                </div>
+              </td>
+            )}
+          </tr>
+        ))}
+      </tbody>
+    </Table>
+  )}
 
   <Fragment slot="modals">
     <!-- Create Announcement Modal -->
-    {
-      isAdmin && (
-        <Modal id="create-modal" title="New Announcement">
-          <form
-            id="createForm"
-            method="POST"
-            action={actions.announcements.create}
-          >
-            <input type="hidden" name="ensembleId" value={ensemble.id} />
+    {isAdmin && (
+      <Modal id="create-modal" title="New Announcement">
+        <form id="createForm" method="POST" action={actions.announcements.create}>
+          <input type="hidden" name="ensembleId" value={ensemble.id} />
 
-            <TextInput
-              name="title"
-              id="create-title"
-              label="Title *"
-              required
-            />
+          <TextInput name="title" id="create-title" label="Title *" required />
 
-            <Textarea
-              id="create-content"
-              name="content"
-              label="Content *"
-              rows={6}
-              required
-            />
+          <Textarea id="create-content" name="content" label="Content *" rows={6} required />
 
-            {ensemble.discordWebhookUrl && (
-              <Checkbox name="postToDiscord" label="Post to Discord" />
-            )}
-          </form>
+          {ensemble.discordWebhookUrl && <Checkbox name="postToDiscord" label="Post to Discord" />}
+        </form>
 
-          <div slot="footer">
-            <Button type="submit" form="createForm" color="primary">
-              <Icon icon="fa-bullhorn" />
-              <span>Post Announcement</span>
-            </Button>
-            <Button type="button" data-modal-close>
-              Cancel
-            </Button>
-          </div>
-        </Modal>
-      )
-    }
+        <div slot="footer">
+          <Button type="submit" form="createForm" color="primary">
+            <Icon icon="fa-bullhorn" />
+            <span>Post Announcement</span>
+          </Button>
+          <Button type="button" data-modal-close>
+            Cancel
+          </Button>
+        </div>
+      </Modal>
+    )}
 
     <!-- Edit Announcement Modal -->
-    {
-      isAdmin && (
-        <Modal id="edit-modal" title="Edit Announcement">
-          <form
-            id="editForm"
-            method="POST"
-            action={actions.announcements.update}
-          >
-            <input type="hidden" name="ensembleId" value={ensemble.id} />
-            <input
-              type="hidden"
-              name="announcementId"
-              id="edit-announcement-id"
-            />
+    {isAdmin && (
+      <Modal id="edit-modal" title="Edit Announcement">
+        <form id="editForm" method="POST" action={actions.announcements.update}>
+          <input type="hidden" name="ensembleId" value={ensemble.id} />
+          <input type="hidden" name="announcementId" id="edit-announcement-id" />
 
-            <TextInput name="title" id="edit-title" label="Title *" required />
+          <TextInput name="title" id="edit-title" label="Title *" required />
 
-            <Textarea
-              id="edit-content"
-              name="content"
-              label="Content *"
-              rows={6}
-              required
-            />
+          <Textarea id="edit-content" name="content" label="Content *" rows={6} required />
 
-            {ensemble.discordWebhookUrl && (
-              <Checkbox name="postToDiscord" label="Post to Discord" />
-            )}
-          </form>
+          {ensemble.discordWebhookUrl && <Checkbox name="postToDiscord" label="Post to Discord" />}
+        </form>
 
-          <div slot="footer">
-            <Button type="submit" form="editForm" color="primary">
-              Save Changes
-            </Button>
-            <Button type="button" data-modal-close>
-              Cancel
-            </Button>
-          </div>
-        </Modal>
-      )
-    }
+        <div slot="footer">
+          <Button type="submit" form="editForm" color="primary">
+            Save Changes
+          </Button>
+          <Button type="button" data-modal-close>
+            Cancel
+          </Button>
+        </div>
+      </Modal>
+    )}
 
     <!-- Delete Confirmation Modal -->
-    {
-      isAdmin && (
-        <Modal id="delete-modal" title="Delete Announcement">
-          <p>
-            Are you sure you want to delete this announcement? This action
-            cannot be undone.
-          </p>
-          <form
-            id="deleteForm"
-            method="POST"
-            action={actions.announcements.delete}
-          >
-            <input type="hidden" name="ensembleId" value={ensemble.id} />
-            <input
-              type="hidden"
-              name="announcementId"
-              id="delete-announcement-id"
-            />
-          </form>
+    {isAdmin && (
+      <Modal id="delete-modal" title="Delete Announcement">
+        <p>Are you sure you want to delete this announcement? This action cannot be undone.</p>
+        <form id="deleteForm" method="POST" action={actions.announcements.delete}>
+          <input type="hidden" name="ensembleId" value={ensemble.id} />
+          <input type="hidden" name="announcementId" id="delete-announcement-id" />
+        </form>
 
-          <div slot="footer">
-            <Button type="submit" form="deleteForm" color="danger">
-              Delete
-            </Button>
-            <Button type="button" data-modal-close>
-              Cancel
-            </Button>
-          </div>
-        </Modal>
-      )
-    }
+        <div slot="footer">
+          <Button type="submit" form="deleteForm" color="danger">
+            Delete
+          </Button>
+          <Button type="button" data-modal-close>
+            Cancel
+          </Button>
+        </div>
+      </Modal>
+    )}
 
     <script is:inline>
       document.addEventListener("astro:page-load", () => {
-        document
-          .getElementById("create-announcement-btn")
-          ?.addEventListener("click", () => {
-            document.getElementById("create-modal")?.classList.add("is-active");
-          });
+        document.getElementById("create-announcement-btn")?.addEventListener("click", () => {
+          document.getElementById("create-modal")?.classList.add("is-active");
+        });
 
         document.querySelectorAll(".edit-announcement-btn").forEach((btn) => {
           btn.addEventListener("click", () => {
             document.getElementById("edit-announcement-id").value =
               btn.getAttribute("data-announcement-id");
-            document.getElementById("edit-title").value = btn.getAttribute(
-              "data-announcement-title",
-            );
+            document.getElementById("edit-title").value =
+              btn.getAttribute("data-announcement-title");
             document.getElementById("edit-content").value = btn.getAttribute(
               "data-announcement-content",
             );

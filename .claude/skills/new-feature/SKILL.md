@@ -12,6 +12,7 @@ If `$ARGUMENTS` is provided, treat it as the feature name/description and procee
 Otherwise, ask the user: "What feature are you building? Give a short name (e.g. `announcements`, `song-requests`) and describe what it does."
 
 From the feature name, derive:
+
 - **`<name>`** — a lowercase, hyphen-separated identifier (e.g. `song-requests`)
 - **`<camelName>`** — camelCase version (e.g. `songRequests`)
 - **`<PascalName>`** — PascalCase version (e.g. `SongRequests`)
@@ -19,6 +20,7 @@ From the feature name, derive:
 ## Step 2 — Ask what to scaffold
 
 Ask the user which pieces they want created:
+
 1. `src/lib/<name>.ts` — DB query / business logic functions
 2. `src/actions/<name>.ts` — Astro Actions (form handlers)
 3. A page stub (ask for the path, e.g. `src/pages/ensembles/[id]/<name>.astro`)
@@ -26,6 +28,7 @@ Ask the user which pieces they want created:
 Default is all three. Let them opt out of any piece.
 
 Also ask: **What permission level does this feature require?**
+
 - `member` — any active ensemble member
 - `admin` — ensemble admin only
 - `site-admin` — site-wide admin (`user.role === 'admin'`)
@@ -56,6 +59,7 @@ export async function create<PascalName>(/* params */) {
 ```
 
 Rules:
+
 - Import only from `astro:db` — never import `astro:db` in page frontmatter
 - Use `crypto.randomUUID()` for all primary keys
 - Export all functions individually (no default export)
@@ -93,6 +97,7 @@ export const <camelName> = {
 ```
 
 Rules:
+
 - Always check `context.locals.user` first and throw `UNAUTHORIZED` if missing
 - Use `assertEnsembleAdmin` from `./utils` for ensemble admin checks
 - Use `ActionError` (from `astro:actions`) for all error cases — never return error objects
@@ -100,6 +105,7 @@ Rules:
 - Use `accept: 'form'` for all actions (HTML form POSTs)
 
 Then **add the export to `src/actions/index.ts`**:
+
 - Import: `import { <camelName> } from './<name>';`
 - Add `<camelName>` to the `server` export object
 
@@ -145,6 +151,7 @@ if (createResult && !createResult.error) {
 ```
 
 Rules:
+
 - **Never import `astro:db` in page frontmatter** — all DB access goes through `@lib/*` functions
 - Use `@layouts/BaseLayout.astro` for ensemble sub-pages, `@layouts/SingleColumnLayout.astro` for narrow forms
 - Use `@components/*` imports — never raw HTML equivalents. Key components:
@@ -164,6 +171,7 @@ Invoke the `/test-feature <name>` skill to write integration and e2e tests for t
 ## Step 7 — Summary
 
 After all files are created and tests pass, output:
+
 - A bullet list of files created/modified
 - Any TODO items left for the user to fill in (field names, table names, etc.)
 - A reminder to run `pnpm check` to catch TypeScript errors

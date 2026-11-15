@@ -5,21 +5,13 @@ interface Props {
   id?: string;
 }
 
-const {
-  src,
-  title,
-  id = `audio-player-${Math.random().toString(36).slice(2, 8)}`,
-} = Astro.props;
+const { src, title, id = `audio-player-${Math.random().toString(36).slice(2, 8)}` } = Astro.props;
 ---
 
 <div class="audio-player box p-4" data-audio-player data-id={id}>
   <audio data-audio src={src} preload="metadata"></audio>
 
-  {
-    title && (
-      <p class="has-text-weight-semibold mb-3 has-text-centered">{title}</p>
-    )
-  }
+  {title && <p class="has-text-weight-semibold mb-3 has-text-centered">{title}</p>}
 
   <!-- Progress bar -->
   <div class="mb-3">
@@ -40,17 +32,16 @@ const {
   </div>
 
   <!-- Controls -->
-  <div
-    class="is-flex is-align-items-center is-justify-content-center"
-    style="gap: 0.75rem;"
-  >
+  <div class="is-flex is-align-items-center is-justify-content-center" style="gap: 0.75rem;">
     <button
       type="button"
       class="button is-light is-rounded audio-back"
       title="Back 15 seconds"
       aria-label="Back 15 seconds"
     >
-      <span class="icon is-small"><i class="fas fa-rotate-left"></i></span>
+      <span class="icon is-small">
+        <i class="fas fa-rotate-left"></i>
+      </span>
       <span class="is-size-7">15</span>
     </button>
 
@@ -61,7 +52,9 @@ const {
       title="Play"
       aria-label="Play"
     >
-      <span class="icon"><i class="fas fa-play audio-play-icon"></i></span>
+      <span class="icon">
+        <i class="fas fa-play audio-play-icon"></i>
+      </span>
     </button>
 
     <button
@@ -71,7 +64,9 @@ const {
       aria-label="Forward 15 seconds"
     >
       <span class="is-size-7">15</span>
-      <span class="icon is-small"><i class="fas fa-rotate-right"></i></span>
+      <span class="icon is-small">
+        <i class="fas fa-rotate-right"></i>
+      </span>
     </button>
   </div>
 </div>
@@ -129,12 +124,10 @@ const {
     const seekBar = container.querySelector<HTMLInputElement>(".audio-seek");
     const currentEl = container.querySelector<HTMLElement>(".audio-current");
     const durationEl = container.querySelector<HTMLElement>(".audio-duration");
-    const playPauseBtn =
-      container.querySelector<HTMLButtonElement>(".audio-play-pause");
+    const playPauseBtn = container.querySelector<HTMLButtonElement>(".audio-play-pause");
     const playIcon = container.querySelector<HTMLElement>(".audio-play-icon");
     const backBtn = container.querySelector<HTMLButtonElement>(".audio-back");
-    const forwardBtn =
-      container.querySelector<HTMLButtonElement>(".audio-forward");
+    const forwardBtn = container.querySelector<HTMLButtonElement>(".audio-forward");
 
     if (
       !audio ||

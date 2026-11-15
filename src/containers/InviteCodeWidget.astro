@@ -1,15 +1,7 @@
 ---
 import { getEnsembleInvites } from "@lib/ensemble";
 import { actions } from "astro:actions";
-import {
-  Box,
-  Button,
-  Content,
-  Icon,
-  TextInput,
-  Notification,
-  Title,
-} from "astro-bulma";
+import { Box, Button, Content, Icon, TextInput, Notification, Title } from "astro-bulma";
 
 interface Props {
   ensembleId: string;
@@ -27,9 +19,7 @@ const invites = await getEnsembleInvites(ensembleId);
       <span>Invite Codes</span>
     </span>
   </Title>
-  <p class="mb-4 is-size-7">
-    Share these codes with new members to join the ensemble
-  </p>
+  <p class="mb-4 is-size-7">Share these codes with new members to join the ensemble</p>
 
   <div class="mb-4">
     <form method="POST" action={actions.ensembles.createInvite}>
@@ -41,64 +31,59 @@ const invites = await getEnsembleInvites(ensembleId);
     </form>
   </div>
 
-  {
-    invites.length > 0 ? (
-      <Content>
-        {invites.map((invite) => {
-          const inviteUrl = new URL(
-            `/invite/join?code=${invite.code}`,
-            Astro.site,
-          ).toString();
-          return (
-            <Box class="p-3 mb-2">
-              <div class="is-flex is-flex-direction-column">
-                <div class="field has-addons mb-2">
-                  <div class="control is-expanded">
-                    <TextInput
-                      name={`invite-url-${invite.id}`}
-                      id={`invite-${invite.id}`}
-                      type="text"
-                      value={inviteUrl}
-                      class="is-family-monospace"
-                      size="small"
-                      readonly
-                      standalone
-                    />
-                  </div>
-                  <div class="control">
-                    <Button
-                      type="button"
-                      color="info"
-                      size="small"
-                      class="copy-invite-btn"
-                      data-invite-id={invite.id}
-                    >
-                      <Icon icon="fa-copy" />
-                      <span>Copy</span>
-                    </Button>
-                  </div>
+  {invites.length > 0 ? (
+    <Content>
+      {invites.map((invite) => {
+        const inviteUrl = new URL(`/invite/join?code=${invite.code}`, Astro.site).toString();
+        return (
+          <Box class="p-3 mb-2">
+            <div class="is-flex is-flex-direction-column">
+              <div class="field has-addons mb-2">
+                <div class="control is-expanded">
+                  <TextInput
+                    name={`invite-url-${invite.id}`}
+                    id={`invite-${invite.id}`}
+                    type="text"
+                    value={inviteUrl}
+                    class="is-family-monospace"
+                    size="small"
+                    readonly
+                    standalone
+                  />
                 </div>
-                <small class="has-text-grey mb-2">
-                  Created {new Date(invite.createdAt).toLocaleDateString()}
-                </small>
-                <form method="POST" action={actions.ensembles.deleteInvite}>
-                  <input type="hidden" name="inviteId" value={invite.id} />
-                  <input type="hidden" name="ensembleId" value={ensembleId} />
-                  <Button type="submit" color="danger" size="small" fullwidth>
-                    Delete
+                <div class="control">
+                  <Button
+                    type="button"
+                    color="info"
+                    size="small"
+                    class="copy-invite-btn"
+                    data-invite-id={invite.id}
+                  >
+                    <Icon icon="fa-copy" />
+                    <span>Copy</span>
                   </Button>
-                </form>
+                </div>
               </div>
-            </Box>
-          );
-        })}
-      </Content>
-    ) : (
-      <Notification color="info" light class="is-size-7">
-        No invite codes yet.
-      </Notification>
-    )
-  }
+              <small class="has-text-grey mb-2">
+                Created {new Date(invite.createdAt).toLocaleDateString()}
+              </small>
+              <form method="POST" action={actions.ensembles.deleteInvite}>
+                <input type="hidden" name="inviteId" value={invite.id} />
+                <input type="hidden" name="ensembleId" value={ensembleId} />
+                <Button type="submit" color="danger" size="small" fullwidth>
+                  Delete
+                </Button>
+              </form>
+            </div>
+          </Box>
+        );
+      })}
+    </Content>
+  ) : (
+    <Notification color="info" light class="is-size-7">
+      No invite codes yet.
+    </Notification>
+  )}
 </Box>
 
 <script>

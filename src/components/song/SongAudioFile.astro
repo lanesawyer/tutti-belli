@@ -14,8 +14,7 @@ interface Props {
   isAdmin: boolean;
 }
 
-const { id, name, category, uploaderName, uploadedAt, ensembleId, isAdmin } =
-  Astro.props;
+const { id, name, category, uploaderName, uploadedAt, ensembleId, isAdmin } = Astro.props;
 ---
 
 <div class="mb-4">
@@ -26,14 +25,8 @@ const { id, name, category, uploaderName, uploadedAt, ensembleId, isAdmin } =
   >
     {name}
   </p>
-  <div
-    class="is-flex is-align-items-center mb-2"
-    style="gap: 0.5rem; flex-wrap: wrap;"
-  >
-    <span
-      class={`tag ${categoryTagClass(category)} is-normal`}
-      style="flex-shrink:0;"
-    >
+  <div class="is-flex is-align-items-center mb-2" style="gap: 0.5rem; flex-wrap: wrap;">
+    <span class={`tag ${categoryTagClass(category)} is-normal`} style="flex-shrink:0;">
       {categoryLabel(category)}
     </span>
     <span
@@ -45,11 +38,7 @@ const { id, name, category, uploaderName, uploadedAt, ensembleId, isAdmin } =
     <Button href={`/files/${id}`} size="small" title="Download">
       <Icon icon="fa-download" size="small" />
     </Button>
-    {
-      isAdmin && (
-        <SongFileDeleteModal fileId={id} {ensembleId} fileName={name} />
-      )
-    }
+    {isAdmin && <SongFileDeleteModal fileId={id} {ensembleId} fileName={name} />}
   </div>
   <AudioPlayer src={`/files/${id}?inline`} id={`audio-${id}`} />
 </div>

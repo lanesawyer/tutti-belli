@@ -23,15 +23,8 @@ import { actions } from "astro:actions";
 const user = Astro.locals.user!;
 const { id, songId } = Astro.params;
 
-const {
-  ensemble,
-  song,
-  parts,
-  seasons,
-  songPartsData,
-  seasonSongsData,
-  songFiles,
-} = await getSongDetailData(id!, songId!);
+const { ensemble, song, parts, seasons, songPartsData, seasonSongsData, songFiles } =
+  await getSongDetailData(id!, songId!);
 
 if (!ensemble) return new Response("Ensemble not found", { status: 404 });
 if (!song || song.ensembleId !== ensemble.id)
@@ -56,19 +49,13 @@ if (deleteFileResult && !deleteFileResult.error) {
 
 const fileError = Astro.url.searchParams.get("uploadError") ?? undefined;
 
-const songParts = songPartsData
-  .map((sp) => parts.find((p) => p.id === sp.partId))
-  .filter(Boolean);
+const songParts = songPartsData.map((sp) => parts.find((p) => p.id === sp.partId)).filter(Boolean);
 const songSeasons = seasonSongsData
   .map((ss) => seasons.find((s) => s.id === ss.seasonId))
   .filter(Boolean);
 
-const pdfFiles = songFiles.filter(
-  (f) => f.category !== "link" && f.url.match(/\.(pdf)$/i),
-);
-const audioFiles = songFiles.filter(
-  (f) => f.category !== "link" && f.url.match(/\.(mp3)$/i),
-);
+const pdfFiles = songFiles.filter((f) => f.category !== "link" && f.url.match(/\.(pdf)$/i));
+const audioFiles = songFiles.filter((f) => f.category !== "link" && f.url.match(/\.(mp3)$/i));
 const linkFiles = songFiles.filter((f) => f.category === "link");
 ---
 
@@ -80,29 +67,23 @@ const linkFiles = songFiles.filter((f) => f.category === "link");
   extraBreadcrumbs={[["Songs", `/ensembles/${canonicalId}/songs`]]}
   isAdmin={isAdmin}
 >
-  {
-    isAdmin && (
-      <Button slot="action" href={`/ensembles/${canonicalId}/songs`}>
-        <Icon icon="fa-arrow-left" />
-        <span>Back to Songs</span>
-      </Button>
-    )
-  }
+  {isAdmin && (
+    <Button slot="action" href={`/ensembles/${canonicalId}/songs`}>
+      <Icon icon="fa-arrow-left" />
+      <span>Back to Songs</span>
+    </Button>
+  )}
 
   <!-- Song details -->
   <Box class="mb-5">
     <Columns multiline>
       <Column size="half">
         <p class="heading">Composer</p>
-        <p class="is-size-5">
-          {song.composer || <span class="has-text-grey">—</span>}
-        </p>
+        <p class="is-size-5">{song.composer || <span class="has-text-grey">—</span>}</p>
       </Column>
       <Column size="half">
         <p class="heading">Arranger</p>
-        <p class="is-size-5">
-          {song.arranger || <span class="has-text-grey">—</span>}
-        </p>
+        <p class="is-size-5">{song.arranger || <span class="has-text-grey">—</span>}</p>
       </Column>
       <Column size="half">
         <p class="heading">Runtime</p>
@@ -112,30 +93,26 @@ const linkFiles = songFiles.filter((f) => f.category === "link");
         <p class="heading">Added</p>
         <p class="is-size-5">{new Date(song.createdAt).toLocaleDateString()}</p>
       </Column>
-      {
-        songParts.length > 0 && (
-          <Column size="half">
-            <p class="heading">Parts</p>
-            <div class="tags">
-              {songParts.map((part) => (
-                <Tag color="info">{part!.name}</Tag>
-              ))}
-            </div>
-          </Column>
-        )
-      }
-      {
-        songSeasons.length > 0 && (
-          <Column size="half">
-            <p class="heading">Seasons</p>
-            <div class="tags">
-              {songSeasons.map((season) => (
-                <Tag color="primary">{season!.name}</Tag>
-              ))}
-            </div>
-          </Column>
-        )
-      }
+      {songParts.length > 0 && (
+        <Column size="half">
+          <p class="heading">Parts</p>
+          <div class="tags">
+            {songParts.map((part) => (
+              <Tag color="info">{part!.name}</Tag>
+            ))}
+          </div>
+        </Column>
+      )}
+      {songSeasons.length > 0 && (
+        <Column size="half">
+          <p class="heading">Seasons</p>
+          <div class="tags">
+            {songSeasons.map((season) => (
+              <Tag color="primary">{season!.name}</Tag>
+            ))}
+          </div>
+        </Column>
+      )}
     </Columns>
   </Box>
 
@@ -147,199 +124,164 @@ const linkFiles = songFiles.filter((f) => f.category === "link");
     </span>
   </Title>
 
-  {
-    songFiles.length === 0 && (
-      <Notification color="info" light>
-        No resources attached to this song yet.
-      </Notification>
-    )
-  }
+  {songFiles.length === 0 && (
+    <Notification color="info" light>
+      No resources attached to this song yet.
+    </Notification>
+  )}
 
-  {
-    (pdfFiles.length > 0 || audioFiles.length > 0) && (
-      <Columns class="mb-5">
-        {pdfFiles.length > 0 && (
-          <div
-            class={
-              audioFiles.length > 0
-                ? "column is-two-thirds-tablet is-three-quarters-desktop"
-                : "column"
-            }
-          >
-            {pdfFiles.map((file) => (
-              <SongPdfFile
-                id={file.id}
-                name={file.name}
-                category={file.category}
-                uploaderName={file.uploaderName ?? ""}
-                uploadedAt={file.uploadedAt}
-                ensembleId={ensemble.id}
-                {isAdmin}
-              />
-            ))}
-          </div>
-        )}
-        {audioFiles.length > 0 && (
-          <div
-            class={
-              pdfFiles.length > 0
-                ? "column is-one-third-tablet is-one-quarter-desktop"
-                : "column"
-            }
-          >
-            {audioFiles.map((file) => (
-              <SongAudioFile
-                id={file.id}
-                name={file.name}
-                category={file.category}
-                uploaderName={file.uploaderName ?? ""}
-                uploadedAt={file.uploadedAt}
-                ensembleId={ensemble.id}
-                {isAdmin}
-              />
-            ))}
-          </div>
-        )}
-      </Columns>
-    )
-  }
-
-  {
-    linkFiles.length > 0 && (
-      <Box class="mb-5">
-        {linkFiles.map((file) => (
-          <SongLinkFile
-            id={file.id}
-            name={file.name}
-            category={file.category}
-            url={file.url}
-            uploaderName={file.uploaderName ?? ""}
-            uploadedAt={file.uploadedAt}
-            ensembleId={ensemble.id}
-            {isAdmin}
-          />
-        ))}
-      </Box>
-    )
-  }
-
-  {
-    isAdmin && (
-      <Box>
-        <Title as="h3" size={5}>
-          Upload Resource
-        </Title>
-        {fileError && (
-          <Notification color="danger" light class="mb-4">
-            {fileError}
-          </Notification>
-        )}
-        <form
-          method="POST"
-          action={`/ensembles/${canonicalId}/songs/${songId}/upload`}
-          enctype="multipart/form-data"
+  {(pdfFiles.length > 0 || audioFiles.length > 0) && (
+    <Columns class="mb-5">
+      {pdfFiles.length > 0 && (
+        <div
+          class={
+            audioFiles.length > 0
+              ? "column is-two-thirds-tablet is-three-quarters-desktop"
+              : "column"
+          }
         >
-          <input type="hidden" name="ensembleId" value={ensemble.id} />
-          <input type="hidden" name="songId" value={songId} />
+          {pdfFiles.map((file) => (
+            <SongPdfFile
+              id={file.id}
+              name={file.name}
+              category={file.category}
+              uploaderName={file.uploaderName ?? ""}
+              uploadedAt={file.uploadedAt}
+              ensembleId={ensemble.id}
+              {isAdmin}
+            />
+          ))}
+        </div>
+      )}
+      {audioFiles.length > 0 && (
+        <div
+          class={
+            pdfFiles.length > 0 ? "column is-one-third-tablet is-one-quarter-desktop" : "column"
+          }
+        >
+          {audioFiles.map((file) => (
+            <SongAudioFile
+              id={file.id}
+              name={file.name}
+              category={file.category}
+              uploaderName={file.uploaderName ?? ""}
+              uploadedAt={file.uploadedAt}
+              ensembleId={ensemble.id}
+              {isAdmin}
+            />
+          ))}
+        </div>
+      )}
+    </Columns>
+  )}
 
-          <div class="field">
-            <label class="label">Type *</label>
-            <div class="control">
-              <div class="buttons has-addons">
-                <label
-                  class="button is-selected is-success"
-                  id="btn-sheet_music"
-                >
-                  <input
-                    type="radio"
-                    name="category"
-                    value="sheet_music"
-                    checked
-                    hidden
-                  />{" "}
-                  Sheet Music
-                </label>
-                <label class="button" id="btn-rehearsal_track">
-                  <input
-                    type="radio"
-                    name="category"
-                    value="rehearsal_track"
-                    hidden
-                  />{" "}
-                  Rehearsal Track
-                </label>
-                <label class="button" id="btn-link">
-                  <input type="radio" name="category" value="link" hidden />{" "}
-                  Link
-                </label>
-              </div>
+  {linkFiles.length > 0 && (
+    <Box class="mb-5">
+      {linkFiles.map((file) => (
+        <SongLinkFile
+          id={file.id}
+          name={file.name}
+          category={file.category}
+          url={file.url}
+          uploaderName={file.uploaderName ?? ""}
+          uploadedAt={file.uploadedAt}
+          ensembleId={ensemble.id}
+          {isAdmin}
+        />
+      ))}
+    </Box>
+  )}
+
+  {isAdmin && (
+    <Box>
+      <Title as="h3" size={5}>
+        Upload Resource
+      </Title>
+      {fileError && (
+        <Notification color="danger" light class="mb-4">
+          {fileError}
+        </Notification>
+      )}
+      <form
+        method="POST"
+        action={`/ensembles/${canonicalId}/songs/${songId}/upload`}
+        enctype="multipart/form-data"
+      >
+        <input type="hidden" name="ensembleId" value={ensemble.id} />
+        <input type="hidden" name="songId" value={songId} />
+
+        <div class="field">
+          <label class="label">Type *</label>
+          <div class="control">
+            <div class="buttons has-addons">
+              <label class="button is-selected is-success" id="btn-sheet_music">
+                <input type="radio" name="category" value="sheet_music" checked hidden /> Sheet
+                Music
+              </label>
+              <label class="button" id="btn-rehearsal_track">
+                <input type="radio" name="category" value="rehearsal_track" hidden /> Rehearsal
+                Track
+              </label>
+              <label class="button" id="btn-link">
+                <input type="radio" name="category" value="link" hidden /> Link
+              </label>
             </div>
           </div>
+        </div>
 
-          <Columns multiline class="mt-2">
-            <Column size="full" id="file-input-field">
-              <div class="field">
-                <FileInput
-                  name="file"
-                  id="file"
-                  label="File *"
-                  accept=".pdf,.mp3,application/pdf,audio/mpeg"
-                  help="PDF or MP3, max 50 MB"
-                />
-              </div>
-            </Column>
-            <Column size="full" id="url-input-field" style="display:none;">
-              <TextInput
-                name="fileUrl"
-                id="fileUrl"
-                label="URL *"
-                type="url"
-                placeholder="https://www.youtube.com/watch?v=..."
+        <Columns multiline class="mt-2">
+          <Column size="full" id="file-input-field">
+            <div class="field">
+              <FileInput
+                name="file"
+                id="file"
+                label="File *"
+                accept=".pdf,.mp3,application/pdf,audio/mpeg"
+                help="PDF or MP3, max 50 MB"
               />
-            </Column>
-            <Column>
-              <TextInput
-                name="fileName"
-                id="fileName"
-                label="Display Name *"
-                placeholder="e.g. Soprano Sheet Music"
-                required
-              />
-            </Column>
-            <Column narrow>
-              <div class="field">
-                <label class="label">&nbsp;</label>
-                <div class="control">
-                  <Button type="submit" color="primary">
-                    <Icon icon="fa-upload" />
-                    <span>Upload</span>
-                  </Button>
-                </div>
+            </div>
+          </Column>
+          <Column size="full" id="url-input-field" style="display:none;">
+            <TextInput
+              name="fileUrl"
+              id="fileUrl"
+              label="URL *"
+              type="url"
+              placeholder="https://www.youtube.com/watch?v=..."
+            />
+          </Column>
+          <Column>
+            <TextInput
+              name="fileName"
+              id="fileName"
+              label="Display Name *"
+              placeholder="e.g. Soprano Sheet Music"
+              required
+            />
+          </Column>
+          <Column narrow>
+            <div class="field">
+              <label class="label">&nbsp;</label>
+              <div class="control">
+                <Button type="submit" color="primary">
+                  <Icon icon="fa-upload" />
+                  <span>Upload</span>
+                </Button>
               </div>
-            </Column>
-          </Columns>
-        </form>
-      </Box>
-    )
-  }
+            </div>
+          </Column>
+        </Columns>
+      </form>
+    </Box>
+  )}
 
   <script>
     document.addEventListener("astro:page-load", () => {
-      const fileInput = document.getElementById(
-        "file",
-      ) as HTMLInputElement | null;
-      const nameInput = document.getElementById(
-        "fileName",
-      ) as HTMLInputElement | null;
-      const fileField = document.getElementById(
-        "file-input-field",
-      ) as HTMLElement | null;
-      const urlField = document.getElementById(
-        "url-input-field",
-      ) as HTMLElement | null;
-      const radios = document.querySelectorAll<HTMLInputElement>(
-        'input[name="category"]',
-      );
+      const fileInput = document.getElementById("file") as HTMLInputElement | null;
+      const nameInput = document.getElementById("fileName") as HTMLInputElement | null;
+      const fileField = document.getElementById("file-input-field") as HTMLElement | null;
+      const urlField = document.getElementById("url-input-field") as HTMLElement | null;
+      const radios = document.querySelectorAll<HTMLInputElement>('input[name="category"]');
 
       const categoryColors: Record<string, string> = {
         sheet_music: "is-success",
@@ -349,30 +291,20 @@ const linkFiles = songFiles.filter((f) => f.category === "link");
 
       function onCategoryChange() {
         const selected = (
-          document.querySelector(
-            'input[name="category"]:checked',
-          ) as HTMLInputElement | null
+          document.querySelector('input[name="category"]:checked') as HTMLInputElement | null
         )?.value;
         const isLink = selected === "link";
         if (fileField) fileField.style.display = isLink ? "none" : "";
         if (urlField) urlField.style.display = isLink ? "" : "none";
         if (fileInput) fileInput.required = !isLink;
-        const urlInput = document.getElementById(
-          "fileUrl",
-        ) as HTMLInputElement | null;
+        const urlInput = document.getElementById("fileUrl") as HTMLInputElement | null;
         if (urlInput) urlInput.required = isLink;
 
         radios.forEach((r) => {
           const btn = document.getElementById(`btn-${r.value}`);
           if (!btn) return;
           const color = categoryColors[r.value] ?? "is-light";
-          btn.classList.remove(
-            "is-selected",
-            "is-success",
-            "is-warning",
-            "is-info",
-            "is-light",
-          );
+          btn.classList.remove("is-selected", "is-success", "is-warning", "is-info", "is-light");
           if (r.value === selected) btn.classList.add("is-selected", color);
         });
       }
@@ -384,9 +316,7 @@ const linkFiles = songFiles.filter((f) => f.category === "link");
         fileInput.addEventListener("change", () => {
           const file = fileInput.files?.[0];
           if (file && !nameInput.value) {
-            nameInput.value = file.name
-              .replace(/\.[^.]+$/, "")
-              .replace(/[_-]/g, " ");
+            nameInput.value = file.name.replace(/\.[^.]+$/, "").replace(/[_-]/g, " ");
           }
         });
       }
@@ -401,12 +331,10 @@ const linkFiles = songFiles.filter((f) => f.category === "link");
     });
   </script>
 
-  {
-    !isAdmin && (
-      <Button href={`/ensembles/${canonicalId}/songs`}>
-        <Icon icon="fa-arrow-left" />
-        <span>Back to Songs</span>
-      </Button>
-    )
-  }
+  {!isAdmin && (
+    <Button href={`/ensembles/${canonicalId}/songs`}>
+      <Icon icon="fa-arrow-left" />
+      <span>Back to Songs</span>
+    </Button>
+  )}
 </EnsemblePageLayout>

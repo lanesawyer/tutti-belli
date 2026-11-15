@@ -1,13 +1,34 @@
-import { db, eq, or, and, ne, inArray, sql, Ensemble, EnsembleMember, EnsembleInvite, EnsembleLink, Group, GroupMembership, MemberPart, Part, Season, SeasonMembership, User } from '@db';
-import { canManageEnsemble, isSiteAdmin } from './permissions';
-import { deleteImage } from './storage';
-import { createPasswordResetToken, hashPassword } from './auth';
+import {
+  db,
+  eq,
+  or,
+  and,
+  ne,
+  inArray,
+  sql,
+  Ensemble,
+  EnsembleMember,
+  EnsembleInvite,
+  EnsembleLink,
+  Group,
+  GroupMembership,
+  MemberPart,
+  Part,
+  Season,
+  SeasonMembership,
+  User,
+} from "@db";
+import { canManageEnsemble, isSiteAdmin } from "./permissions";
+import { deleteImage } from "./storage";
+import { createPasswordResetToken, hashPassword } from "./auth";
 
 /**
  * Look up an ensemble by either its slug or its UUID id.
  */
 export async function getEnsembleBySlugOrId(slugOrId: string) {
-  const ensemble = await db.select().from(Ensemble)
+  const ensemble = await db
+    .select()
+    .from(Ensemble)
     .where(or(eq(Ensemble.slug, slugOrId), eq(Ensemble.id, slugOrId)))
     .get();
   return ensemble ?? null;
@@ -17,11 +38,13 @@ export async function getEnsembleBySlugOrId(slugOrId: string) {
  * Fetch the EnsembleMember record for a given user in a given ensemble, or null if not a member.
  */
 export async function getEnsembleMembership(ensembleId: string, userId: string) {
-  return await db
-    .select()
-    .from(EnsembleMember)
-    .where(and(eq(EnsembleMember.ensembleId, ensembleId), eq(EnsembleMember.userId, userId)))
-    .get() ?? null;
+  return (
+    (await db
+      .select()
+      .from(EnsembleMember)
+      .where(and(eq(EnsembleMember.ensembleId, ensembleId), eq(EnsembleMember.userId, userId)))
+      .get()) ?? null
+  );
 }
 
 /**
@@ -37,7 +60,7 @@ export async function getEnsembleAccess(
   const membership = await getEnsembleMembership(ensembleId, user.id);
   if (!isSiteAdmin(user)) {
     if (!membership) return null;
-    if (membership.status !== 'active' && !allowPending) return null;
+    if (membership.status !== "active" && !allowPending) return null;
   }
   const isAdmin = canManageEnsemble(user, membership);
   return { membership, isAdmin };
@@ -47,11 +70,13 @@ export async function getEnsembleAccess(
  * Look up an invite by code (case-insensitive). Returns null if not found.
  */
 export async function getInviteByCode(code: string) {
-  return await db
-    .select()
-    .from(EnsembleInvite)
-    .where(eq(EnsembleInvite.code, code.toUpperCase()))
-    .get() ?? null;
+  return (
+    (await db
+      .select()
+      .from(EnsembleInvite)
+      .where(eq(EnsembleInvite.code, code.toUpperCase()))
+      .get()) ?? null
+  );
 }
 
 /**
@@ -60,11 +85,7 @@ export async function getInviteByCode(code: string) {
 export async function getEnsembleByInviteCode(code: string) {
   const invite = await getInviteByCode(code);
   if (!invite) return null;
-  return await db
-    .select()
-    .from(Ensemble)
-    .where(eq(Ensemble.id, invite.ensembleId))
-    .get() ?? null;
+  return (await db.select().from(Ensemble).where(eq(Ensemble.id, invite.ensembleId)).get()) ?? null;
 }
 
 /**
@@ -109,9 +130,14 @@ export async function updateEnsemble(
     timezone?: string;
   },
 ) {
-  const before = await db.select({ imageUrl: Ensemble.imageUrl }).from(Ensemble).where(eq(Ensemble.id, ensembleId)).get();
+  const before = await db
+    .select({ imageUrl: Ensemble.imageUrl })
+    .from(Ensemble)
+    .where(eq(Ensemble.id, ensembleId))
+    .get();
   await db.update(Ensemble).set(data).where(eq(Ensemble.id, ensembleId));
-  if (data.imageUrl !== undefined && before?.imageUrl !== data.imageUrl) await deleteImage(before?.imageUrl);
+  if (data.imageUrl !== undefined && before?.imageUrl !== data.imageUrl)
+    await deleteImage(before?.imageUrl);
 }
 
 /**
@@ -158,7 +184,7 @@ export async function getEnsembleMembersWithUsers(ensembleId: string) {
     })
     .from(EnsembleMember)
     .innerJoin(User, eq(EnsembleMember.userId, User.id))
-    .where(and(eq(EnsembleMember.ensembleId, ensembleId), eq(EnsembleMember.status, 'active')))
+    .where(and(eq(EnsembleMember.ensembleId, ensembleId), eq(EnsembleMember.status, "active")))
     .all();
 }
 
@@ -166,11 +192,7 @@ export async function getEnsembleMembersWithUsers(ensembleId: string) {
  * Get all parts for an ensemble, sorted by sortOrder.
  */
 export async function getEnsembleParts(ensembleId: string) {
-  const parts = await db
-    .select()
-    .from(Part)
-    .where(eq(Part.ensembleId, ensembleId))
-    .all();
+  const parts = await db.select().from(Part).where(eq(Part.ensembleId, ensembleId)).all();
   return parts.sort((a, b) => a.sortOrder - b.sortOrder);
 }
 
@@ -196,13 +218,11 @@ export async function removeMember(membershipId: string) {
 /**
  * Set the role of a member.
  */
-export async function setMemberRole(membershipId: string, role: 'admin' | 'member') {
+export async function setMemberRole(membershipId: string, role: "admin" | "member") {
   await db.update(EnsembleMember).set({ role }).where(eq(EnsembleMember.id, membershipId));
 }
 
-export type JoinResult =
-  | { ok: true; ensembleId: string }
-  | { ok: false; error: string };
+export type JoinResult = { ok: true; ensembleId: string } | { ok: false; error: string };
 
 /**
  * Attempt to join an ensemble using an invite code.
@@ -232,11 +252,13 @@ export async function getUserEnsembles(userId: string) {
  * Get the currently active season for an ensemble, or null if none.
  */
 export async function getActiveSeasonForEnsemble(ensembleId: string) {
-  return await db
-    .select()
-    .from(Season)
-    .where(and(eq(Season.ensembleId, ensembleId), eq(Season.isActive, 1)))
-    .get() ?? null;
+  return (
+    (await db
+      .select()
+      .from(Season)
+      .where(and(eq(Season.ensembleId, ensembleId), eq(Season.isActive, 1)))
+      .get()) ?? null
+  );
 }
 
 /**
@@ -247,7 +269,7 @@ export async function getActiveEnsembleMembers(ensembleId: string) {
     .select({ id: User.id, name: User.name, avatarUrl: User.avatarUrl })
     .from(EnsembleMember)
     .innerJoin(User, eq(EnsembleMember.userId, User.id))
-    .where(and(eq(EnsembleMember.ensembleId, ensembleId), eq(EnsembleMember.status, 'active')))
+    .where(and(eq(EnsembleMember.ensembleId, ensembleId), eq(EnsembleMember.status, "active")))
     .all();
 }
 
@@ -257,30 +279,27 @@ export async function joinEnsembleWithCode(
   agreedToCodeOfConduct: boolean,
 ): Promise<JoinResult> {
   const invite = await getInviteByCode(code);
-  if (!invite) return { ok: false, error: 'Invalid invite code' };
+  if (!invite) return { ok: false, error: "Invalid invite code" };
   if (invite.expiresAt && new Date(invite.expiresAt) < new Date()) {
-    return { ok: false, error: 'This invite code has expired' };
+    return { ok: false, error: "This invite code has expired" };
   }
 
-  const ensemble = await db
-    .select()
-    .from(Ensemble)
-    .where(eq(Ensemble.id, invite.ensembleId))
-    .get() ?? null;
+  const ensemble =
+    (await db.select().from(Ensemble).where(eq(Ensemble.id, invite.ensembleId)).get()) ?? null;
 
   if (ensemble?.codeOfConduct && !agreedToCodeOfConduct) {
-    return { ok: false, error: 'You must agree to the code of conduct to join this ensemble' };
+    return { ok: false, error: "You must agree to the code of conduct to join this ensemble" };
   }
 
   const existing = await getEnsembleMembership(invite.ensembleId, userId);
-  if (existing) return { ok: false, error: 'You are already a member of this ensemble' };
+  if (existing) return { ok: false, error: "You are already a member of this ensemble" };
 
   await db.insert(EnsembleMember).values({
     id: crypto.randomUUID(),
     ensembleId: invite.ensembleId,
     userId,
-    role: 'member',
-    status: 'pending',
+    role: "member",
+    status: "pending",
     agreedToCodeOfConductAt: ensemble?.codeOfConduct ? new Date() : null,
   });
 
@@ -288,7 +307,10 @@ export async function joinEnsembleWithCode(
 }
 
 export async function getMembershipById(membershipId: string) {
-  return (await db.select().from(EnsembleMember).where(eq(EnsembleMember.id, membershipId)).get()) ?? null;
+  return (
+    (await db.select().from(EnsembleMember).where(eq(EnsembleMember.id, membershipId)).get()) ??
+    null
+  );
 }
 
 /**
@@ -299,14 +321,22 @@ export async function approveMember(membershipId: string): Promise<boolean> {
   const membership = await getMembershipById(membershipId);
   if (!membership) return false;
 
-  await db.update(EnsembleMember).set({ status: 'active' }).where(eq(EnsembleMember.id, membershipId));
+  await db
+    .update(EnsembleMember)
+    .set({ status: "active" })
+    .where(eq(EnsembleMember.id, membershipId));
 
   const activeSeason = await getActiveSeasonForEnsemble(membership.ensembleId);
   if (activeSeason) {
     const existing = await db
       .select({ id: SeasonMembership.id })
       .from(SeasonMembership)
-      .where(and(eq(SeasonMembership.seasonId, activeSeason.id), eq(SeasonMembership.userId, membership.userId)))
+      .where(
+        and(
+          eq(SeasonMembership.seasonId, activeSeason.id),
+          eq(SeasonMembership.userId, membership.userId),
+        ),
+      )
       .get();
     if (!existing) {
       await db.insert(SeasonMembership).values({
@@ -323,9 +353,9 @@ export async function approveMember(membershipId: string): Promise<boolean> {
 export const NEW_ACCOUNT_LINK_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 export type AddMemberResult =
-  | { type: 'added'; userId: string; name: string }
-  | { type: 'created'; userId: string; name: string; setPasswordToken: string }
-  | { type: 'error'; message: string };
+  | { type: "added"; userId: string; name: string }
+  | { type: "created"; userId: string; name: string; setPasswordToken: string }
+  | { type: "error"; message: string };
 
 /**
  * Adds someone to an ensemble as an active member, creating their account first if the email
@@ -333,7 +363,7 @@ export type AddMemberResult =
  */
 export async function addMemberByEmail(
   ensembleId: string,
-  input: { name: string; email: string; role: 'admin' | 'member' },
+  input: { name: string; email: string; role: "admin" | "member" },
 ): Promise<AddMemberResult> {
   const email = input.email.trim().toLowerCase();
   const name = input.name.trim();
@@ -346,29 +376,43 @@ export async function addMemberByEmail(
   let setPasswordToken: string | null = null;
 
   if (!user) {
-    if (!name) return { type: 'error', message: 'A name is required for someone without an account.' };
+    if (!name)
+      return { type: "error", message: "A name is required for someone without an account." };
     const id = crypto.randomUUID();
-    await db.insert(User).values({ id, email, name, passwordHash: await hashPassword(crypto.randomUUID()) });
+    await db
+      .insert(User)
+      .values({ id, email, name, passwordHash: await hashPassword(crypto.randomUUID()) });
     user = { id, name };
     setPasswordToken = await createPasswordResetToken(id, NEW_ACCOUNT_LINK_TTL_MS);
   }
 
   const existing = await getEnsembleMembership(ensembleId, user.id);
-  if (existing?.status === 'active') {
-    return { type: 'error', message: `${user.name} is already a member of this ensemble.` };
+  if (existing?.status === "active") {
+    return { type: "error", message: `${user.name} is already a member of this ensemble.` };
   }
 
   const membershipId = existing?.id ?? crypto.randomUUID();
   if (!existing) {
-    await db.insert(EnsembleMember).values({ id: membershipId, ensembleId, userId: user.id, role: input.role, status: 'pending' });
+    await db
+      .insert(EnsembleMember)
+      .values({
+        id: membershipId,
+        ensembleId,
+        userId: user.id,
+        role: input.role,
+        status: "pending",
+      });
   } else {
-    await db.update(EnsembleMember).set({ role: input.role }).where(eq(EnsembleMember.id, membershipId));
+    await db
+      .update(EnsembleMember)
+      .set({ role: input.role })
+      .where(eq(EnsembleMember.id, membershipId));
   }
   await approveMember(membershipId);
 
   return setPasswordToken
-    ? { type: 'created', userId: user.id, name: user.name, setPasswordToken }
-    : { type: 'added', userId: user.id, name: user.name };
+    ? { type: "created", userId: user.id, name: user.name, setPasswordToken }
+    : { type: "added", userId: user.id, name: user.name };
 }
 
 export async function getPendingMembers(ensembleId: string) {
@@ -383,12 +427,16 @@ export async function getPendingMembers(ensembleId: string) {
     })
     .from(EnsembleMember)
     .innerJoin(User, eq(EnsembleMember.userId, User.id))
-    .where(and(eq(EnsembleMember.ensembleId, ensembleId), eq(EnsembleMember.status, 'pending')))
+    .where(and(eq(EnsembleMember.ensembleId, ensembleId), eq(EnsembleMember.status, "pending")))
     .all();
 }
 
 export async function getEnsembleInvites(ensembleId: string) {
-  return await db.select().from(EnsembleInvite).where(eq(EnsembleInvite.ensembleId, ensembleId)).all();
+  return await db
+    .select()
+    .from(EnsembleInvite)
+    .where(eq(EnsembleInvite.ensembleId, ensembleId))
+    .all();
 }
 
 export async function createInvite(ensembleId: string, code: string, createdBy: string) {
@@ -405,7 +453,12 @@ export async function addPart(ensembleId: string, name: string, sortOrder: numbe
   await db.insert(Part).values({ id: crypto.randomUUID(), ensembleId, name, sortOrder });
 }
 
-export async function editPart(partId: string, ensembleId: string, name: string, sortOrder: number) {
+export async function editPart(
+  partId: string,
+  ensembleId: string,
+  name: string,
+  sortOrder: number,
+) {
   await db
     .update(Part)
     .set({ name, sortOrder })
@@ -413,9 +466,17 @@ export async function editPart(partId: string, ensembleId: string, name: string,
 }
 
 /** Deletes a part, unless members are still assigned to it. */
-export async function deletePart(partId: string, ensembleId: string): Promise<{ ok: true } | { ok: false; error: string }> {
-  const assigned = await db.select({ id: MemberPart.id }).from(MemberPart).where(eq(MemberPart.partId, partId)).get();
-  if (assigned) return { ok: false, error: 'Cannot delete a part that has members assigned to it.' };
+export async function deletePart(
+  partId: string,
+  ensembleId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const assigned = await db
+    .select({ id: MemberPart.id })
+    .from(MemberPart)
+    .where(eq(MemberPart.partId, partId))
+    .get();
+  if (assigned)
+    return { ok: false, error: "Cannot delete a part that has members assigned to it." };
   await db.delete(Part).where(and(eq(Part.id, partId), eq(Part.ensembleId, ensembleId)));
   return { ok: true };
 }
@@ -434,7 +495,12 @@ export async function getEnsembleMembersOverview(ensembleId: string) {
       ? await db
           .select({ groupId: GroupMembership.groupId, userId: GroupMembership.userId })
           .from(GroupMembership)
-          .where(inArray(GroupMembership.groupId, groups.map((g) => g.id)))
+          .where(
+            inArray(
+              GroupMembership.groupId,
+              groups.map((g) => g.id),
+            ),
+          )
           .all()
       : [];
   return { members, parts, memberParts, groups, groupMemberships };

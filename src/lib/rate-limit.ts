@@ -74,7 +74,7 @@ export function retryAfter(checks: [RateLimiter, string][], now = Date.now()): n
  * first X-Forwarded-For entry can; elsewhere fall back to the socket address.
  */
 export function clientIp(request: Request, fallback: string | undefined): string {
-  return request.headers.get('fly-client-ip') ?? fallback ?? 'unknown';
+  return request.headers.get("fly-client-ip") ?? fallback ?? "unknown";
 }
 
 /** `clientIp` for an action context or the `Astro` global. */
@@ -90,5 +90,5 @@ export function requestIp(context: { request: Request; clientAddress: string }):
 
 export function tooManyAttemptsMessage(waitMs: number): string {
   const minutes = Math.max(1, Math.ceil(waitMs / MINUTE));
-  return `Too many attempts. Please try again in ${minutes} minute${minutes === 1 ? '' : 's'}.`;
+  return `Too many attempts. Please try again in ${minutes} minute${minutes === 1 ? "" : "s"}.`;
 }

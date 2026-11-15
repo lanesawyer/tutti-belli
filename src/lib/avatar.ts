@@ -1,5 +1,5 @@
 export function getInitials(name: string): string {
-  const parts = name.trim().split(' ');
+  const parts = name.trim().split(" ");
   if (parts.length === 1) {
     return parts[0].substring(0, 2).toUpperCase();
   }
@@ -12,7 +12,7 @@ export function getColorFromInitials(initials: string): string {
   for (let i = 0; i < initials.length; i++) {
     hash = initials.charCodeAt(i) + ((hash << 5) - hash);
   }
-  
+
   // Generate HSL color with good saturation and lightness for readability
   const hue = Math.abs(hash % 360);
   return `hsl(${hue}, 65%, 50%)`;

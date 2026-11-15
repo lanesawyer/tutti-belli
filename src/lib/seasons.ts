@@ -1,4 +1,4 @@
-import { db, eq, and, desc, Season, SeasonMembership, EnsembleMember, Event, User } from '@db';
+import { db, eq, and, desc, Season, SeasonMembership, EnsembleMember, Event, User } from "@db";
 
 export async function getEnsembleSeasons(ensembleId: string) {
   return await db
@@ -74,7 +74,9 @@ export async function updateSeason(
     .where(eq(Season.id, seasonId));
 }
 
-export async function deleteSeason(seasonId: string): Promise<{ ok: true } | { ok: false; error: string }> {
+export async function deleteSeason(
+  seasonId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
   const hasEvents = await db
     .select()
     .from(Event)
@@ -83,7 +85,7 @@ export async function deleteSeason(seasonId: string): Promise<{ ok: true } | { o
     .get();
 
   if (hasEvents) {
-    return { ok: false, error: 'Cannot delete a season that has rehearsals.' };
+    return { ok: false, error: "Cannot delete a season that has rehearsals." };
   }
 
   await db.delete(SeasonMembership).where(eq(SeasonMembership.seasonId, seasonId));
