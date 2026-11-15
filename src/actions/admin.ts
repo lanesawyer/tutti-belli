@@ -1,4 +1,5 @@
-import { defineAction, ActionError } from "astro:actions";
+import { ActionError } from "astro:actions";
+import { defineAction } from "./define";
 import { z } from "astro/zod";
 import { adminDeleteUser } from "@lib/profile";
 import { createEnsemble, deleteEnsemble, getUserById, setUserRole } from "@lib/admin";

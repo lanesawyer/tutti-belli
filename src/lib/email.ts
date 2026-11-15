@@ -2,14 +2,13 @@ import { Resend } from "resend";
 import { siteLink } from "./site-url";
 
 interface SendParams {
-  from: string;
   to: string;
   subject: string;
   html: string;
 }
 
-function getEnv(key: string, fallback = ""): string {
-  return process.env[key] || fallback;
+function getEnv(key: string): string {
+  return process.env[key] || "";
 }
 
 const HTML_ESCAPES: Record<string, string> = {
@@ -46,7 +45,12 @@ function getClient(): { client: Resend; fromEmail: string } | { error: EmailResu
     console.error("EMAIL_API_KEY is not set");
     return { error: { success: false, error: "Email service is not configured" } };
   }
-  return { client: new Resend(apiKey), fromEmail: getEnv("EMAIL_FROM", "noreply@example.com") };
+  const fromEmail = getEnv("EMAIL_FROM");
+  if (!fromEmail) {
+    console.error("EMAIL_FROM is not set");
+    return { error: { success: false, error: "Email service is not configured" } };
+  }
+  return { client: new Resend(apiKey), fromEmail };
 }
 
 const HTML_UNESCAPES: Record<string, string> = Object.fromEntries(
@@ -82,6 +86,7 @@ async function sendEmail(params: SendParams, logContext: string): Promise<EmailR
   try {
     const { error: sendError } = await result.client.emails.send({
       ...params,
+      from: result.fromEmail,
       subject: emailSubject(params.subject),
     });
     if (sendError) {
@@ -106,7 +111,11 @@ async function sendEmailBatch(paramsList: SendParams[], logContext: string): Pro
   console.log(`[email] ${logContext} to ${paramsList.length} recipients`);
   try {
     const { error: sendError } = await result.client.batch.send(
-      paramsList.map((params) => ({ ...params, subject: emailSubject(params.subject) })),
+      paramsList.map((params) => ({
+        ...params,
+        from: result.fromEmail,
+        subject: emailSubject(params.subject),
+      })),
     );
     if (sendError) {
       console.error(`Failed to send ${logContext}:`, sendError);
@@ -129,12 +138,10 @@ export async function sendAnnouncementEmail(
 ): Promise<EmailResult> {
   if (recipients.length === 0) return { success: true };
 
-  const fromEmail = getEnv("EMAIL_FROM", "noreply@example.com");
   const announcementsUrl = siteLink(`/ensembles/${encodeURIComponent(ensembleId)}/announcements`);
 
   return sendEmailBatch(
     recipients.map(({ email, name }) => ({
-      from: fromEmail,
       to: email,
       subject: `[${ensembleName}] ${announcementTitle}`,
       html: `
@@ -160,12 +167,10 @@ export async function sendEmailChangeVerificationEmail(
   toName: string,
   verifyToken: string,
 ): Promise<EmailResult> {
-  const fromEmail = getEnv("EMAIL_FROM", "noreply@example.com");
   const verifyUrl = siteLink("/verify-email-change", { token: verifyToken });
 
   return sendEmail(
     {
-      from: fromEmail,
       to: toEmail,
       subject: "Verify your new email address",
       html: `
@@ -190,12 +195,10 @@ export async function sendEmailVerificationEmail(
   toName: string,
   verifyToken: string,
 ): Promise<EmailResult> {
-  const fromEmail = getEnv("EMAIL_FROM", "noreply@example.com");
   const verifyUrl = siteLink("/verify-email", { token: verifyToken });
 
   return sendEmail(
     {
-      from: fromEmail,
       to: toEmail,
       subject: "Verify your email address",
       html: `
@@ -219,12 +222,10 @@ export async function sendPasswordResetEmail(
   toName: string,
   resetToken: string,
 ): Promise<EmailResult> {
-  const fromEmail = getEnv("EMAIL_FROM", "noreply@example.com");
   const resetUrl = passwordSetUrl(resetToken);
 
   return sendEmail(
     {
-      from: fromEmail,
       to: toEmail,
       subject: "Reset your password",
       html: `
@@ -280,7 +281,6 @@ export async function sendWelcomeEmail(
 
   return sendEmail(
     {
-      from: getEnv("EMAIL_FROM", "noreply@example.com"),
       to: toEmail,
       subject: `You've been added to ${ensembleName}`,
       html: `
@@ -309,7 +309,6 @@ export async function sendAddedToEnsembleEmail(
 
   return sendEmail(
     {
-      from: getEnv("EMAIL_FROM", "noreply@example.com"),
       to: toEmail,
       subject: `You've been added to ${ensembleName}`,
       html: `

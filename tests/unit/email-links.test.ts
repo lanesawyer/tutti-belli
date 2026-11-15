@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
-type Sent = { to: string; subject: string; html: string };
+type Sent = { from: string; to: string; subject: string; html: string };
 const sent: Sent[] = [];
 vi.mock("resend", () => ({
   Resend: class {
@@ -79,6 +79,7 @@ describe("email links", () => {
     sent.length = 0;
     vi.stubEnv("EMAIL_DISABLED", "");
     vi.stubEnv("EMAIL_API_KEY", "test-key");
+    vi.stubEnv("EMAIL_FROM", "noreply@tuttibelli.org");
   });
   afterEach(() => vi.unstubAllEnvs());
 
@@ -88,6 +89,7 @@ describe("email links", () => {
 
     expect(sent).toHaveLength(6);
     for (const email of sent) {
+      expect(email.from).toBe("noreply@tuttibelli.org");
       const links = hrefs(email.html);
       expect(links.length).toBeGreaterThan(0);
       for (const link of links) expect(link.startsWith(`${SITE}/`)).toBe(true);
@@ -124,11 +126,32 @@ describe("email links", () => {
   });
 });
 
+describe("unconfigured email", () => {
+  beforeEach(() => {
+    sent.length = 0;
+    vi.stubEnv("EMAIL_DISABLED", "");
+    vi.stubEnv("EMAIL_API_KEY", "test-key");
+    vi.stubEnv("EMAIL_FROM", "");
+    vi.spyOn(console, "error").mockImplementation(() => {});
+  });
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllEnvs();
+  });
+
+  it("sends nothing without EMAIL_FROM", async () => {
+    const result = await sendPasswordResetEmail("a@example.com", "A", "reset-token");
+    expect(result).toEqual({ success: false, error: "Email service is not configured" });
+    expect(sent).toHaveLength(0);
+  });
+});
+
 describe("email escaping", () => {
   beforeEach(() => {
     sent.length = 0;
     vi.stubEnv("EMAIL_DISABLED", "");
     vi.stubEnv("EMAIL_API_KEY", "test-key");
+    vi.stubEnv("EMAIL_FROM", "noreply@tuttibelli.org");
     vi.stubEnv("SITE_URL", SITE);
   });
   afterEach(() => vi.unstubAllEnvs());
@@ -211,6 +234,7 @@ describe("disabled email", () => {
   it("logs nothing about recipients or links when sending is enabled", async () => {
     vi.stubEnv("EMAIL_DISABLED", "");
     vi.stubEnv("EMAIL_API_KEY", "test-key");
+    vi.stubEnv("EMAIL_FROM", "noreply@tuttibelli.org");
     await sendPasswordResetEmail("a@example.com", "A", "reset-token");
     await sendAnnouncementEmail(
       [{ email: "f@example.com", name: "F" }],

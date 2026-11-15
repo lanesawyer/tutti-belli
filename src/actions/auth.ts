@@ -1,4 +1,5 @@
-import { defineAction, ActionError } from "astro:actions";
+import { ActionError } from "astro:actions";
+import { defineAction } from "./define";
 import { z } from "astro/zod";
 import { getUserByEmail, verifyPassword, createPasswordResetToken } from "@lib/auth";
 import { startSession } from "@lib/session";

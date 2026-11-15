@@ -34,6 +34,7 @@ describe("public routes", () => {
     "/verify-email",
     "/verify-email-change",
     "/resend-verification",
+    "/health",
     "/login/",
   ])("serves %s without a session", async (path) => {
     const result = await run(path);
@@ -71,6 +72,17 @@ describe("protected routes", () => {
   it("carries only the path into the redirect", async () => {
     const result = await run("/ensembles/abc?tab=members");
     expectLoginRedirect(result, "/ensembles/abc");
+  });
+});
+
+describe("errors", () => {
+  it("logs an error thrown while handling the request with its method and path", async () => {
+    const error = new Error("boom");
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    const context = createTestContext({ path: "/login", method: "POST" });
+    await expect(onRequest(context, async () => Promise.reject(error))).rejects.toBe(error);
+    expect(log).toHaveBeenCalledWith("POST /login failed:", error);
+    log.mockRestore();
   });
 });
 

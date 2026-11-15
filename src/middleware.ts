@@ -13,6 +13,7 @@ const PUBLIC_ROUTES = [
   "/verify-email",
   "/verify-email-change",
   "/resend-verification",
+  "/health",
 ];
 
 // Check if a path matches any public route
@@ -53,5 +54,11 @@ export const onRequest = defineMiddleware(async (context, next) => {
     return context.redirect(`/login?redirect=${encodeURIComponent(context.url.pathname)}`);
   }
 
-  return next();
+  try {
+    return await next();
+  } catch (error) {
+    // Astro logs the error and renders the 500 page, but its log leaves out the request.
+    console.error(`${context.request.method} ${context.url.pathname} failed:`, error);
+    throw error;
+  }
 });

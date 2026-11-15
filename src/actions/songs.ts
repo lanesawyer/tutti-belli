@@ -1,4 +1,5 @@
-import { defineAction, ActionError } from "astro:actions";
+import { ActionError } from "astro:actions";
+import { defineAction } from "./define";
 import { z } from "astro/zod";
 import {
   assertEnsembleAdmin,
