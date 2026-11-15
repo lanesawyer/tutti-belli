@@ -25,7 +25,11 @@ describe("isSiteAdmin", () => {
 
 describe("isEnsembleAdmin", () => {
   it("returns true when membership role is admin", () => {
-    expect(isEnsembleAdmin({ role: "admin" })).toBe(true);
+    expect(isEnsembleAdmin({ role: "admin", status: "active" })).toBe(true);
+  });
+
+  it("returns false when an admin membership is still pending", () => {
+    expect(isEnsembleAdmin({ role: "admin", status: "pending" })).toBe(false);
   });
 
   it("returns false when membership role is member", () => {
@@ -47,7 +51,7 @@ describe("canManageEnsemble", () => {
   });
 
   it("returns true when membership is ensemble admin", () => {
-    expect(canManageEnsemble({ role: "user" }, { role: "admin" })).toBe(true);
+    expect(canManageEnsemble({ role: "user" }, { role: "admin", status: "active" })).toBe(true);
   });
 
   it("returns true when both are admins", () => {

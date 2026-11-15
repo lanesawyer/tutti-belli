@@ -1,87 +1,150 @@
 import { describe, it, expect } from "vitest";
-import { db, GroupMembership, eq } from "@db";
-import { createUser, createEnsemble, createGroup, createGroupMembership } from "./fixtures.ts";
+import { db, Group, GroupMembership, eq } from "@db";
+import {
+  createGroup,
+  deleteGroup,
+  getEnsembleGroups,
+  getEnsembleMembersBasic,
+  getGroupMembershipsWithUsers,
+  setGroupMemberRole,
+  toggleGroupMember,
+  updateGroup,
+} from "@lib/groups";
+import {
+  createUser,
+  createEnsemble,
+  createMembership,
+  createGroup as insertGroup,
+  createGroupMembership,
+} from "./fixtures.ts";
 
-describe("GroupMembership role", () => {
-  it("defaults to null role when not specified", async () => {
-    const user = await createUser();
-    const ensemble = await createEnsemble(user!.id);
-    const group = await createGroup(ensemble!.id);
-    const membership = await createGroupMembership(group!.id, user!.id);
+async function setup() {
+  const admin = await createUser({ name: "Admin" });
+  const member = await createUser({ name: "Member" });
+  const ensemble = await createEnsemble(admin.id);
+  await createMembership(ensemble.id, admin.id, { role: "admin" });
+  await createMembership(ensemble.id, member.id);
+  const group = await insertGroup(ensemble.id);
+  return { admin, member, ensemble, group };
+}
 
-    expect(membership!.role).toBeNull();
+function membershipsOf(groupId: string) {
+  return db.select().from(GroupMembership).where(eq(GroupMembership.groupId, groupId)).all();
+}
+
+describe("createGroup / updateGroup / getEnsembleGroups", () => {
+  it("creates a group in the ensemble and lists it", async () => {
+    const { ensemble } = await setup();
+    await createGroup(ensemble.id, "Altos", "Section leads", "success");
+
+    const groups = await getEnsembleGroups(ensemble.id);
+    expect(groups.find((group) => group.name === "Altos")).toMatchObject({
+      ensembleId: ensemble.id,
+      description: "Section leads",
+      color: "success",
+    });
   });
 
-  it("stores and returns the lead role", async () => {
-    const user = await createUser();
-    const ensemble = await createEnsemble(user!.id);
-    const group = await createGroup(ensemble!.id);
-    const membership = await createGroupMembership(group!.id, user!.id, { role: "lead" });
-
-    expect(membership!.role).toBe("lead");
+  it("does not list another ensemble's groups", async () => {
+    const { ensemble } = await setup();
+    const other = await setup();
+    const groups = await getEnsembleGroups(ensemble.id);
+    expect(groups.map((group) => group.id)).not.toContain(other.group.id);
   });
 
-  it("can update an existing membership role", async () => {
-    const user = await createUser();
-    const ensemble = await createEnsemble(user!.id);
-    const group = await createGroup(ensemble!.id);
-    const membership = await createGroupMembership(group!.id, user!.id);
-    expect(membership!.role).toBeNull();
+  it("updates name, description and color", async () => {
+    const { group } = await setup();
+    await updateGroup(group.id, "Renamed", null, "danger");
+    const updated = await db.select().from(Group).where(eq(Group.id, group.id)).get();
+    expect(updated).toMatchObject({ name: "Renamed", description: null, color: "danger" });
+  });
+});
 
-    await db
-      .update(GroupMembership)
-      .set({ role: "lead" })
-      .where(eq(GroupMembership.id, membership!.id));
+describe("toggleGroupMember", () => {
+  it("adds a member who is not in the group, then removes them", async () => {
+    const { group, member } = await setup();
 
-    const updated = await db
-      .select()
-      .from(GroupMembership)
-      .where(eq(GroupMembership.id, membership!.id))
-      .get();
+    await toggleGroupMember(group.id, member.id);
+    expect((await membershipsOf(group.id)).map((row) => row.userId)).toEqual([member.id]);
 
-    expect(updated!.role).toBe("lead");
+    await toggleGroupMember(group.id, member.id);
+    expect(await membershipsOf(group.id)).toHaveLength(0);
+  });
+});
+
+describe("setGroupMemberRole", () => {
+  it("sets and clears the lead role", async () => {
+    const { group, member } = await setup();
+    await createGroupMembership(group.id, member.id);
+
+    await setGroupMemberRole(group.id, member.id, "lead");
+    expect((await membershipsOf(group.id))[0].role).toBe("lead");
+
+    await setGroupMemberRole(group.id, member.id, null);
+    expect((await membershipsOf(group.id))[0].role).toBeNull();
   });
 
-  it("can clear a role back to null", async () => {
-    const user = await createUser();
-    const ensemble = await createEnsemble(user!.id);
-    const group = await createGroup(ensemble!.id);
-    const membership = await createGroupMembership(group!.id, user!.id, { role: "lead" });
-    expect(membership!.role).toBe("lead");
-
-    await db
-      .update(GroupMembership)
-      .set({ role: null })
-      .where(eq(GroupMembership.id, membership!.id));
-
-    const updated = await db
-      .select()
-      .from(GroupMembership)
-      .where(eq(GroupMembership.id, membership!.id))
-      .get();
-
-    expect(updated!.role).toBeNull();
+  it("treats an empty role as no role", async () => {
+    const { group, member } = await setup();
+    await createGroupMembership(group.id, member.id, { role: "lead" });
+    await setGroupMemberRole(group.id, member.id, "");
+    expect((await membershipsOf(group.id))[0].role).toBeNull();
   });
 
-  it("distinguishes leads from regular members in the same group", async () => {
-    const admin = await createUser();
-    const member = await createUser();
-    const ensemble = await createEnsemble(admin!.id);
-    const group = await createGroup(ensemble!.id);
-    await createGroupMembership(group!.id, admin!.id, { role: "lead" });
-    await createGroupMembership(group!.id, member!.id);
+  it("only touches the member in that group", async () => {
+    const { group, member, admin } = await setup();
+    await createGroupMembership(group.id, member.id);
+    await createGroupMembership(group.id, admin.id);
+    await setGroupMemberRole(group.id, member.id, "lead");
 
-    const memberships = await db
-      .select()
-      .from(GroupMembership)
-      .where(eq(GroupMembership.groupId, group!.id));
+    const leads = (await membershipsOf(group.id)).filter((row) => row.role === "lead");
+    expect(leads.map((row) => row.userId)).toEqual([member.id]);
+  });
+});
 
-    const leads = memberships.filter((m) => m.role === "lead");
-    const regulars = memberships.filter((m) => m.role !== "lead");
+describe("deleteGroup", () => {
+  it("removes the group and its memberships", async () => {
+    const { group, member } = await setup();
+    await createGroupMembership(group.id, member.id);
 
-    expect(leads).toHaveLength(1);
-    expect(leads[0].userId).toBe(admin!.id);
-    expect(regulars).toHaveLength(1);
-    expect(regulars[0].userId).toBe(member!.id);
+    await deleteGroup(group.id);
+
+    expect(await db.select().from(Group).where(eq(Group.id, group.id)).get()).toBeUndefined();
+    expect(await membershipsOf(group.id)).toHaveLength(0);
+  });
+});
+
+describe("getGroupMembershipsWithUsers", () => {
+  it("returns each membership with the member name and role", async () => {
+    const { ensemble, group, member } = await setup();
+    await createGroupMembership(group.id, member.id, { role: "lead" });
+
+    const memberships = await getGroupMembershipsWithUsers(ensemble.id);
+    expect(memberships).toContainEqual({
+      groupId: group.id,
+      userId: member.id,
+      role: "lead",
+      userName: "Member",
+    });
+  });
+
+  it("does not return another ensemble's group memberships", async () => {
+    const { ensemble } = await setup();
+    const other = await setup();
+    await createGroupMembership(other.group.id, other.member.id);
+
+    const memberships = await getGroupMembershipsWithUsers(ensemble.id);
+    expect(memberships.map((row) => row.groupId)).not.toContain(other.group.id);
+  });
+});
+
+describe("getEnsembleMembersBasic", () => {
+  it("lists the ensemble's members and nobody else", async () => {
+    const { ensemble, admin, member } = await setup();
+    const other = await setup();
+
+    const members = await getEnsembleMembersBasic(ensemble.id);
+    expect(members.map((row) => row.id).sort()).toEqual([admin.id, member.id].sort());
+    expect(members.map((row) => row.id)).not.toContain(other.member.id);
   });
 });

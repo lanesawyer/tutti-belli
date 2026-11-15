@@ -5,6 +5,9 @@
 import {
   db,
   User,
+  Announcement,
+  Attendance,
+  EnsembleLink,
   Ensemble,
   EnsembleMember,
   EnsembleInvite,
@@ -305,5 +308,53 @@ export async function createTaskCompletion(
   await db.insert(TaskCompletion).values({ id, taskId, userId, completedBy });
   return db.select().from(TaskCompletion).where(eq(TaskCompletion.id, id)).get() as Promise<
     typeof TaskCompletion.$inferSelect
+  >;
+}
+
+export async function createAnnouncement(
+  ensembleId: string,
+  createdBy: string,
+  overrides: { id?: string; title?: string; content?: string } = {},
+) {
+  const id = overrides.id ?? crypto.randomUUID();
+  await db.insert(Announcement).values({
+    id,
+    ensembleId,
+    createdBy,
+    title: overrides.title ?? "Test Announcement",
+    content: overrides.content ?? "Test content",
+  });
+  return db.select().from(Announcement).where(eq(Announcement.id, id)).get() as Promise<
+    typeof Announcement.$inferSelect
+  >;
+}
+
+export async function createEnsembleLink(
+  ensembleId: string,
+  overrides: { id?: string; label?: string; url?: string } = {},
+) {
+  const id = overrides.id ?? crypto.randomUUID();
+  await db.insert(EnsembleLink).values({
+    id,
+    ensembleId,
+    label: overrides.label ?? "Test Link",
+    url: overrides.url ?? "https://example.com",
+  });
+  return db.select().from(EnsembleLink).where(eq(EnsembleLink.id, id)).get() as Promise<
+    typeof EnsembleLink.$inferSelect
+  >;
+}
+
+export async function createAttendance(
+  eventId: string,
+  userId: string,
+  overrides: { id?: string; checkedInMethod?: string } = {},
+) {
+  const id = overrides.id ?? crypto.randomUUID();
+  await db
+    .insert(Attendance)
+    .values({ id, eventId, userId, checkedInMethod: overrides.checkedInMethod ?? "admin" });
+  return db.select().from(Attendance).where(eq(Attendance.id, id)).get() as Promise<
+    typeof Attendance.$inferSelect
   >;
 }
