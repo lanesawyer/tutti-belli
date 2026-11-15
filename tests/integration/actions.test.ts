@@ -385,11 +385,8 @@ describe("uploads", () => {
   });
 });
 
-// Each `it.fails` documents a gap that exists today. When a fix lands the test starts passing,
-// `it.fails` turns that into a failure, and the marker should be removed.
-describe("known gaps: permissions", () => {
-  // assertEnsembleAdmin checks the membership's role but not its status, unlike assertEnsembleMember.
-  it.fails("rejects admin actions from a membership that is admin but still pending", async () => {
+describe("pending memberships and link URLs", () => {
+  it("rejects admin actions from a membership that is admin but still pending", async () => {
     await db
       .update(EnsembleMember)
       .set({ role: "admin" })
@@ -402,8 +399,7 @@ describe("known gaps: permissions", () => {
     );
   });
 
-  // This is how a pending membership gets the admin role that the case above relies on.
-  it.fails("refuses to promote a membership that is still pending", async () => {
+  it("refuses to promote a membership that is still pending", async () => {
     await expectRejected(
       "members.promote",
       membershipFieldsFor(w.a.pendingMembership.id),
@@ -412,8 +408,6 @@ describe("known gaps: permissions", () => {
     );
   });
 
-  // assertUserInEnsemble accepts a membership of any status, so admins can act on people who
-  // only asked to join.
   const pendingTargets: [string, (w: World) => Fields][] = [
     [
       "events.addAttendance",
@@ -442,36 +436,37 @@ describe("known gaps: permissions", () => {
     ["tasks.markComplete", (world) => ({ taskId: world.a.task.id, userId: world.a.pending.id })],
   ];
   for (const [name, fields] of pendingTargets) {
-    it.fails(`${name} rejects a target user whose membership is still pending`, async () => {
+    it(`${name} rejects a target user whose membership is still pending`, async () => {
       await expectRejected(name, fields(w), w.a.admin, NOT_YOURS);
     });
   }
 
-  // Ensemble links and the Discord link render as <a href> for every member (EnsembleLinks.astro),
-  // but only song-file links are limited to http(s). z.string().url() accepts javascript: URLs.
-  it.fails("ensembles.addLink rejects a javascript: URL", async () => {
-    await expectRejected(
-      "ensembles.addLink",
+  // Ensemble links and the Discord link render as <a href> for every member (EnsembleLinks.astro).
+  it("ensembles.addLink rejects a javascript: URL", async () => {
+    const { error } = await callAction(
+      actions["ensembles.addLink"],
       { ensembleId: w.a.ensemble.id, label: "Click me", url: "javascript:alert(document.domain)" },
-      w.a.admin,
-      ["BAD_REQUEST"],
+      { user: w.a.admin },
     );
+    expect(isInputError(error)).toBe(true);
   });
 
-  it.fails("ensembles.update rejects a javascript: Discord link", async () => {
-    await expectRejected(
-      "ensembles.update",
+  it("ensembles.update rejects a javascript: Discord link", async () => {
+    const { error } = await callAction(
+      actions["ensembles.update"],
       {
         ensembleId: w.a.ensemble.id,
         name: "Ensemble A",
         discordLink: "javascript:alert(document.domain)",
       },
-      w.a.admin,
-      ["BAD_REQUEST"],
+      { user: w.a.admin },
     );
+    expect(isInputError(error)).toBe(true);
   });
 });
 
+// Each `it.fails` documents a gap that exists today. When a fix lands the test starts passing,
+// `it.fails` turns that into a failure, and the marker should be removed.
 // With foreign keys enforced (as in the test database) these deletes hit a constraint and come
 // back as INTERNAL_SERVER_ERROR instead of cleaning up or returning a friendly error.
 describe("known gaps: deletes blocked by related rows", () => {

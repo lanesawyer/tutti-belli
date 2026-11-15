@@ -113,7 +113,12 @@ export const members = {
       if (!user) throw new ActionError({ code: "UNAUTHORIZED" });
       await assertEnsembleAdmin(input.ensembleId, user);
       await assertInEnsemble("membership", input.membershipId, input.ensembleId);
-      await setMemberRole(input.membershipId, "admin");
+      if (!(await setMemberRole(input.membershipId, "admin"))) {
+        throw new ActionError({
+          code: "BAD_REQUEST",
+          message: "Approve this member before making them an admin.",
+        });
+      }
     },
   }),
 
