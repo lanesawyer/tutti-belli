@@ -21,55 +21,47 @@ const { season: currentSeason, songs: seasonSongs } = repertoire;
   viewAllHref={`/ensembles/${canonicalId}/songs`}
   viewAllColor="info"
 >
-  {
-    seasonSongs.length === 0 ? (
-      <Notification color="info" light>
-        <p class="has-text-centered">No songs added to this season yet.</p>
-        {isAdmin && (
-          <p class="has-text-centered mt-2">
-            <Button
-              href={`/ensembles/${canonicalId}/songs`}
-              color="info"
-              size="small"
-            >
-              Add Songs
-            </Button>
-          </p>
-        )}
-      </Notification>
-    ) : (
-      <table class="table is-fullwidth is-hoverable">
-        <tbody>
-          {seasonSongs.map((song) => {
-            const minutes = song.runTime ? Math.floor(song.runTime / 60) : null;
-            const seconds = song.runTime
-              ? String(song.runTime % 60).padStart(2, "0")
-              : null;
-            return (
-              <tr>
-                <td>
-                  <a
-                    href={`/ensembles/${canonicalId}/songs/${song.id}`}
-                    class="has-text-weight-semibold"
-                  >
-                    {song.name}
-                  </a>
-                  <p class="is-size-7 has-text-grey">
-                    {song.composer ?? "Unknown"}
-                    {song.arranger && ` — arr. ${song.arranger}`}
-                  </p>
-                </td>
-                <td
-                  class="has-text-right has-text-grey is-size-7"
-                  style="vertical-align: middle; white-space: nowrap;"
+  {seasonSongs.length === 0 ? (
+    <Notification color="info" light>
+      <p class="has-text-centered">No songs added to this season yet.</p>
+      {isAdmin && (
+        <p class="has-text-centered mt-2">
+          <Button href={`/ensembles/${canonicalId}/songs`} color="info" size="small">
+            Add Songs
+          </Button>
+        </p>
+      )}
+    </Notification>
+  ) : (
+    <table class="table is-fullwidth is-hoverable">
+      <tbody>
+        {seasonSongs.map((song) => {
+          const minutes = song.runTime ? Math.floor(song.runTime / 60) : null;
+          const seconds = song.runTime ? String(song.runTime % 60).padStart(2, "0") : null;
+          return (
+            <tr>
+              <td>
+                <a
+                  href={`/ensembles/${canonicalId}/songs/${song.id}`}
+                  class="has-text-weight-semibold"
                 >
-                  {minutes !== null ? `${minutes}:${seconds}` : ""}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    )
-  }
+                  {song.name}
+                </a>
+                <p class="is-size-7 has-text-grey">
+                  {song.composer ?? "Unknown"}
+                  {song.arranger && ` — arr. ${song.arranger}`}
+                </p>
+              </td>
+              <td
+                class="has-text-right has-text-grey is-size-7"
+                style="vertical-align: middle; white-space: nowrap;"
+              >
+                {minutes !== null ? `${minutes}:${seconds}` : ""}
+              </td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
+  )}
 </DashboardSection>

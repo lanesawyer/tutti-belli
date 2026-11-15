@@ -1,21 +1,9 @@
 ---
-import {
-  Box,
-  Button,
-  Content,
-  Icon,
-  Notification,
-  Subtitle,
-  Title,
-} from "astro-bulma";
+import { Box, Button, Content, Icon, Notification, Subtitle, Title } from "astro-bulma";
 import SingleColumnLayout from "@layouts/SingleColumnLayout.astro";
 import { actions } from "astro:actions";
 import { getCheckInPageData } from "@lib/ensemble/check-in";
-import {
-  DEFAULT_TIMEZONE,
-  formatZonedDate,
-  formatZonedTime,
-} from "@lib/timezone";
+import { DEFAULT_TIMEZONE, formatZonedDate, formatZonedTime } from "@lib/timezone";
 
 const user = Astro.locals.user;
 if (!user) {
@@ -37,8 +25,7 @@ const { event, ensemble, canCheckIn, isTooEarly, isTooLate } = checkInData;
 
 const result = Astro.getActionResult(actions.events.checkInByCode);
 const success = result && !result.error;
-const message =
-  result?.error?.message ?? (success ? "Successfully checked in!" : "");
+const message = result?.error?.message ?? (success ? "Successfully checked in!" : "");
 
 const scheduledDate = new Date(event.scheduledAt);
 const timeZone = ensemble?.timezone ?? DEFAULT_TIMEZONE;
@@ -70,16 +57,14 @@ const isPerformance = event.category === "performance";
           <span>{formatZonedTime(scheduledDate, timeZone)}</span>
         </span>
       </p>
-      {
-        event.location && (
-          <p>
-            <span class="icon-text">
-              <Icon icon="fa-map-marker-alt" />
-              <span>{event.location}</span>
-            </span>
-          </p>
-        )
-      }
+      {event.location && (
+        <p>
+          <span class="icon-text">
+            <Icon icon="fa-map-marker-alt" />
+            <span>{event.location}</span>
+          </span>
+        </p>
+      )}
     </Content>
 
     <Notification color="info" light class="mt-4">
@@ -88,58 +73,41 @@ const isPerformance = event.category === "performance";
       <p>Closes {ensemble.checkInEndMinutes} minutes after event start</p>
     </Notification>
 
-    {
-      message && (
-        <Notification
-          color={success ? "success" : "warning"}
-          light
-          class="mt-4"
-        >
-          {message}
-        </Notification>
-      )
-    }
+    {message && (
+      <Notification color={success ? "success" : "warning"} light class="mt-4">
+        {message}
+      </Notification>
+    )}
 
-    {
-      !result && canCheckIn && (
-        <form method="POST" action={actions.events.checkInByCode} class="mt-5">
-          <input type="hidden" name="code" value={code} />
-          <Button type="submit" color="primary" size="large" fullwidth>
-            <Icon icon="fa-check" />
-            <span>Check In Now</span>
-          </Button>
-        </form>
-      )
-    }
+    {!result && canCheckIn && (
+      <form method="POST" action={actions.events.checkInByCode} class="mt-5">
+        <input type="hidden" name="code" value={code} />
+        <Button type="submit" color="primary" size="large" fullwidth>
+          <Icon icon="fa-check" />
+          <span>Check In Now</span>
+        </Button>
+      </form>
+    )}
 
-    {
-      !result && !canCheckIn && (
-        <div class="mt-5">
-          <Button type="button" size="large" fullwidth disabled>
-            <Icon icon="fa-lock" />
-            <span>Check-in {isTooEarly ? "Not Yet Available" : "Closed"}</span>
-          </Button>
-          <p class="help mt-2">
-            {isTooEarly &&
-              `Check-in opens ${ensemble.checkInStartMinutes} minutes before event`}
-            {isTooLate &&
-              `Check-in closed ${ensemble.checkInEndMinutes} minutes after event start`}
-          </p>
-        </div>
-      )
-    }
+    {!result && !canCheckIn && (
+      <div class="mt-5">
+        <Button type="button" size="large" fullwidth disabled>
+          <Icon icon="fa-lock" />
+          <span>Check-in {isTooEarly ? "Not Yet Available" : "Closed"}</span>
+        </Button>
+        <p class="help mt-2">
+          {isTooEarly && `Check-in opens ${ensemble.checkInStartMinutes} minutes before event`}
+          {isTooLate && `Check-in closed ${ensemble.checkInEndMinutes} minutes after event start`}
+        </p>
+      </div>
+    )}
 
-    {
-      success && (
-        <div class="mt-4">
-          <Button
-            href={`/ensembles/${event.ensembleId}/events/${event.id}`}
-            color="info"
-          >
-            View Event Details
-          </Button>
-        </div>
-      )
-    }
+    {success && (
+      <div class="mt-4">
+        <Button href={`/ensembles/${event.ensembleId}/events/${event.id}`} color="info">
+          View Event Details
+        </Button>
+      </div>
+    )}
   </Box>
 </SingleColumnLayout>

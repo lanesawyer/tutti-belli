@@ -31,43 +31,38 @@ const userEnsembles = await getUserEnsembles(user.id);
     </Button>
   </div>
 
-  {
-    userEnsembles.length > 0 ? (
-      <Columns multiline>
-        {userEnsembles.map((ensemble) => (
-          <Column size={4}>
-            <Card>
-              <Title as="p" size={4}>
-                {ensemble.name}
-              </Title>
-              {ensemble.description && (
-                <Subtitle as="p" size={6}>
-                  {ensemble.description}
-                </Subtitle>
-              )}
-              <div class="tags mt-2">
-                <Tag color={ensemble.role === "admin" ? "warning" : "info"}>
-                  {ensemble.role === "admin" ? "Ensemble Admin" : "Member"}
-                </Tag>
-              </div>
-              <a
-                slot="footer"
-                href={`/ensembles/${getEnsembleUrlId(ensemble)}`}
-                class="card-footer-item"
-              >
-                View Details
-              </a>
-            </Card>
-          </Column>
-        ))}
-      </Columns>
-    ) : (
-      <Notification color="info" light>
-        <p>
-          You haven't joined any ensembles yet. Ask your ensemble admin for an
-          invite code!
-        </p>
-      </Notification>
-    )
-  }
+  {userEnsembles.length > 0 ? (
+    <Columns multiline>
+      {userEnsembles.map((ensemble) => (
+        <Column size={4}>
+          <Card>
+            <Title as="p" size={4}>
+              {ensemble.name}
+            </Title>
+            {ensemble.description && (
+              <Subtitle as="p" size={6}>
+                {ensemble.description}
+              </Subtitle>
+            )}
+            <div class="tags mt-2">
+              <Tag color={ensemble.role === "admin" ? "warning" : "info"}>
+                {ensemble.role === "admin" ? "Ensemble Admin" : "Member"}
+              </Tag>
+            </div>
+            <a
+              slot="footer"
+              href={`/ensembles/${getEnsembleUrlId(ensemble)}`}
+              class="card-footer-item"
+            >
+              View Details
+            </a>
+          </Card>
+        </Column>
+      ))}
+    </Columns>
+  ) : (
+    <Notification color="info" light>
+      <p>You haven't joined any ensembles yet. Ask your ensemble admin for an invite code!</p>
+    </Notification>
+  )}
 </PageLayout>

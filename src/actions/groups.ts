@@ -1,26 +1,26 @@
-import { defineAction, ActionError } from 'astro:actions';
-import { z } from 'astro/zod';
-import { assertEnsembleAdmin, assertInEnsemble, assertUserInEnsemble } from './utils';
+import { defineAction, ActionError } from "astro:actions";
+import { z } from "astro/zod";
+import { assertEnsembleAdmin, assertInEnsemble, assertUserInEnsemble } from "./utils";
 import {
   createGroup,
   updateGroup,
   deleteGroup,
   toggleGroupMember,
   setGroupMemberRole,
-} from '@lib/groups';
+} from "@lib/groups";
 
 export const groups = {
   create: defineAction({
-    accept: 'form',
+    accept: "form",
     input: z.object({
       ensembleId: z.string(),
-      name: z.string().min(1, 'Group name is required.'),
+      name: z.string().min(1, "Group name is required."),
       description: z.string().optional(),
-      color: z.string().default('info'),
+      color: z.string().default("info"),
     }),
     handler: async (input, context) => {
       const user = context.locals.user;
-      if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
+      if (!user) throw new ActionError({ code: "UNAUTHORIZED" });
       await assertEnsembleAdmin(input.ensembleId, user);
       await createGroup(
         input.ensembleId,
@@ -32,19 +32,19 @@ export const groups = {
   }),
 
   update: defineAction({
-    accept: 'form',
+    accept: "form",
     input: z.object({
       ensembleId: z.string(),
       groupId: z.string(),
-      name: z.string().min(1, 'Group name is required.'),
+      name: z.string().min(1, "Group name is required."),
       description: z.string().optional(),
-      color: z.string().default('info'),
+      color: z.string().default("info"),
     }),
     handler: async (input, context) => {
       const user = context.locals.user;
-      if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
+      if (!user) throw new ActionError({ code: "UNAUTHORIZED" });
       await assertEnsembleAdmin(input.ensembleId, user);
-      await assertInEnsemble('group', input.groupId, input.ensembleId);
+      await assertInEnsemble("group", input.groupId, input.ensembleId);
       await updateGroup(
         input.groupId,
         input.name.trim(),
@@ -55,22 +55,22 @@ export const groups = {
   }),
 
   delete: defineAction({
-    accept: 'form',
+    accept: "form",
     input: z.object({
       ensembleId: z.string(),
       groupId: z.string(),
     }),
     handler: async (input, context) => {
       const user = context.locals.user;
-      if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
+      if (!user) throw new ActionError({ code: "UNAUTHORIZED" });
       await assertEnsembleAdmin(input.ensembleId, user);
-      await assertInEnsemble('group', input.groupId, input.ensembleId);
+      await assertInEnsemble("group", input.groupId, input.ensembleId);
       await deleteGroup(input.groupId);
     },
   }),
 
   toggleMember: defineAction({
-    accept: 'form',
+    accept: "form",
     input: z.object({
       ensembleId: z.string(),
       groupId: z.string(),
@@ -78,16 +78,16 @@ export const groups = {
     }),
     handler: async (input, context) => {
       const user = context.locals.user;
-      if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
+      if (!user) throw new ActionError({ code: "UNAUTHORIZED" });
       await assertEnsembleAdmin(input.ensembleId, user);
-      await assertInEnsemble('group', input.groupId, input.ensembleId);
+      await assertInEnsemble("group", input.groupId, input.ensembleId);
       await assertUserInEnsemble(input.userId, input.ensembleId);
       await toggleGroupMember(input.groupId, input.userId);
     },
   }),
 
   setMemberRole: defineAction({
-    accept: 'form',
+    accept: "form",
     input: z.object({
       ensembleId: z.string(),
       groupId: z.string(),
@@ -96,9 +96,9 @@ export const groups = {
     }),
     handler: async (input, context) => {
       const user = context.locals.user;
-      if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
+      if (!user) throw new ActionError({ code: "UNAUTHORIZED" });
       await assertEnsembleAdmin(input.ensembleId, user);
-      await assertInEnsemble('group', input.groupId, input.ensembleId);
+      await assertInEnsemble("group", input.groupId, input.ensembleId);
       await assertUserInEnsemble(input.userId, input.ensembleId);
       await setGroupMemberRole(input.groupId, input.userId, input.role || null);
     },

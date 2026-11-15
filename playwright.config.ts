@@ -1,75 +1,75 @@
-import { defineConfig, devices } from '@playwright/test';
+import { defineConfig, devices } from "@playwright/test";
 
 export default defineConfig({
-  testDir: './tests/e2e',
+  testDir: "./tests/e2e",
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 2 : undefined,
   reporter: [
-    ['html', { outputFolder: 'playwright-report' }],
-    process.env.CI ? ['github'] : ['list'],
+    ["html", { outputFolder: "playwright-report" }],
+    process.env.CI ? ["github"] : ["list"],
   ],
   use: {
-    baseURL: 'http://localhost:4321',
-    trace: 'on-first-retry',
-    screenshot: 'only-on-failure',
-    video: 'on-first-retry',
+    baseURL: "http://localhost:4321",
+    trace: "on-first-retry",
+    screenshot: "only-on-failure",
+    video: "on-first-retry",
   },
   projects: [
     {
-      name: 'setup',
+      name: "setup",
       testMatch: /.*\.setup\.ts/,
     },
     {
-      name: 'chromium-admin',
+      name: "chromium-admin",
       use: {
-        ...devices['Desktop Chrome'],
-        storageState: 'tests/e2e/.auth/admin.json',
+        ...devices["Desktop Chrome"],
+        storageState: "tests/e2e/.auth/admin.json",
       },
-      dependencies: ['setup'],
+      dependencies: ["setup"],
     },
     {
-      name: 'chromium-user',
+      name: "chromium-user",
       use: {
-        ...devices['Desktop Chrome'],
-        storageState: 'tests/e2e/.auth/user.json',
+        ...devices["Desktop Chrome"],
+        storageState: "tests/e2e/.auth/user.json",
       },
-      dependencies: ['setup'],
+      dependencies: ["setup"],
       testMatch: /.*permissions\.spec\.ts/,
     },
     ...(process.env.CI
       ? []
       : [
           {
-            name: 'firefox-admin',
+            name: "firefox-admin",
             use: {
-              ...devices['Desktop Firefox'],
-              storageState: 'tests/e2e/.auth/admin.json',
+              ...devices["Desktop Firefox"],
+              storageState: "tests/e2e/.auth/admin.json",
             },
-            dependencies: ['setup'],
+            dependencies: ["setup"],
           },
           {
-            name: 'firefox-user',
+            name: "firefox-user",
             use: {
-              ...devices['Desktop Firefox'],
-              storageState: 'tests/e2e/.auth/user.json',
+              ...devices["Desktop Firefox"],
+              storageState: "tests/e2e/.auth/user.json",
             },
-            dependencies: ['setup'],
+            dependencies: ["setup"],
             testMatch: /.*permissions\.spec\.ts/,
           },
         ]),
   ],
   webServer: {
-    command: 'pnpm dev',
-    url: 'http://localhost:4321',
+    command: "pnpm dev",
+    url: "http://localhost:4321",
     reuseExistingServer: false,
-    stdout: 'ignore',
-    stderr: 'pipe',
+    stdout: "ignore",
+    stderr: "pipe",
     timeout: 60_000,
     env: {
-      EMAIL_DISABLED: 'true',
-      STORAGE_DISABLED: 'true',
+      EMAIL_DISABLED: "true",
+      STORAGE_DISABLED: "true",
     },
   },
 });

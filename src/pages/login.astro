@@ -8,9 +8,7 @@ const customRedirect = Astro.url.searchParams.get("redirect");
 
 // Redirect if already logged in
 if (Astro.locals.user) {
-  return Astro.redirect(
-    await getRedirectUrl(Astro.locals.user.id, customRedirect),
-  );
+  return Astro.redirect(await getRedirectUrl(Astro.locals.user.id, customRedirect));
 }
 
 const result = Astro.getActionResult(actions.auth.login);
@@ -33,38 +31,27 @@ if (result?.error) {
 <SingleColumnLayout title="Log In">
   <Title>Log In</Title>
 
-  {
-    unverifiedEmail && (
-      <Notification color="warning" light>
-        <p>
-          <strong>Email not verified.</strong> Please check your inbox for a
-          verification link.
-        </p>
-        <p class="mt-2 is-size-7">
-          <a
-            href={`/resend-verification?email=${encodeURIComponent(unverifiedEmail)}`}
-          >
-            Resend verification email
-          </a>
-        </p>
-      </Notification>
-    )
-  }
+  {unverifiedEmail && (
+    <Notification color="warning" light>
+      <p>
+        <strong>Email not verified.</strong> Please check your inbox for a verification link.
+      </p>
+      <p class="mt-2 is-size-7">
+        <a href={`/resend-verification?email=${encodeURIComponent(unverifiedEmail)}`}>
+          Resend verification email
+        </a>
+      </p>
+    </Notification>
+  )}
 
-  {
-    error && (
-      <Notification color="danger" light>
-        {error}
-      </Notification>
-    )
-  }
+  {error && (
+    <Notification color="danger" light>
+      {error}
+    </Notification>
+  )}
 
   <form method="POST" action={actions.auth.login}>
-    {
-      customRedirect && (
-        <input type="hidden" name="redirect" value={customRedirect} />
-      )
-    }
+    {customRedirect && <input type="hidden" name="redirect" value={customRedirect} />}
     <TextInput
       name="email"
       label="Email"
@@ -84,13 +71,18 @@ if (result?.error) {
 
     <div class="field">
       <div class="control">
-        <Button color="primary" fullwidth type="submit"> Log In </Button>
+        <Button color="primary" fullwidth type="submit">
+          {" "}
+          Log In{" "}
+        </Button>
       </div>
     </div>
   </form>
 
   <div class="has-text-centered mt-4">
-    <p><a href="/forgot-password">Forgot your password?</a></p>
+    <p>
+      <a href="/forgot-password">Forgot your password?</a>
+    </p>
     <p class="mt-2">
       Don't have an account? <a href="/register">Sign up</a>
     </p>

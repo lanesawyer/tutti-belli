@@ -7,23 +7,26 @@ type User = {
   [key: string]: any;
 };
 
-type Membership = {
-  role: string;
-  [key: string]: any;
-} | null | undefined;
+type Membership =
+  | {
+      role: string;
+      [key: string]: any;
+    }
+  | null
+  | undefined;
 
 /**
  * Check if a user is a site administrator
  */
 export function isSiteAdmin(user: User | null | undefined): boolean {
-  return user?.role === 'admin';
+  return user?.role === "admin";
 }
 
 /**
  * Check if a user is an ensemble administrator. A pending membership never counts.
  */
 export function isEnsembleAdmin(membership: Membership): boolean {
-  return membership?.role === 'admin' && membership.status === 'active';
+  return membership?.role === "admin" && membership.status === "active";
 }
 
 /**
@@ -38,5 +41,5 @@ export function canManageEnsemble(user: User | null | undefined, membership: Mem
  * @deprecated Use isEnsembleAdmin instead
  */
 export function isEnsembleAdminRole(role: string | undefined): boolean {
-  return role === 'admin';
+  return role === "admin";
 }

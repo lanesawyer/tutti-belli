@@ -12,40 +12,26 @@ const { ensembleId, discordLink } = Astro.props;
 const ensembleLinks = await getEnsembleLinks(ensembleId);
 ---
 
-{
-  (discordLink || ensembleLinks.length > 0) && (
-    <Box class="mb-5">
-      <Title as="h2" size={5} class="mb-4">
-        <span class="icon-text">
-          <Icon icon="fa-link" />
-          <span>Links</span>
-        </span>
-      </Title>
-      <div class="buttons">
-        {discordLink && (
-          <Button
-            href={discordLink}
-            target="_blank"
-            rel="noopener noreferrer"
-            color="link"
-            fullwidth
-          >
-            <Icon icon="fa-discord" variant="fab" />
-            <span>Discord</span>
-          </Button>
-        )}
-        {ensembleLinks.map((link) => (
-          <Button
-            href={link.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            color="light"
-            fullwidth
-          >
-            {link.label}
-          </Button>
-        ))}
-      </div>
-    </Box>
-  )
-}
+{(discordLink || ensembleLinks.length > 0) && (
+  <Box class="mb-5">
+    <Title as="h2" size={5} class="mb-4">
+      <span class="icon-text">
+        <Icon icon="fa-link" />
+        <span>Links</span>
+      </span>
+    </Title>
+    <div class="buttons">
+      {discordLink && (
+        <Button href={discordLink} target="_blank" rel="noopener noreferrer" color="link" fullwidth>
+          <Icon icon="fa-discord" variant="fab" />
+          <span>Discord</span>
+        </Button>
+      )}
+      {ensembleLinks.map((link) => (
+        <Button href={link.url} target="_blank" rel="noopener noreferrer" color="light" fullwidth>
+          {link.label}
+        </Button>
+      ))}
+    </div>
+  </Box>
+)}

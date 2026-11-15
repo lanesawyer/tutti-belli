@@ -1,6 +1,6 @@
-import { defineAction, ActionError } from 'astro:actions';
-import { z } from 'astro/zod';
-import { assertEnsembleAdmin, assertInEnsemble } from './utils';
+import { defineAction, ActionError } from "astro:actions";
+import { z } from "astro/zod";
+import { assertEnsembleAdmin, assertInEnsemble } from "./utils";
 import {
   joinEnsembleWithCode,
   getEnsembleLinks,
@@ -10,46 +10,46 @@ import {
   deleteEnsembleLink,
   createInvite,
   deleteInvite,
-} from '@lib/ensemble';
-import { validateImageFile } from '@lib/upload';
-import { uploadImage } from '@lib/storage';
-import { generateSlug } from '@lib/slug';
-import { randomCode } from '@lib/codes';
+} from "@lib/ensemble";
+import { validateImageFile } from "@lib/upload";
+import { uploadImage } from "@lib/storage";
+import { generateSlug } from "@lib/slug";
+import { randomCode } from "@lib/codes";
 
 // These render as <a href> for every member, so only web URLs are allowed (no javascript: etc.).
 const HTTP_URL = /^https?:\/\//i;
-const HTTP_URL_MESSAGE = 'Links must start with http:// or https://.';
-import { isDiscordWebhookUrl } from '@lib/discord';
-import { isValidTimeZone } from '@lib/timezone';
+const HTTP_URL_MESSAGE = "Links must start with http:// or https://.";
+import { isDiscordWebhookUrl } from "@lib/discord";
+import { isValidTimeZone } from "@lib/timezone";
 
 export const ensembles = {
   join: defineAction({
-    accept: 'form',
+    accept: "form",
     input: z.object({
       code: z.string().min(1),
-      agreedToCodeOfConduct: z.enum(['on']).optional(),
+      agreedToCodeOfConduct: z.enum(["on"]).optional(),
     }),
     handler: async (input, context) => {
       const user = context.locals.user;
-      if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
+      if (!user) throw new ActionError({ code: "UNAUTHORIZED" });
       const result = await joinEnsembleWithCode(
         user.id,
         input.code.trim(),
-        input.agreedToCodeOfConduct === 'on',
+        input.agreedToCodeOfConduct === "on",
       );
-      if (!result.ok) throw new ActionError({ code: 'BAD_REQUEST', message: result.error });
+      if (!result.ok) throw new ActionError({ code: "BAD_REQUEST", message: result.error });
       return { ensembleId: result.ensembleId };
     },
   }),
 
   createInvite: defineAction({
-    accept: 'form',
+    accept: "form",
     input: z.object({
       ensembleId: z.string(),
     }),
     handler: async (input, context) => {
       const user = context.locals.user;
-      if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
+      if (!user) throw new ActionError({ code: "UNAUTHORIZED" });
       await assertEnsembleAdmin(input.ensembleId, user);
       const code = randomCode();
       await createInvite(input.ensembleId, code, user.id);
@@ -57,25 +57,25 @@ export const ensembles = {
   }),
 
   deleteInvite: defineAction({
-    accept: 'form',
+    accept: "form",
     input: z.object({
       inviteId: z.string(),
       ensembleId: z.string(),
     }),
     handler: async (input, context) => {
       const user = context.locals.user;
-      if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
+      if (!user) throw new ActionError({ code: "UNAUTHORIZED" });
       await assertEnsembleAdmin(input.ensembleId, user);
-      await assertInEnsemble('invite', input.inviteId, input.ensembleId);
+      await assertInEnsemble("invite", input.inviteId, input.ensembleId);
       await deleteInvite(input.inviteId, input.ensembleId);
     },
   }),
 
   update: defineAction({
-    accept: 'form',
+    accept: "form",
     input: z.object({
       ensembleId: z.string(),
-      name: z.string().min(1, 'Ensemble name is required.'),
+      name: z.string().min(1, "Ensemble name is required."),
       slug: z.string().optional(),
       description: z.string().optional(),
       discordLink: z
@@ -85,34 +85,37 @@ export const ensembles = {
       discordWebhookUrl: z
         .string()
         .trim()
-        .refine((value) => value === '' || isDiscordWebhookUrl(value), 'Enter a Discord webhook URL (https://discord.com/api/webhooks/...).')
+        .refine(
+          (value) => value === "" || isDiscordWebhookUrl(value),
+          "Enter a Discord webhook URL (https://discord.com/api/webhooks/...).",
+        )
         .optional(),
       codeOfConduct: z.string().optional(),
       removeImage: z.string().optional(),
       image: z.instanceof(File).optional(),
       checkInStartMinutes: z.coerce.number().int().min(0).default(30),
       checkInEndMinutes: z.coerce.number().int().min(0).default(15),
-      timezone: z.string().refine(isValidTimeZone, 'Choose a valid timezone.').optional(),
+      timezone: z.string().refine(isValidTimeZone, "Choose a valid timezone.").optional(),
     }),
     handler: async (input, context) => {
       const user = context.locals.user;
-      if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
+      if (!user) throw new ActionError({ code: "UNAUTHORIZED" });
       await assertEnsembleAdmin(input.ensembleId, user);
 
       // Handle slug
       let newSlug: string | null = null;
-      const rawSlug = input.slug?.trim() ?? '';
-      if (rawSlug !== '') {
+      const rawSlug = input.slug?.trim() ?? "";
+      if (rawSlug !== "") {
         const normalized = generateSlug(rawSlug);
         if (!normalized) {
           throw new ActionError({
-            code: 'BAD_REQUEST',
-            message: 'Invalid slug — use only letters, numbers, and hyphens.',
+            code: "BAD_REQUEST",
+            message: "Invalid slug — use only letters, numbers, and hyphens.",
           });
         }
         if (await isSlugTaken(normalized, input.ensembleId)) {
           throw new ActionError({
-            code: 'BAD_REQUEST',
+            code: "BAD_REQUEST",
             message: `The slug "${normalized}" is already taken by another ensemble.`,
           });
         }
@@ -121,15 +124,15 @@ export const ensembles = {
 
       // Handle image. Undefined leaves the stored image as it is.
       let imageUrl: string | null | undefined;
-      if (input.removeImage === 'true') {
+      if (input.removeImage === "true") {
         imageUrl = null;
       }
       if (input.image && input.image.size > 0) {
         const validation = validateImageFile(input.image, 5);
         if (!validation.valid) {
-          throw new ActionError({ code: 'BAD_REQUEST', message: validation.error! });
+          throw new ActionError({ code: "BAD_REQUEST", message: validation.error! });
         }
-        imageUrl = await uploadImage(input.image, 'ensembles');
+        imageUrl = await uploadImage(input.image, "ensembles");
       }
 
       await updateEnsemble(input.ensembleId, {
@@ -150,15 +153,15 @@ export const ensembles = {
   }),
 
   addLink: defineAction({
-    accept: 'form',
+    accept: "form",
     input: z.object({
       ensembleId: z.string(),
-      label: z.string().min(1, 'Label is required.'),
-      url: z.string().url('Please enter a valid URL.').regex(HTTP_URL, HTTP_URL_MESSAGE),
+      label: z.string().min(1, "Label is required."),
+      url: z.string().url("Please enter a valid URL.").regex(HTTP_URL, HTTP_URL_MESSAGE),
     }),
     handler: async (input, context) => {
       const user = context.locals.user;
-      if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
+      if (!user) throw new ActionError({ code: "UNAUTHORIZED" });
       await assertEnsembleAdmin(input.ensembleId, user);
       const links = await getEnsembleLinks(input.ensembleId);
       await addEnsembleLink(input.ensembleId, input.label.trim(), input.url.trim(), links.length);
@@ -166,16 +169,16 @@ export const ensembles = {
   }),
 
   deleteLink: defineAction({
-    accept: 'form',
+    accept: "form",
     input: z.object({
       ensembleId: z.string(),
       linkId: z.string(),
     }),
     handler: async (input, context) => {
       const user = context.locals.user;
-      if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
+      if (!user) throw new ActionError({ code: "UNAUTHORIZED" });
       await assertEnsembleAdmin(input.ensembleId, user);
-      await assertInEnsemble('link', input.linkId, input.ensembleId);
+      await assertInEnsemble("link", input.linkId, input.ensembleId);
       await deleteEnsembleLink(input.linkId, input.ensembleId);
     },
   }),

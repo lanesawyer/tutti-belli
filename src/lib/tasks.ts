@@ -10,7 +10,7 @@ import {
   Season,
   Task,
   TaskCompletion,
-} from '@db';
+} from "@db";
 
 // ── Queries ────────────────────────────────────────────────────────────────────
 
@@ -35,12 +35,24 @@ export async function getEnsembleTasks(ensembleId: string, seasonId?: string | n
     .all();
 }
 
-export async function getTaskCompletionsForUser(ensembleId: string, userId: string, seasonId?: string | null) {
+export async function getTaskCompletionsForUser(
+  ensembleId: string,
+  userId: string,
+  seasonId?: string | null,
+) {
   const filter =
     seasonId !== undefined
       ? seasonId !== null
-        ? and(eq(Task.ensembleId, ensembleId), eq(Task.seasonId, seasonId), eq(TaskCompletion.userId, userId))
-        : and(eq(Task.ensembleId, ensembleId), isNull(Task.seasonId), eq(TaskCompletion.userId, userId))
+        ? and(
+            eq(Task.ensembleId, ensembleId),
+            eq(Task.seasonId, seasonId),
+            eq(TaskCompletion.userId, userId),
+          )
+        : and(
+            eq(Task.ensembleId, ensembleId),
+            isNull(Task.seasonId),
+            eq(TaskCompletion.userId, userId),
+          )
       : and(eq(Task.ensembleId, ensembleId), eq(TaskCompletion.userId, userId));
   return db
     .select({
@@ -70,7 +82,11 @@ export async function getTaskCompletionsForEnsemble(ensembleId: string, seasonId
     .all();
 }
 
-export async function getTasksWithCompletionsForUser(ensembleId: string, userId: string, seasonId?: string | null) {
+export async function getTasksWithCompletionsForUser(
+  ensembleId: string,
+  userId: string,
+  seasonId?: string | null,
+) {
   const [tasks, completions] = await Promise.all([
     getEnsembleTasks(ensembleId, seasonId),
     getTaskCompletionsForUser(ensembleId, userId, seasonId),
@@ -96,7 +112,7 @@ export async function getUserTasksAcrossEnsembles(userId: string): Promise<Ensem
     })
     .from(EnsembleMember)
     .innerJoin(Ensemble, eq(EnsembleMember.ensembleId, Ensemble.id))
-    .where(and(eq(EnsembleMember.userId, userId), eq(EnsembleMember.status, 'active')))
+    .where(and(eq(EnsembleMember.userId, userId), eq(EnsembleMember.status, "active")))
     .all();
 
   if (memberships.length === 0) return [];
@@ -120,7 +136,7 @@ export async function getUserTasksAcrossEnsembles(userId: string): Promise<Ensem
       const tasks = await getTasksWithCompletionsForUser(
         membership.ensembleId,
         userId,
-        activeSeason ? activeSeason.id : null
+        activeSeason ? activeSeason.id : null,
       );
       if (tasks.length === 0) return null;
       return {
@@ -130,7 +146,7 @@ export async function getUserTasksAcrossEnsembles(userId: string): Promise<Ensem
         seasonName: activeSeason?.name ?? null,
         tasks,
       };
-    })
+    }),
   );
 
   return results.filter((r): r is NonNullable<typeof r> => r !== null);
@@ -154,7 +170,7 @@ export async function createTask(
   title: string,
   description?: string,
   sortOrder = 0,
-  seasonId?: string | null
+  seasonId?: string | null,
 ) {
   await db.insert(Task).values({
     id: crypto.randomUUID(),
@@ -166,12 +182,7 @@ export async function createTask(
   });
 }
 
-export async function editTask(
-  taskId: string,
-  title: string,
-  description?: string,
-  sortOrder = 0
-) {
+export async function editTask(taskId: string, title: string, description?: string, sortOrder = 0) {
   await db
     .update(Task)
     .set({ title: title.trim(), description: description?.trim() || null, sortOrder })

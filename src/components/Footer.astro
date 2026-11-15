@@ -11,16 +11,22 @@ const year = new Date().getFullYear();
     <Columns>
       <Column>
         <Content>
-          <p><strong>{APP_NAME}</strong></p>
+          <p>
+            <strong>{APP_NAME}</strong>
+          </p>
           <p>{APP_SLOGAN}.</p>
           <p class="is-size-7 has-text-grey">v{version}</p>
           <p class="is-size-7 has-text-grey">
             &copy; {year}
-            {APP_NAME}. Licensed under the <a
+            {APP_NAME}. Licensed under the{" "}
+            <a
               href="https://github.com/lanesawyer/tutti-belli/blob/main/LICENSE"
               target="_blank"
-              rel="noopener noreferrer">GNU AGPL v3</a
-            >.
+              rel="noopener noreferrer"
+            >
+              GNU AGPL v3
+            </a>
+            .
           </p>
         </Content>
       </Column>

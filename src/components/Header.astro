@@ -9,7 +9,9 @@ const user = Astro.locals.user;
     <div class="navbar-brand">
       <a class="navbar-item" href="/">
         <strong>🎵 {APP_NAME}</strong>
-        <Tag color="warning" light class="ml-2">Alpha</Tag>
+        <Tag color="warning" light class="ml-2">
+          Alpha
+        </Tag>
       </a>
       <a
         role="button"
@@ -26,52 +28,46 @@ const user = Astro.locals.user;
 
     <div id="navbarMenu" class="navbar-menu">
       <div class="navbar-start">
-        {
-          user && (
-            <a class="navbar-item" href="/ensembles">
-              My Ensembles
-            </a>
-          )
-        }
+        {user && (
+          <a class="navbar-item" href="/ensembles">
+            My Ensembles
+          </a>
+        )}
         <slot name="navbar-start" />
       </div>
 
       <div class="navbar-end">
-        {
-          user?.role === "admin" && (
-            <a class="navbar-item" href="/admin">
-              Admin Panel
-            </a>
-          )
-        }
+        {user?.role === "admin" && (
+          <a class="navbar-item" href="/admin">
+            Admin Panel
+          </a>
+        )}
         <ThemeToggle class="navbar-item theme-toggle" />
-        {
-          user ? (
-            <div class="navbar-item has-dropdown is-hoverable">
-              <a class="navbar-link">{user.name}</a>
-              <div class="navbar-dropdown is-right">
-                <a class="navbar-item" href="/profile">
-                  Profile
-                </a>
-                <hr class="navbar-divider" />
-                <a class="navbar-item" href="/logout">
-                  Logout
-                </a>
-              </div>
+        {user ? (
+          <div class="navbar-item has-dropdown is-hoverable">
+            <a class="navbar-link">{user.name}</a>
+            <div class="navbar-dropdown is-right">
+              <a class="navbar-item" href="/profile">
+                Profile
+              </a>
+              <hr class="navbar-divider" />
+              <a class="navbar-item" href="/logout">
+                Logout
+              </a>
             </div>
-          ) : (
-            <div class="navbar-item">
-              <div class="buttons">
-                <Button href="/register" color="primary">
-                  <strong>Sign up</strong>
-                </Button>
-                <Button href="/login" color="light">
-                  Log in
-                </Button>
-              </div>
+          </div>
+        ) : (
+          <div class="navbar-item">
+            <div class="buttons">
+              <Button href="/register" color="primary">
+                <strong>Sign up</strong>
+              </Button>
+              <Button href="/login" color="light">
+                Log in
+              </Button>
             </div>
-          )
-        }
+          </div>
+        )}
       </div>
     </div>
   </Container>

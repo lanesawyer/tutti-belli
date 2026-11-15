@@ -1,32 +1,34 @@
-import { defineMiddleware } from 'astro:middleware';
-import { getSession, getSessionUser } from './lib/session';
-import { resolveViewAs, VIEW_AS_COOKIE } from './lib/view-as';
+import { defineMiddleware } from "astro:middleware";
+import { getSession, getSessionUser } from "./lib/session";
+import { resolveViewAs, VIEW_AS_COOKIE } from "./lib/view-as";
 
 // Public routes that don't require authentication
 const PUBLIC_ROUTES = [
-  '/',
-  '/login',
-  '/register',
-  '/forgot-password',
-  '/reset-password',
-  '/invite/join',
-  '/verify-email',
-  '/verify-email-change',
-  '/resend-verification',
+  "/",
+  "/login",
+  "/register",
+  "/forgot-password",
+  "/reset-password",
+  "/invite/join",
+  "/verify-email",
+  "/verify-email-change",
+  "/resend-verification",
 ];
 
 // Check if a path matches any public route
 function isPublicRoute(pathname: string): boolean {
-  return PUBLIC_ROUTES.some(route => {
-    if (route === '/') {
-      return pathname === '/';
+  return PUBLIC_ROUTES.some((route) => {
+    if (route === "/") {
+      return pathname === "/";
     }
-    return pathname === route || pathname.startsWith(route + '/') || pathname.startsWith(route + '?');
+    return (
+      pathname === route || pathname.startsWith(route + "/") || pathname.startsWith(route + "?")
+    );
   });
 }
 
 export const onRequest = defineMiddleware(async (context, next) => {
-  const sessionId = context.cookies.get('session')?.value;
+  const sessionId = context.cookies.get("session")?.value;
   const session = getSession(sessionId);
   const user = await getSessionUser(session);
 
@@ -42,7 +44,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
       context.locals.viewingAs = { realUser: user };
       context.locals.user = viewedUser;
     } else {
-      context.cookies.delete(VIEW_AS_COOKIE, { path: '/' });
+      context.cookies.delete(VIEW_AS_COOKIE, { path: "/" });
     }
   }
 
@@ -53,4 +55,3 @@ export const onRequest = defineMiddleware(async (context, next) => {
 
   return next();
 });
-

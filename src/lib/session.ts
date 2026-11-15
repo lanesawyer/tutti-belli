@@ -1,11 +1,11 @@
-import type { AstroCookies } from 'astro';
-import { db, eq, sql, User } from '@db';
-import jwt from 'jsonwebtoken';
+import type { AstroCookies } from "astro";
+import { db, eq, sql, User } from "@db";
+import jwt from "jsonwebtoken";
 
 // No fallback: a default secret would let anyone forge a session for any user.
 function jwtSecret(): string {
   const secret = process.env.JWT_SECRET;
-  if (!secret) throw new Error('JWT_SECRET is not set');
+  if (!secret) throw new Error("JWT_SECRET is not set");
   return secret;
 }
 
@@ -23,12 +23,15 @@ export function createSession(userId: string, sessionVersion: number): string {
 }
 
 /** Signs the user in on this browser with a session at their current version. */
-export function startSession(cookies: AstroCookies, user: { id: string; sessionVersion: number }): void {
-  cookies.set('session', createSession(user.id, user.sessionVersion), {
-    path: '/',
+export function startSession(
+  cookies: AstroCookies,
+  user: { id: string; sessionVersion: number },
+): void {
+  cookies.set("session", createSession(user.id, user.sessionVersion), {
+    path: "/",
     httpOnly: true,
     secure: import.meta.env.PROD,
-    sameSite: 'lax',
+    sameSite: "lax",
     maxAge: SESSION_MAX_AGE,
   });
 }
@@ -54,7 +57,7 @@ export function getSession(token: string | undefined): SessionPayload | null {
   try {
     const payload = jwt.verify(token, secret) as Partial<SessionPayload>;
     // Other tokens signed with the same secret (view-as) have no userId and aren't sessions.
-    return typeof payload.userId === 'string' && typeof payload.sessionVersion === 'number'
+    return typeof payload.userId === "string" && typeof payload.sessionVersion === "number"
       ? (payload as SessionPayload)
       : null;
   } catch {
@@ -63,22 +66,22 @@ export function getSession(token: string | undefined): SessionPayload | null {
 }
 
 interface ViewAsPayload {
-  purpose: 'view-as';
+  purpose: "view-as";
   adminId: string;
   targetId: string;
 }
 
 /** A short-lived token that lets a site admin browse the site as another user. */
 export function createViewAsToken(adminId: string, targetId: string): string {
-  return jwt.sign({ purpose: 'view-as', adminId, targetId } satisfies ViewAsPayload, jwtSecret(), {
-    expiresIn: '1h',
+  return jwt.sign({ purpose: "view-as", adminId, targetId } satisfies ViewAsPayload, jwtSecret(), {
+    expiresIn: "1h",
   });
 }
 
 export function readViewAsToken(token: string): { adminId: string; targetId: string } | null {
   try {
     const payload = jwt.verify(token, jwtSecret()) as Partial<ViewAsPayload>;
-    if (payload.purpose !== 'view-as' || !payload.adminId || !payload.targetId) return null;
+    if (payload.purpose !== "view-as" || !payload.adminId || !payload.targetId) return null;
     return { adminId: payload.adminId, targetId: payload.targetId };
   } catch {
     return null;

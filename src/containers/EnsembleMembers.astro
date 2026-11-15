@@ -39,13 +39,9 @@ for (const gm of groupMemberships) {
   }
 }
 
-const partsWithMembers = allParts.filter((p) =>
-  memberPartRows.some((mp) => mp.partId === p.id),
-);
+const partsWithMembers = allParts.filter((p) => memberPartRows.some((mp) => mp.partId === p.id));
 
-const noPartMembers = membersData.filter(
-  (m) => !memberPartIdsByMembership.has(m.membershipId),
-);
+const noPartMembers = membersData.filter((m) => !memberPartIdsByMembership.has(m.membershipId));
 
 const memberTabs = [
   { id: "all", label: "All", count: membersData.length },
@@ -70,56 +66,32 @@ const memberTabs = [
   <Tabs tabs={memberTabs}>
     <div data-tab-panel="all">
       <Columns multiline>
-        {
-          membersData.map((member) => {
-            const parts = (
-              memberPartIdsByMembership.get(member.membershipId) ?? []
-            )
-              .map((pid) => allParts.find((p) => p.id === pid)?.name)
-              .filter((n): n is string => Boolean(n));
-            return (
-              <Column class="is-6-tablet is-4-desktop is-3-widescreen">
-                <MemberCard
-                  name={member.name}
-                  avatarUrl={member.avatarUrl}
-                  parts={parts}
-                  groups={userGroups.get(member.id)}
-                />
-              </Column>
-            );
-          })
-        }
+        {membersData.map((member) => {
+          const parts = (memberPartIdsByMembership.get(member.membershipId) ?? [])
+            .map((pid) => allParts.find((p) => p.id === pid)?.name)
+            .filter((n): n is string => Boolean(n));
+          return (
+            <Column class="is-6-tablet is-4-desktop is-3-widescreen">
+              <MemberCard
+                name={member.name}
+                avatarUrl={member.avatarUrl}
+                parts={parts}
+                groups={userGroups.get(member.id)}
+              />
+            </Column>
+          );
+        })}
       </Columns>
     </div>
 
-    {
-      partsWithMembers.map((part) => {
-        const partMembers = membersData.filter((m) =>
-          memberPartIdsByMembership.get(m.membershipId)?.includes(part.id),
-        );
-        return (
-          <div data-tab-panel={part.id}>
-            <Columns multiline>
-              {partMembers.map((member) => (
-                <Column class="is-6-tablet is-4-desktop is-3-widescreen">
-                  <MemberCard
-                    name={member.name}
-                    avatarUrl={member.avatarUrl}
-                    groups={userGroups.get(member.id)}
-                  />
-                </Column>
-              ))}
-            </Columns>
-          </div>
-        );
-      })
-    }
-
-    {
-      noPartMembers.length > 0 && (
-        <div data-tab-panel="none">
+    {partsWithMembers.map((part) => {
+      const partMembers = membersData.filter((m) =>
+        memberPartIdsByMembership.get(m.membershipId)?.includes(part.id),
+      );
+      return (
+        <div data-tab-panel={part.id}>
           <Columns multiline>
-            {noPartMembers.map((member) => (
+            {partMembers.map((member) => (
               <Column class="is-6-tablet is-4-desktop is-3-widescreen">
                 <MemberCard
                   name={member.name}
@@ -130,7 +102,23 @@ const memberTabs = [
             ))}
           </Columns>
         </div>
-      )
-    }
+      );
+    })}
+
+    {noPartMembers.length > 0 && (
+      <div data-tab-panel="none">
+        <Columns multiline>
+          {noPartMembers.map((member) => (
+            <Column class="is-6-tablet is-4-desktop is-3-widescreen">
+              <MemberCard
+                name={member.name}
+                avatarUrl={member.avatarUrl}
+                groups={userGroups.get(member.id)}
+              />
+            </Column>
+          ))}
+        </Columns>
+      </div>
+    )}
   </Tabs>
 </DashboardSection>

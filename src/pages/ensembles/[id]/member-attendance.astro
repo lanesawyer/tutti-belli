@@ -62,20 +62,18 @@ const selectedSeason = seasons.find((s) => s.id === seasonId);
         Dashboard
       </a>
       <hr class="navbar-divider" />
-      {
-        ensembleAdminTools.map((tool) => {
-          const href = tool.href(canonicalId);
-          return (
-            <a
-              class={`navbar-item${Astro.url.pathname.startsWith(href) ? " is-active" : ""}`}
-              href={href}
-            >
-              <Icon icon={tool.icon} size="small" class="mr-1" />
-              {tool.label}
-            </a>
-          );
-        })
-      }
+      {ensembleAdminTools.map((tool) => {
+        const href = tool.href(canonicalId);
+        return (
+          <a
+            class={`navbar-item${Astro.url.pathname.startsWith(href) ? " is-active" : ""}`}
+            href={href}
+          >
+            <Icon icon={tool.icon} size="small" class="mr-1" />
+            {tool.label}
+          </a>
+        );
+      })}
     </div>
   </div>
 
@@ -101,30 +99,28 @@ const selectedSeason = seasons.find((s) => s.id === seasonId);
           </div>
         </Fragment>
         <Fragment slot="right">
-          {
-            seasons.length > 0 && (
-              <div class="level-item">
-                <div class="field has-addons">
-                  <div class="control">
-                    <div class="select">
-                      <select
-                        id="season-filter"
-                        onchange="window.location.href = this.value ? `?seasonId=${this.value}` : '?'"
-                      >
-                        <option value="">All seasons</option>
-                        {seasons.map((s) => (
-                          <option value={s.id} selected={s.id === seasonId}>
-                            {s.name}
-                            {s.isActive ? " (active)" : ""}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
+          {seasons.length > 0 && (
+            <div class="level-item">
+              <div class="field has-addons">
+                <div class="control">
+                  <div class="select">
+                    <select
+                      id="season-filter"
+                      onchange="window.location.href = this.value ? `?seasonId=${this.value}` : '?'"
+                    >
+                      <option value="">All seasons</option>
+                      {seasons.map((s) => (
+                        <option value={s.id} selected={s.id === seasonId}>
+                          {s.name}
+                          {s.isActive ? " (active)" : ""}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </div>
               </div>
-            )
-          }
+            </div>
+          )}
           <div class="level-item">
             <Button
               href={`/ensembles/${canonicalId}/export/attendance${seasonId ? `?seasonId=${seasonId}` : ""}`}
@@ -137,88 +133,77 @@ const selectedSeason = seasons.find((s) => s.id === seasonId);
       </Level>
 
       <Box>
-        {
-          stats.length === 0 ? (
-            <p class="has-text-grey">No active members found.</p>
-          ) : (
-            <Table className="is-vcentered">
-              <thead>
+        {stats.length === 0 ? (
+          <p class="has-text-grey">No active members found.</p>
+        ) : (
+          <Table className="is-vcentered">
+            <thead>
+              <tr>
+                <th style="width: 60px;" />
+                <th>Name</th>
+                <th>Role</th>
+                <th>Attended</th>
+                <th>Total Events</th>
+                <th>Attendance %</th>
+              </tr>
+            </thead>
+            <tbody>
+              {stats.map((member) => (
                 <tr>
-                  <th style="width: 60px;" />
-                  <th>Name</th>
-                  <th>Role</th>
-                  <th>Attended</th>
-                  <th>Total Events</th>
-                  <th>Attendance %</th>
-                </tr>
-              </thead>
-              <tbody>
-                {stats.map((member) => (
-                  <tr>
-                    <td>
-                      {member.avatarUrl ? (
-                        <Image
-                          src={member.avatarUrl}
-                          alt={member.name}
-                          size="48x48"
-                          rounded
-                          imgStyle="object-fit: cover;"
-                        />
-                      ) : (
-                        <figure class="image is-48x48">
-                          <div
-                            style={`width: 48px; height: 48px; border-radius: 50%; background-color: ${getColorFromInitials(getInitials(member.name))}; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.25rem; font-weight: bold;`}
-                          >
-                            {getInitials(member.name)}
-                          </div>
-                        </figure>
-                      )}
-                    </td>
-                    <td>
-                      <div>{member.name}</div>
-                      <div class="is-size-7 has-text-grey">{member.email}</div>
-                    </td>
-                    <td>
-                      <span
-                        class={`tag ${member.role === "admin" ? "is-warning" : "is-info"}`}
-                      >
-                        {member.role === "admin" ? "Admin" : "Member"}
-                      </span>
-                    </td>
-                    <td>{member.attended}</td>
-                    <td>{member.total}</td>
-                    <td>
-                      <div
-                        class="is-flex is-align-items-center"
-                        style="gap: 0.5rem;"
-                      >
-                        <Progress
-                          size="small"
-                          color={
-                            member.pct >= 75
-                              ? "success"
-                              : member.pct >= 50
-                                ? "warning"
-                                : "danger"
-                          }
-                          class="mb-0"
-                          value={member.pct}
-                          max={100}
-                          style="width: 80px;"
-                        />
-                        <span
-                          class={`has-text-weight-semibold ${member.pct >= 75 ? "has-text-success" : member.pct >= 50 ? "has-text-warning" : "has-text-danger"}`}
+                  <td>
+                    {member.avatarUrl ? (
+                      <Image
+                        src={member.avatarUrl}
+                        alt={member.name}
+                        size="48x48"
+                        rounded
+                        imgStyle="object-fit: cover;"
+                      />
+                    ) : (
+                      <figure class="image is-48x48">
+                        <div
+                          style={`width: 48px; height: 48px; border-radius: 50%; background-color: ${getColorFromInitials(getInitials(member.name))}; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.25rem; font-weight: bold;`}
                         >
-                          {member.pct}%
-                        </span>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </Table>
-          )
-        }
+                          {getInitials(member.name)}
+                        </div>
+                      </figure>
+                    )}
+                  </td>
+                  <td>
+                    <div>{member.name}</div>
+                    <div class="is-size-7 has-text-grey">{member.email}</div>
+                  </td>
+                  <td>
+                    <span class={`tag ${member.role === "admin" ? "is-warning" : "is-info"}`}>
+                      {member.role === "admin" ? "Admin" : "Member"}
+                    </span>
+                  </td>
+                  <td>{member.attended}</td>
+                  <td>{member.total}</td>
+                  <td>
+                    <div class="is-flex is-align-items-center" style="gap: 0.5rem;">
+                      <Progress
+                        size="small"
+                        color={
+                          member.pct >= 75 ? "success" : member.pct >= 50 ? "warning" : "danger"
+                        }
+                        class="mb-0"
+                        value={member.pct}
+                        max={100}
+                        style="width: 80px;"
+                      />
+                      <span
+                        class={`has-text-weight-semibold ${member.pct >= 75 ? "has-text-success" : member.pct >= 50 ? "has-text-warning" : "has-text-danger"}`}
+                      >
+                        {member.pct}%
+                      </span>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </Table>
+        )}
       </Box>
     </Container>
   </Section>
