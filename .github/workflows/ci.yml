@@ -121,6 +121,8 @@ jobs:
 
   audit:
     name: Dependency Audit
+    # PRs only: a newly published advisory must not block deploying main, including its fix.
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
