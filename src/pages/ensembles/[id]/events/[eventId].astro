@@ -23,6 +23,7 @@ import QRCode from "qrcode";
 import { ensembleAdminTools } from "@lib/config";
 import { getEnsembleBySlugOrId, getEnsembleAccess } from "@lib/ensemble";
 import { getEnsembleUrlId } from "@lib/slug";
+import { siteLink } from "@lib/site-url";
 import {
   getEvent,
   getEventProgramData,
@@ -144,7 +145,7 @@ const rsvpNoCount = rsvpRecords.filter((r) => r.response === "no").length;
 const rsvpNoResponseCount = allMembers.length - rsvpYesCount - rsvpNoCount;
 
 // Generate QR code for check-in
-const checkInUrl = `${Astro.url.origin}/checkin/${event.checkInCode}`;
+const checkInUrl = siteLink(`/checkin/${encodeURIComponent(event.checkInCode)}`);
 const qrCodeDataUrl = await QRCode.toDataURL(checkInUrl, {
   width: 300,
   margin: 2,

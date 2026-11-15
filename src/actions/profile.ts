@@ -44,7 +44,7 @@ export const profile = {
       }
 
       try {
-        await registerUser({ name, email, password, siteUrl: context.url.origin });
+        await registerUser({ name, email, password });
       } catch (e) {
         throw new ActionError({ code: 'CONFLICT', message: (e as Error).message });
       }
@@ -163,7 +163,7 @@ export const profile = {
     handler: async ({ newEmail }, context) => {
       const user = context.locals.user;
       if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
-      const result = await initiateEmailChange(user.id, user.name, user.email, newEmail, context.url.origin);
+      const result = await initiateEmailChange(user.id, user.name, user.email, newEmail);
       if (result.type === 'error') {
         throw new ActionError({ code: 'BAD_REQUEST', message: result.message });
       }

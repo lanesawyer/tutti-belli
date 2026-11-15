@@ -12,6 +12,13 @@ try {
   // no .env file (CI, Docker)
 }
 
+// A PR preview's exact hostname, passed as a Docker build arg because the allowed hosts are
+// fixed at build time. Never a wildcard: Fly app names are first come, first served.
+const previewHostname = process.env.PREVIEW_HOSTNAME?.trim();
+if (previewHostname && !/^[a-z0-9-]+(\.[a-z0-9-]+)+$/i.test(previewHostname)) {
+  throw new Error(`PREVIEW_HOSTNAME must be a plain hostname, got "${previewHostname}"`);
+}
+
 // https://astro.build/config
 export default defineConfig({
   site: 'https://tuttibelli.org',
@@ -26,8 +33,8 @@ export default defineConfig({
     allowedDomains: [
       { hostname: 'tuttibelli.org', protocol: 'https' },
       { hostname: '*.tuttibelli.org', protocol: 'https' },
-      // tutti-belli.fly.dev and the per-PR preview apps
-      { hostname: '*.fly.dev', protocol: 'https' },
+      { hostname: 'tutti-belli.fly.dev', protocol: 'https' },
+      ...(previewHostname ? [{ hostname: previewHostname, protocol: 'https' }] : []),
     ],
   },
   vite: {
