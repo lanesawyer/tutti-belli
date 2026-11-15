@@ -1,4 +1,5 @@
 import { createClient } from "@libsql/client";
+import type { BatchItem } from "drizzle-orm/batch";
 import { drizzle } from "drizzle-orm/libsql";
 
 // Read from process.env only, never import.meta.env: Vite writes import.meta.env values into
@@ -21,6 +22,12 @@ const client = createClient({
 });
 
 export const db = drizzle(client);
+
+/** Runs a list of statements built at runtime as one transaction, like `db.batch()`. */
+export async function runBatch(queries: BatchItem<"sqlite">[]): Promise<void> {
+  if (queries.length === 0) return;
+  await db.batch(queries as [BatchItem<"sqlite">, ...BatchItem<"sqlite">[]]);
+}
 
 export * from "./schema.ts";
 

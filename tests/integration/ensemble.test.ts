@@ -3,10 +3,12 @@ import {
   getEnsembleAccess,
   getEnsembleBySlugOrId,
   updateEnsemble,
+  getEnsembleByInviteCode,
 } from "../../src/lib/ensemble.ts";
 import { db, Ensemble, eq } from "@db";
 import { findUniqueSlug } from "../../src/lib/slug.ts";
-import { createUser, createEnsemble, createMembership } from "./fixtures.ts";
+import { getAllEnsembles, getAllUsers, getSiteAdminIds } from "../../src/lib/admin.ts";
+import { createUser, createEnsemble, createInvite, createMembership } from "./fixtures.ts";
 
 describe("getEnsembleBySlugOrId", () => {
   it("returns an ensemble when looked up by UUID id", async () => {
@@ -152,5 +154,28 @@ describe("getEnsembleAccess", () => {
     const access = await getEnsembleAccess(siteAdmin!, ensemble!.id);
     expect(access?.membership).toBeNull();
     expect(access?.isAdmin).toBe(true);
+  });
+});
+
+describe("getEnsembleByInviteCode", () => {
+  it("finds the ensemble for a code in any letter case, and null for an unknown code", async () => {
+    const user = await createUser();
+    const ensemble = await createEnsemble(user.id);
+    await createInvite(ensemble.id, user.id, { code: "JOINME12" });
+
+    expect((await getEnsembleByInviteCode("joinme12"))?.id).toBe(ensemble.id);
+    expect(await getEnsembleByInviteCode("NOPE0000")).toBeNull();
+  });
+});
+
+describe("site admin lists", () => {
+  it("lists every ensemble and user, and which users are site admins", async () => {
+    const admin = await createUser({ role: "admin" });
+    const user = await createUser();
+    const ensemble = await createEnsemble(user.id);
+
+    expect((await getAllEnsembles()).map((e) => e.id)).toEqual([ensemble.id]);
+    expect((await getAllUsers()).map((u) => u.id).sort()).toEqual([admin.id, user.id].sort());
+    expect(await getSiteAdminIds()).toEqual(new Set([admin.id]));
   });
 });

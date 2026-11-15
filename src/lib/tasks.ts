@@ -190,23 +190,14 @@ export async function editTask(taskId: string, title: string, description?: stri
 }
 
 export async function deleteTask(taskId: string) {
-  await db.delete(TaskCompletion).where(eq(TaskCompletion.taskId, taskId));
   await db.delete(Task).where(eq(Task.id, taskId));
 }
 
 export async function markTaskComplete(taskId: string, userId: string, completedBy: string) {
-  const existing = await db
-    .select()
-    .from(TaskCompletion)
-    .where(and(eq(TaskCompletion.taskId, taskId), eq(TaskCompletion.userId, userId)))
-    .get();
-  if (existing) return;
-  await db.insert(TaskCompletion).values({
-    id: crypto.randomUUID(),
-    taskId,
-    userId,
-    completedBy,
-  });
+  await db
+    .insert(TaskCompletion)
+    .values({ id: crypto.randomUUID(), taskId, userId, completedBy })
+    .onConflictDoNothing({ target: [TaskCompletion.taskId, TaskCompletion.userId] });
 }
 
 export async function markTaskIncomplete(taskId: string, userId: string) {

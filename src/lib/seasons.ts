@@ -1,4 +1,15 @@
-import { db, eq, and, desc, Season, SeasonMembership, EnsembleMember, Event, User } from "@db";
+import {
+  db,
+  eq,
+  and,
+  desc,
+  Season,
+  SeasonMembership,
+  EnsembleMember,
+  Event,
+  User,
+  runBatch,
+} from "@db";
 
 export async function getEnsembleSeasons(ensembleId: string) {
   return await db
@@ -39,17 +50,22 @@ export async function createSeason(
   endDate: Date | undefined,
   setActive: boolean,
 ) {
-  if (setActive) {
-    await db.update(Season).set({ isActive: 0 }).where(eq(Season.ensembleId, ensembleId));
-  }
-  await db.insert(Season).values({
-    id: crypto.randomUUID(),
-    ensembleId,
-    name,
-    startDate,
-    endDate,
-    isActive: setActive ? 1 : 0,
-  });
+  const deactivateOthers = setActive
+    ? [db.update(Season).set({ isActive: 0 }).where(eq(Season.ensembleId, ensembleId))]
+    : [];
+  await runBatch([
+    ...deactivateOthers,
+    db
+      .insert(Season)
+      .values({
+        id: crypto.randomUUID(),
+        ensembleId,
+        name,
+        startDate,
+        endDate,
+        isActive: setActive ? 1 : 0,
+      }),
+  ]);
 }
 
 export async function updateSeason(
@@ -60,18 +76,16 @@ export async function updateSeason(
   endDate: Date | undefined,
   setActive: boolean,
 ) {
-  if (setActive) {
-    await db.update(Season).set({ isActive: 0 }).where(eq(Season.ensembleId, ensembleId));
-  }
-  await db
-    .update(Season)
-    .set({
-      name,
-      startDate,
-      endDate,
-      isActive: setActive ? 1 : 0,
-    })
-    .where(eq(Season.id, seasonId));
+  const deactivateOthers = setActive
+    ? [db.update(Season).set({ isActive: 0 }).where(eq(Season.ensembleId, ensembleId))]
+    : [];
+  await runBatch([
+    ...deactivateOthers,
+    db
+      .update(Season)
+      .set({ name, startDate, endDate, isActive: setActive ? 1 : 0 })
+      .where(eq(Season.id, seasonId)),
+  ]);
 }
 
 export async function deleteSeason(
@@ -88,7 +102,6 @@ export async function deleteSeason(
     return { ok: false, error: "Cannot delete a season that has rehearsals." };
   }
 
-  await db.delete(SeasonMembership).where(eq(SeasonMembership.seasonId, seasonId));
   await db.delete(Season).where(eq(Season.id, seasonId));
   return { ok: true };
 }
@@ -102,10 +115,13 @@ export async function toggleSeasonMember(seasonId: string, userId: string) {
   if (existing) {
     await db.delete(SeasonMembership).where(eq(SeasonMembership.id, existing.id));
   } else {
-    await db.insert(SeasonMembership).values({
-      id: crypto.randomUUID(),
-      seasonId,
-      userId,
-    });
+    await db
+      .insert(SeasonMembership)
+      .values({
+        id: crypto.randomUUID(),
+        seasonId,
+        userId,
+      })
+      .onConflictDoNothing();
   }
 }

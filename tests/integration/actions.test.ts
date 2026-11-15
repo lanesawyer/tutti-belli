@@ -465,37 +465,33 @@ describe("pending memberships and link URLs", () => {
   });
 });
 
-// Each `it.fails` documents a gap that exists today. When a fix lands the test starts passing,
-// `it.fails` turns that into a failure, and the marker should be removed.
-// With foreign keys enforced (as in the test database) these deletes hit a constraint and come
-// back as INTERNAL_SERVER_ERROR instead of cleaning up or returning a friendly error.
-describe("known gaps: deletes blocked by related rows", () => {
+describe("deletes with related rows", () => {
   async function expectDeleted(name: string, fields: Fields) {
     const { error } = await callAction(actions[name], fields, { user: w.a.admin });
     expect(error?.code ?? "ok").not.toBe("INTERNAL_SERVER_ERROR");
   }
 
-  it.fails("events.delete handles an event that has attendance and a program", async () => {
+  it("events.delete handles an event that has attendance and a program", async () => {
     await expectDeleted("events.delete", { ensembleId: w.a.ensemble.id, eventId: w.a.event.id });
   });
 
-  it.fails("songs.delete handles a song that is on an event program", async () => {
+  it("songs.delete handles a song that is on an event program", async () => {
     await expectDeleted("songs.delete", { ensembleId: w.a.ensemble.id, songId: w.a.song.id });
   });
 
-  it.fails("parts.delete handles a part that songs use", async () => {
+  it("parts.delete handles a part that songs use", async () => {
     await db
       .insert(SongPart)
       .values({ id: crypto.randomUUID(), songId: w.a.song.id, partId: w.a.part.id });
     await expectDeleted("parts.delete", { ensembleId: w.a.ensemble.id, partId: w.a.part.id });
   });
 
-  it.fails("groups.delete handles a group that an event is limited to", async () => {
+  it("groups.delete handles a group that an event is limited to", async () => {
     await db.update(Event).set({ groupId: w.a.group.id }).where(eq(Event.id, w.a.spareEvent.id));
     await expectDeleted("groups.delete", { ensembleId: w.a.ensemble.id, groupId: w.a.group.id });
   });
 
-  it.fails("seasons.delete handles a season that has tasks", async () => {
+  it("seasons.delete handles a season that has tasks", async () => {
     await createTask(w.a.ensemble.id, { seasonId: w.a.emptySeason.id });
     await expectDeleted("seasons.delete", {
       ensembleId: w.a.ensemble.id,

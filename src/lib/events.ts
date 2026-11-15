@@ -15,6 +15,7 @@ import {
   SeasonSong,
   Group,
   GroupMembership,
+  runBatch,
 } from "@db";
 import { randomCode } from "./codes";
 import { DEFAULT_TIMEZONE, zonedTimeToInstant } from "./timezone";
@@ -377,20 +378,16 @@ export async function checkInToEvent(params: {
     }
   }
 
-  const existing = await db
-    .select()
-    .from(Attendance)
-    .where(and(eq(Attendance.eventId, eventId), eq(Attendance.userId, userId)))
-    .get();
+  await recordCheckIn(eventId, userId, "manual");
+}
 
-  if (existing) throw new Error("You have already checked in for this event.");
-
-  await db.insert(Attendance).values({
-    id: crypto.randomUUID(),
-    eventId,
-    userId,
-    checkedInMethod: "manual",
-  });
+async function recordCheckIn(eventId: string, userId: string, checkedInMethod: "manual" | "qr") {
+  const inserted = await db
+    .insert(Attendance)
+    .values({ id: crypto.randomUUID(), eventId, userId, checkedInMethod })
+    .onConflictDoNothing({ target: [Attendance.eventId, Attendance.userId] })
+    .returning({ id: Attendance.id });
+  if (inserted.length === 0) throw new Error("You have already checked in for this event.");
 }
 
 export async function checkInByCode(params: { code: string; userId: string }) {
@@ -443,39 +440,16 @@ export async function checkInByCode(params: { code: string; userId: string }) {
     throw new Error(`Check-in closed ${ensembleData.checkInEndMinutes} minutes after event start.`);
   }
 
-  const existing = await db
-    .select()
-    .from(Attendance)
-    .where(and(eq(Attendance.eventId, event.id), eq(Attendance.userId, userId)))
-    .get();
-
-  if (existing) throw new Error("You have already checked in for this event.");
-
-  await db.insert(Attendance).values({
-    id: crypto.randomUUID(),
-    eventId: event.id,
-    userId,
-    checkedInMethod: "qr",
-  });
+  await recordCheckIn(event.id, userId, "qr");
 
   return { eventId: event.id, ensembleId: event.ensembleId };
 }
 
 export async function addAttendance(eventId: string, userId: string) {
-  const existing = await db
-    .select()
-    .from(Attendance)
-    .where(and(eq(Attendance.eventId, eventId), eq(Attendance.userId, userId)))
-    .get();
-
-  if (!existing) {
-    await db.insert(Attendance).values({
-      id: crypto.randomUUID(),
-      eventId,
-      userId,
-      checkedInMethod: "admin",
-    });
-  }
+  await db
+    .insert(Attendance)
+    .values({ id: crypto.randomUUID(), eventId, userId, checkedInMethod: "admin" })
+    .onConflictDoNothing({ target: [Attendance.eventId, Attendance.userId] });
 }
 
 export async function removeAttendance(attendanceId: string) {
@@ -483,25 +457,14 @@ export async function removeAttendance(attendanceId: string) {
 }
 
 export async function setRsvp(eventId: string, userId: string, response: "yes" | "no") {
-  const existing = await db
-    .select()
-    .from(EventRsvp)
-    .where(and(eq(EventRsvp.eventId, eventId), eq(EventRsvp.userId, userId)))
-    .get();
-
-  if (existing) {
-    await db
-      .update(EventRsvp)
-      .set({ response, respondedAt: new Date() })
-      .where(and(eq(EventRsvp.eventId, eventId), eq(EventRsvp.userId, userId)));
-  } else {
-    await db.insert(EventRsvp).values({
-      id: crypto.randomUUID(),
-      eventId,
-      userId,
-      response,
+  const respondedAt = new Date();
+  await db
+    .insert(EventRsvp)
+    .values({ id: crypto.randomUUID(), eventId, userId, response, respondedAt })
+    .onConflictDoUpdate({
+      target: [EventRsvp.eventId, EventRsvp.userId],
+      set: { response, respondedAt },
     });
-  }
 }
 
 export async function removeRsvp(eventId: string, userId: string) {
@@ -586,7 +549,7 @@ export async function updateProgramEntry(
 }
 
 export async function reorderProgramSongs(eventId: string, orderedEntryIds: string[]) {
-  await Promise.all(
+  await runBatch(
     orderedEntryIds.map((id, index) =>
       db
         .update(EventProgram)

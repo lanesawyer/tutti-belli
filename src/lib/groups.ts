@@ -58,7 +58,6 @@ export async function updateGroup(
 }
 
 export async function deleteGroup(groupId: string) {
-  await db.delete(GroupMembership).where(eq(GroupMembership.groupId, groupId));
   await db.delete(Group).where(eq(Group.id, groupId));
 }
 
@@ -71,11 +70,14 @@ export async function toggleGroupMember(groupId: string, userId: string) {
   if (existing) {
     await db.delete(GroupMembership).where(eq(GroupMembership.id, existing.id));
   } else {
-    await db.insert(GroupMembership).values({
-      id: crypto.randomUUID(),
-      groupId,
-      userId,
-    });
+    await db
+      .insert(GroupMembership)
+      .values({
+        id: crypto.randomUUID(),
+        groupId,
+        userId,
+      })
+      .onConflictDoNothing();
   }
 }
 

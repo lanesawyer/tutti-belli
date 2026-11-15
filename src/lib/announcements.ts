@@ -35,7 +35,7 @@ export async function getEnsembleAnnouncements(ensembleId: string, limit?: numbe
       creatorName: User.name,
     })
     .from(Announcement)
-    .innerJoin(User, eq(Announcement.createdBy, User.id))
+    .leftJoin(User, eq(Announcement.createdBy, User.id))
     .where(eq(Announcement.ensembleId, ensembleId))
     .orderBy(desc(Announcement.createdAt));
   return await (limit === undefined ? query.all() : query.limit(limit).all());

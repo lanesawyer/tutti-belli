@@ -17,10 +17,12 @@ import {
   Season,
   SeasonMembership,
   User,
+  runBatch,
 } from "@db";
+import type { BatchItem } from "drizzle-orm/batch";
 import { canManageEnsemble, isSiteAdmin } from "./permissions";
 import { deleteImage } from "./storage";
-import { createPasswordResetToken, hashPassword } from "./auth";
+import { hashPassword, passwordResetTokenInsert } from "./auth";
 
 /**
  * Look up an ensemble by either its slug or its UUID id.
@@ -307,14 +309,20 @@ export async function joinEnsembleWithCode(
   const existing = await getEnsembleMembership(invite.ensembleId, userId);
   if (existing) return { ok: false, error: "You are already a member of this ensemble" };
 
-  await db.insert(EnsembleMember).values({
-    id: crypto.randomUUID(),
-    ensembleId: invite.ensembleId,
-    userId,
-    role: "member",
-    status: "pending",
-    agreedToCodeOfConductAt: ensemble?.codeOfConduct ? new Date() : null,
-  });
+  const inserted = await db
+    .insert(EnsembleMember)
+    .values({
+      id: crypto.randomUUID(),
+      ensembleId: invite.ensembleId,
+      userId,
+      role: "member",
+      status: "pending",
+      agreedToCodeOfConductAt: ensemble?.codeOfConduct ? new Date() : null,
+    })
+    .onConflictDoNothing({ target: [EnsembleMember.ensembleId, EnsembleMember.userId] })
+    .returning({ id: EnsembleMember.id });
+  if (inserted.length === 0)
+    return { ok: false, error: "You are already a member of this ensemble" };
 
   return { ok: true, ensembleId: invite.ensembleId };
 }
@@ -334,32 +342,23 @@ export async function approveMember(membershipId: string): Promise<boolean> {
   const membership = await getMembershipById(membershipId);
   if (!membership) return false;
 
-  await db
-    .update(EnsembleMember)
-    .set({ status: "active" })
-    .where(eq(EnsembleMember.id, membershipId));
-
   const activeSeason = await getActiveSeasonForEnsemble(membership.ensembleId);
-  if (activeSeason) {
-    const existing = await db
-      .select({ id: SeasonMembership.id })
-      .from(SeasonMembership)
-      .where(
-        and(
-          eq(SeasonMembership.seasonId, activeSeason.id),
-          eq(SeasonMembership.userId, membership.userId),
-        ),
-      )
-      .get();
-    if (!existing) {
-      await db.insert(SeasonMembership).values({
-        id: crypto.randomUUID(),
-        seasonId: activeSeason.id,
-        userId: membership.userId,
-      });
-    }
-  }
+  await runBatch([
+    db.update(EnsembleMember).set({ status: "active" }).where(eq(EnsembleMember.id, membershipId)),
+    ...seasonMembershipInsert(activeSeason?.id, membership.userId),
+  ]);
   return true;
+}
+
+function seasonMembershipInsert(seasonId: string | undefined, userId: string) {
+  return seasonId
+    ? [
+        db
+          .insert(SeasonMembership)
+          .values({ id: crypto.randomUUID(), seasonId, userId })
+          .onConflictDoNothing(),
+      ]
+    : [];
 }
 
 /** How long the set-password link for a newly added account stays valid. */
@@ -386,42 +385,48 @@ export async function addMemberByEmail(
     .from(User)
     .where(sql`lower(${User.email}) = ${email}`)
     .get();
-  let setPasswordToken: string | null = null;
 
+  const existing = user ? await getEnsembleMembership(ensembleId, user.id) : null;
+  if (user && existing?.status === "active") {
+    return { type: "error", message: `${user.name} is already a member of this ensemble.` };
+  }
+
+  const writes: BatchItem<"sqlite">[] = [];
+  let setPasswordToken: string | null = null;
   if (!user) {
     if (!name)
       return { type: "error", message: "A name is required for someone without an account." };
     const id = crypto.randomUUID();
-    await db
-      .insert(User)
-      .values({ id, email, name, passwordHash: await hashPassword(crypto.randomUUID()) });
+    writes.push(
+      db
+        .insert(User)
+        .values({ id, email, name, passwordHash: await hashPassword(crypto.randomUUID()) }),
+    );
+    const reset = passwordResetTokenInsert(id, NEW_ACCOUNT_LINK_TTL_MS);
+    writes.push(reset.insert);
+    setPasswordToken = reset.token;
     user = { id, name };
-    setPasswordToken = await createPasswordResetToken(id, NEW_ACCOUNT_LINK_TTL_MS);
   }
 
-  const existing = await getEnsembleMembership(ensembleId, user.id);
-  if (existing?.status === "active") {
-    return { type: "error", message: `${user.name} is already a member of this ensemble.` };
-  }
-
-  const membershipId = existing?.id ?? crypto.randomUUID();
-  if (!existing) {
-    await db
+  const activeSeason = await getActiveSeasonForEnsemble(ensembleId);
+  writes.push(
+    db
       .insert(EnsembleMember)
       .values({
-        id: membershipId,
+        id: crypto.randomUUID(),
         ensembleId,
         userId: user.id,
         role: input.role,
-        status: "pending",
-      });
-  } else {
-    await db
-      .update(EnsembleMember)
-      .set({ role: input.role })
-      .where(eq(EnsembleMember.id, membershipId));
-  }
-  await approveMember(membershipId);
+        status: "active",
+      })
+      .onConflictDoUpdate({
+        target: [EnsembleMember.ensembleId, EnsembleMember.userId],
+        set: { role: input.role, status: "active" },
+        setWhere: ne(EnsembleMember.status, "active"),
+      }),
+    ...seasonMembershipInsert(activeSeason?.id, user.id),
+  );
+  await runBatch(writes);
 
   return setPasswordToken
     ? { type: "created", userId: user.id, name: user.name, setPasswordToken }

@@ -43,7 +43,7 @@ const latestAnnouncements = await getEnsembleAnnouncements(ensembleId, 3);
               <p style="white-space: pre-wrap;">{announcement.content}</p>
               <p class="mt-2">
                 <small>
-                  <em>— {announcement.creatorName}</em>
+                  <em>— {announcement.creatorName ?? "Former member"}</em>
                 </small>
               </p>
             </Message>
