@@ -1,5 +1,5 @@
 FROM debian:bookworm-slim AS base
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl libatomic1 && rm -rf /var/lib/apt/lists/*
 ENV MISE_DATA_DIR="/mise"
 ENV MISE_INSTALL_PATH="/usr/local/bin/mise"
 ENV PNPM_HOME="/pnpm"
