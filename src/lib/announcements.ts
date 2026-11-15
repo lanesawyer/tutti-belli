@@ -43,9 +43,8 @@ export async function createAnnouncement(params: {
   createdBy: string;
   creatorName: string;
   postToDiscord: boolean;
-  siteUrl: string;
 }) {
-  const { ensembleId, title, content, createdBy, creatorName, postToDiscord, siteUrl } = params;
+  const { ensembleId, title, content, createdBy, creatorName, postToDiscord } = params;
   const { ensembleName, canonicalId, discordWebhookUrl } = await getAnnouncementContext(ensembleId);
 
   await db.insert(Announcement).values({
@@ -65,7 +64,7 @@ export async function createAnnouncement(params: {
     .where(and(eq(EnsembleMember.ensembleId, ensembleId), eq(EnsembleMember.status, 'active')))
     .all();
 
-  sendAnnouncementEmail(members, ensembleName, canonicalId, title, content, creatorName, siteUrl).catch(() => {});
+  sendAnnouncementEmail(members, ensembleName, canonicalId, title, content, creatorName).catch(() => {});
 
   if (postToDiscord && discordWebhookUrl) {
     postAnnouncementToDiscord(discordWebhookUrl, ensembleName, title, content, creatorName).catch(() => {});

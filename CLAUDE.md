@@ -75,8 +75,10 @@ Form mutations use **Astro Actions** (`src/actions/`). Do not use the old patter
 - **Three permission tiers**: Site admin (`User.role = 'admin'`), ensemble admin (`EnsembleMember.role = 'admin'`), and regular member
 - Sessions are JWT tokens (30-day expiry) in HTTP-only cookies, signed with `JWT_SECRET`
 - Passwords hashed with bcryptjs (10 rounds)
-- CSRF: Astro's `checkOrigin` is on. Fly terminates TLS, so `security.allowedDomains` in `astro.config.mjs` lists the hosts whose `X-Forwarded-Proto`/`Host` Astro trusts to rebuild the https URL; add any new domain there or its form POSTs will 403
-- Failed logins and password-reset requests are rate-limited in memory per email and per client IP (`src/lib/rate-limit.ts`; the IP comes from Fly's `Fly-Client-IP` header)
+- CSRF: Astro's `checkOrigin` is on. Fly terminates TLS, so `security.allowedDomains` in `astro.config.mjs` lists the hosts whose `X-Forwarded-Proto`/`X-Forwarded-Host` Astro trusts to rebuild the https URL (`@astrojs/node` takes the plain `Host` header as-is). A host served behind a proxy that sets `X-Forwarded-Host` must be listed or its form POSTs will 403. List exact hostnames (`tuttibelli.org`, `*.tuttibelli.org`, `tutti-belli.fly.dev`), never a `*.fly.dev`-style wildcard: anyone can register a Fly app name. A PR preview's own host is added from the `PREVIEW_HOSTNAME` build arg (the list is fixed at build time; see `Dockerfile` and `fly-preview.yml`)
+- Links in emails and other content that leaves the site (QR codes, set-password links) come from `getSiteUrl()`/`siteLink()` in `src/lib/site-url.ts`, never from `Astro.url`, `context.url` or request headers
+- Email HTML: escape every interpolated value with `escapeHtml` (or `textToHtml` for multi-line plain text such as announcement content) from `src/lib/email.ts`
+- Failed logins, password-reset requests and email-change requests are rate-limited in memory per account and per client IP (`src/lib/rate-limit.ts`; the IP comes from Fly's `Fly-Client-IP` header)
 
 ### Database Schema
 Defined in `db/schema.ts` (drizzle `sqliteTable` definitions, 26 tables). Seed data in `db/seed.ts`. Key relationships:
@@ -119,6 +121,10 @@ Required in `.env` (see `.env.example`):
 - `DATABASE_URL` — overrides the Turso connection with a local libSQL URL (set automatically by `pnpm dev` and the test configs; no auth token used)
 - `JWT_SECRET` — session token signing
 - `EMAIL_API_KEY` / `EMAIL_FROM` — Resend email service
+
+Optional:
+- `SITE_URL` — base URL for links in emails and QR codes, read from `process.env` at runtime. Unset, it is `http://localhost:4321` under `astro dev` and `site` from `astro.config.mjs` (`https://tuttibelli.org`) in a build. PR previews set it to their own `https://tutti-belli-pr-<n>.fly.dev` as a Fly secret
+- `PREVIEW_HOSTNAME` — build time only, not a secret: one exact extra host for `security.allowedDomains`. Passed as a Docker build arg by `fly-preview.yml`; unset for production
 
 ### Seed Data (dev mode)
 `pnpm dev` seeds a fresh local DB with: admin@example.com / admin123 (site admin), test@example.com / test123 (regular user), a "Chamber Orchestra" ensemble with invite code TEST1234, voice parts, a season, and a sample rehearsal. Delete `.astro/content.db` to reset and reseed.
