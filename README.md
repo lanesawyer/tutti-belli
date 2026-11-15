@@ -34,11 +34,11 @@ The app runs at `http://localhost:4321/`. `pnpm dev` creates, migrates, and seed
 
 ### Seed Data
 
-| Account | Email | Password |
-|---|---|---|
-| Site admin | admin@example.com | admin123 |
+| Account        | Email                | Password    |
+| -------------- | -------------------- | ----------- |
+| Site admin     | admin@example.com    | admin123    |
 | Ensemble admin | ensadmin@example.com | ensadmin123 |
-| Regular user | test@example.com | test123 |
+| Regular user   | test@example.com     | test123     |
 
 The seed also creates a "Chamber Orchestra" ensemble (invite code `TEST1234`) with voice parts, a "Spring 2026" season, groups, sample events, and repertoire. It only runs against the local development database.
 
@@ -46,15 +46,15 @@ The seed also creates a "Chamber Orchestra" ensemble (invite code `TEST1234`) wi
 
 See `.env.example`.
 
-| Variable | Purpose |
-|---|---|
-| `ASTRO_DB_REMOTE_URL`, `ASTRO_DB_APP_TOKEN` | Turso database URL and token (names kept from the Astro DB era) |
-| `DATABASE_URL` | Local libSQL URL that overrides Turso; `pnpm dev` and the tests set it for you |
-| `JWT_SECRET` | Signs session tokens |
-| `EMAIL_API_KEY`, `EMAIL_FROM` | Resend, for verification and password-reset email |
-| `AWS_ENDPOINT_URL_S3`, `AWS_REGION`, `BUCKET_NAME`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` | Tigris object storage (Fly.io) for song files |
-| `STORAGE_DISABLED` | Set to skip real uploads and deletes |
-| `DISCORD_DISABLED` | Set to skip Discord posts |
+| Variable                                                                                         | Purpose                                                                        |
+| ------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------ |
+| `ASTRO_DB_REMOTE_URL`, `ASTRO_DB_APP_TOKEN`                                                      | Turso database URL and token (names kept from the Astro DB era)                |
+| `DATABASE_URL`                                                                                   | Local libSQL URL that overrides Turso; `pnpm dev` and the tests set it for you |
+| `JWT_SECRET`                                                                                     | Signs session tokens                                                           |
+| `EMAIL_API_KEY`, `EMAIL_FROM`                                                                    | Resend, for verification and password-reset email                              |
+| `AWS_ENDPOINT_URL_S3`, `AWS_REGION`, `BUCKET_NAME`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` | Tigris object storage (Fly.io) for song files                                  |
+| `STORAGE_DISABLED`                                                                               | Set to skip real uploads and deletes                                           |
+| `DISCORD_DISABLED`                                                                               | Set to skip Discord posts                                                      |
 
 The storage variables are only needed to upload, download, or delete song files; the app runs without them otherwise.
 

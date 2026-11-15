@@ -22,46 +22,42 @@ const avatarColor = getColorFromInitials(initials);
 ---
 
 <Card contentClass="has-text-centered">
-  {
-    avatarUrl ? (
-      <Image
-        src={avatarUrl}
-        alt={name}
-        size="96x96"
-        rounded
-        class="mx-auto mb-3"
-        imgStyle="object-fit: cover;"
-      />
-    ) : (
-      <figure class="image is-96x96 mx-auto mb-3">
-        <div
-          style={`width: 96px; height: 96px; border-radius: 50%; background-color: ${avatarColor}; display: flex; align-items: center; justify-content: center; color: white; font-size: 2rem; font-weight: bold;`}
-        >
-          {initials}
-        </div>
-      </figure>
-    )
-  }
-  <Title as="p" size={6} class="mb-2">{name}</Title>
-  {
-    parts && parts.length > 0 && (
-      <Subtitle as="p" size={7} class="has-text-grey mb-2">
-        {parts.join(", ")}
-      </Subtitle>
-    )
-  }
-  {
-    groups && groups.length > 0 && (
-      <div class="tags are-small is-justify-content-center mt-2">
-        {groups.map((group) => (
-          <Tag
-            color={isColor(group.color) ? group.color : undefined}
-            title={group.description || group.name}
-          >
-            {group.name}
-          </Tag>
-        ))}
+  {avatarUrl ? (
+    <Image
+      src={avatarUrl}
+      alt={name}
+      size="96x96"
+      rounded
+      class="mx-auto mb-3"
+      imgStyle="object-fit: cover;"
+    />
+  ) : (
+    <figure class="image is-96x96 mx-auto mb-3">
+      <div
+        style={`width: 96px; height: 96px; border-radius: 50%; background-color: ${avatarColor}; display: flex; align-items: center; justify-content: center; color: white; font-size: 2rem; font-weight: bold;`}
+      >
+        {initials}
       </div>
-    )
-  }
+    </figure>
+  )}
+  <Title as="p" size={6} class="mb-2">
+    {name}
+  </Title>
+  {parts && parts.length > 0 && (
+    <Subtitle as="p" size={7} class="has-text-grey mb-2">
+      {parts.join(", ")}
+    </Subtitle>
+  )}
+  {groups && groups.length > 0 && (
+    <div class="tags are-small is-justify-content-center mt-2">
+      {groups.map((group) => (
+        <Tag
+          color={isColor(group.color) ? group.color : undefined}
+          title={group.description || group.name}
+        >
+          {group.name}
+        </Tag>
+      ))}
+    </div>
+  )}
 </Card>

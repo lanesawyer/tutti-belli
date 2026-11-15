@@ -27,100 +27,80 @@ const { events: upcomingEvents, programByEventId } = await getUpcomingEvents({
   viewAllHref={`/ensembles/${canonicalId}/events`}
   viewAllColor="primary"
 >
-  {
-    upcomingEvents.length === 0 ? (
-      <Notification color="info" light>
-        <p class="has-text-centered">No upcoming events.</p>
-        {isAdmin && (
-          <p class="has-text-centered mt-2">
-            <Button
-              href={`/ensembles/${canonicalId}/events`}
-              color="primary"
-              size="small"
-            >
-              Schedule Event
-            </Button>
-          </p>
-        )}
-      </Notification>
-    ) : (
-      <Content>
-        {upcomingEvents.map((event) => {
-          const scheduledDate = new Date(event.scheduledAt);
-          const isToday =
-            formatZonedDate(scheduledDate, timeZone) ===
-            formatZonedDate(new Date(), timeZone);
-          const catColor =
-            event.category === "performance"
-              ? "warning"
-              : event.category === "social"
-                ? "success"
-                : event.category === "sectional"
-                  ? "info"
-                  : "primary";
-          const catLabel =
-            event.category === "performance"
-              ? "Performance"
-              : event.category === "social"
-                ? "Social"
-                : event.category === "sectional"
-                  ? "Sectional"
-                  : "Rehearsal";
+  {upcomingEvents.length === 0 ? (
+    <Notification color="info" light>
+      <p class="has-text-centered">No upcoming events.</p>
+      {isAdmin && (
+        <p class="has-text-centered mt-2">
+          <Button href={`/ensembles/${canonicalId}/events`} color="primary" size="small">
+            Schedule Event
+          </Button>
+        </p>
+      )}
+    </Notification>
+  ) : (
+    <Content>
+      {upcomingEvents.map((event) => {
+        const scheduledDate = new Date(event.scheduledAt);
+        const isToday =
+          formatZonedDate(scheduledDate, timeZone) === formatZonedDate(new Date(), timeZone);
+        const catColor =
+          event.category === "performance"
+            ? "warning"
+            : event.category === "social"
+              ? "success"
+              : event.category === "sectional"
+                ? "info"
+                : "primary";
+        const catLabel =
+          event.category === "performance"
+            ? "Performance"
+            : event.category === "social"
+              ? "Social"
+              : event.category === "sectional"
+                ? "Sectional"
+                : "Rehearsal";
 
-          return (
-            <Message color={isToday ? "success" : catColor}>
-              <div slot="header">
-                <a
-                  href={`/ensembles/${canonicalId}/events/${event.id}`}
-                  class="has-text-white"
-                >
-                  {event.title}
-                </a>
-                {isToday && <Tag class="ml-2">Today</Tag>}
-                <Tag class="ml-2">{catLabel}</Tag>
-              </div>
-              <small slot="header" class="has-text-weight-normal">
-                {formatZonedDate(scheduledDate, timeZone)} at{" "}
-                {formatZonedTime(scheduledDate, timeZone)} ·{" "}
-                {formatDuration(event.durationMinutes)}
-              </small>
-              {event.location && (
-                <p class="mb-2">
-                  <span class="icon-text">
-                    <Icon icon="fa-map-marker-alt" />
-                    <span>{event.location}</span>
-                  </span>
-                </p>
-              )}
-              {event.description && (
-                <p style="white-space: pre-wrap;">{event.description}</p>
-              )}
-              {(() => {
-                const songs = programByEventId.get(event.id) ?? [];
-                if (songs.length === 0) return null;
-                return (
-                  <ul class="mt-2 mb-1">
-                    {songs.map((s) => (
-                      <li>
-                        <span class="has-text-weight-semibold">
-                          {s.songName}
-                        </span>
-                        {s.composer && (
-                          <span class="has-text-grey is-size-7">
-                            {" "}
-                            — {s.composer}
-                          </span>
-                        )}
-                        {s.notes && <span class="is-size-7"> · {s.notes}</span>}
-                      </li>
-                    ))}
-                  </ul>
-                );
-              })()}
-            </Message>
-          );
-        })}
-      </Content>
-    )
-  }
+        return (
+          <Message color={isToday ? "success" : catColor}>
+            <div slot="header">
+              <a href={`/ensembles/${canonicalId}/events/${event.id}`} class="has-text-white">
+                {event.title}
+              </a>
+              {isToday && <Tag class="ml-2">Today</Tag>}
+              <Tag class="ml-2">{catLabel}</Tag>
+            </div>
+            <small slot="header" class="has-text-weight-normal">
+              {formatZonedDate(scheduledDate, timeZone)} at{" "}
+              {formatZonedTime(scheduledDate, timeZone)} · {formatDuration(event.durationMinutes)}
+            </small>
+            {event.location && (
+              <p class="mb-2">
+                <span class="icon-text">
+                  <Icon icon="fa-map-marker-alt" />
+                  <span>{event.location}</span>
+                </span>
+              </p>
+            )}
+            {event.description && <p style="white-space: pre-wrap;">{event.description}</p>}
+            {(() => {
+              const songs = programByEventId.get(event.id) ?? [];
+              if (songs.length === 0) return null;
+              return (
+                <ul class="mt-2 mb-1">
+                  {songs.map((s) => (
+                    <li>
+                      <span class="has-text-weight-semibold">{s.songName}</span>
+                      {s.composer && <span class="has-text-grey is-size-7"> — {s.composer}</span>}
+                      {s.notes && <span class="is-size-7"> · {s.notes}</span>}
+                    </li>
+                  ))}
+                </ul>
+              );
+            })()}
+          </Message>
+        );
+      })}
+    </Content>
+  )}
 </DashboardSection>

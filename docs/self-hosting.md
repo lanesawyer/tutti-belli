@@ -47,20 +47,21 @@ Copy `.env.example` to `.env` and fill in all values:
 cp .env.example .env
 ```
 
-| Variable | Description |
-|---|---|
-| `ASTRO_DB_REMOTE_URL` | Turso database URL |
-| `ASTRO_DB_APP_TOKEN` | Turso auth token |
-| `JWT_SECRET` | Secret used to sign session tokens — use a long random string |
-| `EMAIL_API_KEY` | Resend API key |
-| `EMAIL_FROM` | Verified sender email address |
-| `AWS_ENDPOINT_URL_S3` | Object storage endpoint (`https://fly.storage.tigris.dev` for Tigris) |
-| `AWS_REGION` | Object storage region (`auto` for Tigris) |
-| `BUCKET_NAME` | Bucket for song files |
-| `AWS_ACCESS_KEY_ID` | Object storage access key ID |
-| `AWS_SECRET_ACCESS_KEY` | Object storage secret key |
+| Variable                | Description                                                           |
+| ----------------------- | --------------------------------------------------------------------- |
+| `ASTRO_DB_REMOTE_URL`   | Turso database URL                                                    |
+| `ASTRO_DB_APP_TOKEN`    | Turso auth token                                                      |
+| `JWT_SECRET`            | Secret used to sign session tokens — use a long random string         |
+| `EMAIL_API_KEY`         | Resend API key                                                        |
+| `EMAIL_FROM`            | Verified sender email address                                         |
+| `AWS_ENDPOINT_URL_S3`   | Object storage endpoint (`https://fly.storage.tigris.dev` for Tigris) |
+| `AWS_REGION`            | Object storage region (`auto` for Tigris)                             |
+| `BUCKET_NAME`           | Bucket for song files                                                 |
+| `AWS_ACCESS_KEY_ID`     | Object storage access key ID                                          |
+| `AWS_SECRET_ACCESS_KEY` | Object storage secret key                                             |
 
 Generate a strong `JWT_SECRET`:
+
 ```bash
 openssl rand -base64 48
 ```
@@ -150,16 +151,16 @@ The repo includes a `fly.toml` and a helper script:
 
 The workflow in `.github/workflows/fly-preview.yml` automatically deploys a preview app on Fly.io and a branch database on Turso for every PR. It requires the following secrets in **GitHub → Settings → Secrets and variables → Actions**:
 
-| Secret | Description | How to get it |
-|---|---|---|
-| `TURSO_API_TOKEN` | Turso platform API token (not a DB token) | `turso auth token` or Turso dashboard → Settings → API Tokens → Create token |
-| `TURSO_ORG` | Your Turso organization slug | `turso org list` — use the `Name` column value |
-| `TURSO_MAIN_DB` | Name of the production database to seed previews from | `turso db list` — use the `Name` column value (e.g. `tutti-belli`) |
-| `FLY_ORG_TOKEN` | Fly.io org-level token (needed to create/destroy apps) | `fly tokens create org -o <your-org-slug>` |
-| `FLY_API_TOKEN` | Fly.io deploy token (used by the destroy-preview job) | `fly tokens create deploy -a <app-name>` or reuse `FLY_ORG_TOKEN` |
-| `JWT_SECRET` | Same value as your production secret | — |
-| `EMAIL_API_KEY` | Same value as your production secret | — |
-| `EMAIL_FROM` | Same value as your production secret | — |
+| Secret            | Description                                            | How to get it                                                                |
+| ----------------- | ------------------------------------------------------ | ---------------------------------------------------------------------------- |
+| `TURSO_API_TOKEN` | Turso platform API token (not a DB token)              | `turso auth token` or Turso dashboard → Settings → API Tokens → Create token |
+| `TURSO_ORG`       | Your Turso organization slug                           | `turso org list` — use the `Name` column value                               |
+| `TURSO_MAIN_DB`   | Name of the production database to seed previews from  | `turso db list` — use the `Name` column value (e.g. `tutti-belli`)           |
+| `FLY_ORG_TOKEN`   | Fly.io org-level token (needed to create/destroy apps) | `fly tokens create org -o <your-org-slug>`                                   |
+| `FLY_API_TOKEN`   | Fly.io deploy token (used by the destroy-preview job)  | `fly tokens create deploy -a <app-name>` or reuse `FLY_ORG_TOKEN`            |
+| `JWT_SECRET`      | Same value as your production secret                   | —                                                                            |
+| `EMAIL_API_KEY`   | Same value as your production secret                   | —                                                                            |
+| `EMAIL_FROM`      | Same value as your production secret                   | —                                                                            |
 
 Each preview app is named `tutti-belli-pr-<number>`, and its Turso DB and Tigris bucket are named the same. The bucket starts empty, so files from the copied production data download as 404 on previews. All three are automatically destroyed when the PR is closed.
 

@@ -1,13 +1,6 @@
 ---
 import SingleColumnLayout from "@layouts/SingleColumnLayout.astro";
-import {
-  Button,
-  Notification,
-  Subtitle,
-  TextInput,
-  Textarea,
-  Title,
-} from "astro-bulma";
+import { Button, Notification, Subtitle, TextInput, Textarea, Title } from "astro-bulma";
 import { actions } from "astro:actions";
 
 const result = Astro.getActionResult(actions.admin.createEnsemble);
@@ -20,30 +13,21 @@ const error = result?.error?.message ?? "";
 
 <SingleColumnLayout title="Create Ensemble" width="medium">
   <Title>Create Ensemble</Title>
-  <Subtitle as="p">
-    Start your own ensemble. You'll be added as an admin automatically.
-  </Subtitle>
+  <Subtitle as="p">Start your own ensemble. You'll be added as an admin automatically.</Subtitle>
 
-  {
-    error && (
-      <Notification color="danger" light>
-        {error}
-      </Notification>
-    )
-  }
+  {error && (
+    <Notification color="danger" light>
+      {error}
+    </Notification>
+  )}
 
   <form method="POST" action={actions.admin.createEnsemble}>
-    <TextInput
-      name="name"
-      label="Ensemble Name"
-      placeholder="e.g. Chamber Orchestra"
-      required
-    />
+    <TextInput name="name" label="Ensemble Name" placeholder="e.g. Chamber Orchestra" required />
 
     <div class="field">
-      <label class="label" for="description"
-        >Description <span class="has-text-grey-light">(optional)</span></label
-      >
+      <label class="label" for="description">
+        Description <span class="has-text-grey-light">(optional)</span>
+      </label>
       <div class="control">
         <Textarea
           standalone
@@ -57,10 +41,14 @@ const error = result?.error?.message ?? "";
 
     <div class="field is-grouped">
       <div class="control">
-        <Button color="primary" type="submit">Create Ensemble</Button>
+        <Button color="primary" type="submit">
+          Create Ensemble
+        </Button>
       </div>
       <div class="control">
-        <Button href="/ensembles" color="light">Cancel</Button>
+        <Button href="/ensembles" color="light">
+          Cancel
+        </Button>
       </div>
     </div>
   </form>

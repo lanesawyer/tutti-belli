@@ -16,10 +16,7 @@ export function confirmMessageFor(event: ConfirmableSubmitEvent): string | null 
   return confirmAttribute(event.submitter) ?? confirmAttribute(event.target);
 }
 
-export function guardSubmit(
-  event: ConfirmableSubmitEvent,
-  confirmFn: ConfirmFn,
-): boolean {
+export function guardSubmit(event: ConfirmableSubmitEvent, confirmFn: ConfirmFn): boolean {
   const message = confirmMessageFor(event);
   if (message === null || confirmFn(message)) return true;
   event.preventDefault();
@@ -32,9 +29,5 @@ export function installConfirmHandler(
   doc: Pick<Document, "addEventListener">,
   confirmFn: ConfirmFn,
 ): void {
-  doc.addEventListener(
-    "submit",
-    (event) => guardSubmit(event as SubmitEvent, confirmFn),
-    true,
-  );
+  doc.addEventListener("submit", (event) => guardSubmit(event as SubmitEvent, confirmFn), true);
 }

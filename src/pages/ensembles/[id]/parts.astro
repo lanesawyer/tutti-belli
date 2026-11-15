@@ -1,20 +1,9 @@
 ---
 import EnsemblePageLayout from "@layouts/EnsemblePageLayout.astro";
-import {
-  Table,
-  Modal,
-  Button,
-  Icon,
-  TextInput,
-  Notification,
-} from "astro-bulma";
+import { Table, Modal, Button, Icon, TextInput, Notification } from "astro-bulma";
 import { actions } from "astro:actions";
 import { canManageEnsemble } from "@lib/permissions";
-import {
-  getEnsembleBySlugOrId,
-  getEnsembleMembership,
-  getEnsembleParts,
-} from "@lib/ensemble";
+import { getEnsembleBySlugOrId, getEnsembleMembership, getEnsembleParts } from "@lib/ensemble";
 import { getEnsembleUrlId } from "@lib/slug";
 const user = Astro.locals.user!;
 
@@ -76,8 +65,7 @@ if (addResult) {
 const parts = await getEnsembleParts(ensemble.id);
 parts.sort((a, b) => a.sortOrder - b.sortOrder);
 
-const nextSortOrder =
-  parts.length > 0 ? Math.max(...parts.map((p) => p.sortOrder)) + 1 : 1;
+const nextSortOrder = parts.length > 0 ? Math.max(...parts.map((p) => p.sortOrder)) + 1 : 1;
 ---
 
 <EnsemblePageLayout
@@ -95,54 +83,52 @@ const nextSortOrder =
     <span>Add Part</span>
   </Button>
 
-  {
-    parts.length === 0 ? (
-      <Notification color="info" light>
-        No parts defined yet. Click "Add Part" to create one.
-      </Notification>
-    ) : (
-      <Table>
-        <thead>
+  {parts.length === 0 ? (
+    <Notification color="info" light>
+      No parts defined yet. Click "Add Part" to create one.
+    </Notification>
+  ) : (
+    <Table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Sort Order</th>
+          <th style="width: 120px;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {parts.map((part) => (
           <tr>
-            <th>Name</th>
-            <th>Sort Order</th>
-            <th style="width: 120px;">Actions</th>
+            <td>
+              <strong>{part.name}</strong>
+            </td>
+            <td>{part.sortOrder}</td>
+            <td>
+              <div class="buttons are-small">
+                <Button
+                  color="info"
+                  class="edit-part-btn"
+                  data-part-id={part.id}
+                  data-part-name={part.name}
+                  data-part-sort-order={part.sortOrder}
+                >
+                  <Icon icon="fa-edit" />
+                </Button>
+                <Button
+                  color="danger"
+                  class="delete-part-btn"
+                  data-part-id={part.id}
+                  data-part-name={part.name}
+                >
+                  <Icon icon="fa-trash" />
+                </Button>
+              </div>
+            </td>
           </tr>
-        </thead>
-        <tbody>
-          {parts.map((part) => (
-            <tr>
-              <td>
-                <strong>{part.name}</strong>
-              </td>
-              <td>{part.sortOrder}</td>
-              <td>
-                <div class="buttons are-small">
-                  <Button
-                    color="info"
-                    class="edit-part-btn"
-                    data-part-id={part.id}
-                    data-part-name={part.name}
-                    data-part-sort-order={part.sortOrder}
-                  >
-                    <Icon icon="fa-edit" />
-                  </Button>
-                  <Button
-                    color="danger"
-                    class="delete-part-btn"
-                    data-part-id={part.id}
-                    data-part-name={part.name}
-                  >
-                    <Icon icon="fa-trash" />
-                  </Button>
-                </div>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </Table>
-    )
-  }
+        ))}
+      </tbody>
+    </Table>
+  )}
 
   <Fragment slot="modals">
     <!-- Add Part Modal -->
@@ -169,8 +155,12 @@ const nextSortOrder =
       </form>
 
       <div slot="footer">
-        <Button type="submit" form="addForm" color="primary">Add Part</Button>
-        <Button type="button" data-modal-close>Cancel</Button>
+        <Button type="submit" form="addForm" color="primary">
+          Add Part
+        </Button>
+        <Button type="button" data-modal-close>
+          Cancel
+        </Button>
       </div>
     </Modal>
 
@@ -192,10 +182,12 @@ const nextSortOrder =
       </form>
 
       <div slot="footer">
-        <Button type="submit" form="editForm" color="primary"
-          >Save Changes</Button
-        >
-        <Button type="button" data-modal-close>Cancel</Button>
+        <Button type="submit" form="editForm" color="primary">
+          Save Changes
+        </Button>
+        <Button type="button" data-modal-close>
+          Cancel
+        </Button>
       </div>
     </Modal>
 
@@ -204,45 +196,41 @@ const nextSortOrder =
       <p>
         Are you sure you want to delete <strong id="delete-part-name"></strong>?
       </p>
-      <p class="mt-2 has-text-grey">
-        Parts with assigned members cannot be deleted.
-      </p>
+      <p class="mt-2 has-text-grey">Parts with assigned members cannot be deleted.</p>
       <form id="deleteForm" method="POST" action={actions.parts.delete}>
         <input type="hidden" name="ensembleId" value={ensemble.id} />
         <input type="hidden" name="partId" id="delete-part-id" />
       </form>
 
       <div slot="footer">
-        <Button type="submit" form="deleteForm" color="danger">Delete</Button>
-        <Button type="button" data-modal-close>Cancel</Button>
+        <Button type="submit" form="deleteForm" color="danger">
+          Delete
+        </Button>
+        <Button type="button" data-modal-close>
+          Cancel
+        </Button>
       </div>
     </Modal>
 
     <script is:inline>
       document.addEventListener("astro:page-load", () => {
-        document
-          .getElementById("add-part-btn")
-          ?.addEventListener("click", () => {
-            document.getElementById("add-modal")?.classList.add("is-active");
-          });
+        document.getElementById("add-part-btn")?.addEventListener("click", () => {
+          document.getElementById("add-modal")?.classList.add("is-active");
+        });
 
         document.querySelectorAll(".edit-part-btn").forEach((btn) => {
           btn.addEventListener("click", () => {
-            document.getElementById("edit-part-id").value =
-              btn.getAttribute("data-part-id");
-            document.getElementById("edit-name").value =
-              btn.getAttribute("data-part-name");
-            document.getElementById("edit-sortOrder").value = btn.getAttribute(
-              "data-part-sort-order",
-            );
+            document.getElementById("edit-part-id").value = btn.getAttribute("data-part-id");
+            document.getElementById("edit-name").value = btn.getAttribute("data-part-name");
+            document.getElementById("edit-sortOrder").value =
+              btn.getAttribute("data-part-sort-order");
             document.getElementById("edit-modal")?.classList.add("is-active");
           });
         });
 
         document.querySelectorAll(".delete-part-btn").forEach((btn) => {
           btn.addEventListener("click", () => {
-            document.getElementById("delete-part-id").value =
-              btn.getAttribute("data-part-id");
+            document.getElementById("delete-part-id").value = btn.getAttribute("data-part-id");
             document.getElementById("delete-part-name").textContent =
               btn.getAttribute("data-part-name");
             document.getElementById("delete-modal")?.classList.add("is-active");

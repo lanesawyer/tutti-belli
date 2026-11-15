@@ -56,9 +56,7 @@ const createResult = Astro.getActionResult(actions.tasks.createTask);
 const editResult = Astro.getActionResult(actions.tasks.editTask);
 const deleteResult = Astro.getActionResult(actions.tasks.deleteTask);
 const markCompleteResult = Astro.getActionResult(actions.tasks.markComplete);
-const markIncompleteResult = Astro.getActionResult(
-  actions.tasks.markIncomplete,
-);
+const markIncompleteResult = Astro.getActionResult(actions.tasks.markIncomplete);
 
 let message = "";
 let messageType: "success" | "danger" | undefined;
@@ -89,14 +87,12 @@ if (createResult) {
   }
 } else if (markCompleteResult) {
   if (markCompleteResult.error) {
-    message =
-      markCompleteResult.error.message ?? "Failed to mark task complete.";
+    message = markCompleteResult.error.message ?? "Failed to mark task complete.";
     messageType = "danger";
   }
 } else if (markIncompleteResult) {
   if (markIncompleteResult.error) {
-    message =
-      markIncompleteResult.error.message ?? "Failed to mark task incomplete.";
+    message = markIncompleteResult.error.message ?? "Failed to mark task incomplete.";
     messageType = "danger";
   }
 }
@@ -104,25 +100,19 @@ if (createResult) {
 const currentSeason = await getActiveSeasonForEnsemble(ensemble.id);
 
 const seasonTasks = await getEnsembleTasks(ensemble.id, currentSeason?.id);
-const allCompletions = await getTaskCompletionsForEnsemble(
-  ensemble.id,
-  currentSeason?.id,
-);
+const allCompletions = await getTaskCompletionsForEnsemble(ensemble.id, currentSeason?.id);
 
 // Build completion map: taskId -> Set<userId>
 const completionsByTask = new Map<string, Set<string>>();
 for (const c of allCompletions) {
-  if (!completionsByTask.has(c.taskId))
-    completionsByTask.set(c.taskId, new Set());
+  if (!completionsByTask.has(c.taskId)) completionsByTask.set(c.taskId, new Set());
   completionsByTask.get(c.taskId)!.add(c.userId);
 }
 
 const activeMembers = await getActiveEnsembleMembers(ensemble.id);
 
 const nextSortOrder =
-  seasonTasks.length > 0
-    ? Math.max(...seasonTasks.map((t) => t.sortOrder)) + 1
-    : 0;
+  seasonTasks.length > 0 ? Math.max(...seasonTasks.map((t) => t.sortOrder)) + 1 : 0;
 ---
 
 <EnsemblePageLayout
@@ -130,170 +120,150 @@ const nextSortOrder =
   ensembleName={ensemble.name}
   ensembleId={canonicalId}
   pageTitle="Season Tasks"
-  pageSubtitle={currentSeason
-    ? `Tasks for ${currentSeason.name}`
-    : "No active season"}
+  pageSubtitle={currentSeason ? `Tasks for ${currentSeason.name}` : "No active season"}
   message={message}
   messageType={messageType}
   isAdmin={isAdmin}
 >
-  {
-    currentSeason && (
-      <Button slot="action" color="primary" id="create-task-btn">
-        <Icon icon="fa-plus" />
-        <span>Create Task</span>
-      </Button>
-    )
-  }
+  {currentSeason && (
+    <Button slot="action" color="primary" id="create-task-btn">
+      <Icon icon="fa-plus" />
+      <span>Create Task</span>
+    </Button>
+  )}
 
-  {
-    !currentSeason ? (
-      <Notification color="warning">
-        <p>
-          There is no active season for this ensemble.{" "}
-          <a href={`/ensembles/${canonicalId}/seasons`}>
-            Create or activate a season
-          </a>{" "}
-          before adding tasks.
-        </p>
-      </Notification>
-    ) : seasonTasks.length === 0 ? (
-      <Notification color="info" light>
-        No tasks defined for this season yet. Click "Create Task" to add one.
-      </Notification>
-    ) : (
-      <>
-        <Table title="Tasks">
-          <thead>
-            <tr>
-              <th>Title</th>
-              <th>Description</th>
-              <th>Sort Order</th>
-              <th>Completions</th>
-              <th style="width: 120px;">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {seasonTasks.map((task) => {
-              const completedCount = completionsByTask.get(task.id)?.size ?? 0;
-              return (
-                <tr>
-                  <td>
-                    <strong>{task.title}</strong>
-                  </td>
-                  <td class="has-text-grey is-size-7">
-                    {task.description ?? "—"}
-                  </td>
-                  <td>{task.sortOrder}</td>
-                  <td>
-                    <Tag
-                      color={
-                        completedCount === activeMembers.length &&
-                        activeMembers.length > 0
-                          ? "success"
-                          : "info"
-                      }
+  {!currentSeason ? (
+    <Notification color="warning">
+      <p>
+        There is no active season for this ensemble.{" "}
+        <a href={`/ensembles/${canonicalId}/seasons`}>Create or activate a season</a> before adding
+        tasks.
+      </p>
+    </Notification>
+  ) : seasonTasks.length === 0 ? (
+    <Notification color="info" light>
+      No tasks defined for this season yet. Click "Create Task" to add one.
+    </Notification>
+  ) : (
+    <>
+      <Table title="Tasks">
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Description</th>
+            <th>Sort Order</th>
+            <th>Completions</th>
+            <th style="width: 120px;">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {seasonTasks.map((task) => {
+            const completedCount = completionsByTask.get(task.id)?.size ?? 0;
+            return (
+              <tr>
+                <td>
+                  <strong>{task.title}</strong>
+                </td>
+                <td class="has-text-grey is-size-7">{task.description ?? "—"}</td>
+                <td>{task.sortOrder}</td>
+                <td>
+                  <Tag
+                    color={
+                      completedCount === activeMembers.length && activeMembers.length > 0
+                        ? "success"
+                        : "info"
+                    }
+                  >
+                    {completedCount}/{activeMembers.length}
+                  </Tag>
+                </td>
+                <td>
+                  <div class="buttons are-small">
+                    <Button
+                      color="info"
+                      class="edit-task-btn"
+                      data-task-id={task.id}
+                      data-task-title={task.title}
+                      data-task-description={task.description ?? ""}
+                      data-task-sort-order={task.sortOrder}
                     >
-                      {completedCount}/{activeMembers.length}
-                    </Tag>
-                  </td>
-                  <td>
-                    <div class="buttons are-small">
-                      <Button
-                        color="info"
-                        class="edit-task-btn"
-                        data-task-id={task.id}
-                        data-task-title={task.title}
-                        data-task-description={task.description ?? ""}
-                        data-task-sort-order={task.sortOrder}
-                      >
-                        <Icon icon="fa-edit" />
-                      </Button>
-                      <Button
-                        color="danger"
-                        class="delete-task-btn"
-                        data-task-id={task.id}
-                        data-task-title={task.title}
-                      >
-                        <Icon icon="fa-trash" />
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </Table>
+                      <Icon icon="fa-edit" />
+                    </Button>
+                    <Button
+                      color="danger"
+                      class="delete-task-btn"
+                      data-task-id={task.id}
+                      data-task-title={task.title}
+                    >
+                      <Icon icon="fa-trash" />
+                    </Button>
+                  </div>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </Table>
 
-        <Title as="h2" size={5} class="mt-5">
-          Member Completions
-        </Title>
-        <Subtitle as="p" size={6} class="has-text-grey mb-4">
-          Check or uncheck to mark tasks complete for each member.
-        </Subtitle>
+      <Title as="h2" size={5} class="mt-5">
+        Member Completions
+      </Title>
+      <Subtitle as="p" size={6} class="has-text-grey mb-4">
+        Check or uncheck to mark tasks complete for each member.
+      </Subtitle>
 
-        {seasonTasks.map((task) => (
-          <Box class="mb-4">
-            <Title as="h3" size={6} class="mb-3">
-              {task.title}
-            </Title>
-            {activeMembers.length === 0 ? (
-              <p class="has-text-grey is-size-7">No active members.</p>
-            ) : (
-              <Columns multiline>
-                {activeMembers.map((member) => {
-                  const isComplete =
-                    completionsByTask.get(task.id)?.has(member.id) ?? false;
-                  return (
-                    <Column class="is-6-tablet is-4-desktop is-3-widescreen">
-                      <form
-                        method="POST"
-                        action={
-                          isComplete
-                            ? actions.tasks.markIncomplete
-                            : actions.tasks.markComplete
-                        }
-                        class="completion-form"
-                        data-task-id={task.id}
-                        data-user-id={member.id}
-                        data-is-complete={isComplete ? "true" : "false"}
+      {seasonTasks.map((task) => (
+        <Box class="mb-4">
+          <Title as="h3" size={6} class="mb-3">
+            {task.title}
+          </Title>
+          {activeMembers.length === 0 ? (
+            <p class="has-text-grey is-size-7">No active members.</p>
+          ) : (
+            <Columns multiline>
+              {activeMembers.map((member) => {
+                const isComplete = completionsByTask.get(task.id)?.has(member.id) ?? false;
+                return (
+                  <Column class="is-6-tablet is-4-desktop is-3-widescreen">
+                    <form
+                      method="POST"
+                      action={
+                        isComplete ? actions.tasks.markIncomplete : actions.tasks.markComplete
+                      }
+                      class="completion-form"
+                      data-task-id={task.id}
+                      data-user-id={member.id}
+                      data-is-complete={isComplete ? "true" : "false"}
+                    >
+                      <input type="hidden" name="taskId" value={task.id} />
+                      <input type="hidden" name="userId" value={member.id} />
+                      <button
+                        type="submit"
+                        class={`button is-fullwidth is-small ${isComplete ? "is-success" : "is-light"}`}
+                        title={isComplete ? "Mark incomplete" : "Mark complete"}
                       >
-                        <input type="hidden" name="taskId" value={task.id} />
-                        <input type="hidden" name="userId" value={member.id} />
-                        <button
-                          type="submit"
-                          class={`button is-fullwidth is-small ${isComplete ? "is-success" : "is-light"}`}
-                          title={
-                            isComplete ? "Mark incomplete" : "Mark complete"
-                          }
+                        {isComplete ? (
+                          <Icon icon="fa-check-circle" />
+                        ) : (
+                          <Icon icon="fa-circle" variant="far" color="grey-light" />
+                        )}
+                        <span
+                          class="member-name"
+                          style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
                         >
-                          {isComplete ? (
-                            <Icon icon="fa-check-circle" />
-                          ) : (
-                            <Icon
-                              icon="fa-circle"
-                              variant="far"
-                              color="grey-light"
-                            />
-                          )}
-                          <span
-                            class="member-name"
-                            style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
-                          >
-                            {member.name}
-                          </span>
-                        </button>
-                      </form>
-                    </Column>
-                  );
-                })}
-              </Columns>
-            )}
-          </Box>
-        ))}
-      </>
-    )
-  }
+                          {member.name}
+                        </span>
+                      </button>
+                    </form>
+                  </Column>
+                );
+              })}
+            </Columns>
+          )}
+        </Box>
+      ))}
+    </>
+  )}
 
   <Fragment slot="modals">
     <!-- Create Task Modal -->
@@ -330,10 +300,12 @@ const nextSortOrder =
       </form>
 
       <div slot="footer">
-        <Button type="submit" form="createForm" color="primary"
-          >Create Task</Button
-        >
-        <Button type="button" data-modal-close>Cancel</Button>
+        <Button type="submit" form="createForm" color="primary">
+          Create Task
+        </Button>
+        <Button type="button" data-modal-close>
+          Cancel
+        </Button>
       </div>
     </Modal>
 
@@ -345,12 +317,7 @@ const nextSortOrder =
 
         <TextInput name="title" id="edit-title" label="Title *" required />
 
-        <Textarea
-          id="edit-description"
-          name="description"
-          label="Description"
-          rows={2}
-        />
+        <Textarea id="edit-description" name="description" label="Description" rows={2} />
 
         <TextInput
           name="sortOrder"
@@ -363,18 +330,19 @@ const nextSortOrder =
       </form>
 
       <div slot="footer">
-        <Button type="submit" form="editForm" color="primary"
-          >Save Changes</Button
-        >
-        <Button type="button" data-modal-close>Cancel</Button>
+        <Button type="submit" form="editForm" color="primary">
+          Save Changes
+        </Button>
+        <Button type="button" data-modal-close>
+          Cancel
+        </Button>
       </div>
     </Modal>
 
     <!-- Delete Task Modal -->
     <Modal id="delete-modal" title="Delete Task">
       <p>
-        Are you sure you want to delete <strong id="delete-task-title"
-        ></strong>?
+        Are you sure you want to delete <strong id="delete-task-title"></strong>?
       </p>
       <p class="mt-2 has-text-grey">
         All member completion records for this task will also be deleted.
@@ -385,32 +353,31 @@ const nextSortOrder =
       </form>
 
       <div slot="footer">
-        <Button type="submit" form="deleteForm" color="danger">Delete</Button>
-        <Button type="button" data-modal-close>Cancel</Button>
+        <Button type="submit" form="deleteForm" color="danger">
+          Delete
+        </Button>
+        <Button type="button" data-modal-close>
+          Cancel
+        </Button>
       </div>
     </Modal>
 
     <script is:inline>
       document.addEventListener("astro:page-load", () => {
         // Create task modal
-        document
-          .getElementById("create-task-btn")
-          ?.addEventListener("click", () => {
-            document.getElementById("create-modal")?.classList.add("is-active");
-          });
+        document.getElementById("create-task-btn")?.addEventListener("click", () => {
+          document.getElementById("create-modal")?.classList.add("is-active");
+        });
 
         // Edit task modal
         document.querySelectorAll(".edit-task-btn").forEach((btn) => {
           btn.addEventListener("click", () => {
-            document.getElementById("edit-task-id").value =
-              btn.getAttribute("data-task-id");
-            document.getElementById("edit-title").value =
-              btn.getAttribute("data-task-title");
+            document.getElementById("edit-task-id").value = btn.getAttribute("data-task-id");
+            document.getElementById("edit-title").value = btn.getAttribute("data-task-title");
             document.getElementById("edit-description").value =
               btn.getAttribute("data-task-description");
-            document.getElementById("edit-sortOrder").value = btn.getAttribute(
-              "data-task-sort-order",
-            );
+            document.getElementById("edit-sortOrder").value =
+              btn.getAttribute("data-task-sort-order");
             document.getElementById("edit-modal")?.classList.add("is-active");
           });
         });
@@ -418,8 +385,7 @@ const nextSortOrder =
         // Delete task modal
         document.querySelectorAll(".delete-task-btn").forEach((btn) => {
           btn.addEventListener("click", () => {
-            document.getElementById("delete-task-id").value =
-              btn.getAttribute("data-task-id");
+            document.getElementById("delete-task-id").value = btn.getAttribute("data-task-id");
             document.getElementById("delete-task-title").textContent =
               btn.getAttribute("data-task-title");
             document.getElementById("delete-modal")?.classList.add("is-active");
