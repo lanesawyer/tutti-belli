@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { addSong, editSong, deleteSong, addSongFile, deleteSongFile } from '../../src/lib/songs.ts';
+import { addSong, editSong, deleteSong, addSongFile, deleteSongFile, getSongsPageData } from '../../src/lib/songs.ts';
 import { db, Song, SongPart, SeasonSong, SongFile, eq } from '@db';
 import { createUser, createEnsemble, createSeason, createPart, createSong, createSongFile } from './fixtures.ts';
 
@@ -357,5 +357,31 @@ describe('deleteSongFile', () => {
 
     const files = await db.select().from(SongFile).where(eq(SongFile.songId, song!.id)).all();
     expect(files).toHaveLength(0);
+  });
+});
+
+describe('getSongsPageData', () => {
+  it('returns only the song parts, seasons and files of the ensemble', async () => {
+    const admin = await createUser({ role: 'admin' });
+    const a = await createEnsemble(admin!.id);
+    const b = await createEnsemble(admin!.id);
+
+    const seed = async (ensembleId: string) => {
+      const song = await createSong(ensembleId);
+      const part = await createPart(ensembleId);
+      const season = await createSeason(ensembleId);
+      await db.insert(SongPart).values({ id: crypto.randomUUID(), songId: song!.id, partId: part!.id });
+      await db.insert(SeasonSong).values({ id: crypto.randomUUID(), songId: song!.id, seasonId: season!.id });
+      const file = await createSongFile(song!.id, admin!.id);
+      return { song: song!, part: part!, season: season!, file: file! };
+    };
+    const ownRows = await seed(a!.id);
+    await seed(b!.id);
+
+    const data = await getSongsPageData(a!.id);
+
+    expect(data.songPartsData.map((r) => r.partId)).toEqual([ownRows.part.id]);
+    expect(data.seasonSongsData.map((r) => r.seasonId)).toEqual([ownRows.season.id]);
+    expect(data.songFilesData.map((r) => r.id)).toEqual([ownRows.file.id]);
   });
 });

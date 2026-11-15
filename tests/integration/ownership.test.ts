@@ -5,6 +5,7 @@ import {
   isInEnsemble,
   isUserInEnsemble,
   partsInEnsemble,
+  seasonsInEnsemble,
   type OwnedKind,
 } from '../../src/lib/ownership.ts';
 import {
@@ -108,5 +109,21 @@ describe('partsInEnsemble', () => {
     expect(await partsInEnsemble([a1!.id, b1!.id], a!.id)).toBe(false);
     expect(await partsInEnsemble(['missing'], a!.id)).toBe(false);
     expect(await partsInEnsemble([], a!.id)).toBe(true);
+  });
+});
+
+describe('seasonsInEnsemble', () => {
+  it('accepts only seasons that all belong to the ensemble', async () => {
+    const admin = await createUser({ role: 'admin' });
+    const a = await createEnsemble(admin!.id);
+    const b = await createEnsemble(admin!.id);
+    const a1 = await createSeason(a!.id, { name: 'Fall' });
+    const a2 = await createSeason(a!.id, { name: 'Spring' });
+    const b1 = await createSeason(b!.id, { name: 'Other' });
+
+    expect(await seasonsInEnsemble([a1!.id, a2!.id], a!.id)).toBe(true);
+    expect(await seasonsInEnsemble([a1!.id, b1!.id], a!.id)).toBe(false);
+    expect(await seasonsInEnsemble(['missing'], a!.id)).toBe(false);
+    expect(await seasonsInEnsemble([], a!.id)).toBe(true);
   });
 });
