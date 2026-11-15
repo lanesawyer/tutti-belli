@@ -66,7 +66,6 @@ describe('getEnsembleAnnouncements', () => {
       createdBy: admin!.id,
       creatorName: admin!.name,
       postToDiscord: false,
-      siteUrl: 'http://localhost:4321',
     });
 
     const results = await getEnsembleAnnouncements(ensembleB!.id);
@@ -84,7 +83,6 @@ describe('getEnsembleAnnouncements', () => {
       createdBy: admin!.id,
       creatorName: admin!.name,
       postToDiscord: false,
-      siteUrl: 'http://localhost:4321',
     });
 
     const [result] = await getEnsembleAnnouncements(ensemble!.id);
@@ -104,7 +102,6 @@ describe('createAnnouncement', () => {
       createdBy: admin!.id,
       creatorName: admin!.name,
       postToDiscord: false,
-      siteUrl: 'http://localhost:4321',
     });
 
     const rows = await db
@@ -135,7 +132,6 @@ describe('createAnnouncement', () => {
       createdBy: admin!.id,
       creatorName: admin!.name,
       postToDiscord: true,
-      siteUrl: 'http://localhost:4321',
     });
 
     // Give the fire-and-forget promise a tick to resolve
@@ -166,7 +162,6 @@ describe('createAnnouncement', () => {
       createdBy: admin!.id,
       creatorName: admin!.name,
       postToDiscord: false,
-      siteUrl: 'http://localhost:4321',
     });
 
     await new Promise((r) => setTimeout(r, 0));
@@ -186,7 +181,6 @@ describe('updateAnnouncement', () => {
       createdBy: admin!.id,
       creatorName: admin!.name,
       postToDiscord: false,
-      siteUrl: 'http://localhost:4321',
     });
 
     const [row] = await db
@@ -220,7 +214,6 @@ describe('updateAnnouncement', () => {
       createdBy: admin!.id,
       creatorName: admin!.name,
       postToDiscord: false,
-      siteUrl: 'http://localhost:4321',
     });
 
     const [row] = await db
@@ -255,7 +248,6 @@ describe('deleteAnnouncement', () => {
       createdBy: admin!.id,
       creatorName: admin!.name,
       postToDiscord: false,
-      siteUrl: 'http://localhost:4321',
     });
 
     const [row] = await db
@@ -281,7 +273,6 @@ describe('deleteAnnouncement', () => {
       createdBy: admin!.id,
       creatorName: admin!.name,
       postToDiscord: false,
-      siteUrl: 'http://localhost:4321',
     });
     await createAnnouncement({
       ensembleId: ensemble!.id,
@@ -290,7 +281,6 @@ describe('deleteAnnouncement', () => {
       createdBy: admin!.id,
       creatorName: admin!.name,
       postToDiscord: false,
-      siteUrl: 'http://localhost:4321',
     });
 
     const rows = await db
@@ -325,7 +315,6 @@ describe('announcement ensemble scoping', () => {
       createdBy: admin!.id,
       creatorName: admin!.name,
       postToDiscord: false,
-      siteUrl: 'http://localhost:4321',
     });
     const [row] = await db.select().from(Announcement).where(eq(Announcement.ensembleId, ensembleA!.id)).all();
 

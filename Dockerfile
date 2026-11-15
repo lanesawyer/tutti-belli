@@ -12,6 +12,8 @@ FROM base AS build
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 COPY . .
+# Not a secret: the PR preview's hostname, added to Astro's allowed hosts at build time.
+ARG PREVIEW_HOSTNAME
 RUN pnpm run build
 
 # Runtime needs the server bundle, production dependencies, and db/ + drizzle/ for the
