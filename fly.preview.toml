@@ -12,6 +12,7 @@ release_command = 'node db/migrate.ts'
 [env]
 PORT = "8080"
 HOST = "0.0.0.0"
+EMAIL_DISABLED = "true"
 
 [http_service]
 internal_port = 8080

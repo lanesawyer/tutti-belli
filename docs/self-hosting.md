@@ -158,11 +158,8 @@ The workflow in `.github/workflows/fly-preview.yml` automatically deploys a prev
 | `TURSO_MAIN_DB`   | Name of the production database to seed previews from  | `turso db list` — use the `Name` column value (e.g. `tutti-belli`)           |
 | `FLY_ORG_TOKEN`   | Fly.io org-level token (needed to create/destroy apps) | `fly tokens create org -o <your-org-slug>`                                   |
 | `FLY_API_TOKEN`   | Fly.io deploy token (used by the destroy-preview job)  | `fly tokens create deploy -a <app-name>` or reuse `FLY_ORG_TOKEN`            |
-| `JWT_SECRET`      | Same value as your production secret                   | —                                                                            |
-| `EMAIL_API_KEY`   | Same value as your production secret                   | —                                                                            |
-| `EMAIL_FROM`      | Same value as your production secret                   | —                                                                            |
 
-Each preview app is named `tutti-belli-pr-<number>`, and its Turso DB and Tigris bucket are named the same. The bucket starts empty, so files from the copied production data download as 404 on previews. All three are automatically destroyed when the PR is closed.
+Each preview app is named `tutti-belli-pr-<number>`, and its Turso DB and Tigris bucket are named the same. The bucket starts empty, so files from the copied production data download as 404 on previews. Each preview gets its own random `JWT_SECRET` and sends no email: `EMAIL_DISABLED` is set in `fly.preview.toml`, so invite, verification and password-reset links are written to `fly logs -a tutti-belli-pr-<number>` instead. All three are automatically destroyed when the PR is closed.
 
 ## First Login
 
