@@ -1,14 +1,5 @@
 ---
-import {
-  Button,
-  Column,
-  Columns,
-  Icon,
-  Image,
-  Notification,
-  Subtitle,
-  Title,
-} from "astro-bulma";
+import { Button, Column, Columns, Icon, Image, Notification, Subtitle, Title } from "astro-bulma";
 import BaseLayout from "@layouts/BaseLayout.astro";
 import InviteCodeWidget from "@containers/InviteCodeWidget.astro";
 import PendingMembers from "@containers/PendingMembers.astro";
@@ -53,154 +44,123 @@ const currentSeason = await getActiveSeasonForEnsemble(ensemble.id);
 ---
 
 <BaseLayout title={ensemble.name}>
-  {
-    isAdmin && (
-      <div class="navbar-item has-dropdown is-hoverable" slot="navbar-start">
-        <a class="navbar-link">{ensemble.name}</a>
-        <div class="navbar-dropdown">
-          {ensembleAdminTools.map((tool) => {
-            const href = tool.href(canonicalId);
-            return (
-              <a
-                class={`navbar-item${Astro.url.pathname.startsWith(href) ? " is-active" : ""}`}
-                href={href}
-              >
-                <Icon icon={tool.icon} size="small" class="mr-1" />
-                {tool.label}
-              </a>
-            );
-          })}
-        </div>
+  {isAdmin && (
+    <div class="navbar-item has-dropdown is-hoverable" slot="navbar-start">
+      <a class="navbar-link">{ensemble.name}</a>
+      <div class="navbar-dropdown">
+        {ensembleAdminTools.map((tool) => {
+          const href = tool.href(canonicalId);
+          return (
+            <a
+              class={`navbar-item${Astro.url.pathname.startsWith(href) ? " is-active" : ""}`}
+              href={href}
+            >
+              <Icon icon={tool.icon} size="small" class="mr-1" />
+              {tool.label}
+            </a>
+          );
+        })}
       </div>
-    )
-  }
+    </div>
+  )}
   <!-- Header Section - Full Width -->
   <div class="is-flex is-align-items-flex-start mb-5" style="min-width: 0;">
-    {
-      ensemble.imageUrl && (
-        <Image
-          src={ensemble.imageUrl}
-          alt={ensemble.name}
-          size="96x96"
-          class="mr-4"
-          style="flex-shrink: 0;"
-          imgStyle="object-fit: cover; border-radius: 8px;"
-        />
-      )
-    }
+    {ensemble.imageUrl && (
+      <Image
+        src={ensemble.imageUrl}
+        alt={ensemble.name}
+        size="96x96"
+        class="mr-4"
+        style="flex-shrink: 0;"
+        imgStyle="object-fit: cover; border-radius: 8px;"
+      />
+    )}
     <div style="min-width: 0;">
       <Title>{ensemble.name}</Title>
-      {
-        ensemble.description && (
-          <Subtitle as="p" style="overflow-wrap: break-word;">
-            {ensemble.description}
-          </Subtitle>
-        )
-      }
-      {
-        currentSeason && (
-          <Subtitle as="p" size={6} class="mt-2">
-            <span class="icon-text">
-              <Icon icon="fa-calendar-alt" color="info" />
-              <span>
-                <strong>Current Season:</strong> {currentSeason.name}
-              </span>
+      {ensemble.description && (
+        <Subtitle as="p" style="overflow-wrap: break-word;">
+          {ensemble.description}
+        </Subtitle>
+      )}
+      {currentSeason && (
+        <Subtitle as="p" size={6} class="mt-2">
+          <span class="icon-text">
+            <Icon icon="fa-calendar-alt" color="info" />
+            <span>
+              <strong>Current Season:</strong> {currentSeason.name}
             </span>
-          </Subtitle>
-        )
-      }
+          </span>
+        </Subtitle>
+      )}
     </div>
   </div>
 
-  {
-    isPending && (
-      <Notification color="warning">
-        <Title as="h2" size={5}>
-          <span class="icon-text">
-            <Icon icon="fa-hourglass-half" />
-            <span>Membership Pending Approval</span>
-          </span>
-        </Title>
-        <p>
-          Your request to join <strong>{ensemble.name}</strong> is awaiting
-          approval from an ensemble administrator. You'll receive full access
-          once your membership is approved.
-        </p>
-        <p class="mt-3">
-          <strong>Joined:</strong>{" "}
-          {new Date(membership.joinedAt).toLocaleDateString()}
-        </p>
-      </Notification>
-    )
-  }
+  {isPending && (
+    <Notification color="warning">
+      <Title as="h2" size={5}>
+        <span class="icon-text">
+          <Icon icon="fa-hourglass-half" />
+          <span>Membership Pending Approval</span>
+        </span>
+      </Title>
+      <p>
+        Your request to join <strong>{ensemble.name}</strong> is awaiting approval from an ensemble
+        administrator. You'll receive full access once your membership is approved.
+      </p>
+      <p class="mt-3">
+        <strong>Joined:</strong> {new Date(membership.joinedAt).toLocaleDateString()}
+      </p>
+    </Notification>
+  )}
 
-  {
-    !isPending && (
-      <Columns>
-        <div
-          class={`column ${isAdmin || ensemble.discordLink ? "is-9-desktop" : ""}`}
-        >
-          <RecentAnnouncements
-            ensembleId={ensemble.id}
-            canonicalId={canonicalId}
-            isAdmin={isAdmin}
-          />
+  {!isPending && (
+    <Columns>
+      <div class={`column ${isAdmin || ensemble.discordLink ? "is-9-desktop" : ""}`}>
+        <RecentAnnouncements ensembleId={ensemble.id} canonicalId={canonicalId} isAdmin={isAdmin} />
 
-          <UpcomingEvents
-            ensembleId={ensemble.id}
-            canonicalId={canonicalId}
-            userId={user.id}
-            isAdmin={isAdmin}
-            timeZone={ensemble.timezone}
-          />
+        <UpcomingEvents
+          ensembleId={ensemble.id}
+          canonicalId={canonicalId}
+          userId={user.id}
+          isAdmin={isAdmin}
+          timeZone={ensemble.timezone}
+        />
 
-          <SeasonRepertoire
-            ensembleId={ensemble.id}
-            canonicalId={canonicalId}
-            isAdmin={isAdmin}
-          />
+        <SeasonRepertoire ensembleId={ensemble.id} canonicalId={canonicalId} isAdmin={isAdmin} />
 
-          <EnsembleMembers
-            ensembleId={ensemble.id}
-            canonicalId={canonicalId}
-            isAdmin={isAdmin}
-          />
+        <EnsembleMembers ensembleId={ensemble.id} canonicalId={canonicalId} isAdmin={isAdmin} />
 
-          <Button href="/ensembles">
-            <Icon icon="fa-arrow-left" />
-            <span>Back to Ensembles</span>
-          </Button>
-        </div>
+        <Button href="/ensembles">
+          <Icon icon="fa-arrow-left" />
+          <span>Back to Ensembles</span>
+        </Button>
+      </div>
 
-        {(isAdmin || ensemble.discordLink) && (
-          <Column class="is-3-desktop">
-            <EnsembleLinks
+      {(isAdmin || ensemble.discordLink) && (
+        <Column class="is-3-desktop">
+          <EnsembleLinks ensembleId={ensemble.id} discordLink={ensemble.discordLink} />
+
+          {currentSeason && (
+            <MyTasks
               ensembleId={ensemble.id}
-              discordLink={ensemble.discordLink}
+              userId={user.id}
+              seasonId={currentSeason.id}
+              canonicalId={canonicalId}
+              isAdmin={isAdmin}
             />
+          )}
 
-            {currentSeason && (
-              <MyTasks
-                ensembleId={ensemble.id}
-                userId={user.id}
-                seasonId={currentSeason.id}
-                canonicalId={canonicalId}
-                isAdmin={isAdmin}
-              />
-            )}
+          {isAdmin && (
+            <>
+              <AdminTools canonicalId={canonicalId} />
 
-            {isAdmin && (
-              <>
-                <AdminTools canonicalId={canonicalId} />
+              <PendingMembers ensembleId={ensemble.id} />
 
-                <PendingMembers ensembleId={ensemble.id} />
-
-                <InviteCodeWidget ensembleId={ensemble.id} />
-              </>
-            )}
-          </Column>
-        )}
-      </Columns>
-    )
-  }
+              <InviteCodeWidget ensembleId={ensemble.id} />
+            </>
+          )}
+        </Column>
+      )}
+    </Columns>
+  )}
 </BaseLayout>

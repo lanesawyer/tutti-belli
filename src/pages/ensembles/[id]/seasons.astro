@@ -39,8 +39,7 @@ if (Astro.request.method === "GET" && id !== canonicalId) {
 }
 
 const access = await getEnsembleAccess(user, ensemble.id);
-if (!access)
-  return new Response("Unauthorized - Not a member", { status: 403 });
+if (!access) return new Response("Unauthorized - Not a member", { status: 403 });
 const { isAdmin } = access;
 
 const createResult = Astro.getActionResult(actions.seasons.create);
@@ -93,304 +92,232 @@ const membershipsBySeasonId = seasonMemberships.reduce(
   messageType={messageType}
   isAdmin={isAdmin}
 >
-  {
-    isAdmin && (
-      <Button slot="action" color="primary" id="create-season-btn">
-        <Icon icon="fa-plus" />
-        <span>Create Season</span>
-      </Button>
-    )
-  }
+  {isAdmin && (
+    <Button slot="action" color="primary" id="create-season-btn">
+      <Icon icon="fa-plus" />
+      <span>Create Season</span>
+    </Button>
+  )}
 
-  {
-    seasons.length === 0 ? (
-      <Notification color="info" light>
-        No seasons yet. {isAdmin && "Create one to get started!"}
-      </Notification>
-    ) : (
-      <Table>
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Dates</th>
-            <th>Members</th>
-            <th>Status</th>
-            {isAdmin && <th style="width: 160px;">Actions</th>}
-          </tr>
-        </thead>
-        <tbody>
-          {seasons.map((season) => {
-            const members = membershipsBySeasonId[season.id] || [];
-            const startDate = season.startDate
-              ? new Date(season.startDate).toLocaleDateString()
-              : null;
-            const endDate = season.endDate
-              ? new Date(season.endDate).toLocaleDateString()
-              : null;
-            return (
-              <tr>
-                <td>
-                  <strong>{season.name}</strong>
-                </td>
-                <td>
-                  {startDate || endDate
-                    ? `${startDate || "?"} – ${endDate || "?"}`
-                    : "-"}
-                </td>
-                <td>{members.length}</td>
-                <td>
-                  {season.isActive === 1 ? (
-                    <Tag color="success">Active</Tag>
-                  ) : (
-                    <Tag color="light">Inactive</Tag>
-                  )}
-                </td>
-                {isAdmin && (
-                  <td>
-                    <div class="buttons are-small">
-                      <Button
-                        color="info"
-                        class="manage-members-btn"
-                        data-season-id={season.id}
-                        data-season-name={season.name}
-                      >
-                        <Icon icon="fa-users" />
-                      </Button>
-                      <Button
-                        color="warning"
-                        class="edit-season-btn"
-                        data-season-id={season.id}
-                        data-season-name={season.name}
-                        data-season-start={
-                          season.startDate
-                            ? new Date(season.startDate)
-                                .toISOString()
-                                .split("T")[0]
-                            : ""
-                        }
-                        data-season-end={
-                          season.endDate
-                            ? new Date(season.endDate)
-                                .toISOString()
-                                .split("T")[0]
-                            : ""
-                        }
-                        data-season-active={
-                          season.isActive === 1 ? "true" : "false"
-                        }
-                      >
-                        <Icon icon="fa-edit" />
-                      </Button>
-                      <Button
-                        color="danger"
-                        class="delete-season-btn"
-                        data-season-id={season.id}
-                      >
-                        <Icon icon="fa-trash" />
-                      </Button>
-                    </div>
-                  </td>
+  {seasons.length === 0 ? (
+    <Notification color="info" light>
+      No seasons yet. {isAdmin && "Create one to get started!"}
+    </Notification>
+  ) : (
+    <Table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Dates</th>
+          <th>Members</th>
+          <th>Status</th>
+          {isAdmin && <th style="width: 160px;">Actions</th>}
+        </tr>
+      </thead>
+      <tbody>
+        {seasons.map((season) => {
+          const members = membershipsBySeasonId[season.id] || [];
+          const startDate = season.startDate
+            ? new Date(season.startDate).toLocaleDateString()
+            : null;
+          const endDate = season.endDate ? new Date(season.endDate).toLocaleDateString() : null;
+          return (
+            <tr>
+              <td>
+                <strong>{season.name}</strong>
+              </td>
+              <td>{startDate || endDate ? `${startDate || "?"} – ${endDate || "?"}` : "-"}</td>
+              <td>{members.length}</td>
+              <td>
+                {season.isActive === 1 ? (
+                  <Tag color="success">Active</Tag>
+                ) : (
+                  <Tag color="light">Inactive</Tag>
                 )}
-              </tr>
-            );
-          })}
-        </tbody>
-      </Table>
-    )
-  }
+              </td>
+              {isAdmin && (
+                <td>
+                  <div class="buttons are-small">
+                    <Button
+                      color="info"
+                      class="manage-members-btn"
+                      data-season-id={season.id}
+                      data-season-name={season.name}
+                    >
+                      <Icon icon="fa-users" />
+                    </Button>
+                    <Button
+                      color="warning"
+                      class="edit-season-btn"
+                      data-season-id={season.id}
+                      data-season-name={season.name}
+                      data-season-start={
+                        season.startDate
+                          ? new Date(season.startDate).toISOString().split("T")[0]
+                          : ""
+                      }
+                      data-season-end={
+                        season.endDate ? new Date(season.endDate).toISOString().split("T")[0] : ""
+                      }
+                      data-season-active={season.isActive === 1 ? "true" : "false"}
+                    >
+                      <Icon icon="fa-edit" />
+                    </Button>
+                    <Button color="danger" class="delete-season-btn" data-season-id={season.id}>
+                      <Icon icon="fa-trash" />
+                    </Button>
+                  </div>
+                </td>
+              )}
+            </tr>
+          );
+        })}
+      </tbody>
+    </Table>
+  )}
 
   <Fragment slot="modals">
     <!-- Create Season Modal -->
-    {
-      isAdmin && (
-        <Modal id="create-modal" title="Create Season">
-          <form id="createForm" method="POST" action={actions.seasons.create}>
-            <input type="hidden" name="ensembleId" value={ensemble.id} />
+    {isAdmin && (
+      <Modal id="create-modal" title="Create Season">
+        <form id="createForm" method="POST" action={actions.seasons.create}>
+          <input type="hidden" name="ensembleId" value={ensemble.id} />
 
-            <TextInput
-              name="name"
-              id="create-name"
-              label="Season Name *"
-              placeholder="e.g., Fall 2026, Spring 2027"
-              required
-            />
+          <TextInput
+            name="name"
+            id="create-name"
+            label="Season Name *"
+            placeholder="e.g., Fall 2026, Spring 2027"
+            required
+          />
 
-            <Columns>
-              <Column>
-                <TextInput
-                  name="startDate"
-                  id="create-startDate"
-                  label="Start Date"
-                  type="date"
-                />
-              </Column>
-              <Column>
-                <TextInput
-                  name="endDate"
-                  id="create-endDate"
-                  label="End Date"
-                  type="date"
-                />
-              </Column>
-            </Columns>
+          <Columns>
+            <Column>
+              <TextInput name="startDate" id="create-startDate" label="Start Date" type="date" />
+            </Column>
+            <Column>
+              <TextInput name="endDate" id="create-endDate" label="End Date" type="date" />
+            </Column>
+          </Columns>
 
-            <div class="field">
-              <div class="control">
-                <Checkbox name="setActive" label="Set as active season" />
-              </div>
-              <p class="help">
-                Only one season can be active at a time. New rehearsals use the
-                active season.
-              </p>
+          <div class="field">
+            <div class="control">
+              <Checkbox name="setActive" label="Set as active season" />
             </div>
-          </form>
-
-          <div slot="footer">
-            <Button type="submit" form="createForm" color="primary">
-              Create Season
-            </Button>
-            <Button type="button" data-modal-close>
-              Cancel
-            </Button>
+            <p class="help">
+              Only one season can be active at a time. New rehearsals use the active season.
+            </p>
           </div>
-        </Modal>
-      )
-    }
+        </form>
+
+        <div slot="footer">
+          <Button type="submit" form="createForm" color="primary">
+            Create Season
+          </Button>
+          <Button type="button" data-modal-close>
+            Cancel
+          </Button>
+        </div>
+      </Modal>
+    )}
 
     <!-- Edit Season Modal -->
-    {
-      isAdmin && (
-        <Modal id="edit-modal" title="Edit Season">
-          <form id="editForm" method="POST" action={actions.seasons.update}>
-            <input type="hidden" name="ensembleId" value={ensemble.id} />
-            <input type="hidden" name="seasonId" id="edit-seasonId" />
+    {isAdmin && (
+      <Modal id="edit-modal" title="Edit Season">
+        <form id="editForm" method="POST" action={actions.seasons.update}>
+          <input type="hidden" name="ensembleId" value={ensemble.id} />
+          <input type="hidden" name="seasonId" id="edit-seasonId" />
 
-            <TextInput
-              name="name"
-              id="edit-name"
-              label="Season Name *"
-              required
-            />
+          <TextInput name="name" id="edit-name" label="Season Name *" required />
 
-            <Columns>
-              <Column>
-                <TextInput
-                  name="startDate"
-                  id="edit-startDate"
-                  label="Start Date"
-                  type="date"
-                />
-              </Column>
-              <Column>
-                <TextInput
-                  name="endDate"
-                  id="edit-endDate"
-                  label="End Date"
-                  type="date"
-                />
-              </Column>
-            </Columns>
+          <Columns>
+            <Column>
+              <TextInput name="startDate" id="edit-startDate" label="Start Date" type="date" />
+            </Column>
+            <Column>
+              <TextInput name="endDate" id="edit-endDate" label="End Date" type="date" />
+            </Column>
+          </Columns>
 
-            <div class="field">
-              <div class="control">
-                <Checkbox
-                  name="setActive"
-                  id="edit-setActive"
-                  label="Set as active season"
-                />
-              </div>
+          <div class="field">
+            <div class="control">
+              <Checkbox name="setActive" id="edit-setActive" label="Set as active season" />
             </div>
-          </form>
-
-          <div slot="footer">
-            <Button type="submit" form="editForm" color="primary">
-              Save Changes
-            </Button>
-            <Button type="button" data-modal-close>
-              Cancel
-            </Button>
           </div>
-        </Modal>
-      )
-    }
+        </form>
+
+        <div slot="footer">
+          <Button type="submit" form="editForm" color="primary">
+            Save Changes
+          </Button>
+          <Button type="button" data-modal-close>
+            Cancel
+          </Button>
+        </div>
+      </Modal>
+    )}
 
     <!-- Manage Members Modal -->
-    {
-      isAdmin && (
-        <Modal id="members-modal" title="Manage Season Members">
-          <input type="hidden" id="members-seasonId" />
-          <p class="mb-3">Select which members participate in this season:</p>
-          {allMembers.map((member) => (
-            <div class="field">
-              <div class="control">
-                <Checkbox
-                  name="member"
-                  class="member-checkbox"
-                  data-user-id={member.id}
-                  label={member.name}
-                />
-              </div>
+    {isAdmin && (
+      <Modal id="members-modal" title="Manage Season Members">
+        <input type="hidden" id="members-seasonId" />
+        <p class="mb-3">Select which members participate in this season:</p>
+        {allMembers.map((member) => (
+          <div class="field">
+            <div class="control">
+              <Checkbox
+                name="member"
+                class="member-checkbox"
+                data-user-id={member.id}
+                label={member.name}
+              />
             </div>
-          ))}
-
-          <div slot="footer">
-            <Button type="button" id="close-members-btn">
-              Done
-            </Button>
           </div>
-        </Modal>
-      )
-    }
+        ))}
+
+        <div slot="footer">
+          <Button type="button" id="close-members-btn">
+            Done
+          </Button>
+        </div>
+      </Modal>
+    )}
 
     <!-- Delete Confirmation Modal -->
-    {
-      isAdmin && (
-        <Modal id="delete-modal" title="Delete Season">
-          <p>
-            Are you sure you want to delete this season? This action cannot be
-            undone.
-          </p>
-          <p class="has-text-danger mt-2">
-            <strong>Note:</strong> Seasons with rehearsals cannot be deleted.
-          </p>
-          <form id="deleteForm" method="POST" action={actions.seasons.delete}>
-            <input type="hidden" name="ensembleId" value={ensemble.id} />
-            <input type="hidden" name="seasonId" id="delete-seasonId" />
-          </form>
+    {isAdmin && (
+      <Modal id="delete-modal" title="Delete Season">
+        <p>Are you sure you want to delete this season? This action cannot be undone.</p>
+        <p class="has-text-danger mt-2">
+          <strong>Note:</strong> Seasons with rehearsals cannot be deleted.
+        </p>
+        <form id="deleteForm" method="POST" action={actions.seasons.delete}>
+          <input type="hidden" name="ensembleId" value={ensemble.id} />
+          <input type="hidden" name="seasonId" id="delete-seasonId" />
+        </form>
 
-          <div slot="footer">
-            <Button type="submit" form="deleteForm" color="danger">
-              Delete
-            </Button>
-            <Button type="button" data-modal-close>
-              Cancel
-            </Button>
-          </div>
-        </Modal>
-      )
-    }
+        <div slot="footer">
+          <Button type="submit" form="deleteForm" color="danger">
+            Delete
+          </Button>
+          <Button type="button" data-modal-close>
+            Cancel
+          </Button>
+        </div>
+      </Modal>
+    )}
 
-    <script
-      is:inline
-      define:vars={{ membershipsBySeasonId, ensembleId: ensemble.id }}
-    >
+    <script is:inline define:vars={{ membershipsBySeasonId, ensembleId: ensemble.id }}>
       document.addEventListener("astro:page-load", () => {
-        document
-          .getElementById("create-season-btn")
-          ?.addEventListener("click", () => {
-            document.getElementById("create-modal")?.classList.add("is-active");
-          });
+        document.getElementById("create-season-btn")?.addEventListener("click", () => {
+          document.getElementById("create-modal")?.classList.add("is-active");
+        });
 
         document.querySelectorAll(".edit-season-btn").forEach((btn) => {
           btn.addEventListener("click", () => {
-            document.getElementById("edit-seasonId").value =
-              btn.getAttribute("data-season-id");
-            document.getElementById("edit-name").value =
-              btn.getAttribute("data-season-name");
-            document.getElementById("edit-startDate").value =
-              btn.getAttribute("data-season-start");
-            document.getElementById("edit-endDate").value =
-              btn.getAttribute("data-season-end");
+            document.getElementById("edit-seasonId").value = btn.getAttribute("data-season-id");
+            document.getElementById("edit-name").value = btn.getAttribute("data-season-name");
+            document.getElementById("edit-startDate").value = btn.getAttribute("data-season-start");
+            document.getElementById("edit-endDate").value = btn.getAttribute("data-season-end");
             document.getElementById("edit-setActive").checked =
               btn.getAttribute("data-season-active") === "true";
             document.getElementById("edit-modal")?.classList.add("is-active");
@@ -405,17 +332,11 @@ const membershipsBySeasonId = seasonMemberships.reduce(
             const seasonMembers = membershipsBySeasonId[seasonId] || [];
             const memberUserIds = new Set(seasonMembers.map((m) => m.userId));
 
-            document
-              .querySelectorAll(".member-checkbox")
-              .forEach((checkbox) => {
-                checkbox.checked = memberUserIds.has(
-                  checkbox.getAttribute("data-user-id"),
-                );
-              });
+            document.querySelectorAll(".member-checkbox").forEach((checkbox) => {
+              checkbox.checked = memberUserIds.has(checkbox.getAttribute("data-user-id"));
+            });
 
-            document
-              .getElementById("members-modal")
-              ?.classList.add("is-active");
+            document.getElementById("members-modal")?.classList.add("is-active");
           });
         });
 
@@ -436,19 +357,14 @@ const membershipsBySeasonId = seasonMemberships.reduce(
           });
         });
 
-        document
-          .getElementById("close-members-btn")
-          ?.addEventListener("click", () => {
-            document
-              .getElementById("members-modal")
-              ?.classList.remove("is-active");
-            window.location.reload();
-          });
+        document.getElementById("close-members-btn")?.addEventListener("click", () => {
+          document.getElementById("members-modal")?.classList.remove("is-active");
+          window.location.reload();
+        });
 
         document.querySelectorAll(".delete-season-btn").forEach((btn) => {
           btn.addEventListener("click", () => {
-            document.getElementById("delete-seasonId").value =
-              btn.getAttribute("data-season-id");
+            document.getElementById("delete-seasonId").value = btn.getAttribute("data-season-id");
             document.getElementById("delete-modal")?.classList.add("is-active");
           });
         });

@@ -92,9 +92,7 @@ for (const mp of memberPartRows) {
   membersByPart.get(mp.partId)!.push(member);
 }
 
-const membersWithoutPart = membersData.filter(
-  (m) => !membersWithPartIds.has(m.membershipId),
-);
+const membersWithoutPart = membersData.filter((m) => !membersWithPartIds.has(m.membershipId));
 
 const members = membersData;
 ---
@@ -111,20 +109,18 @@ const members = membersData;
         Dashboard
       </a>
       <hr class="navbar-divider" />
-      {
-        ensembleAdminTools.map((tool) => {
-          const href = tool.href(canonicalId);
-          return (
-            <a
-              class={`navbar-item${Astro.url.pathname.startsWith(href) ? " is-active" : ""}`}
-              href={href}
-            >
-              <Icon icon={tool.icon} size="small" class="mr-1" />
-              {tool.label}
-            </a>
-          );
-        })
-      }
+      {ensembleAdminTools.map((tool) => {
+        const href = tool.href(canonicalId);
+        return (
+          <a
+            class={`navbar-item${Astro.url.pathname.startsWith(href) ? " is-active" : ""}`}
+            href={href}
+          >
+            <Icon icon={tool.icon} size="small" class="mr-1" />
+            {tool.label}
+          </a>
+        );
+      })}
     </div>
   </div>
   <Section>
@@ -146,16 +142,14 @@ const members = membersData;
           </div>
         </Fragment>
         <Fragment slot="right">
-          {
-            canAddMembers && (
-              <div class="level-item">
-                <Button color="primary" id="add-member-btn">
-                  <Icon icon="fa-user-plus" />
-                  <span>Add Member</span>
-                </Button>
-              </div>
-            )
-          }
+          {canAddMembers && (
+            <div class="level-item">
+              <Button color="primary" id="add-member-btn">
+                <Icon icon="fa-user-plus" />
+                <span>Add Member</span>
+              </Button>
+            </div>
+          )}
           <div class="level-item">
             <Button href={`/ensembles/${canonicalId}/member-attendance`}>
               <Icon icon="fa-chart-bar" />
@@ -177,214 +171,60 @@ const members = membersData;
         </Fragment>
       </Level>
 
-      {
-        addResult?.error && (
-          <Notification color="danger" light>
-            {addResult.error.message || "Couldn't add that member."}
-          </Notification>
-        )
-      }
-      {
-        addResult?.data && (
-          <Notification color="success" light>
-            <p>
-              Added <strong>{addResult.data.name}</strong> to {ensemble.name}.{" "}
-              {addResult.data.emailSent
-                ? "We emailed them to let them know."
-                : "The email to them couldn't be sent, so they haven't been told."}
-            </p>
-            {addResult.data.setPasswordUrl && (
-              <div class="mt-3">
-                <p class="mb-2">
-                  They're new, so they need to set a password.
-                  {addResult.data.emailSent
-                    ? " The email has this link; you can also send it yourself."
-                    : " Send them this link"}{" "}
-                  (valid for 7 days):
-                </p>
-                <div class="field has-addons">
-                  <div class="control is-expanded">
-                    <input
-                      id="set-password-url"
-                      class="input is-small"
-                      readonly
-                      value={addResult.data.setPasswordUrl}
-                    />
-                  </div>
-                  <div class="control">
-                    <button
-                      type="button"
-                      class="button is-small"
-                      id="copy-set-password-url"
-                    >
-                      Copy
-                    </button>
-                  </div>
+      {addResult?.error && (
+        <Notification color="danger" light>
+          {addResult.error.message || "Couldn't add that member."}
+        </Notification>
+      )}
+      {addResult?.data && (
+        <Notification color="success" light>
+          <p>
+            Added <strong>{addResult.data.name}</strong> to {ensemble.name}.{" "}
+            {addResult.data.emailSent
+              ? "We emailed them to let them know."
+              : "The email to them couldn't be sent, so they haven't been told."}
+          </p>
+          {addResult.data.setPasswordUrl && (
+            <div class="mt-3">
+              <p class="mb-2">
+                They're new, so they need to set a password.
+                {addResult.data.emailSent
+                  ? " The email has this link; you can also send it yourself."
+                  : " Send them this link"}{" "}
+                (valid for 7 days):
+              </p>
+              <div class="field has-addons">
+                <div class="control is-expanded">
+                  <input
+                    id="set-password-url"
+                    class="input is-small"
+                    readonly
+                    value={addResult.data.setPasswordUrl}
+                  />
+                </div>
+                <div class="control">
+                  <button type="button" class="button is-small" id="copy-set-password-url">
+                    Copy
+                  </button>
                 </div>
               </div>
-            )}
-          </Notification>
-        )
-      }
+            </div>
+          )}
+        </Notification>
+      )}
 
       <Box>
-        {
-          allParts.length > 0 ? (
-            <>
-              {allParts.map((part) => {
-                const partMembers = membersByPart.get(part.id) || [];
-                if (partMembers.length === 0) return null;
+        {allParts.length > 0 ? (
+          <>
+            {allParts.map((part) => {
+              const partMembers = membersByPart.get(part.id) || [];
+              if (partMembers.length === 0) return null;
 
-                return (
-                  <div class="mb-5">
-                    <Table
-                      title={`${part.name} (${partMembers.length})`}
-                      className="has-text-primary is-vcentered"
-                    >
-                      <thead>
-                        <tr>
-                          <th style="width: 60px;" />
-                          <th>Name</th>
-                          <th>Email</th>
-                          <th>Role</th>
-                          <th>Joined</th>
-                          <th>Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {partMembers.map((member: any) => (
-                          <tr>
-                            <td>
-                              {member.avatarUrl ? (
-                                <Image
-                                  src={member.avatarUrl}
-                                  alt={member.name}
-                                  size="48x48"
-                                  rounded
-                                  imgStyle="object-fit: cover;"
-                                />
-                              ) : (
-                                <figure class="image is-48x48">
-                                  <div
-                                    style={`width: 48px; height: 48px; border-radius: 50%; background-color: ${getColorFromInitials(getInitials(member.name))}; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.25rem; font-weight: bold;`}
-                                  >
-                                    {getInitials(member.name)}
-                                  </div>
-                                </figure>
-                              )}
-                            </td>
-                            <td>{member.name}</td>
-                            <td>{member.email}</td>
-                            <td>
-                              <span
-                                class={`tag ${member.role === "admin" ? "is-warning" : "is-info"}`}
-                              >
-                                {member.role === "admin" ? "Admin" : "Member"}
-                              </span>
-                            </td>
-                            <td>
-                              {new Date(member.joinedAt).toLocaleDateString()}
-                            </td>
-                            {member.id !== user.id && (
-                              <td>
-                                <div class="buttons are-small">
-                                  {viewAsBlocked && !viewAsBlocked.has(member.id) && (
-                                    <form method="POST" action="/view-as" style="display: inline;">
-                                      <input type="hidden" name="userId" value={member.id} />
-                                      <input type="hidden" name="returnTo" value={`/ensembles/${canonicalId}`} />
-                                      <Button type="submit" color="link" size="small">
-                                        View as
-                                      </Button>
-                                    </form>
-                                  )}
-                                  {member.role === "member" ? (
-                                    <form
-                                      method="POST"
-                                      action={actions.members.promote}
-                                      style="display: inline;"
-                                    >
-                                      <input
-                                        type="hidden"
-                                        name="ensembleId"
-                                        value={ensemble.id}
-                                      />
-                                      <input
-                                        type="hidden"
-                                        name="membershipId"
-                                        value={member.membershipId}
-                                      />
-                                      <Button
-                                        type="submit"
-                                        color="warning"
-                                        size="small"
-                                      >
-                                        Make Admin
-                                      </Button>
-                                    </form>
-                                  ) : (
-                                    <form
-                                      method="POST"
-                                      action={actions.members.demote}
-                                      style="display: inline;"
-                                    >
-                                      <input
-                                        type="hidden"
-                                        name="ensembleId"
-                                        value={ensemble.id}
-                                      />
-                                      <input
-                                        type="hidden"
-                                        name="membershipId"
-                                        value={member.membershipId}
-                                      />
-                                      <Button
-                                        type="submit"
-                                        color="info"
-                                        size="small"
-                                      >
-                                        Remove Admin
-                                      </Button>
-                                    </form>
-                                  )}
-                                  <form
-                                    method="POST"
-                                    action={actions.members.remove}
-                                    style="display: inline;"
-                                  >
-                                    <input
-                                      type="hidden"
-                                      name="ensembleId"
-                                      value={ensemble.id}
-                                    />
-                                    <input
-                                      type="hidden"
-                                      name="membershipId"
-                                      value={member.membershipId}
-                                    />
-                                    <Button
-                                      type="submit"
-                                      color="danger"
-                                      size="small"
-                                    >
-                                      Remove
-                                    </Button>
-                                  </form>
-                                </div>
-                              </td>
-                            )}
-                          </tr>
-                        ))}
-                      </tbody>
-                    </Table>
-                  </div>
-                );
-              })}
-
-              {membersWithoutPart.length > 0 && (
+              return (
                 <div class="mb-5">
                   <Table
-                    title={`No Part Assigned (${membersWithoutPart.length})`}
-                    className="is-vcentered"
+                    title={`${part.name} (${partMembers.length})`}
+                    className="has-text-primary is-vcentered"
                   >
                     <thead>
                       <tr>
@@ -397,7 +237,7 @@ const members = membersData;
                       </tr>
                     </thead>
                     <tbody>
-                      {membersWithoutPart.map((member) => (
+                      {partMembers.map((member: any) => (
                         <tr>
                           <td>
                             {member.avatarUrl ? (
@@ -427,16 +267,18 @@ const members = membersData;
                               {member.role === "admin" ? "Admin" : "Member"}
                             </span>
                           </td>
-                          <td>
-                            {new Date(member.joinedAt).toLocaleDateString()}
-                          </td>
+                          <td>{new Date(member.joinedAt).toLocaleDateString()}</td>
                           {member.id !== user.id && (
                             <td>
                               <div class="buttons are-small">
                                 {viewAsBlocked && !viewAsBlocked.has(member.id) && (
                                   <form method="POST" action="/view-as" style="display: inline;">
                                     <input type="hidden" name="userId" value={member.id} />
-                                    <input type="hidden" name="returnTo" value={`/ensembles/${canonicalId}`} />
+                                    <input
+                                      type="hidden"
+                                      name="returnTo"
+                                      value={`/ensembles/${canonicalId}`}
+                                    />
                                     <Button type="submit" color="link" size="small">
                                       View as
                                     </Button>
@@ -448,21 +290,13 @@ const members = membersData;
                                     action={actions.members.promote}
                                     style="display: inline;"
                                   >
-                                    <input
-                                      type="hidden"
-                                      name="ensembleId"
-                                      value={ensemble.id}
-                                    />
+                                    <input type="hidden" name="ensembleId" value={ensemble.id} />
                                     <input
                                       type="hidden"
                                       name="membershipId"
                                       value={member.membershipId}
                                     />
-                                    <Button
-                                      type="submit"
-                                      color="warning"
-                                      size="small"
-                                    >
+                                    <Button type="submit" color="warning" size="small">
                                       Make Admin
                                     </Button>
                                   </form>
@@ -472,21 +306,13 @@ const members = membersData;
                                     action={actions.members.demote}
                                     style="display: inline;"
                                   >
-                                    <input
-                                      type="hidden"
-                                      name="ensembleId"
-                                      value={ensemble.id}
-                                    />
+                                    <input type="hidden" name="ensembleId" value={ensemble.id} />
                                     <input
                                       type="hidden"
                                       name="membershipId"
                                       value={member.membershipId}
                                     />
-                                    <Button
-                                      type="submit"
-                                      color="info"
-                                      size="small"
-                                    >
+                                    <Button type="submit" color="info" size="small">
                                       Remove Admin
                                     </Button>
                                   </form>
@@ -496,21 +322,13 @@ const members = membersData;
                                   action={actions.members.remove}
                                   style="display: inline;"
                                 >
-                                  <input
-                                    type="hidden"
-                                    name="ensembleId"
-                                    value={ensemble.id}
-                                  />
+                                  <input type="hidden" name="ensembleId" value={ensemble.id} />
                                   <input
                                     type="hidden"
                                     name="membershipId"
                                     value={member.membershipId}
                                   />
-                                  <Button
-                                    type="submit"
-                                    color="danger"
-                                    size="small"
-                                  >
+                                  <Button type="submit" color="danger" size="small">
                                     Remove
                                   </Button>
                                 </form>
@@ -522,189 +340,274 @@ const members = membersData;
                     </tbody>
                   </Table>
                 </div>
-              )}
-            </>
-          ) : (
-            <Table className="is-vcentered">
-              <thead>
-                <tr>
-                  <th style="width: 60px;" />
-                  <th>Name</th>
-                  <th>Email</th>
-                  <th>Role</th>
-                  <th>Joined</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {members.map((member) => (
-                  <tr>
-                    <td>
-                      {member.avatarUrl ? (
-                        <Image
-                          src={member.avatarUrl}
-                          alt={member.name}
-                          size="48x48"
-                          rounded
-                          imgStyle="object-fit: cover;"
-                        />
-                      ) : (
-                        <figure class="image is-48x48">
-                          <div
-                            style={`width: 48px; height: 48px; border-radius: 50%; background-color: ${getColorFromInitials(getInitials(member.name))}; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.25rem; font-weight: bold;`}
-                          >
-                            {getInitials(member.name)}
-                          </div>
-                        </figure>
-                      )}
-                    </td>
-                    <td>{member.name}</td>
-                    <td>{member.email}</td>
-                    <td>
-                      <span
-                        class={`tag ${member.role === "admin" ? "is-warning" : "is-info"}`}
-                      >
-                        {member.role === "admin" ? "Admin" : "Member"}
-                      </span>
-                    </td>
-                    <td>{new Date(member.joinedAt).toLocaleDateString()}</td>
-                    {member.id !== user.id && (
-                      <td>
-                        <div class="buttons are-small">
-                          {viewAsBlocked && !viewAsBlocked.has(member.id) && (
-                            <form method="POST" action="/view-as" style="display: inline;">
-                              <input type="hidden" name="userId" value={member.id} />
-                              <input type="hidden" name="returnTo" value={`/ensembles/${canonicalId}`} />
-                              <Button type="submit" color="link" size="small">
-                                View as
-                              </Button>
-                            </form>
-                          )}
-                          {member.role === "member" ? (
-                            <form
-                              method="POST"
-                              action={actions.members.promote}
-                              style="display: inline;"
-                            >
-                              <input
-                                type="hidden"
-                                name="ensembleId"
-                                value={ensemble.id}
-                              />
-                              <input
-                                type="hidden"
-                                name="membershipId"
-                                value={member.membershipId}
-                              />
-                              <Button
-                                type="submit"
-                                color="warning"
-                                size="small"
-                              >
-                                Make Admin
-                              </Button>
-                            </form>
+              );
+            })}
+
+            {membersWithoutPart.length > 0 && (
+              <div class="mb-5">
+                <Table
+                  title={`No Part Assigned (${membersWithoutPart.length})`}
+                  className="is-vcentered"
+                >
+                  <thead>
+                    <tr>
+                      <th style="width: 60px;" />
+                      <th>Name</th>
+                      <th>Email</th>
+                      <th>Role</th>
+                      <th>Joined</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {membersWithoutPart.map((member) => (
+                      <tr>
+                        <td>
+                          {member.avatarUrl ? (
+                            <Image
+                              src={member.avatarUrl}
+                              alt={member.name}
+                              size="48x48"
+                              rounded
+                              imgStyle="object-fit: cover;"
+                            />
                           ) : (
-                            <form
-                              method="POST"
-                              action={actions.members.demote}
-                              style="display: inline;"
-                            >
-                              <input
-                                type="hidden"
-                                name="ensembleId"
-                                value={ensemble.id}
-                              />
-                              <input
-                                type="hidden"
-                                name="membershipId"
-                                value={member.membershipId}
-                              />
-                              <Button type="submit" color="info" size="small">
-                                Remove Admin
-                              </Button>
-                            </form>
+                            <figure class="image is-48x48">
+                              <div
+                                style={`width: 48px; height: 48px; border-radius: 50%; background-color: ${getColorFromInitials(getInitials(member.name))}; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.25rem; font-weight: bold;`}
+                              >
+                                {getInitials(member.name)}
+                              </div>
+                            </figure>
                           )}
-                          <form
-                            method="POST"
-                            action={actions.members.remove}
-                            style="display: inline;"
-                          >
+                        </td>
+                        <td>{member.name}</td>
+                        <td>{member.email}</td>
+                        <td>
+                          <span class={`tag ${member.role === "admin" ? "is-warning" : "is-info"}`}>
+                            {member.role === "admin" ? "Admin" : "Member"}
+                          </span>
+                        </td>
+                        <td>{new Date(member.joinedAt).toLocaleDateString()}</td>
+                        {member.id !== user.id && (
+                          <td>
+                            <div class="buttons are-small">
+                              {viewAsBlocked && !viewAsBlocked.has(member.id) && (
+                                <form method="POST" action="/view-as" style="display: inline;">
+                                  <input type="hidden" name="userId" value={member.id} />
+                                  <input
+                                    type="hidden"
+                                    name="returnTo"
+                                    value={`/ensembles/${canonicalId}`}
+                                  />
+                                  <Button type="submit" color="link" size="small">
+                                    View as
+                                  </Button>
+                                </form>
+                              )}
+                              {member.role === "member" ? (
+                                <form
+                                  method="POST"
+                                  action={actions.members.promote}
+                                  style="display: inline;"
+                                >
+                                  <input type="hidden" name="ensembleId" value={ensemble.id} />
+                                  <input
+                                    type="hidden"
+                                    name="membershipId"
+                                    value={member.membershipId}
+                                  />
+                                  <Button type="submit" color="warning" size="small">
+                                    Make Admin
+                                  </Button>
+                                </form>
+                              ) : (
+                                <form
+                                  method="POST"
+                                  action={actions.members.demote}
+                                  style="display: inline;"
+                                >
+                                  <input type="hidden" name="ensembleId" value={ensemble.id} />
+                                  <input
+                                    type="hidden"
+                                    name="membershipId"
+                                    value={member.membershipId}
+                                  />
+                                  <Button type="submit" color="info" size="small">
+                                    Remove Admin
+                                  </Button>
+                                </form>
+                              )}
+                              <form
+                                method="POST"
+                                action={actions.members.remove}
+                                style="display: inline;"
+                              >
+                                <input type="hidden" name="ensembleId" value={ensemble.id} />
+                                <input
+                                  type="hidden"
+                                  name="membershipId"
+                                  value={member.membershipId}
+                                />
+                                <Button type="submit" color="danger" size="small">
+                                  Remove
+                                </Button>
+                              </form>
+                            </div>
+                          </td>
+                        )}
+                      </tr>
+                    ))}
+                  </tbody>
+                </Table>
+              </div>
+            )}
+          </>
+        ) : (
+          <Table className="is-vcentered">
+            <thead>
+              <tr>
+                <th style="width: 60px;" />
+                <th>Name</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Joined</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {members.map((member) => (
+                <tr>
+                  <td>
+                    {member.avatarUrl ? (
+                      <Image
+                        src={member.avatarUrl}
+                        alt={member.name}
+                        size="48x48"
+                        rounded
+                        imgStyle="object-fit: cover;"
+                      />
+                    ) : (
+                      <figure class="image is-48x48">
+                        <div
+                          style={`width: 48px; height: 48px; border-radius: 50%; background-color: ${getColorFromInitials(getInitials(member.name))}; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.25rem; font-weight: bold;`}
+                        >
+                          {getInitials(member.name)}
+                        </div>
+                      </figure>
+                    )}
+                  </td>
+                  <td>{member.name}</td>
+                  <td>{member.email}</td>
+                  <td>
+                    <span class={`tag ${member.role === "admin" ? "is-warning" : "is-info"}`}>
+                      {member.role === "admin" ? "Admin" : "Member"}
+                    </span>
+                  </td>
+                  <td>{new Date(member.joinedAt).toLocaleDateString()}</td>
+                  {member.id !== user.id && (
+                    <td>
+                      <div class="buttons are-small">
+                        {viewAsBlocked && !viewAsBlocked.has(member.id) && (
+                          <form method="POST" action="/view-as" style="display: inline;">
+                            <input type="hidden" name="userId" value={member.id} />
                             <input
                               type="hidden"
-                              name="ensembleId"
-                              value={ensemble.id}
+                              name="returnTo"
+                              value={`/ensembles/${canonicalId}`}
                             />
-                            <input
-                              type="hidden"
-                              name="membershipId"
-                              value={member.membershipId}
-                            />
-                            <Button type="submit" color="danger" size="small">
-                              Remove
+                            <Button type="submit" color="link" size="small">
+                              View as
                             </Button>
                           </form>
-                        </div>
-                      </td>
-                    )}
-                  </tr>
-                ))}
-              </tbody>
-            </Table>
-          )
-        }
+                        )}
+                        {member.role === "member" ? (
+                          <form
+                            method="POST"
+                            action={actions.members.promote}
+                            style="display: inline;"
+                          >
+                            <input type="hidden" name="ensembleId" value={ensemble.id} />
+                            <input type="hidden" name="membershipId" value={member.membershipId} />
+                            <Button type="submit" color="warning" size="small">
+                              Make Admin
+                            </Button>
+                          </form>
+                        ) : (
+                          <form
+                            method="POST"
+                            action={actions.members.demote}
+                            style="display: inline;"
+                          >
+                            <input type="hidden" name="ensembleId" value={ensemble.id} />
+                            <input type="hidden" name="membershipId" value={member.membershipId} />
+                            <Button type="submit" color="info" size="small">
+                              Remove Admin
+                            </Button>
+                          </form>
+                        )}
+                        <form
+                          method="POST"
+                          action={actions.members.remove}
+                          style="display: inline;"
+                        >
+                          <input type="hidden" name="ensembleId" value={ensemble.id} />
+                          <input type="hidden" name="membershipId" value={member.membershipId} />
+                          <Button type="submit" color="danger" size="small">
+                            Remove
+                          </Button>
+                        </form>
+                      </div>
+                    </td>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </Table>
+        )}
       </Box>
     </Container>
   </Section>
 
-  {
-    canAddMembers && (
-      <Modal id="add-member-modal" title="Add Member">
-        <form id="addMemberForm" method="POST" action={actions.members.add}>
-          <input type="hidden" name="ensembleId" value={ensemble.id} />
-          <TextInput name="email" type="email" label="Email *" required />
-          <TextInput
-            name="name"
-            label="Name"
-            help="Needed if they don't have an account yet."
-          />
-          <Select name="role" label="Role" fullwidth>
-            <option value="member" selected>
-              Member
-            </option>
-            <option value="admin">Ensemble admin</option>
-          </Select>
-          <p class="help">
-            New people get an account and an email with a link to set their
-            password. People who already have an account get an email saying
-            they were added.
-          </p>
-        </form>
-        <div slot="footer">
-          <Button type="submit" form="addMemberForm" color="primary">
-            <Icon icon="fa-user-plus" />
-            <span>Add Member</span>
-          </Button>
-          <Button type="button" data-modal-close>
-            Cancel
-          </Button>
-        </div>
-      </Modal>
-    )
-  }
+  {canAddMembers && (
+    <Modal id="add-member-modal" title="Add Member">
+      <form id="addMemberForm" method="POST" action={actions.members.add}>
+        <input type="hidden" name="ensembleId" value={ensemble.id} />
+        <TextInput name="email" type="email" label="Email *" required />
+        <TextInput name="name" label="Name" help="Needed if they don't have an account yet." />
+        <Select name="role" label="Role" fullwidth>
+          <option value="member" selected>
+            Member
+          </option>
+          <option value="admin">Ensemble admin</option>
+        </Select>
+        <p class="help">
+          New people get an account and an email with a link to set their password. People who
+          already have an account get an email saying they were added.
+        </p>
+      </form>
+      <div slot="footer">
+        <Button type="submit" form="addMemberForm" color="primary">
+          <Icon icon="fa-user-plus" />
+          <span>Add Member</span>
+        </Button>
+        <Button type="button" data-modal-close>
+          Cancel
+        </Button>
+      </div>
+    </Modal>
+  )}
 
   <script is:inline>
     document.addEventListener("astro:page-load", () => {
       document.getElementById("add-member-btn")?.addEventListener("click", () => {
         document.getElementById("add-member-modal")?.classList.add("is-active");
       });
-      document
-        .getElementById("copy-set-password-url")
-        ?.addEventListener("click", (event) => {
-          const input = document.getElementById("set-password-url");
-          navigator.clipboard.writeText(input.value);
-          event.currentTarget.textContent = "Copied";
-        });
+      document.getElementById("copy-set-password-url")?.addEventListener("click", (event) => {
+        const input = document.getElementById("set-password-url");
+        navigator.clipboard.writeText(input.value);
+        event.currentTarget.textContent = "Copied";
+      });
     });
   </script>
 </BaseLayout>

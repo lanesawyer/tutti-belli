@@ -105,15 +105,11 @@ function categoryTag(category: string) {
 
 const now = new Date();
 const upcomingEvents = allEvents.filter((e) => {
-  const endTime = new Date(
-    new Date(e.scheduledAt).getTime() + e.durationMinutes * 60 * 1000,
-  );
+  const endTime = new Date(new Date(e.scheduledAt).getTime() + e.durationMinutes * 60 * 1000);
   return endTime > now;
 });
 const pastEvents = allEvents.filter((e) => {
-  const endTime = new Date(
-    new Date(e.scheduledAt).getTime() + e.durationMinutes * 60 * 1000,
-  );
+  const endTime = new Date(new Date(e.scheduledAt).getTime() + e.durationMinutes * 60 * 1000);
   return endTime <= now;
 });
 ---
@@ -127,449 +123,331 @@ const pastEvents = allEvents.filter((e) => {
   messageType={messageType}
   isAdmin={isAdmin}
 >
-  {
-    isAdmin && (
-      <Button slot="action" color="primary" id="create-event-btn">
-        <Icon icon="fa-plus" />
-        <span>Schedule Event</span>
-      </Button>
-    )
-  }
+  {isAdmin && (
+    <Button slot="action" color="primary" id="create-event-btn">
+      <Icon icon="fa-plus" />
+      <span>Schedule Event</span>
+    </Button>
+  )}
 
-  {
-    allEvents.length === 0 ? (
-      <Notification color="info" light>
-        No events scheduled yet.
-        {!activeSeason && isAdmin && (
-          <span>
-            {" "}
-            You need an{" "}
-            <a href={`/ensembles/${canonicalId}/seasons`}>active season</a>{" "}
-            before scheduling events.
-          </span>
-        )}
-      </Notification>
-    ) : (
-      <>
-        {upcomingEvents.length > 0 && (
-          <div class="mb-5">
-            <Title as="h2" size={5} class="mb-3">
-              Upcoming
-            </Title>
-            <Table>
-              <thead>
-                <tr>
-                  <th>Title</th>
-                  <th>Type</th>
-                  <th>Group</th>
-                  <th>Date</th>
-                  <th>Time</th>
-                  <th>Location</th>
-                  <th>Duration</th>
-                  <th>RSVP</th>
-                  <th style="width: 160px;">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {upcomingEvents.map((event) => {
-                  const scheduledDate = new Date(event.scheduledAt);
-                  const rsvpOn = isRsvpEnabled(event);
-                  const userRsvp = rsvpOn
-                    ? (userRsvpMap.get(event.id) ?? null)
-                    : null;
-                  return (
-                    <tr>
-                      <td>
-                        <strong>{event.title}</strong>
-                      </td>
-                      <td>
-                        {(() => {
-                          const ct = categoryTag(event.category);
-                          return (
-                            <span class={`tag ${ct.color}`}>{ct.label}</span>
-                          );
-                        })()}
-                      </td>
-                      <td>
-                        {event.groupName ? (
-                          <Tag color={event.groupColor as any} size="small">
-                            {event.groupName}
-                          </Tag>
-                        ) : (
-                          <span class="has-text-grey-light">—</span>
-                        )}
-                      </td>
-                      <td>{formatZonedDate(scheduledDate, ensemble.timezone)}</td>
-                      <td>{formatZonedTime(scheduledDate, ensemble.timezone)}</td>
-                      <td>{event.location || "-"}</td>
-                      <td>{formatDuration(event.durationMinutes)}</td>
-                      <td>
-                        {rsvpOn ? (
-                          <div class="buttons are-small">
-                            {userRsvp === "yes" ? (
-                              <>
-                                <span class="tag is-success is-small">
-                                  Attending
-                                </span>
-                                <form
-                                  method="POST"
-                                  action={actions.events.rsvp}
-                                  style="display:inline"
-                                >
-                                  <input
-                                    type="hidden"
-                                    name="ensembleId"
-                                    value={ensemble.id}
-                                  />
-                                  <input
-                                    type="hidden"
-                                    name="eventId"
-                                    value={event.id}
-                                  />
-                                  <input
-                                    type="hidden"
-                                    name="response"
-                                    value="no"
-                                  />
-                                  <Button
-                                    type="submit"
-                                    size="small"
-                                    color="danger"
-                                  >
-                                    No
-                                  </Button>
-                                </form>
-                              </>
-                            ) : userRsvp === "no" ? (
-                              <>
-                                <span class="tag is-danger is-small">
-                                  Not Attending
-                                </span>
-                                <form
-                                  method="POST"
-                                  action={actions.events.rsvp}
-                                  style="display:inline"
-                                >
-                                  <input
-                                    type="hidden"
-                                    name="ensembleId"
-                                    value={ensemble.id}
-                                  />
-                                  <input
-                                    type="hidden"
-                                    name="eventId"
-                                    value={event.id}
-                                  />
-                                  <input
-                                    type="hidden"
-                                    name="response"
-                                    value="yes"
-                                  />
-                                  <Button
-                                    type="submit"
-                                    size="small"
-                                    color="success"
-                                  >
-                                    Yes
-                                  </Button>
-                                </form>
-                              </>
-                            ) : (
-                              <>
-                                <form
-                                  method="POST"
-                                  action={actions.events.rsvp}
-                                  style="display:inline"
-                                >
-                                  <input
-                                    type="hidden"
-                                    name="ensembleId"
-                                    value={ensemble.id}
-                                  />
-                                  <input
-                                    type="hidden"
-                                    name="eventId"
-                                    value={event.id}
-                                  />
-                                  <input
-                                    type="hidden"
-                                    name="response"
-                                    value="yes"
-                                  />
-                                  <Button
-                                    type="submit"
-                                    size="small"
-                                    color="success"
-                                  >
-                                    Yes
-                                  </Button>
-                                </form>
-                                <form
-                                  method="POST"
-                                  action={actions.events.rsvp}
-                                  style="display:inline"
-                                >
-                                  <input
-                                    type="hidden"
-                                    name="ensembleId"
-                                    value={ensemble.id}
-                                  />
-                                  <input
-                                    type="hidden"
-                                    name="eventId"
-                                    value={event.id}
-                                  />
-                                  <input
-                                    type="hidden"
-                                    name="response"
-                                    value="no"
-                                  />
-                                  <Button
-                                    type="submit"
-                                    size="small"
-                                    color="danger"
-                                  >
-                                    No
-                                  </Button>
-                                </form>
-                              </>
-                            )}
-                          </div>
-                        ) : (
-                          <span class="has-text-grey-light">—</span>
-                        )}
-                      </td>
-                      <td>
+  {allEvents.length === 0 ? (
+    <Notification color="info" light>
+      No events scheduled yet.
+      {!activeSeason && isAdmin && (
+        <span>
+          {" "}
+          You need an <a href={`/ensembles/${canonicalId}/seasons`}>active season</a> before
+          scheduling events.
+        </span>
+      )}
+    </Notification>
+  ) : (
+    <>
+      {upcomingEvents.length > 0 && (
+        <div class="mb-5">
+          <Title as="h2" size={5} class="mb-3">
+            Upcoming
+          </Title>
+          <Table>
+            <thead>
+              <tr>
+                <th>Title</th>
+                <th>Type</th>
+                <th>Group</th>
+                <th>Date</th>
+                <th>Time</th>
+                <th>Location</th>
+                <th>Duration</th>
+                <th>RSVP</th>
+                <th style="width: 160px;">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {upcomingEvents.map((event) => {
+                const scheduledDate = new Date(event.scheduledAt);
+                const rsvpOn = isRsvpEnabled(event);
+                const userRsvp = rsvpOn ? (userRsvpMap.get(event.id) ?? null) : null;
+                return (
+                  <tr>
+                    <td>
+                      <strong>{event.title}</strong>
+                    </td>
+                    <td>
+                      {(() => {
+                        const ct = categoryTag(event.category);
+                        return <span class={`tag ${ct.color}`}>{ct.label}</span>;
+                      })()}
+                    </td>
+                    <td>
+                      {event.groupName ? (
+                        <Tag color={event.groupColor as any} size="small">
+                          {event.groupName}
+                        </Tag>
+                      ) : (
+                        <span class="has-text-grey-light">—</span>
+                      )}
+                    </td>
+                    <td>{formatZonedDate(scheduledDate, ensemble.timezone)}</td>
+                    <td>{formatZonedTime(scheduledDate, ensemble.timezone)}</td>
+                    <td>{event.location || "-"}</td>
+                    <td>{formatDuration(event.durationMinutes)}</td>
+                    <td>
+                      {rsvpOn ? (
                         <div class="buttons are-small">
-                          <Button
-                            href={`/ensembles/${canonicalId}/events/${event.id}`}
-                            color="info"
-                          >
-                            View
-                          </Button>
-                          {isAdmin && (
-                            <Button
-                              color="danger"
-                              class="delete-event-btn"
-                              data-event-id={event.id}
-                            >
-                              <Icon icon="fa-trash" />
-                            </Button>
+                          {userRsvp === "yes" ? (
+                            <>
+                              <span class="tag is-success is-small">Attending</span>
+                              <form
+                                method="POST"
+                                action={actions.events.rsvp}
+                                style="display:inline"
+                              >
+                                <input type="hidden" name="ensembleId" value={ensemble.id} />
+                                <input type="hidden" name="eventId" value={event.id} />
+                                <input type="hidden" name="response" value="no" />
+                                <Button type="submit" size="small" color="danger">
+                                  No
+                                </Button>
+                              </form>
+                            </>
+                          ) : userRsvp === "no" ? (
+                            <>
+                              <span class="tag is-danger is-small">Not Attending</span>
+                              <form
+                                method="POST"
+                                action={actions.events.rsvp}
+                                style="display:inline"
+                              >
+                                <input type="hidden" name="ensembleId" value={ensemble.id} />
+                                <input type="hidden" name="eventId" value={event.id} />
+                                <input type="hidden" name="response" value="yes" />
+                                <Button type="submit" size="small" color="success">
+                                  Yes
+                                </Button>
+                              </form>
+                            </>
+                          ) : (
+                            <>
+                              <form
+                                method="POST"
+                                action={actions.events.rsvp}
+                                style="display:inline"
+                              >
+                                <input type="hidden" name="ensembleId" value={ensemble.id} />
+                                <input type="hidden" name="eventId" value={event.id} />
+                                <input type="hidden" name="response" value="yes" />
+                                <Button type="submit" size="small" color="success">
+                                  Yes
+                                </Button>
+                              </form>
+                              <form
+                                method="POST"
+                                action={actions.events.rsvp}
+                                style="display:inline"
+                              >
+                                <input type="hidden" name="ensembleId" value={ensemble.id} />
+                                <input type="hidden" name="eventId" value={event.id} />
+                                <input type="hidden" name="response" value="no" />
+                                <Button type="submit" size="small" color="danger">
+                                  No
+                                </Button>
+                              </form>
+                            </>
                           )}
                         </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </Table>
-          </div>
-        )}
-
-        {pastEvents.length > 0 && (
-          <div>
-            <Title as="h2" size={5} class="mb-3">
-              Past
-            </Title>
-            <Table>
-              <thead>
-                <tr>
-                  <th>Title</th>
-                  <th>Type</th>
-                  <th>Group</th>
-                  <th>Date</th>
-                  <th>Time</th>
-                  <th>Location</th>
-                  <th style="width: 100px;">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pastEvents.map((event) => {
-                  const scheduledDate = new Date(event.scheduledAt);
-                  return (
-                    <tr>
-                      <td>{event.title}</td>
-                      <td>
-                        {(() => {
-                          const ct = categoryTag(event.category);
-                          return (
-                            <span class={`tag is-light ${ct.color}`}>
-                              {ct.label}
-                            </span>
-                          );
-                        })()}
-                      </td>
-                      <td>
-                        {event.groupName ? (
-                          <Tag
-                            color={event.groupColor as any}
-                            size="small"
-                            light
-                          >
-                            {event.groupName}
-                          </Tag>
-                        ) : (
-                          <span class="has-text-grey-light">—</span>
-                        )}
-                      </td>
-                      <td>{formatZonedDate(scheduledDate, ensemble.timezone)}</td>
-                      <td>{formatZonedTime(scheduledDate, ensemble.timezone)}</td>
-                      <td>{event.location || "-"}</td>
-                      <td>
-                        <Button
-                          href={`/ensembles/${canonicalId}/events/${event.id}`}
-                          size="small"
-                        >
-                          {isAdmin ? "Attendance" : "Details"}
+                      ) : (
+                        <span class="has-text-grey-light">—</span>
+                      )}
+                    </td>
+                    <td>
+                      <div class="buttons are-small">
+                        <Button href={`/ensembles/${canonicalId}/events/${event.id}`} color="info">
+                          View
                         </Button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </Table>
-          </div>
-        )}
-      </>
-    )
-  }
+                        {isAdmin && (
+                          <Button color="danger" class="delete-event-btn" data-event-id={event.id}>
+                            <Icon icon="fa-trash" />
+                          </Button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </Table>
+        </div>
+      )}
+
+      {pastEvents.length > 0 && (
+        <div>
+          <Title as="h2" size={5} class="mb-3">
+            Past
+          </Title>
+          <Table>
+            <thead>
+              <tr>
+                <th>Title</th>
+                <th>Type</th>
+                <th>Group</th>
+                <th>Date</th>
+                <th>Time</th>
+                <th>Location</th>
+                <th style="width: 100px;">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {pastEvents.map((event) => {
+                const scheduledDate = new Date(event.scheduledAt);
+                return (
+                  <tr>
+                    <td>{event.title}</td>
+                    <td>
+                      {(() => {
+                        const ct = categoryTag(event.category);
+                        return <span class={`tag is-light ${ct.color}`}>{ct.label}</span>;
+                      })()}
+                    </td>
+                    <td>
+                      {event.groupName ? (
+                        <Tag color={event.groupColor as any} size="small" light>
+                          {event.groupName}
+                        </Tag>
+                      ) : (
+                        <span class="has-text-grey-light">—</span>
+                      )}
+                    </td>
+                    <td>{formatZonedDate(scheduledDate, ensemble.timezone)}</td>
+                    <td>{formatZonedTime(scheduledDate, ensemble.timezone)}</td>
+                    <td>{event.location || "-"}</td>
+                    <td>
+                      <Button href={`/ensembles/${canonicalId}/events/${event.id}`} size="small">
+                        {isAdmin ? "Attendance" : "Details"}
+                      </Button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </Table>
+        </div>
+      )}
+    </>
+  )}
 
   <Fragment slot="modals">
     <!-- Create Event Modal -->
-    {
-      isAdmin && (
-        <Modal id="create-modal" title="Schedule Event">
-          <form id="createForm" method="POST" action={actions.events.create}>
-            <input type="hidden" name="ensembleId" value={ensemble.id} />
+    {isAdmin && (
+      <Modal id="create-modal" title="Schedule Event">
+        <form id="createForm" method="POST" action={actions.events.create}>
+          <input type="hidden" name="ensembleId" value={ensemble.id} />
 
-            <Columns>
-              <Column>
-                <TextInput
-                  name="title"
-                  label="Title *"
-                  placeholder="Weekly Rehearsal"
-                  required
-                />
-              </Column>
+          <Columns>
+            <Column>
+              <TextInput name="title" label="Title *" placeholder="Weekly Rehearsal" required />
+            </Column>
+            <Column narrow>
+              <Select id="category" name="category" label="Type *">
+                <option value="rehearsal">Rehearsal</option>
+                <option value="performance">Performance</option>
+                <option value="social">Social</option>
+                <option value="sectional">Sectional</option>
+              </Select>
+            </Column>
+            {groups.length > 0 && (
               <Column narrow>
-                <Select id="category" name="category" label="Type *">
-                  <option value="rehearsal">Rehearsal</option>
-                  <option value="performance">Performance</option>
-                  <option value="social">Social</option>
-                  <option value="sectional">Sectional</option>
+                <Select id="groupId" name="groupId" label="Group">
+                  <option value="">— All Members —</option>
+                  {groups.map((g) => (
+                    <option value={g.id}>{g.name}</option>
+                  ))}
                 </Select>
               </Column>
-              {groups.length > 0 && (
-                <Column narrow>
-                  <Select id="groupId" name="groupId" label="Group">
-                    <option value="">— All Members —</option>
-                    {groups.map((g) => (
-                      <option value={g.id}>{g.name}</option>
-                    ))}
-                  </Select>
-                </Column>
-              )}
-            </Columns>
+            )}
+          </Columns>
 
-            <Select
-              name="rsvpEnabled"
-              label="RSVP"
-              help="Whether members can RSVP for this event."
-            >
-              <option value="">Default (based on type)</option>
-              <option value="1">Enabled</option>
-              <option value="0">Disabled</option>
-            </Select>
+          <Select name="rsvpEnabled" label="RSVP" help="Whether members can RSVP for this event.">
+            <option value="">Default (based on type)</option>
+            <option value="1">Enabled</option>
+            <option value="0">Disabled</option>
+          </Select>
 
-            <TextInput
-              name="location"
-              label="Location"
-              placeholder="Music Hall, Room 101"
-            />
+          <TextInput name="location" label="Location" placeholder="Music Hall, Room 101" />
 
-            <Columns>
-              <Column>
-                <TextInput name="date" label="Date *" type="date" required />
-              </Column>
-              <Column>
-                <TextInput
-                  name="time"
-                  label="Time *"
-                  type="time"
-                  required
-                  help={ensemble.timezone.replaceAll("_", " ")}
-                />
-              </Column>
-              <Column>
-                <TextInput
-                  name="durationMinutes"
-                  label="Duration (min)"
-                  type="number"
-                  value="90"
-                  min="15"
-                  max="480"
-                />
-              </Column>
-            </Columns>
+          <Columns>
+            <Column>
+              <TextInput name="date" label="Date *" type="date" required />
+            </Column>
+            <Column>
+              <TextInput
+                name="time"
+                label="Time *"
+                type="time"
+                required
+                help={ensemble.timezone.replaceAll("_", " ")}
+              />
+            </Column>
+            <Column>
+              <TextInput
+                name="durationMinutes"
+                label="Duration (min)"
+                type="number"
+                value="90"
+                min="15"
+                max="480"
+              />
+            </Column>
+          </Columns>
 
-            <Textarea
-              id="description"
-              name="description"
-              label="Description"
-              placeholder="Optional notes about this event"
-              rows={3}
-            />
-          </form>
+          <Textarea
+            id="description"
+            name="description"
+            label="Description"
+            placeholder="Optional notes about this event"
+            rows={3}
+          />
+        </form>
 
-          <div slot="footer">
-            <Button type="submit" form="createForm" color="primary">
-              Schedule
-            </Button>
-            <Button type="button" data-modal-close>
-              Cancel
-            </Button>
-          </div>
-        </Modal>
-      )
-    }
+        <div slot="footer">
+          <Button type="submit" form="createForm" color="primary">
+            Schedule
+          </Button>
+          <Button type="button" data-modal-close>
+            Cancel
+          </Button>
+        </div>
+      </Modal>
+    )}
 
     <!-- Delete Confirmation Modal -->
-    {
-      isAdmin && (
-        <Modal id="delete-modal" title="Delete Event">
-          <p>
-            Are you sure you want to delete this event? This action cannot be
-            undone.
-          </p>
-          <form id="deleteForm" method="POST" action={actions.events.delete}>
-            <input type="hidden" name="ensembleId" value={ensemble.id} />
-            <input type="hidden" name="eventId" id="deleteEventId" />
-          </form>
+    {isAdmin && (
+      <Modal id="delete-modal" title="Delete Event">
+        <p>Are you sure you want to delete this event? This action cannot be undone.</p>
+        <form id="deleteForm" method="POST" action={actions.events.delete}>
+          <input type="hidden" name="ensembleId" value={ensemble.id} />
+          <input type="hidden" name="eventId" id="deleteEventId" />
+        </form>
 
-          <div slot="footer">
-            <Button type="submit" form="deleteForm" color="danger">
-              Delete
-            </Button>
-            <Button type="button" data-modal-close>
-              Cancel
-            </Button>
-          </div>
-        </Modal>
-      )
-    }
+        <div slot="footer">
+          <Button type="submit" form="deleteForm" color="danger">
+            Delete
+          </Button>
+          <Button type="button" data-modal-close>
+            Cancel
+          </Button>
+        </div>
+      </Modal>
+    )}
 
     <script is:inline>
       document.addEventListener("astro:page-load", () => {
-        document
-          .getElementById("create-event-btn")
-          ?.addEventListener("click", () => {
-            document.getElementById("create-modal")?.classList.add("is-active");
-          });
+        document.getElementById("create-event-btn")?.addEventListener("click", () => {
+          document.getElementById("create-modal")?.classList.add("is-active");
+        });
 
         document.querySelectorAll(".delete-event-btn").forEach((btn) => {
           btn.addEventListener("click", () => {
-            document.getElementById("deleteEventId").value =
-              btn.getAttribute("data-event-id");
+            document.getElementById("deleteEventId").value = btn.getAttribute("data-event-id");
             document.getElementById("delete-modal")?.classList.add("is-active");
           });
         });

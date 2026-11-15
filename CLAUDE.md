@@ -11,7 +11,7 @@ pnpm build            # Production build (no DB connection needed)
 pnpm preview          # Preview the production build locally
 pnpm check            # TypeScript type checking via astro check
 pnpm lint             # Oxlint on the whole repo (TS files plus <script> blocks in .astro; frontmatter is covered by pnpm check)
-pnpm fmt              # Auto-fix lint issues
+pnpm fmt              # Auto-fix lint issues and format .astro files with oxfmt
 pnpm db:generate      # Generate a drizzle migration from db/schema.ts changes
 pnpm db:migrate       # Apply migrations to the remote Turso DB (reads .env)
 ```

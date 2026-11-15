@@ -64,36 +64,28 @@ const features = [
 
 <BaseLayout title="Home">
   <Hero color="primary" size="medium">
-    <Title as="p">
-      Welcome to {APP_NAME}
-    </Title>
-    <Subtitle as="p">
-      {APP_SLOGAN}
-    </Subtitle>
-    {
-      !user && (
-        <div class="buttons mt-4">
-          <Button href="/register" color="light" size="large">
-            <Icon icon="fa-user-plus" />
-            <span>Sign Up Free</span>
-          </Button>
-          <Button href="/login" color="primary" size="large" style="outlined">
-            <Icon icon="fa-sign-in-alt" />
-            <span>Log In</span>
-          </Button>
-        </div>
-      )
-    }
-    {
-      user && (
-        <div class="buttons mt-4">
-          <Button href="/ensembles" color="light" size="large">
-            <Icon icon="fa-users" />
-            <span>My Ensembles</span>
-          </Button>
-        </div>
-      )
-    }
+    <Title as="p">Welcome to {APP_NAME}</Title>
+    <Subtitle as="p">{APP_SLOGAN}</Subtitle>
+    {!user && (
+      <div class="buttons mt-4">
+        <Button href="/register" color="light" size="large">
+          <Icon icon="fa-user-plus" />
+          <span>Sign Up Free</span>
+        </Button>
+        <Button href="/login" color="primary" size="large" style="outlined">
+          <Icon icon="fa-sign-in-alt" />
+          <span>Log In</span>
+        </Button>
+      </div>
+    )}
+    {user && (
+      <div class="buttons mt-4">
+        <Button href="/ensembles" color="light" size="large">
+          <Icon icon="fa-users" />
+          <span>My Ensembles</span>
+        </Button>
+      </div>
+    )}
   </Hero>
 
   <Section>
@@ -102,26 +94,19 @@ const features = [
         Everything your ensemble needs
       </Title>
       <Columns multiline>
-        {
-          features.map((feature) => (
-            <Column size="half">
-              <Box>
-                <Media>
-                  <Icon
-                    slot="left"
-                    icon={`fa-2x ${feature.icon}`}
-                    size="large"
-                    color="primary"
-                  />
-                  <Title as="h3" size={5}>
-                    {feature.title}
-                  </Title>
-                  <p>{feature.text}</p>
-                </Media>
-              </Box>
-            </Column>
-          ))
-        }
+        {features.map((feature) => (
+          <Column size="half">
+            <Box>
+              <Media>
+                <Icon slot="left" icon={`fa-2x ${feature.icon}`} size="large" color="primary" />
+                <Title as="h3" size={5}>
+                  {feature.title}
+                </Title>
+                <p>{feature.text}</p>
+              </Media>
+            </Box>
+          </Column>
+        ))}
       </Columns>
     </Container>
   </Section>
@@ -135,11 +120,12 @@ const features = [
           </span>
         </Column>
         <Column>
-          <Title as="h2" size={3}>Free &amp; open source</Title>
+          <Title as="h2" size={3}>
+            Free &amp; open source
+          </Title>
           <Subtitle as="p" size={5}>
-            Tutti Belli is open source software. You're welcome to run your
-            ensemble on the hosted site — or self-host it on your own
-            infrastructure if you prefer to keep full control.
+            Tutti Belli is open source software. You're welcome to run your ensemble on the hosted
+            site — or self-host it on your own infrastructure if you prefer to keep full control.
           </Subtitle>
           <Button
             href="https://github.com/lanesawyer/tutti-belli"
@@ -164,10 +150,11 @@ const features = [
           </span>
         </Column>
         <Column>
-          <Title as="h2" size={3}>Get in touch</Title>
+          <Title as="h2" size={3}>
+            Get in touch
+          </Title>
           <Subtitle as="p" size={5}>
-            Have a feature request, found a bug, or want to get involved? Open
-            an issue on GitHub.
+            Have a feature request, found a bug, or want to get involved? Open an issue on GitHub.
           </Subtitle>
           <div class="buttons">
             <Button
@@ -185,52 +172,48 @@ const features = [
     </Container>
   </Section>
 
-  {
-    !user && (
-      <Section>
-        <Content class="has-text-centered">
-          <Title as="h2" size={3}>
-            Ready to get organized?
-          </Title>
-          <Subtitle as="p" size={5}>
-            Create an account and start managing your ensemble today.
-          </Subtitle>
-          <div class="buttons is-centered">
-            <Button href="/register" color="primary" size="large">
-              <Icon icon="fa-user-plus" />
-              <span>Sign Up Free</span>
-            </Button>
-            <Button href="/login" color="light" size="large">
-              <Icon icon="fa-sign-in-alt" />
-              <span>Log In</span>
-            </Button>
-          </div>
-        </Content>
-      </Section>
-    )
-  }
+  {!user && (
+    <Section>
+      <Content class="has-text-centered">
+        <Title as="h2" size={3}>
+          Ready to get organized?
+        </Title>
+        <Subtitle as="p" size={5}>
+          Create an account and start managing your ensemble today.
+        </Subtitle>
+        <div class="buttons is-centered">
+          <Button href="/register" color="primary" size="large">
+            <Icon icon="fa-user-plus" />
+            <span>Sign Up Free</span>
+          </Button>
+          <Button href="/login" color="light" size="large">
+            <Icon icon="fa-sign-in-alt" />
+            <span>Log In</span>
+          </Button>
+        </div>
+      </Content>
+    </Section>
+  )}
 
-  {
-    user && (
-      <Section>
-        <Content class="has-text-centered">
-          <Title as="h2" size={3}>
-            Welcome back, {user.name}!
-          </Title>
-          <div class="buttons is-centered">
-            <Button href="/ensembles" color="primary" size="large">
-              <Icon icon="fa-users" />
-              <span>View My Ensembles</span>
+  {user && (
+    <Section>
+      <Content class="has-text-centered">
+        <Title as="h2" size={3}>
+          Welcome back, {user.name}!
+        </Title>
+        <div class="buttons is-centered">
+          <Button href="/ensembles" color="primary" size="large">
+            <Icon icon="fa-users" />
+            <span>View My Ensembles</span>
+          </Button>
+          {user.role === "admin" && (
+            <Button href="/admin" color="info" size="large">
+              <Icon icon="fa-cog" />
+              <span>Admin Panel</span>
             </Button>
-            {user.role === "admin" && (
-              <Button href="/admin" color="info" size="large">
-                <Icon icon="fa-cog" />
-                <span>Admin Panel</span>
-              </Button>
-            )}
-          </div>
-        </Content>
-      </Section>
-    )
-  }
+          )}
+        </div>
+      </Content>
+    </Section>
+  )}
 </BaseLayout>

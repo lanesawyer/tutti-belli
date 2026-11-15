@@ -26,15 +26,8 @@ import { actions } from "astro:actions";
 const user = Astro.locals.user!;
 const { id } = Astro.params;
 
-const {
-  ensemble,
-  songs,
-  parts,
-  seasons,
-  songPartsData,
-  seasonSongsData,
-  songFilesData,
-} = await getSongsPageData(id!);
+const { ensemble, songs, parts, seasons, songPartsData, seasonSongsData, songFilesData } =
+  await getSongsPageData(id!);
 
 if (!ensemble) {
   return new Response("Ensemble not found", { status: 404 });
@@ -68,15 +61,11 @@ if (
   return Astro.redirect(`/ensembles/${canonicalId}/songs`);
 }
 
-const addError =
-  addResult?.error?.message ??
-  (addResult?.error ? "Failed to add song." : null);
+const addError = addResult?.error?.message ?? (addResult?.error ? "Failed to add song." : null);
 const editError =
-  editResult?.error?.message ??
-  (editResult?.error ? "Failed to update song." : null);
+  editResult?.error?.message ?? (editResult?.error ? "Failed to update song." : null);
 const deleteError =
-  deleteResult?.error?.message ??
-  (deleteResult?.error ? "Failed to delete song." : null);
+  deleteResult?.error?.message ?? (deleteResult?.error ? "Failed to delete song." : null);
 
 const ensembleSongIds = new Set(songs.map((s) => s.id));
 const songPartsMap = buildSongPartsMap(songPartsData);
@@ -92,146 +81,112 @@ const songFilesMap = buildSongFilesMap(ensembleSongIds, songFilesData);
   pageSubtitle={`Repertoire for ${ensemble.name}`}
   isAdmin={isAdmin}
 >
-  {
-    isAdmin && (
-      <Button slot="action" color="primary" id="add-song-btn">
-        <Icon icon="fa-plus" />
-        <span>Add Song</span>
-      </Button>
-    )
-  }
+  {isAdmin && (
+    <Button slot="action" color="primary" id="add-song-btn">
+      <Icon icon="fa-plus" />
+      <span>Add Song</span>
+    </Button>
+  )}
 
-  {
-    songs.length === 0 ? (
-      <Notification color="info" light>
-        No songs added yet. Click "Add Song" to get started.
-      </Notification>
-    ) : (
-      <Table>
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Composer</th>
-            <th>Arranger</th>
-            <th>Runtime</th>
-            <th>Parts</th>
-            <th>Seasons</th>
-            <th style="width: 1%; white-space: nowrap;">Files</th>
-          </tr>
-        </thead>
-        <tbody>
-          {songs.map((song) => {
-            const songParts = songPartsMap.get(song.id) || [];
-            const songSeasons = songSeasonsMap.get(song.id) || [];
-            const songFiles = songFilesMap.get(song.id) || [];
-            return (
-              <tr>
-                <td>
-                  <a
-                    href={`/ensembles/${canonicalId}/songs/${song.id}`}
-                    class="has-text-weight-bold"
-                  >
-                    {song.name}
-                  </a>
-                </td>
-                <td>{song.composer || "-"}</td>
-                <td>{song.arranger || "-"}</td>
-                <td>{formatRuntime(song.runTime)}</td>
-                <td>
-                  {songParts.length > 0 ? (
-                    <div class="tags are-small">
-                      {songParts.map((partId: string) => {
-                        const part = parts.find((p) => p.id === partId);
-                        return part ? (
-                          <Tag color="info">{part.name}</Tag>
-                        ) : null;
-                      })}
-                    </div>
-                  ) : (
-                    "-"
-                  )}
-                </td>
-                <td>
-                  {songSeasons.length > 0 ? (
-                    <div class="tags are-small">
-                      {songSeasons.map((seasonId: string) => {
-                        const season = seasons.find((s) => s.id === seasonId);
-                        return season ? (
-                          <Tag color="primary">{season.name}</Tag>
-                        ) : null;
-                      })}
-                    </div>
-                  ) : (
-                    "-"
-                  )}
-                </td>
-                <td>
-                  <div class="buttons are-small is-flex-wrap-nowrap">
-                    <Button
-                      class="is-linkspan files-btn"
-                      data-song-id={song.id}
-                      data-song-name={song.name}
-                    >
-                      <Icon icon="fa-folder-open" size="small" />
-                      {songFiles.length > 0 && <span>{songFiles.length}</span>}
-                    </Button>
-                    {isAdmin && (
-                      <>
-                        <Button
-                          color="info"
-                          class="edit-btn"
-                          data-song-id={song.id}
-                        >
-                          <Icon icon="fa-pencil" size="small" />
-                        </Button>
-                        <Button
-                          color="danger"
-                          class="delete-btn"
-                          data-song-id={song.id}
-                        >
-                          <Icon icon="fa-trash" size="small" />
-                        </Button>
-                      </>
-                    )}
+  {songs.length === 0 ? (
+    <Notification color="info" light>
+      No songs added yet. Click "Add Song" to get started.
+    </Notification>
+  ) : (
+    <Table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Composer</th>
+          <th>Arranger</th>
+          <th>Runtime</th>
+          <th>Parts</th>
+          <th>Seasons</th>
+          <th style="width: 1%; white-space: nowrap;">Files</th>
+        </tr>
+      </thead>
+      <tbody>
+        {songs.map((song) => {
+          const songParts = songPartsMap.get(song.id) || [];
+          const songSeasons = songSeasonsMap.get(song.id) || [];
+          const songFiles = songFilesMap.get(song.id) || [];
+          return (
+            <tr>
+              <td>
+                <a href={`/ensembles/${canonicalId}/songs/${song.id}`} class="has-text-weight-bold">
+                  {song.name}
+                </a>
+              </td>
+              <td>{song.composer || "-"}</td>
+              <td>{song.arranger || "-"}</td>
+              <td>{formatRuntime(song.runTime)}</td>
+              <td>
+                {songParts.length > 0 ? (
+                  <div class="tags are-small">
+                    {songParts.map((partId: string) => {
+                      const part = parts.find((p) => p.id === partId);
+                      return part ? <Tag color="info">{part.name}</Tag> : null;
+                    })}
                   </div>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </Table>
-    )
-  }
+                ) : (
+                  "-"
+                )}
+              </td>
+              <td>
+                {songSeasons.length > 0 ? (
+                  <div class="tags are-small">
+                    {songSeasons.map((seasonId: string) => {
+                      const season = seasons.find((s) => s.id === seasonId);
+                      return season ? <Tag color="primary">{season.name}</Tag> : null;
+                    })}
+                  </div>
+                ) : (
+                  "-"
+                )}
+              </td>
+              <td>
+                <div class="buttons are-small is-flex-wrap-nowrap">
+                  <Button
+                    class="is-linkspan files-btn"
+                    data-song-id={song.id}
+                    data-song-name={song.name}
+                  >
+                    <Icon icon="fa-folder-open" size="small" />
+                    {songFiles.length > 0 && <span>{songFiles.length}</span>}
+                  </Button>
+                  {isAdmin && (
+                    <>
+                      <Button color="info" class="edit-btn" data-song-id={song.id}>
+                        <Icon icon="fa-pencil" size="small" />
+                      </Button>
+                      <Button color="danger" class="delete-btn" data-song-id={song.id}>
+                        <Icon icon="fa-trash" size="small" />
+                      </Button>
+                    </>
+                  )}
+                </div>
+              </td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </Table>
+  )}
 
   <Fragment slot="modals">
     <!-- Add Song Modal -->
     <Modal id="addModal" title="Add Song">
-      {
-        addError && (
-          <Notification color="danger" light dismissible class="mb-4">
-            {addError}
-          </Notification>
-        )
-      }
+      {addError && (
+        <Notification color="danger" light dismissible class="mb-4">
+          {addError}
+        </Notification>
+      )}
       <form id="addForm" method="POST" action={actions.songs.add}>
         <input type="hidden" name="ensembleId" value={ensemble.id} />
 
-        <TextInput
-          name="name"
-          label="Song Name *"
-          placeholder="Song name"
-          required
-        />
-        <TextInput
-          name="composer"
-          label="Composer"
-          placeholder="Composer name"
-        />
-        <TextInput
-          name="arranger"
-          label="Arranger"
-          placeholder="Arranger name"
-        />
+        <TextInput name="name" label="Song Name *" placeholder="Song name" required />
+        <TextInput name="composer" label="Composer" placeholder="Composer name" />
+        <TextInput name="arranger" label="Arranger" placeholder="Arranger name" />
 
         <div class="field">
           <label class="label">Runtime</label>
@@ -264,48 +219,43 @@ const songFilesMap = buildSongFilesMap(ensembleSongIds, songFilesData);
           <p class="help">Leave blank if unknown</p>
         </div>
 
-        {
-          parts.length > 0 && (
-            <div class="field">
-              <label class="label">Parts</label>
-              <div class="control">
-                {parts.map((part) => (
-                  <Checkbox
-                    name="parts"
-                    value={part.id}
-                    label={part.name}
-                    class="is-block mb-2"
-                  />
-                ))}
-              </div>
-              <p class="help">Select which parts sing this song</p>
+        {parts.length > 0 && (
+          <div class="field">
+            <label class="label">Parts</label>
+            <div class="control">
+              {parts.map((part) => (
+                <Checkbox name="parts" value={part.id} label={part.name} class="is-block mb-2" />
+              ))}
             </div>
-          )
-        }
+            <p class="help">Select which parts sing this song</p>
+          </div>
+        )}
 
-        {
-          seasons.length > 0 && (
-            <div class="field">
-              <label class="label">Seasons</label>
-              <div class="control">
-                {seasons.map((season) => (
-                  <Checkbox
-                    name="seasons"
-                    value={season.id}
-                    label={season.name}
-                    class="is-block mb-2"
-                  />
-                ))}
-              </div>
-              <p class="help">Assign to seasons (optional)</p>
+        {seasons.length > 0 && (
+          <div class="field">
+            <label class="label">Seasons</label>
+            <div class="control">
+              {seasons.map((season) => (
+                <Checkbox
+                  name="seasons"
+                  value={season.id}
+                  label={season.name}
+                  class="is-block mb-2"
+                />
+              ))}
             </div>
-          )
-        }
+            <p class="help">Assign to seasons (optional)</p>
+          </div>
+        )}
       </form>
 
       <div slot="footer">
-        <Button type="submit" form="addForm" color="primary">Add Song</Button>
-        <Button type="button" data-modal-close>Cancel</Button>
+        <Button type="submit" form="addForm" color="primary">
+          Add Song
+        </Button>
+        <Button type="button" data-modal-close>
+          Cancel
+        </Button>
       </div>
     </Modal>
 
@@ -317,76 +267,68 @@ const songFilesMap = buildSongFilesMap(ensembleSongIds, songFilesData);
 
       <div id="filesModalList"></div>
 
-      {
-        isAdmin && (
-          <>
-            <hr />
+      {isAdmin && (
+        <>
+          <hr />
 
-            <Title as="h3" size={6}>
-              Add File
-            </Title>
-            <form id="addFileForm" method="POST" action={actions.songs.addFile}>
-              <input type="hidden" name="ensembleId" value={ensemble.id} />
-              <input type="hidden" name="songId" id="addFileSongId" />
+          <Title as="h3" size={6}>
+            Add File
+          </Title>
+          <form id="addFileForm" method="POST" action={actions.songs.addFile}>
+            <input type="hidden" name="ensembleId" value={ensemble.id} />
+            <input type="hidden" name="songId" id="addFileSongId" />
 
-              <TextInput
-                name="fileName"
-                id="fileName"
-                label="Display Name *"
-                placeholder="e.g. Soprano Sheet Music"
-                size="small"
-                required
-              />
-              <TextInput
-                name="fileUrl"
-                id="fileUrl"
-                label="File URL *"
-                type="url"
-                placeholder="https://..."
-                size="small"
-                required
-                help="Paste the download URL for this file"
-              />
+            <TextInput
+              name="fileName"
+              id="fileName"
+              label="Display Name *"
+              placeholder="e.g. Soprano Sheet Music"
+              size="small"
+              required
+            />
+            <TextInput
+              name="fileUrl"
+              id="fileUrl"
+              label="File URL *"
+              type="url"
+              placeholder="https://..."
+              size="small"
+              required
+              help="Paste the download URL for this file"
+            />
 
-              <Select
-                id="category"
-                name="category"
-                label="Category"
-                size="small"
-                fullwidth
-              >
-                <option value="sheet_music">Sheet Music</option>
-                <option value="rehearsal_track">Rehearsal Track</option>
-                <option value="other">Other</option>
-              </Select>
+            <Select id="category" name="category" label="Category" size="small" fullwidth>
+              <option value="sheet_music">Sheet Music</option>
+              <option value="rehearsal_track">Rehearsal Track</option>
+              <option value="other">Other</option>
+            </Select>
 
-              <div class="field">
-                <div class="control">
-                  <Button type="submit" color="primary" size="small">
-                    <Icon icon="fa-plus" size="small" />
-                    <span>Add File</span>
-                  </Button>
-                </div>
+            <div class="field">
+              <div class="control">
+                <Button type="submit" color="primary" size="small">
+                  <Icon icon="fa-plus" size="small" />
+                  <span>Add File</span>
+                </Button>
               </div>
-            </form>
-          </>
-        )
-      }
+            </div>
+          </form>
+        </>
+      )}
 
       <div slot="footer">
-        <Button type="button" data-modal-close>Close</Button>
+        <Button type="button" data-modal-close>
+          Close
+        </Button>
       </div>
     </Modal>
 
     <!-- Edit Modal -->
     <Modal id="editModal" title="Edit Song">
-      {
-        editError && (
-          <Notification color="danger" light dismissible class="mb-4">
-            {editError}
-          </Notification>
-        )
-      }
+      {editError && (
+        <Notification color="danger" light dismissible class="mb-4">
+          {editError}
+        </Notification>
+      )}
       <form id="editForm" method="POST" action={actions.songs.edit}>
         <input type="hidden" name="ensembleId" value={ensemble.id} />
         <input type="hidden" name="songId" id="editSongId" />
@@ -427,71 +369,64 @@ const songFilesMap = buildSongFilesMap(ensembleSongIds, songFilesData);
           </div>
         </div>
 
-        {
-          parts.length > 0 && (
-            <div class="field">
-              <label class="label">Parts</label>
-              <div class="control" id="editParts">
-                {parts.map((part) => (
-                  <Checkbox
-                    name="parts"
-                    value={part.id}
-                    label={part.name}
-                    class="is-block mb-2"
-                  />
-                ))}
-              </div>
+        {parts.length > 0 && (
+          <div class="field">
+            <label class="label">Parts</label>
+            <div class="control" id="editParts">
+              {parts.map((part) => (
+                <Checkbox name="parts" value={part.id} label={part.name} class="is-block mb-2" />
+              ))}
             </div>
-          )
-        }
+          </div>
+        )}
 
-        {
-          seasons.length > 0 && (
-            <div class="field">
-              <label class="label">Seasons</label>
-              <div class="control" id="editSeasons">
-                {seasons.map((season) => (
-                  <Checkbox
-                    name="seasons"
-                    value={season.id}
-                    label={season.name}
-                    class="is-block mb-2"
-                  />
-                ))}
-              </div>
+        {seasons.length > 0 && (
+          <div class="field">
+            <label class="label">Seasons</label>
+            <div class="control" id="editSeasons">
+              {seasons.map((season) => (
+                <Checkbox
+                  name="seasons"
+                  value={season.id}
+                  label={season.name}
+                  class="is-block mb-2"
+                />
+              ))}
             </div>
-          )
-        }
+          </div>
+        )}
       </form>
 
       <div slot="footer">
-        <Button type="submit" form="editForm" color="primary"
-          >Save Changes</Button
-        >
-        <Button type="button" data-modal-close>Cancel</Button>
+        <Button type="submit" form="editForm" color="primary">
+          Save Changes
+        </Button>
+        <Button type="button" data-modal-close>
+          Cancel
+        </Button>
       </div>
     </Modal>
 
     <!-- Delete Confirmation Modal -->
     <Modal id="deleteModal" title="Delete Song">
-      {
-        deleteError && (
-          <Notification color="danger" light dismissible class="mb-4">
-            {deleteError}
-          </Notification>
-        )
-      }
-      <p>
-        Are you sure you want to delete this song? This action cannot be undone.
-      </p>
+      {deleteError && (
+        <Notification color="danger" light dismissible class="mb-4">
+          {deleteError}
+        </Notification>
+      )}
+      <p>Are you sure you want to delete this song? This action cannot be undone.</p>
       <form id="deleteForm" method="POST" action={actions.songs.delete}>
         <input type="hidden" name="ensembleId" value={ensemble.id} />
         <input type="hidden" name="songId" id="deleteSongId" />
       </form>
 
       <div slot="footer">
-        <Button type="submit" form="deleteForm" color="danger">Delete</Button>
-        <Button type="button" data-modal-close>Cancel</Button>
+        <Button type="submit" form="deleteForm" color="danger">
+          Delete
+        </Button>
+        <Button type="button" data-modal-close>
+          Cancel
+        </Button>
       </div>
     </Modal>
 
@@ -504,13 +439,10 @@ const songFilesMap = buildSongFilesMap(ensembleSongIds, songFilesData);
       data-song-files={JSON.stringify(Array.from(songFilesMap.entries()))}
       data-is-admin={isAdmin ? "true" : "false"}
       data-ensemble-id={ensemble.id}
-      data-open-modal={addError
-        ? "addModal"
-        : editError
-          ? "editModal"
-          : deleteError
-            ? "deleteModal"
-            : ""}></script>
+      data-open-modal={
+        addError ? "addModal" : editError ? "editModal" : deleteError ? "deleteModal" : ""
+      }
+    ></script>
 
     <script is:inline>
       function initSongsPage() {
@@ -518,15 +450,9 @@ const songFilesMap = buildSongFilesMap(ensembleSongIds, songFilesData);
         if (!dataScript) return;
         const ensembleId = dataScript.dataset.ensembleId || "";
         const songsData = JSON.parse(dataScript.dataset.songs || "[]");
-        const songPartsMapJS = new Map(
-          JSON.parse(dataScript.dataset.songParts || "[]"),
-        );
-        const songSeasonsMapJS = new Map(
-          JSON.parse(dataScript.dataset.songSeasons || "[]"),
-        );
-        const songFilesMapJS = new Map(
-          JSON.parse(dataScript.dataset.songFiles || "[]"),
-        );
+        const songPartsMapJS = new Map(JSON.parse(dataScript.dataset.songParts || "[]"));
+        const songSeasonsMapJS = new Map(JSON.parse(dataScript.dataset.songSeasons || "[]"));
+        const songFilesMapJS = new Map(JSON.parse(dataScript.dataset.songFiles || "[]"));
         const isAdmin = dataScript.dataset.isAdmin === "true";
 
         function categoryLabel(cat) {
@@ -548,11 +474,9 @@ const songFilesMap = buildSongFilesMap(ensembleSongIds, songFilesData);
         }
 
         // ── Add modal ─────────────────────────────────────────────────────────────
-        document
-          .getElementById("add-song-btn")
-          ?.addEventListener("click", () => {
-            document.getElementById("addModal")?.classList.add("is-active");
-          });
+        document.getElementById("add-song-btn")?.addEventListener("click", () => {
+          document.getElementById("addModal")?.classList.add("is-active");
+        });
 
         // ── Files modal ──────────────────────────────────────────────────────────
 
@@ -595,8 +519,7 @@ const songFilesMap = buildSongFilesMap(ensembleSongIds, songFilesData);
           btn.addEventListener("click", () => {
             const songId = btn.getAttribute("data-song-id");
             const songName = btn.getAttribute("data-song-name");
-            document.getElementById("filesModalSongName").textContent =
-              songName;
+            document.getElementById("filesModalSongName").textContent = songName;
             document.getElementById("addFileSongId").value = songId;
             document.getElementById("fileName").value = "";
             document.getElementById("fileUrl").value = "";
@@ -622,29 +545,22 @@ const songFilesMap = buildSongFilesMap(ensembleSongIds, songFilesData);
             document.getElementById("editArranger").value = song.arranger || "";
 
             if (song.runTime) {
-              document.getElementById("editRunTimeMinutes").value = Math.floor(
-                song.runTime / 60,
-              );
-              document.getElementById("editRunTimeSeconds").value =
-                song.runTime % 60;
+              document.getElementById("editRunTimeMinutes").value = Math.floor(song.runTime / 60);
+              document.getElementById("editRunTimeSeconds").value = song.runTime % 60;
             } else {
               document.getElementById("editRunTimeMinutes").value = "";
               document.getElementById("editRunTimeSeconds").value = "";
             }
 
             const songParts = songPartsMapJS.get(songId) || [];
-            document
-              .querySelectorAll('#editParts input[type="checkbox"]')
-              .forEach((cb) => {
-                cb.checked = songParts.includes(cb.value);
-              });
+            document.querySelectorAll('#editParts input[type="checkbox"]').forEach((cb) => {
+              cb.checked = songParts.includes(cb.value);
+            });
 
             const songSeasons = songSeasonsMapJS.get(songId) || [];
-            document
-              .querySelectorAll('#editSeasons input[type="checkbox"]')
-              .forEach((cb) => {
-                cb.checked = songSeasons.includes(cb.value);
-              });
+            document.querySelectorAll('#editSeasons input[type="checkbox"]').forEach((cb) => {
+              cb.checked = songSeasons.includes(cb.value);
+            });
 
             editModal.classList.add("is-active");
           });
@@ -656,8 +572,7 @@ const songFilesMap = buildSongFilesMap(ensembleSongIds, songFilesData);
 
         document.querySelectorAll(".delete-btn").forEach((btn) => {
           btn.addEventListener("click", () => {
-            document.getElementById("deleteSongId").value =
-              btn.getAttribute("data-song-id");
+            document.getElementById("deleteSongId").value = btn.getAttribute("data-song-id");
             deleteModal.classList.add("is-active");
           });
         });
