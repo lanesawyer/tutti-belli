@@ -54,12 +54,13 @@ export default defineConfig({
       include: ['src/lib/**/*.ts', 'src/actions/**/*.ts', 'src/middleware.ts'],
       exclude: ['src/lib/email.ts', 'src/lib/storage.ts'],
       reporter: ['text', 'html'],
-      // Set just under the current numbers so coverage can only go up; raise them as it does.
+      // Just under what the integration project reaches by itself, which is how CI measures it.
+      // Raise them as coverage goes up.
       thresholds: {
-        statements: 89,
-        branches: 83,
-        functions: 86,
-        lines: 90,
+        statements: 82,
+        branches: 76,
+        functions: 80,
+        lines: 84,
       },
     },
   },
