@@ -6,6 +6,10 @@ const root = fileURLToPath(new URL('.', import.meta.url));
 
 const sharedAlias = {
   '@db': path.resolve(root, 'db/index.ts'),
+  '@lib': path.resolve(root, 'src/lib'),
+  '@actions': path.resolve(root, 'src/actions'),
+  'astro:actions': path.resolve(root, 'tests/support/astro-actions.ts'),
+  'astro:middleware': 'astro/middleware',
 };
 
 // Point @db at a single in-memory LibSQL database shared across the process
