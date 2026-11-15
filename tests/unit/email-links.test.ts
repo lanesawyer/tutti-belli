@@ -164,3 +164,67 @@ describe("email escaping", () => {
     for (const email of sent) expect(email.subject).not.toMatch(/[\r\n]/);
   });
 });
+
+describe("disabled email", () => {
+  let logs: string[];
+  beforeEach(() => {
+    sent.length = 0;
+    logs = [];
+    vi.spyOn(console, "log").mockImplementation((...args: unknown[]) => {
+      logs.push(args.join(" "));
+    });
+    vi.stubEnv("SITE_URL", SITE);
+  });
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllEnvs();
+  });
+
+  it("logs the recipient, subject and every link instead of sending", async () => {
+    vi.stubEnv("EMAIL_DISABLED", "true");
+    await sendAll("A", "Choir", "Title", "Body");
+
+    expect(sent).toHaveLength(0);
+    expect(logs).toContain(
+      '[email] disabled — skipping password reset email to="a@example.com" subject="Reset your password"',
+    );
+    expect(logs).toContain(`[email]   link: ${SITE}/reset-password?token=reset-token`);
+    expect(logs).toContain(`[email]   link: ${SITE}/verify-email?token=verify-token`);
+    expect(logs).toContain(`[email]   link: ${SITE}/verify-email-change?token=change-token`);
+    expect(logs).toContain(`[email]   link: ${SITE}/reset-password?token=welcome-token`);
+    expect(logs).toContain(`[email]   link: ${SITE}/ensembles/choir`);
+    expect(logs).toContain(
+      '[email] disabled — skipping announcement emails to="f@example.com" subject="[Choir] Title"',
+    );
+    expect(logs).toContain(`[email]   link: ${SITE}/ensembles/choir/announcements`);
+    expect(logs.filter((line) => line.includes("reset-token"))).toHaveLength(1);
+  });
+
+  it("logs links unescaped, as a browser would follow them", async () => {
+    vi.stubEnv("EMAIL_DISABLED", "true");
+    await sendPasswordResetEmail("a@example.com", "A", "a&b");
+    expect(logs).toContain(`[email]   link: ${SITE}/reset-password?token=a%26b`);
+    await sendAddedToEnsembleEmail("e@example.com", "E", "Choir", 'x"y');
+    expect(logs).toContain(`[email]   link: ${SITE}/ensembles/x%22y`);
+  });
+
+  it("logs nothing about recipients or links when sending is enabled", async () => {
+    vi.stubEnv("EMAIL_DISABLED", "");
+    vi.stubEnv("EMAIL_API_KEY", "test-key");
+    await sendPasswordResetEmail("a@example.com", "A", "reset-token");
+    await sendAnnouncementEmail(
+      [{ email: "f@example.com", name: "F" }],
+      "Choir",
+      "choir",
+      "T",
+      "B",
+      "A",
+    );
+
+    expect(sent).toHaveLength(2);
+    expect(logs).toEqual([
+      '[email] password reset email to="a@example.com"',
+      "[email] announcement emails to 1 recipients",
+    ]);
+  });
+});

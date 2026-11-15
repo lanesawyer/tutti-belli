@@ -85,15 +85,15 @@ jobs:
     name: E2E Tests
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    container:
-      image: mcr.microsoft.com/playwright:v1.61.1-noble
-      options: --user 1001
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
 
       - uses: jdx/mise-action@236a21c3b91f5db6d4e174b348674a0f0caac06d # v5.2.9
 
       - run: pnpm install --frozen-lockfile
+
+      # Installs the browser that matches the @playwright/test version in the lockfile.
+      - run: pnpm exec playwright install --with-deps chromium
 
       - run: pnpm test:e2e
         env:
