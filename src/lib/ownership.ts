@@ -138,12 +138,18 @@ export async function seasonsInEnsemble(seasonIds: string[], ensembleId: string)
   return rows.length === new Set(seasonIds).size;
 }
 
-/** Whether the user has a membership (any status) in the ensemble. */
+/** Whether the user is an active member of the ensemble. */
 export async function isUserInEnsemble(userId: string, ensembleId: string): Promise<boolean> {
   const row = await db
     .select({ id: EnsembleMember.id })
     .from(EnsembleMember)
-    .where(and(eq(EnsembleMember.userId, userId), eq(EnsembleMember.ensembleId, ensembleId)))
+    .where(
+      and(
+        eq(EnsembleMember.userId, userId),
+        eq(EnsembleMember.ensembleId, ensembleId),
+        eq(EnsembleMember.status, 'active'),
+      ),
+    )
     .get();
   return Boolean(row);
 }

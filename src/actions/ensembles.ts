@@ -15,6 +15,10 @@ import { validateImageFile } from "@lib/upload";
 import { uploadImage } from "@lib/storage";
 import { generateSlug } from "@lib/slug";
 import { randomCode } from "@lib/codes";
+
+// These render as <a href> for every member, so only web URLs are allowed (no javascript: etc.).
+const HTTP_URL = /^https?:\/\//i;
+const HTTP_URL_MESSAGE = "Links must start with http:// or https://.";
 import { isDiscordWebhookUrl } from "@lib/discord";
 import { isValidTimeZone } from "@lib/timezone";
 
@@ -74,7 +78,10 @@ export const ensembles = {
       name: z.string().min(1, "Ensemble name is required."),
       slug: z.string().optional(),
       description: z.string().optional(),
-      discordLink: z.string().optional(),
+      discordLink: z
+        .string()
+        .optional()
+        .refine((value) => !value?.trim() || HTTP_URL.test(value.trim()), HTTP_URL_MESSAGE),
       discordWebhookUrl: z
         .string()
         .trim()
@@ -150,7 +157,7 @@ export const ensembles = {
     input: z.object({
       ensembleId: z.string(),
       label: z.string().min(1, "Label is required."),
-      url: z.string().url("Please enter a valid URL."),
+      url: z.string().url("Please enter a valid URL.").regex(HTTP_URL, HTTP_URL_MESSAGE),
     }),
     handler: async (input, context) => {
       const user = context.locals.user;
