@@ -343,14 +343,12 @@ export const matrix: Record<string, MatrixEntry> = {
   "events.removeRsvp": {
     access: "member",
     fields: async (w) => {
-      await db
-        .insert(EventRsvp)
-        .values({
-          id: crypto.randomUUID(),
-          eventId: w.a.event.id,
-          userId: w.a.member.id,
-          response: "yes",
-        });
+      await db.insert(EventRsvp).values({
+        id: crypto.randomUUID(),
+        eventId: w.a.event.id,
+        userId: w.a.member.id,
+        response: "yes",
+      });
       return { ensembleId: w.a.ensemble.id, eventId: w.a.event.id };
     },
     foreign: { eventId: (w) => w.b.event.id },

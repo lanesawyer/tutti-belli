@@ -62,14 +62,12 @@ async function fullEnsemble(adminId: string, memberId: string) {
   await createEventProgramEntry(event!.id, song!.id);
   const task = await createTask(ensembleId, { seasonId: season!.id });
   await createTaskCompletion(task!.id, memberId, adminId);
-  await db
-    .insert(Attendance)
-    .values({
-      id: crypto.randomUUID(),
-      eventId: event!.id,
-      userId: memberId,
-      checkedInMethod: "qr",
-    });
+  await db.insert(Attendance).values({
+    id: crypto.randomUUID(),
+    eventId: event!.id,
+    userId: memberId,
+    checkedInMethod: "qr",
+  });
   await db
     .insert(EventRsvp)
     .values({ id: crypto.randomUUID(), eventId: event!.id, userId: memberId, response: "yes" });

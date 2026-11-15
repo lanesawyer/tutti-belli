@@ -32,24 +32,20 @@ export async function createEnsemble(params: {
   const id = crypto.randomUUID();
   const slug = await findUniqueSlug(params.name, id);
   await db.batch([
-    db
-      .insert(Ensemble)
-      .values({
-        id,
-        name: params.name,
-        slug,
-        description: params.description,
-        createdBy: params.createdBy,
-      }),
-    db
-      .insert(EnsembleMember)
-      .values({
-        id: crypto.randomUUID(),
-        ensembleId: id,
-        userId: params.createdBy,
-        role: "admin",
-        status: "active",
-      }),
+    db.insert(Ensemble).values({
+      id,
+      name: params.name,
+      slug,
+      description: params.description,
+      createdBy: params.createdBy,
+    }),
+    db.insert(EnsembleMember).values({
+      id: crypto.randomUUID(),
+      ensembleId: id,
+      userId: params.createdBy,
+      role: "admin",
+      status: "active",
+    }),
   ]);
   return { id, slug };
 }
