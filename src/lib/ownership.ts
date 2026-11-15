@@ -103,6 +103,17 @@ export async function partsInEnsemble(partIds: string[], ensembleId: string): Pr
   return rows.length === new Set(partIds).size;
 }
 
+/** Whether every season in `seasonIds` belongs to the ensemble. An empty list is trivially true. */
+export async function seasonsInEnsemble(seasonIds: string[], ensembleId: string): Promise<boolean> {
+  if (seasonIds.length === 0) return true;
+  const rows = await db
+    .select({ id: Season.id })
+    .from(Season)
+    .where(and(inArray(Season.id, seasonIds), eq(Season.ensembleId, ensembleId)))
+    .all();
+  return rows.length === new Set(seasonIds).size;
+}
+
 /** Whether the user has a membership (any status) in the ensemble. */
 export async function isUserInEnsemble(userId: string, ensembleId: string): Promise<boolean> {
   const row = await db

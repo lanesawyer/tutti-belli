@@ -1,7 +1,7 @@
 import { ActionError } from 'astro:actions';
 import { getEnsembleMembership } from '@lib/ensemble';
 import { canManageEnsemble } from '@lib/permissions';
-import { isInEnsemble, isUserInEnsemble, partsInEnsemble, type OwnedKind } from '@lib/ownership';
+import { isInEnsemble, isUserInEnsemble, partsInEnsemble, seasonsInEnsemble, type OwnedKind } from '@lib/ownership';
 
 export function assertSiteAdmin(user: { role: string } | undefined | null) {
   if (!user || user.role !== 'admin') {
@@ -46,6 +46,12 @@ export async function assertUserInEnsemble(userId: string, ensembleId: string) {
 
 export async function assertPartsInEnsemble(partIds: string[], ensembleId: string) {
   if (!(await partsInEnsemble(partIds, ensembleId))) {
+    throw new ActionError({ code: 'NOT_FOUND' });
+  }
+}
+
+export async function assertSeasonsInEnsemble(seasonIds: string[], ensembleId: string) {
+  if (!(await seasonsInEnsemble(seasonIds, ensembleId))) {
     throw new ActionError({ code: 'NOT_FOUND' });
   }
 }
