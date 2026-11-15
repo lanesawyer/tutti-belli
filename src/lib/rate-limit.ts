@@ -56,6 +56,11 @@ export const passwordResetsByIp = new RateLimiter(20, 60 * MINUTE);
 export const registrationsByIp = new RateLimiter(5, 60 * MINUTE);
 export const registrationsSiteWide = new RateLimiter(30, 60 * MINUTE);
 
+// Email changes send a verification email to the new address, so cap them per account and per
+// client. Every attempt counts, including ones rejected because the address is taken.
+export const emailChangesByUser = new RateLimiter(5, 60 * MINUTE);
+export const emailChangesByIp = new RateLimiter(20, 60 * MINUTE);
+
 export const verificationResendsByEmail = new RateLimiter(3, 60 * MINUTE);
 export const verificationResendsByIp = new RateLimiter(20, 60 * MINUTE);
 

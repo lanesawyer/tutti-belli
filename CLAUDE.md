@@ -78,7 +78,7 @@ Form mutations use **Astro Actions** (`src/actions/`). Do not use the old patter
 - CSRF: Astro's `checkOrigin` is on. Fly terminates TLS, so `security.allowedDomains` in `astro.config.mjs` lists the hosts whose `X-Forwarded-Proto`/`X-Forwarded-Host` Astro trusts to rebuild the https URL (`@astrojs/node` takes the plain `Host` header as-is). A host served behind a proxy that sets `X-Forwarded-Host` must be listed or its form POSTs will 403. List exact hostnames (`tuttibelli.org`, `*.tuttibelli.org`, `tutti-belli.fly.dev`), never a `*.fly.dev`-style wildcard: anyone can register a Fly app name. A PR preview's own host is added from the `PREVIEW_HOSTNAME` build arg (the list is fixed at build time; see `Dockerfile` and `fly-preview.yml`)
 - Links in emails and other content that leaves the site (QR codes, set-password links) come from `getSiteUrl()`/`siteLink()` in `src/lib/site-url.ts`, never from `Astro.url`, `context.url` or request headers
 - Email HTML: escape every interpolated value with `escapeHtml` (or `textToHtml` for multi-line plain text such as announcement content) from `src/lib/email.ts`
-- Failed logins and password-reset requests are rate-limited in memory per email and per client IP (`src/lib/rate-limit.ts`; the IP comes from Fly's `Fly-Client-IP` header)
+- Failed logins, password-reset requests and email-change requests are rate-limited in memory per account and per client IP (`src/lib/rate-limit.ts`; the IP comes from Fly's `Fly-Client-IP` header)
 
 ### Database Schema
 Defined in `db/schema.ts` (drizzle `sqliteTable` definitions, 26 tables). Seed data in `db/seed.ts`. Key relationships:

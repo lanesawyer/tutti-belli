@@ -63,3 +63,21 @@ describe('tooManyAttemptsMessage', () => {
     expect(tooManyAttemptsMessage(9 * MINUTE + 1)).toBe('Too many attempts. Please try again in 10 minutes.');
   });
 });
+
+describe('email change limits', () => {
+  it('cap verification emails per account and per client', async () => {
+    const { emailChangesByUser, emailChangesByIp } = await import('../../src/lib/rate-limit.ts');
+    const t0 = 5_000_000;
+    for (let i = 0; i < 5; i++) {
+      expect(retryAfter([[emailChangesByUser, 'user-1'], [emailChangesByIp, '198.51.100.1']], t0)).toBe(0);
+      emailChangesByUser.record('user-1', t0);
+      emailChangesByIp.record('198.51.100.1', t0);
+    }
+    expect(retryAfter([[emailChangesByUser, 'user-1'], [emailChangesByIp, '198.51.100.2']], t0)).toBeGreaterThan(0);
+    expect(retryAfter([[emailChangesByUser, 'user-2'], [emailChangesByIp, '198.51.100.1']], t0)).toBe(0);
+
+    for (let i = 0; i < 15; i++) emailChangesByIp.record('198.51.100.1', t0);
+    expect(retryAfter([[emailChangesByUser, 'user-3'], [emailChangesByIp, '198.51.100.1']], t0)).toBeGreaterThan(0);
+    expect(retryAfter([[emailChangesByUser, 'user-1'], [emailChangesByIp, '198.51.100.1']], t0 + 60 * MINUTE)).toBe(0);
+  });
+});

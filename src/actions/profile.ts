@@ -4,6 +4,8 @@ import { assertPartsInEnsemble } from './utils';
 import { getMembershipById } from '@lib/ensemble';
 import { revokeSessions, startSession } from '@lib/session';
 import {
+  emailChangesByIp,
+  emailChangesByUser,
   registrationsByIp,
   registrationsSiteWide,
   requestIp,
@@ -163,6 +165,17 @@ export const profile = {
     handler: async ({ newEmail }, context) => {
       const user = context.locals.user;
       if (!user) throw new ActionError({ code: 'UNAUTHORIZED' });
+      const ip = requestIp(context);
+      const wait = retryAfter([
+        [emailChangesByUser, user.id],
+        [emailChangesByIp, ip],
+      ]);
+      if (wait) {
+        throw new ActionError({ code: 'TOO_MANY_REQUESTS', message: tooManyAttemptsMessage(wait) });
+      }
+      emailChangesByUser.record(user.id);
+      emailChangesByIp.record(ip);
+
       const result = await initiateEmailChange(user.id, user.name, user.email, newEmail);
       if (result.type === 'error') {
         throw new ActionError({ code: 'BAD_REQUEST', message: result.message });
