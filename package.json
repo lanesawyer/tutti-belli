@@ -43,7 +43,7 @@
     "drizzle-kit": "0.31.10",
     "oxlint": "1.74.0",
     "prettier": "3.9.5",
-    "prettier-plugin-astro": "0.14.1",
+    "prettier-plugin-astro": "1.1.2",
     "typescript": "6.0.3",
     "vitest": "4.1.10"
   },
