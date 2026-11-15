@@ -13,3 +13,9 @@ overrides:
   picomatch@<2.3.2: 2.3.2
   ws@>=8.0.0 <8.21.0: 8.21.0
   source-map-js@>=1.0.0 <1.2.2: 1.2.2
+
+# astro2tsx does not declare @emnapi/runtime, so pnpm fills the peer with rolldown's 2.0 beta, which crashes it.
+packageExtensions:
+  "@astrojs/astro2tsx":
+    dependencies:
+      "@emnapi/runtime": 1.11.3
