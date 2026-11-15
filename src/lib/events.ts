@@ -20,13 +20,13 @@ export function isRsvpEnabled(event: { category: string; rsvpEnabled: number | n
 
 // ─── Queries ────────────────────────────────────────────────────────────────
 
-export async function getEvent(eventId: string) {
-  return db.select().from(Event).where(eq(Event.id, eventId)).get() ?? null;
+export async function getEvent(ensembleId: string, eventId: string) {
+  return (await db.select().from(Event).where(and(eq(Event.id, eventId), eq(Event.ensembleId, ensembleId))).get()) ?? null;
 }
 
 export async function getEventPageData(ensembleId: string, eventId: string) {
   const [event, ensembleData, attendanceRecords, rsvpRecords] = await Promise.all([
-    db.select().from(Event).where(eq(Event.id, eventId)).get(),
+    db.select().from(Event).where(and(eq(Event.id, eventId), eq(Event.ensembleId, ensembleId))).get(),
     db.select().from(Ensemble).where(eq(Ensemble.id, ensembleId)).get(),
     db
       .select({
