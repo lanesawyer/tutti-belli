@@ -67,7 +67,7 @@ pnpm build         # Production build
 pnpm preview       # Preview the production build
 pnpm check         # Type checking (astro check)
 pnpm lint          # Oxlint
-pnpm fmt           # Auto-fix lint issues and format .astro files with Prettier
+pnpm fmt           # Format everything with oxfmt
 pnpm test          # Unit and integration tests (Vitest)
 pnpm test:e2e      # End-to-end tests (Playwright, against the dev server)
 pnpm db:generate   # Generate a migration from db/schema.ts changes
