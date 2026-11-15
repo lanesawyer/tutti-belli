@@ -601,7 +601,7 @@ const songFilesMap = buildSongFilesMap(ensembleSongIds, songFilesData);
           if (isAdmin) {
             const form = document.createElement("form");
             form.method = "POST";
-            form.action = "/_actions/songs.deleteFile";
+            form.action = "?_action=songs.deleteFile";
             form.style.flexShrink = "0";
             form.dataset.confirm = "Delete this file?";
 

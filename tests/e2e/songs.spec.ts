@@ -71,12 +71,14 @@ test('song file names render as text and deleting a file asks for confirmation',
   await expect(page.locator('body')).toContainText(songName);
 
   const fileName = `<img src=x onerror="window.__injected=1"><b>bold</b> O'Brien "part"`;
-  const songRow = page.locator('tr').filter({ hasText: songName });
-  await songRow.locator('.files-btn').click();
-  await page.fill('#fileName', fileName);
+  await page.getByRole('link', { name: songName }).click();
+  await expect(page).toHaveURL(/\/songs\/.+/);
+  await page.locator('#btn-link').click();
   await page.fill('#fileUrl', 'https://example.com/score.pdf');
-  await page.locator('#addFileForm button[type="submit"]').click();
-  await expect(page).toHaveURL(/\/ensembles\/.+\/songs$/);
+  await page.fill('#fileName', fileName);
+  await page.getByRole('button', { name: 'Upload' }).click();
+  await expect(page.locator('body')).toContainText('O\'Brien "part"');
+  await page.goto(ensembleUrl + '/songs');
 
   await page.locator('tr').filter({ hasText: songName }).locator('.files-btn').click();
   const list = page.locator('#filesModalList');
@@ -91,7 +93,7 @@ test('song file names render as text and deleting a file asks for confirmation',
 
   page.once('dialog', (dialog) => dialog.accept());
   await list.locator('button[type="submit"]').click();
-  await expect(page).toHaveURL(/\/ensembles\/.+\/songs$/);
+  await expect(list.locator('.song-file-name')).toHaveCount(0);
   await page.locator('tr').filter({ hasText: songName }).locator('.files-btn').click();
   await expect(page.locator('#filesModalList')).toContainText('No files yet.');
 });
