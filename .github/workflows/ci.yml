@@ -52,7 +52,8 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - run: pnpm test:coverage --project unit --coverage.reportsDirectory=coverage/unit
+      # Thresholds are set for the integration project; unit tests alone cover far less.
+      - run: pnpm test:coverage --project unit --coverage.reportsDirectory=coverage/unit --coverage.thresholds.statements=0 --coverage.thresholds.branches=0 --coverage.thresholds.functions=0 --coverage.thresholds.lines=0
 
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: always()

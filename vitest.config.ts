@@ -6,6 +6,10 @@ const root = fileURLToPath(new URL(".", import.meta.url));
 
 const sharedAlias = {
   "@db": path.resolve(root, "db/index.ts"),
+  "@lib": path.resolve(root, "src/lib"),
+  "@actions": path.resolve(root, "src/actions"),
+  "astro:actions": path.resolve(root, "tests/support/astro-actions.ts"),
+  "astro:middleware": "astro/middleware",
 };
 
 // Point @db at a single in-memory LibSQL database shared across the process
@@ -47,9 +51,17 @@ export default defineConfig({
     ],
     coverage: {
       provider: "istanbul",
-      include: ["src/lib/**/*.ts"],
+      include: ["src/lib/**/*.ts", "src/actions/**/*.ts", "src/middleware.ts"],
       exclude: ["src/lib/email.ts", "src/lib/storage.ts"],
       reporter: ["text", "html"],
+      // Just under what the integration project reaches by itself, which is how CI measures it.
+      // Raise them as coverage goes up.
+      thresholds: {
+        statements: 82,
+        branches: 76,
+        functions: 80,
+        lines: 84,
+      },
     },
   },
 });
