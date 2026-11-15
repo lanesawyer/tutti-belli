@@ -51,9 +51,16 @@ export default defineConfig({
     ],
     coverage: {
       provider: 'istanbul',
-      include: ['src/lib/**/*.ts'],
+      include: ['src/lib/**/*.ts', 'src/actions/**/*.ts', 'src/middleware.ts'],
       exclude: ['src/lib/email.ts', 'src/lib/storage.ts'],
       reporter: ['text', 'html'],
+      // Set just under the current numbers so coverage can only go up; raise them as it does.
+      thresholds: {
+        statements: 89,
+        branches: 83,
+        functions: 86,
+        lines: 90,
+      },
     },
   },
 });
