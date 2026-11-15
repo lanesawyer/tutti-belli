@@ -199,8 +199,12 @@ const pastEvents = allEvents.filter((e) => {
                           <span class="has-text-grey-light">—</span>
                         )}
                       </td>
-                      <td>{formatZonedDate(scheduledDate, ensemble.timezone)}</td>
-                      <td>{formatZonedTime(scheduledDate, ensemble.timezone)}</td>
+                      <td>
+                        {formatZonedDate(scheduledDate, ensemble.timezone)}
+                      </td>
+                      <td>
+                        {formatZonedTime(scheduledDate, ensemble.timezone)}
+                      </td>
                       <td>{event.location || "-"}</td>
                       <td>{formatDuration(event.durationMinutes)}</td>
                       <td>
@@ -412,8 +416,12 @@ const pastEvents = allEvents.filter((e) => {
                           <span class="has-text-grey-light">—</span>
                         )}
                       </td>
-                      <td>{formatZonedDate(scheduledDate, ensemble.timezone)}</td>
-                      <td>{formatZonedTime(scheduledDate, ensemble.timezone)}</td>
+                      <td>
+                        {formatZonedDate(scheduledDate, ensemble.timezone)}
+                      </td>
+                      <td>
+                        {formatZonedTime(scheduledDate, ensemble.timezone)}
+                      </td>
                       <td>{event.location || "-"}</td>
                       <td>
                         <Button
