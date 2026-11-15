@@ -1,17 +1,22 @@
-import { db, eq, and, desc, Announcement, Ensemble, EnsembleMember, User } from '@db';
-import { sendAnnouncementEmail } from './email';
-import { postAnnouncementToDiscord } from './discord';
-import { getEnsembleUrlId } from './slug';
+import { db, eq, and, desc, Announcement, Ensemble, EnsembleMember, User } from "@db";
+import { sendAnnouncementEmail } from "./email";
+import { postAnnouncementToDiscord } from "./discord";
+import { getEnsembleUrlId } from "./slug";
 
 // The ensemble's name, link, and Discord webhook come from the database rather than the form,
 // so a form can't redirect the post to another webhook or mislabel the email.
 async function getAnnouncementContext(ensembleId: string) {
   const ensemble = await db
-    .select({ id: Ensemble.id, name: Ensemble.name, slug: Ensemble.slug, discordWebhookUrl: Ensemble.discordWebhookUrl })
+    .select({
+      id: Ensemble.id,
+      name: Ensemble.name,
+      slug: Ensemble.slug,
+      discordWebhookUrl: Ensemble.discordWebhookUrl,
+    })
     .from(Ensemble)
     .where(eq(Ensemble.id, ensembleId))
     .get();
-  if (!ensemble) throw new Error('Ensemble not found.');
+  if (!ensemble) throw new Error("Ensemble not found.");
   return {
     ensembleName: ensemble.name,
     canonicalId: getEnsembleUrlId(ensemble),
@@ -62,13 +67,23 @@ export async function createAnnouncement(params: {
     .select({ email: User.email, name: User.name })
     .from(EnsembleMember)
     .innerJoin(User, eq(EnsembleMember.userId, User.id))
-    .where(and(eq(EnsembleMember.ensembleId, ensembleId), eq(EnsembleMember.status, 'active')))
+    .where(and(eq(EnsembleMember.ensembleId, ensembleId), eq(EnsembleMember.status, "active")))
     .all();
 
-  sendAnnouncementEmail(members, ensembleName, canonicalId, title, content, creatorName, siteUrl).catch(() => {});
+  sendAnnouncementEmail(
+    members,
+    ensembleName,
+    canonicalId,
+    title,
+    content,
+    creatorName,
+    siteUrl,
+  ).catch(() => {});
 
   if (postToDiscord && discordWebhookUrl) {
-    postAnnouncementToDiscord(discordWebhookUrl, ensembleName, title, content, creatorName).catch(() => {});
+    postAnnouncementToDiscord(discordWebhookUrl, ensembleName, title, content, creatorName).catch(
+      () => {},
+    );
   }
 }
 
@@ -89,7 +104,9 @@ export async function updateAnnouncement(params: {
     .where(and(eq(Announcement.id, announcementId), eq(Announcement.ensembleId, ensembleId)));
 
   if (postToDiscord && discordWebhookUrl) {
-    postAnnouncementToDiscord(discordWebhookUrl, ensembleName, title, content, creatorName).catch(() => {});
+    postAnnouncementToDiscord(discordWebhookUrl, ensembleName, title, content, creatorName).catch(
+      () => {},
+    );
   }
 }
 

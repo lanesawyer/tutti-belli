@@ -1,5 +1,5 @@
-export const APP_NAME = 'Tutti Belli';
-export const APP_SLOGAN = 'Organize and manage your musical ensembles with ease';
+export const APP_NAME = "Tutti Belli";
+export const APP_SLOGAN = "Organize and manage your musical ensembles with ease";
 
 export type AdminTool = {
   href: (ensembleId: string) => string;
@@ -8,14 +8,14 @@ export type AdminTool = {
 };
 
 export const ensembleAdminTools: AdminTool[] = [
-  { href: (id) => `/ensembles/${id}/edit`, icon: 'fa-edit', label: 'Settings' },
-  { href: (id) => `/ensembles/${id}/members`, icon: 'fa-users', label: 'Members' },
-  { href: (id) => `/ensembles/${id}/member-attendance`, icon: 'fa-chart-bar', label: 'Attendance' },
-  { href: (id) => `/ensembles/${id}/songs`, icon: 'fa-music', label: 'Songs' },
-  { href: (id) => `/ensembles/${id}/events`, icon: 'fa-calendar-check', label: 'Events' },
-  { href: (id) => `/ensembles/${id}/announcements`, icon: 'fa-bullhorn', label: 'Announcements' },
-  { href: (id) => `/ensembles/${id}/parts`, icon: 'fa-list', label: 'Parts' },
-  { href: (id) => `/ensembles/${id}/seasons`, icon: 'fa-calendar-alt', label: 'Seasons' },
-  { href: (id) => `/ensembles/${id}/groups`, icon: 'fa-users-cog', label: 'Groups' },
-  { href: (id) => `/ensembles/${id}/tasks`, icon: 'fa-tasks', label: 'Tasks' },
+  { href: (id) => `/ensembles/${id}/edit`, icon: "fa-edit", label: "Settings" },
+  { href: (id) => `/ensembles/${id}/members`, icon: "fa-users", label: "Members" },
+  { href: (id) => `/ensembles/${id}/member-attendance`, icon: "fa-chart-bar", label: "Attendance" },
+  { href: (id) => `/ensembles/${id}/songs`, icon: "fa-music", label: "Songs" },
+  { href: (id) => `/ensembles/${id}/events`, icon: "fa-calendar-check", label: "Events" },
+  { href: (id) => `/ensembles/${id}/announcements`, icon: "fa-bullhorn", label: "Announcements" },
+  { href: (id) => `/ensembles/${id}/parts`, icon: "fa-list", label: "Parts" },
+  { href: (id) => `/ensembles/${id}/seasons`, icon: "fa-calendar-alt", label: "Seasons" },
+  { href: (id) => `/ensembles/${id}/groups`, icon: "fa-users-cog", label: "Groups" },
+  { href: (id) => `/ensembles/${id}/tasks`, icon: "fa-tasks", label: "Tasks" },
 ];

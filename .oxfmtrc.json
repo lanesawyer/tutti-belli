@@ -1,4 +1,5 @@
 {
   "$schema": "./node_modules/oxfmt/configuration_schema.json",
-  "astro": true
+  "astro": true,
+  "ignorePatterns": ["drizzle/"]
 }

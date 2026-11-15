@@ -1,5 +1,5 @@
-import { createClient } from '@libsql/client';
-import { drizzle } from 'drizzle-orm/libsql';
+import { createClient } from "@libsql/client";
+import { drizzle } from "drizzle-orm/libsql";
 
 // Read from process.env only, never import.meta.env: Vite writes import.meta.env values into
 // the server bundle at build time, which would bake the database token into the build.
@@ -12,7 +12,7 @@ const overrideUrl = process.env.DATABASE_URL;
 const remoteUrl = process.env.ASTRO_DB_REMOTE_URL;
 const url = overrideUrl || remoteUrl;
 if (!url) {
-  throw new Error('Database not configured: set DATABASE_URL or ASTRO_DB_REMOTE_URL');
+  throw new Error("Database not configured: set DATABASE_URL or ASTRO_DB_REMOTE_URL");
 }
 
 const client = createClient({
@@ -22,7 +22,7 @@ const client = createClient({
 
 export const db = drizzle(client);
 
-export * from './schema.ts';
+export * from "./schema.ts";
 
 export {
   eq,
@@ -53,5 +53,5 @@ export {
   notBetween,
   like,
   notLike,
-} from 'drizzle-orm';
-export { alias } from 'drizzle-orm/sqlite-core';
+} from "drizzle-orm";
+export { alias } from "drizzle-orm/sqlite-core";

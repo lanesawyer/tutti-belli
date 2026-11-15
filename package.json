@@ -1,8 +1,7 @@
 {
   "name": "tutti-belli",
-  "type": "module",
   "version": "0.0.1",
-  "packageManager": "pnpm@11.15.1",
+  "type": "module",
   "scripts": {
     "dev": "node db/dev-setup.ts && DATABASE_URL=file:.astro/content.db astro dev",
     "dev:remote": "astro dev",
@@ -11,7 +10,7 @@
     "astro": "astro",
     "check": "astro check",
     "lint": "oxlint . --deny-warnings",
-    "fmt": "oxlint . --fix && oxfmt \"src/**/*.astro\"",
+    "fmt": "oxfmt",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "node db/migrate.ts",
     "fly:deploy": "./deploy.sh",
@@ -61,5 +60,6 @@
   "volta": {
     "node": "24.15.0",
     "pnpm": "11.15.1"
-  }
+  },
+  "packageManager": "pnpm@11.15.1"
 }

@@ -11,7 +11,7 @@ pnpm build            # Production build (no DB connection needed)
 pnpm preview          # Preview the production build locally
 pnpm check            # TypeScript type checking via astro check
 pnpm lint             # Oxlint on the whole repo (TS files plus <script> blocks in .astro; frontmatter is covered by pnpm check)
-pnpm fmt              # Auto-fix lint issues and format .astro files with oxfmt
+pnpm fmt              # Format everything with oxfmt
 pnpm db:generate      # Generate a drizzle migration from db/schema.ts changes
 pnpm db:migrate       # Apply migrations to the remote Turso DB (reads .env)
 ```
@@ -21,14 +21,16 @@ pnpm db:migrate       # Apply migrations to the remote Turso DB (reads .env)
 **Full-stack Astro 5 SSR app** for managing musical ensembles (rehearsals, attendance, members, repertoire). Deployed on Fly.io via Docker.
 
 ### Key Technology Choices
+
 - **Astro 5** with `output: 'server'` — all pages are server-rendered, no client-side JS frameworks
 - **Drizzle ORM** (LibSQL/Turso) — schema in `db/schema.ts`, client + query helpers re-exported from the `@db` alias (`db/index.ts`); all queries go through `src/lib/` functions or Astro Actions; never import `@db` directly in page frontmatter
 - **Bulma 1.0** for CSS (dark mode supported via CSS custom properties + localStorage toggle)
 - **Zero client-side JS framework** — all interactions are HTML form POSTs handled via Astro Actions (`src/actions/`)
 
-
 ### Import Aliases
+
 Always use path aliases instead of relative `../` imports:
+
 - `@db` → `db/index.ts` (drizzle client, tables, and query operators like `eq`, `and`, `desc`)
 - `@actions/*` → `src/actions/*`
 - `@components/*` → `src/components/*`
@@ -41,6 +43,7 @@ Example: `import MemberCard from "@components/MemberCard.astro"` not `import Mem
 The only exception is same-directory imports (e.g. `./AudioPlayer.astro`) and imports outside `src/` (e.g. `../../package.json`).
 
 ### Philosophy
+
 - Don't duplicate logic, if there are commonalities, extract it into a shared utility in `src/lib/`
 - Keep the frontmatter Astro files light, most server logic should be in `src/lib/` files
 - **Never import `@db` in page frontmatter.** All database queries must live in `src/lib/` functions or Astro Actions (`src/actions/`). Pages call lib functions and pass the results to the template.
@@ -55,9 +58,11 @@ The only exception is same-directory imports (e.g. `./AudioPlayer.astro`) and im
 - **Never write raw `<input class="input">` or `<textarea class="textarea">` elements.** Always use `TextInput`/`Textarea`. They handle the Bulma `field`/`label`/`control` wrapper, icons, help text, and all modifiers. Use the `standalone` prop when the control lives inside a `has-addons`/`is-grouped` layout or needs a custom label managed by the parent. TextInput props: `name`, `label`, `type`, `placeholder`, `value`, `required`, `disabled`, `readonly`, `color`, `size`, `rounded`, `static`, `iconLeft`, `iconLeftVariant`, `iconRight`, `iconRightVariant`, `help`, `helpColor`, `standalone`, `controlClass`, plus any native input attributes (`min`, `max`, `pattern`, `autofocus`, etc.).
 
 ### Client-side Scripts & Astro ClientRouter
+
 `<ClientRouter />` is active globally (in `Layout.astro`), which means pages are swapped client-side without a full browser reload. **All DOM manipulation in `<script>` tags must be wrapped in `document.addEventListener('astro:page-load', () => { ... })`** — otherwise the code runs once on first load and never again after navigation.
 
 Rules:
+
 - **Never** call `document.querySelector`, `document.getElementById`, `document.querySelectorAll`, or attach event listeners at the top level of a `<script>`. Always put them inside an `astro:page-load` handler.
 - Plain `<script>` (Astro module scripts) are deduplicated and run once ever. Wrap their DOM work in `astro:page-load`.
 - `<script is:inline>` re-executes but still needs `astro:page-load` to target the current page's DOM. These are required when using `define:vars` to pass server data to the script.
@@ -65,11 +70,13 @@ Rules:
 - `<audio>` elements must have `audio.load()` called inside `astro:page-load` so the browser re-fetches the source after navigation.
 
 ### Request Handling Pattern
+
 Form mutations use **Astro Actions** (`src/actions/`). Do not use the old pattern of checking `Astro.request.method === 'POST'` in page frontmatter. Actions use `defineAction` with `accept: 'form'` and a Zod schema, throw `ActionError` for failures, and delegate business logic to `src/lib/`. Pages read results via `Astro.getActionResult()` and redirect on success.
 
 **Every ID in an action's input must be checked against the ensemble.** `assertEnsembleAdmin(ensembleId, user)` only proves the user may act on the `ensembleId` from the form; the other IDs in the same form are just as attacker-controlled. After the permission check, call `assertInEnsemble(kind, id, ensembleId)` (from `src/actions/utils.ts`, backed by `src/lib/ownership.ts`) for each record ID, and `assertUserInEnsemble(userId, ensembleId)` for any target user. Add a new kind to `ownership.ts` when you add a table that belongs to an ensemble.
 
 ### Authentication & Authorization
+
 - **Middleware** (`src/middleware.ts`): Runs on every request, extracts JWT from `session` cookie, populates `Astro.locals.user` and `Astro.locals.session`. Redirects unauthenticated users to `/login` for protected routes.
 - **Public routes**: `/`, `/login`, `/register`, `/forgot-password`, `/reset-password`, `/invite/join`
 - **Three permission tiers**: Site admin (`User.role = 'admin'`), ensemble admin (`EnsembleMember.role = 'admin'`), and regular member
@@ -79,7 +86,9 @@ Form mutations use **Astro Actions** (`src/actions/`). Do not use the old patter
 - Failed logins and password-reset requests are rate-limited in memory per email and per client IP (`src/lib/rate-limit.ts`; the IP comes from Fly's `Fly-Client-IP` header)
 
 ### Database Schema
+
 Defined in `db/schema.ts` (drizzle `sqliteTable` definitions, 26 tables). Seed data in `db/seed.ts`. Key relationships:
+
 - **User** → **EnsembleMember** → **Ensemble** (many-to-many with role/status)
 - **Ensemble** → **Part** (voice parts like Soprano, Alto, etc.)
 - **Ensemble** → **Season** → **Rehearsal** → **Attendance**
@@ -92,7 +101,9 @@ Defined in `db/schema.ts` (drizzle `sqliteTable` definitions, 26 tables). Seed d
 All primary keys are text UUIDs generated with `crypto.randomUUID()`. Date columns are TEXT storing ISO-8601 strings, surfaced as `Date` via a drizzle `customType` (matching the old Astro DB storage format — do not change to integer timestamps).
 
 ### Schema Migrations
+
 Migrations live in `drizzle/` and are applied with `migrate()` from `drizzle-orm/libsql/migrator` — never `drizzle-kit push`. Workflow for a schema change:
+
 1. Edit `db/schema.ts`
 2. `pnpm db:generate` — creates a new SQL file in `drizzle/` (rename it to something descriptive and update `drizzle/meta/_journal.json` to match)
 3. `pnpm dev` applies it to the local DB automatically (via `db/dev-setup.ts`); deploys apply it to the remote Turso DB automatically (Fly `release_command` in `fly.toml`/`fly.preview.toml` runs `node db/migrate.ts`); `pnpm db:migrate` applies it manually using `.env` credentials
@@ -100,9 +111,11 @@ Migrations live in `drizzle/` and are applied with `migrate()` from `drizzle-orm
 `drizzle/0000_init.sql` is a hand-edited baseline (`CREATE TABLE IF NOT EXISTS`) that no-ops against the production database that predates drizzle — don't regenerate it.
 
 ### Routing Structure
+
 File-based routing under `src/pages/`. Ensemble pages live under `ensembles/[id]/` with dynamic segments. Rehearsal detail is at `ensembles/[id]/rehearsals/[rehearsalId].astro`.
 
 ### Shared Utilities (`src/lib/`)
+
 - `auth.ts` — password hashing/verification
 - `session.ts` — JWT creation, validation, user lookup from session
 - `upload.ts` — file upload validation (image types, 2MB max), base64 conversion for DB storage
@@ -112,15 +125,18 @@ File-based routing under `src/pages/`. Ensemble pages live under `ensembles/[id]
 - `redirect.ts` — smart login redirect logic
 
 ### Environment Variables
+
 **Read server secrets from `process.env`, never `import.meta.env`.** Vite writes `import.meta.env` values into the server bundle at build time, which would bake secrets into `dist/` and the Docker image. `astro.config.mjs` loads `.env` into `process.env` for `astro dev`; in production the values are Fly secrets. Secrets are never Docker build args.
 
 Required in `.env` (see `.env.example`):
+
 - `ASTRO_DB_REMOTE_URL` / `ASTRO_DB_APP_TOKEN` — Turso database connection (names kept from the Astro DB era; they're baked into Fly/GitHub secrets)
 - `DATABASE_URL` — overrides the Turso connection with a local libSQL URL (set automatically by `pnpm dev` and the test configs; no auth token used)
 - `JWT_SECRET` — session token signing
 - `EMAIL_API_KEY` / `EMAIL_FROM` — Resend email service
 
 ### Seed Data (dev mode)
+
 `pnpm dev` seeds a fresh local DB with: admin@example.com / admin123 (site admin), test@example.com / test123 (regular user), a "Chamber Orchestra" ensemble with invite code TEST1234, voice parts, a season, and a sample rehearsal. Delete `.astro/content.db` to reset and reseed.
 
 ## Testing

@@ -1,4 +1,4 @@
-import { db, eq, and, Attendance, Event, EnsembleMember, User } from '@db';
+import { db, eq, and, Attendance, Event, EnsembleMember, User } from "@db";
 
 export type MemberAttendanceStat = {
   userId: string;
@@ -15,7 +15,10 @@ export type MemberAttendanceStat = {
  * Returns attendance stats per active member for all events in the ensemble,
  * sorted by attendance percentage ascending (worst first).
  */
-export async function getMemberAttendanceStats(ensembleId: string, seasonId?: string): Promise<MemberAttendanceStat[]> {
+export async function getMemberAttendanceStats(
+  ensembleId: string,
+  seasonId?: string,
+): Promise<MemberAttendanceStat[]> {
   const members = await db
     .select({
       userId: User.id,
@@ -26,19 +29,29 @@ export async function getMemberAttendanceStats(ensembleId: string, seasonId?: st
     })
     .from(EnsembleMember)
     .innerJoin(User, eq(EnsembleMember.userId, User.id))
-    .where(and(eq(EnsembleMember.ensembleId, ensembleId), eq(EnsembleMember.status, 'active')))
+    .where(and(eq(EnsembleMember.ensembleId, ensembleId), eq(EnsembleMember.status, "active")))
     .all();
 
   if (members.length === 0) return [];
 
   // Get relevant events
   const events = seasonId
-    ? await db.select({ id: Event.id }).from(Event).where(and(eq(Event.ensembleId, ensembleId), eq(Event.seasonId, seasonId))).all()
+    ? await db
+        .select({ id: Event.id })
+        .from(Event)
+        .where(and(eq(Event.ensembleId, ensembleId), eq(Event.seasonId, seasonId)))
+        .all()
     : await db.select({ id: Event.id }).from(Event).where(eq(Event.ensembleId, ensembleId)).all();
 
   const totalEvents = events.length;
   if (totalEvents === 0) {
-    return members.map((m) => ({ ...m, attended: 0, total: 0, pct: 0, avatarUrl: m.avatarUrl ?? null }));
+    return members.map((m) => ({
+      ...m,
+      attended: 0,
+      total: 0,
+      pct: 0,
+      avatarUrl: m.avatarUrl ?? null,
+    }));
   }
 
   // Get all attendance records for these events via join
@@ -74,4 +87,3 @@ export async function getMemberAttendanceStats(ensembleId: string, seasonId?: st
 
   return stats;
 }
-

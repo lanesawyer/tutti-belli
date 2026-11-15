@@ -1,30 +1,34 @@
-import { describe, it, expect, vi } from 'vitest';
-import { db, Announcement, Ensemble, eq } from '@db';
+import { describe, it, expect, vi } from "vitest";
+import { db, Announcement, Ensemble, eq } from "@db";
 import {
   getEnsembleAnnouncements,
   createAnnouncement,
   updateAnnouncement,
   deleteAnnouncement,
-} from '../../src/lib/announcements.ts';
-import { createUser, createEnsemble } from './fixtures.ts';
+} from "../../src/lib/announcements.ts";
+import { createUser, createEnsemble } from "./fixtures.ts";
 
 // Prevent real email/Discord calls
-vi.mock('../../src/lib/email.ts', () => ({ sendAnnouncementEmail: vi.fn().mockResolvedValue(undefined) }));
-vi.mock('../../src/lib/discord.ts', () => ({ postAnnouncementToDiscord: vi.fn().mockResolvedValue(undefined) }));
+vi.mock("../../src/lib/email.ts", () => ({
+  sendAnnouncementEmail: vi.fn().mockResolvedValue(undefined),
+}));
+vi.mock("../../src/lib/discord.ts", () => ({
+  postAnnouncementToDiscord: vi.fn().mockResolvedValue(undefined),
+}));
 
-describe('getEnsembleAnnouncements', () => {
-  it('returns announcements for the ensemble in descending order', async () => {
+describe("getEnsembleAnnouncements", () => {
+  it("returns announcements for the ensemble in descending order", async () => {
     const admin = await createUser();
     const ensemble = await createEnsemble(admin!.id);
-    const older = new Date('2024-01-01T00:00:00Z');
-    const newer = new Date('2024-06-01T00:00:00Z');
+    const older = new Date("2024-01-01T00:00:00Z");
+    const newer = new Date("2024-06-01T00:00:00Z");
 
     // Insert directly to control createdAt timestamps
     await db.insert(Announcement).values({
       id: crypto.randomUUID(),
       ensembleId: ensemble!.id,
-      title: 'First',
-      content: 'Old news',
+      title: "First",
+      content: "Old news",
       createdBy: admin!.id,
       createdAt: older,
       updatedAt: older,
@@ -32,8 +36,8 @@ describe('getEnsembleAnnouncements', () => {
     await db.insert(Announcement).values({
       id: crypto.randomUUID(),
       ensembleId: ensemble!.id,
-      title: 'Second',
-      content: 'New news',
+      title: "Second",
+      content: "New news",
       createdBy: admin!.id,
       createdAt: newer,
       updatedAt: newer,
@@ -42,11 +46,11 @@ describe('getEnsembleAnnouncements', () => {
     const results = await getEnsembleAnnouncements(ensemble!.id);
     expect(results).toHaveLength(2);
     // Most recent first
-    expect(results[0].title).toBe('Second');
-    expect(results[1].title).toBe('First');
+    expect(results[0].title).toBe("Second");
+    expect(results[1].title).toBe("First");
   });
 
-  it('returns empty array when ensemble has no announcements', async () => {
+  it("returns empty array when ensemble has no announcements", async () => {
     const admin = await createUser();
     const ensemble = await createEnsemble(admin!.id);
 
@@ -54,57 +58,57 @@ describe('getEnsembleAnnouncements', () => {
     expect(results).toHaveLength(0);
   });
 
-  it('does not return announcements from other ensembles', async () => {
+  it("does not return announcements from other ensembles", async () => {
     const admin = await createUser();
-    const ensembleA = await createEnsemble(admin!.id, { name: 'Ensemble A' });
-    const ensembleB = await createEnsemble(admin!.id, { name: 'Ensemble B' });
+    const ensembleA = await createEnsemble(admin!.id, { name: "Ensemble A" });
+    const ensembleB = await createEnsemble(admin!.id, { name: "Ensemble B" });
 
     await createAnnouncement({
       ensembleId: ensembleA!.id,
-      title: 'Only for A',
-      content: 'content',
+      title: "Only for A",
+      content: "content",
       createdBy: admin!.id,
       creatorName: admin!.name,
       postToDiscord: false,
-      siteUrl: 'http://localhost:4321',
+      siteUrl: "http://localhost:4321",
     });
 
     const results = await getEnsembleAnnouncements(ensembleB!.id);
     expect(results).toHaveLength(0);
   });
 
-  it('includes the creator name from the User join', async () => {
-    const admin = await createUser({ name: 'Jane Admin' });
+  it("includes the creator name from the User join", async () => {
+    const admin = await createUser({ name: "Jane Admin" });
     const ensemble = await createEnsemble(admin!.id);
 
     await createAnnouncement({
       ensembleId: ensemble!.id,
-      title: 'With Creator',
-      content: 'body',
+      title: "With Creator",
+      content: "body",
       createdBy: admin!.id,
       creatorName: admin!.name,
       postToDiscord: false,
-      siteUrl: 'http://localhost:4321',
+      siteUrl: "http://localhost:4321",
     });
 
     const [result] = await getEnsembleAnnouncements(ensemble!.id);
-    expect(result.creatorName).toBe('Jane Admin');
+    expect(result.creatorName).toBe("Jane Admin");
   });
 });
 
-describe('createAnnouncement', () => {
-  it('inserts an Announcement row', async () => {
+describe("createAnnouncement", () => {
+  it("inserts an Announcement row", async () => {
     const admin = await createUser();
     const ensemble = await createEnsemble(admin!.id);
 
     await createAnnouncement({
       ensembleId: ensemble!.id,
-      title: 'Hello World',
-      content: 'Test content',
+      title: "Hello World",
+      content: "Test content",
       createdBy: admin!.id,
       creatorName: admin!.name,
       postToDiscord: false,
-      siteUrl: 'http://localhost:4321',
+      siteUrl: "http://localhost:4321",
     });
 
     const rows = await db
@@ -114,59 +118,59 @@ describe('createAnnouncement', () => {
       .all();
 
     expect(rows).toHaveLength(1);
-    expect(rows[0].title).toBe('Hello World');
-    expect(rows[0].content).toBe('Test content');
+    expect(rows[0].title).toBe("Hello World");
+    expect(rows[0].content).toBe("Test content");
     expect(rows[0].createdBy).toBe(admin!.id);
   });
 
-  it('fires Discord webhook when postToDiscord is true and webhook URL is set', async () => {
-    const { postAnnouncementToDiscord } = await import('../../src/lib/discord.ts');
+  it("fires Discord webhook when postToDiscord is true and webhook URL is set", async () => {
+    const { postAnnouncementToDiscord } = await import("../../src/lib/discord.ts");
     const admin = await createUser();
     const ensemble = await createEnsemble(admin!.id);
     await db
       .update(Ensemble)
-      .set({ discordWebhookUrl: 'https://discord.com/api/webhooks/123/fake' })
+      .set({ discordWebhookUrl: "https://discord.com/api/webhooks/123/fake" })
       .where(eq(Ensemble.id, ensemble!.id));
 
     await createAnnouncement({
       ensembleId: ensemble!.id,
-      title: 'Discord Post',
-      content: 'body',
+      title: "Discord Post",
+      content: "body",
       createdBy: admin!.id,
       creatorName: admin!.name,
       postToDiscord: true,
-      siteUrl: 'http://localhost:4321',
+      siteUrl: "http://localhost:4321",
     });
 
     // Give the fire-and-forget promise a tick to resolve
     await new Promise((r) => setTimeout(r, 0));
     expect(postAnnouncementToDiscord).toHaveBeenCalledWith(
-      'https://discord.com/api/webhooks/123/fake',
+      "https://discord.com/api/webhooks/123/fake",
       ensemble!.name,
-      'Discord Post',
-      'body',
+      "Discord Post",
+      "body",
       admin!.name,
     );
   });
 
-  it('does not fire Discord webhook when postToDiscord is false', async () => {
-    const { postAnnouncementToDiscord } = await import('../../src/lib/discord.ts');
+  it("does not fire Discord webhook when postToDiscord is false", async () => {
+    const { postAnnouncementToDiscord } = await import("../../src/lib/discord.ts");
     vi.mocked(postAnnouncementToDiscord).mockClear();
     const admin = await createUser();
     const ensemble = await createEnsemble(admin!.id);
     await db
       .update(Ensemble)
-      .set({ discordWebhookUrl: 'https://discord.com/api/webhooks/123/fake' })
+      .set({ discordWebhookUrl: "https://discord.com/api/webhooks/123/fake" })
       .where(eq(Ensemble.id, ensemble!.id));
 
     await createAnnouncement({
       ensembleId: ensemble!.id,
-      title: 'No Discord',
-      content: 'body',
+      title: "No Discord",
+      content: "body",
       createdBy: admin!.id,
       creatorName: admin!.name,
       postToDiscord: false,
-      siteUrl: 'http://localhost:4321',
+      siteUrl: "http://localhost:4321",
     });
 
     await new Promise((r) => setTimeout(r, 0));
@@ -174,19 +178,19 @@ describe('createAnnouncement', () => {
   });
 });
 
-describe('updateAnnouncement', () => {
-  it('updates title and content', async () => {
+describe("updateAnnouncement", () => {
+  it("updates title and content", async () => {
     const admin = await createUser();
     const ensemble = await createEnsemble(admin!.id);
 
     await createAnnouncement({
       ensembleId: ensemble!.id,
-      title: 'Original Title',
-      content: 'Original body',
+      title: "Original Title",
+      content: "Original body",
       createdBy: admin!.id,
       creatorName: admin!.name,
       postToDiscord: false,
-      siteUrl: 'http://localhost:4321',
+      siteUrl: "http://localhost:4321",
     });
 
     const [row] = await db
@@ -198,29 +202,29 @@ describe('updateAnnouncement', () => {
     await updateAnnouncement({
       announcementId: row.id,
       ensembleId: ensemble!.id,
-      title: 'Updated Title',
-      content: 'Updated body',
+      title: "Updated Title",
+      content: "Updated body",
       creatorName: admin!.name,
       postToDiscord: false,
     });
 
     const updated = await db.select().from(Announcement).where(eq(Announcement.id, row.id)).get();
-    expect(updated!.title).toBe('Updated Title');
-    expect(updated!.content).toBe('Updated body');
+    expect(updated!.title).toBe("Updated Title");
+    expect(updated!.content).toBe("Updated body");
   });
 
-  it('sets updatedAt to a time >= createdAt', async () => {
+  it("sets updatedAt to a time >= createdAt", async () => {
     const admin = await createUser();
     const ensemble = await createEnsemble(admin!.id);
 
     await createAnnouncement({
       ensembleId: ensemble!.id,
-      title: 'Timestamp Test',
-      content: 'body',
+      title: "Timestamp Test",
+      content: "body",
       createdBy: admin!.id,
       creatorName: admin!.name,
       postToDiscord: false,
-      siteUrl: 'http://localhost:4321',
+      siteUrl: "http://localhost:4321",
     });
 
     const [row] = await db
@@ -232,8 +236,8 @@ describe('updateAnnouncement', () => {
     await updateAnnouncement({
       announcementId: row.id,
       ensembleId: ensemble!.id,
-      title: 'New Title',
-      content: 'body',
+      title: "New Title",
+      content: "body",
       creatorName: admin!.name,
       postToDiscord: false,
     });
@@ -243,19 +247,19 @@ describe('updateAnnouncement', () => {
   });
 });
 
-describe('deleteAnnouncement', () => {
-  it('removes the announcement row', async () => {
+describe("deleteAnnouncement", () => {
+  it("removes the announcement row", async () => {
     const admin = await createUser();
     const ensemble = await createEnsemble(admin!.id);
 
     await createAnnouncement({
       ensembleId: ensemble!.id,
-      title: 'To Delete',
-      content: 'body',
+      title: "To Delete",
+      content: "body",
       createdBy: admin!.id,
       creatorName: admin!.name,
       postToDiscord: false,
-      siteUrl: 'http://localhost:4321',
+      siteUrl: "http://localhost:4321",
     });
 
     const [row] = await db
@@ -270,27 +274,27 @@ describe('deleteAnnouncement', () => {
     expect(after).toBeUndefined();
   });
 
-  it('does not delete other announcements in the same ensemble', async () => {
+  it("does not delete other announcements in the same ensemble", async () => {
     const admin = await createUser();
     const ensemble = await createEnsemble(admin!.id);
 
     await createAnnouncement({
       ensembleId: ensemble!.id,
-      title: 'Keep Me',
-      content: 'body',
+      title: "Keep Me",
+      content: "body",
       createdBy: admin!.id,
       creatorName: admin!.name,
       postToDiscord: false,
-      siteUrl: 'http://localhost:4321',
+      siteUrl: "http://localhost:4321",
     });
     await createAnnouncement({
       ensembleId: ensemble!.id,
-      title: 'Delete Me',
-      content: 'body',
+      title: "Delete Me",
+      content: "body",
       createdBy: admin!.id,
       creatorName: admin!.name,
       postToDiscord: false,
-      siteUrl: 'http://localhost:4321',
+      siteUrl: "http://localhost:4321",
     });
 
     const rows = await db
@@ -299,7 +303,7 @@ describe('deleteAnnouncement', () => {
       .where(eq(Announcement.ensembleId, ensemble!.id))
       .all();
 
-    const toDelete = rows.find((r) => r.title === 'Delete Me')!;
+    const toDelete = rows.find((r) => r.title === "Delete Me")!;
     await deleteAnnouncement(toDelete.id);
 
     const remaining = await db
@@ -309,36 +313,40 @@ describe('deleteAnnouncement', () => {
       .all();
 
     expect(remaining).toHaveLength(1);
-    expect(remaining[0].title).toBe('Keep Me');
+    expect(remaining[0].title).toBe("Keep Me");
   });
 });
 
-describe('announcement ensemble scoping', () => {
-  it('does not update an announcement through another ensemble', async () => {
+describe("announcement ensemble scoping", () => {
+  it("does not update an announcement through another ensemble", async () => {
     const admin = await createUser();
-    const ensembleA = await createEnsemble(admin!.id, { name: 'Ensemble A' });
-    const ensembleB = await createEnsemble(admin!.id, { name: 'Ensemble B' });
+    const ensembleA = await createEnsemble(admin!.id, { name: "Ensemble A" });
+    const ensembleB = await createEnsemble(admin!.id, { name: "Ensemble B" });
     await createAnnouncement({
       ensembleId: ensembleA!.id,
-      title: 'Original',
-      content: 'body',
+      title: "Original",
+      content: "body",
       createdBy: admin!.id,
       creatorName: admin!.name,
       postToDiscord: false,
-      siteUrl: 'http://localhost:4321',
+      siteUrl: "http://localhost:4321",
     });
-    const [row] = await db.select().from(Announcement).where(eq(Announcement.ensembleId, ensembleA!.id)).all();
+    const [row] = await db
+      .select()
+      .from(Announcement)
+      .where(eq(Announcement.ensembleId, ensembleA!.id))
+      .all();
 
     await updateAnnouncement({
       announcementId: row.id,
       ensembleId: ensembleB!.id,
-      title: 'Hijacked',
-      content: 'body',
+      title: "Hijacked",
+      content: "body",
       creatorName: admin!.name,
       postToDiscord: false,
     });
 
     const after = await db.select().from(Announcement).where(eq(Announcement.id, row.id)).get();
-    expect(after!.title).toBe('Original');
+    expect(after!.title).toBe("Original");
   });
 });
