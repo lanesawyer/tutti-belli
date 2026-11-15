@@ -27,7 +27,7 @@ if (Astro.request.method === "POST") {
   ) {
     verificationResendsByEmail.record(email);
     verificationResendsByIp.record(ip);
-    await resendVerificationEmail(email, Astro.url.origin);
+    await resendVerificationEmail(email);
   }
   sent = true;
 }
