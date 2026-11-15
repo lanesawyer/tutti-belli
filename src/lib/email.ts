@@ -49,9 +49,30 @@ function getClient(): { client: Resend; fromEmail: string } | { error: EmailResu
   return { client: new Resend(apiKey), fromEmail: getEnv("EMAIL_FROM", "noreply@example.com") };
 }
 
+const HTML_UNESCAPES: Record<string, string> = Object.fromEntries(
+  Object.entries(HTML_ESCAPES).map(([char, entity]) => [entity, char]),
+);
+
+function emailLinks(html: string): string[] {
+  const links = [...html.matchAll(/href="([^"]*)"/g)].map((match) =>
+    match[1].replace(/&(?:amp|lt|gt|quot|#39);/g, (entity) => HTML_UNESCAPES[entity]),
+  );
+  return [...new Set(links)];
+}
+
+/** With sending disabled (local dev, tests, PR previews), the log stands in for the inbox. */
+function logUnsentEmail(params: SendParams, logContext: string): void {
+  console.log(
+    `[email] disabled — skipping ${logContext} to="${params.to}" subject="${emailSubject(params.subject)}"`,
+  );
+  for (const link of emailLinks(params.html)) {
+    console.log(`[email]   link: ${link}`);
+  }
+}
+
 async function sendEmail(params: SendParams, logContext: string): Promise<EmailResult> {
   if (getEnv("EMAIL_DISABLED")) {
-    console.log(`[email] disabled — skipping ${logContext} to="${params.to}"`);
+    logUnsentEmail(params, logContext);
     return { success: true };
   }
   const result = getClient();
@@ -76,7 +97,7 @@ async function sendEmail(params: SendParams, logContext: string): Promise<EmailR
 
 async function sendEmailBatch(paramsList: SendParams[], logContext: string): Promise<EmailResult> {
   if (getEnv("EMAIL_DISABLED")) {
-    console.log(`[email] disabled — skipping ${logContext} to ${paramsList.length} recipients`);
+    for (const params of paramsList) logUnsentEmail(params, logContext);
     return { success: true };
   }
   const result = getClient();
