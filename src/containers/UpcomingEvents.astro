@@ -81,8 +81,8 @@ const { events: upcomingEvents, programByEventId } = await getUpcomingEvents({
               </div>
               <small slot="header" class="has-text-weight-normal">
                 {formatZonedDate(scheduledDate, timeZone)} at{" "}
-                {formatZonedTime(scheduledDate, timeZone)}{" "}
-                · {formatDuration(event.durationMinutes)}
+                {formatZonedTime(scheduledDate, timeZone)} ·{" "}
+                {formatDuration(event.durationMinutes)}
               </small>
               {event.location && (
                 <p class="mb-2">
