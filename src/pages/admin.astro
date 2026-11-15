@@ -132,7 +132,7 @@ const activeBanner = await getActiveBanner();
                       type="submit"
                       color="danger"
                       size="small"
-                      onclick="return confirm('Are you sure you want to delete this ensemble?')"
+                      data-confirm="Are you sure you want to delete this ensemble?"
                     >
                       Delete
                     </Button>
@@ -177,7 +177,11 @@ const activeBanner = await getActiveBanner();
               {u.id !== user.id && (
                 <div class="buttons are-small">
                   {u.role !== "admin" && (
-                    <form method="POST" action="/view-as" style="display: inline;">
+                    <form
+                      method="POST"
+                      action="/view-as"
+                      style="display: inline;"
+                    >
                       <input type="hidden" name="userId" value={u.id} />
                       <Button type="submit" color="link" size="small">
                         View as
@@ -208,7 +212,7 @@ const activeBanner = await getActiveBanner();
                       type="submit"
                       color="danger"
                       size="small"
-                      onclick={`return confirm('Delete user "${u.name}"? This cannot be undone.')`}
+                      data-confirm={`Delete user "${u.name}"? This cannot be undone.`}
                     >
                       Delete
                     </Button>

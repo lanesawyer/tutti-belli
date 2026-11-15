@@ -2,6 +2,7 @@ import {
   db,
   eq,
   and,
+  inArray,
   EnsembleMember,
   Song,
   SongPart,
@@ -53,14 +54,16 @@ export async function getSongsPageData(ensembleId: string) {
     return { ensemble: null, songs: [], parts: [], seasons: [], songPartsData: [], seasonSongsData: [], songFilesData: [] };
   }
 
+  const ensembleSongIds = db.select({ id: Song.id }).from(Song).where(eq(Song.ensembleId, ensemble.id));
+
   const [songs, parts, seasons, songPartsData, seasonSongsData, songFilesData] =
     await Promise.all([
       db.select().from(Song).where(eq(Song.ensembleId, ensemble.id)).all(),
       db.select().from(Part).where(eq(Part.ensembleId, ensemble.id)).all(),
       db.select().from(Season).where(eq(Season.ensembleId, ensemble.id)).all(),
-      db.select().from(SongPart).all(),
-      db.select().from(SeasonSong).all(),
-      db.select().from(SongFile).all(),
+      db.select().from(SongPart).where(inArray(SongPart.songId, ensembleSongIds)).all(),
+      db.select().from(SeasonSong).where(inArray(SeasonSong.songId, ensembleSongIds)).all(),
+      db.select().from(SongFile).where(inArray(SongFile.songId, ensembleSongIds)).all(),
     ]);
 
   return { ensemble, songs, parts, seasons, songPartsData, seasonSongsData, songFilesData };
