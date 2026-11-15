@@ -123,9 +123,7 @@ describe('getGroupMembershipsWithUsers', () => {
     expect(memberships).toContainEqual({ groupId: group.id, userId: member.id, role: 'lead', userName: 'Member' });
   });
 
-  // Known gap: the ensembleId argument is ignored, so the groups page loads every ensemble's
-  // group memberships (src/lib/groups.ts getGroupMembershipsWithUsers).
-  it.fails("does not return another ensemble's group memberships", async () => {
+  it("does not return another ensemble's group memberships", async () => {
     const { ensemble } = await setup();
     const other = await setup();
     await createGroupMembership(other.group.id, other.member.id);

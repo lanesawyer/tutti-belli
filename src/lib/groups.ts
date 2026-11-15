@@ -9,7 +9,7 @@ export async function getEnsembleGroups(ensembleId: string) {
     .all();
 }
 
-export async function getGroupMembershipsWithUsers(_ensembleId: string) {
+export async function getGroupMembershipsWithUsers(ensembleId: string) {
   return await db
     .select({
       groupId: GroupMembership.groupId,
@@ -19,6 +19,8 @@ export async function getGroupMembershipsWithUsers(_ensembleId: string) {
     })
     .from(GroupMembership)
     .innerJoin(User, eq(GroupMembership.userId, User.id))
+    .innerJoin(Group, eq(GroupMembership.groupId, Group.id))
+    .where(eq(Group.ensembleId, ensembleId))
     .all();
 }
 

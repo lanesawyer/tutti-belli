@@ -196,8 +196,13 @@ export async function removeMember(membershipId: string) {
 /**
  * Set the role of a member.
  */
-export async function setMemberRole(membershipId: string, role: 'admin' | 'member') {
-  await db.update(EnsembleMember).set({ role }).where(eq(EnsembleMember.id, membershipId));
+/** Returns false when nothing changed: only an active membership can be made admin. */
+export async function setMemberRole(membershipId: string, role: 'admin' | 'member'): Promise<boolean> {
+  const result = await db
+    .update(EnsembleMember)
+    .set({ role })
+    .where(and(eq(EnsembleMember.id, membershipId), role === 'admin' ? eq(EnsembleMember.status, 'active') : undefined));
+  return result.rowsAffected > 0;
 }
 
 export type JoinResult =

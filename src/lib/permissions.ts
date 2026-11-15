@@ -20,10 +20,10 @@ export function isSiteAdmin(user: User | null | undefined): boolean {
 }
 
 /**
- * Check if a user is an ensemble administrator
+ * Check if a user is an ensemble administrator. A pending membership never counts.
  */
 export function isEnsembleAdmin(membership: Membership): boolean {
-  return membership?.role === 'admin';
+  return membership?.role === 'admin' && membership.status === 'active';
 }
 
 /**
