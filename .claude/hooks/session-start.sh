@@ -5,9 +5,9 @@ if [ "${CLAUDE_CODE_REMOTE:-}" != "true" ]; then
   exit 0
 fi
 
-# Read pinned versions from package.json
-NODE_VERSION=$(node -e "const p=require('$CLAUDE_PROJECT_DIR/package.json'); console.log(p.engines?.node || '24')")
-PNPM_VERSION=$(node -e "const p=require('$CLAUDE_PROJECT_DIR/package.json'); console.log(p.engines?.pnpm || '10')")
+# Read pinned versions from mise.toml
+NODE_VERSION=$(sed -n 's/^node = "\(.*\)"/\1/p' "$CLAUDE_PROJECT_DIR/mise.toml")
+PNPM_VERSION=$(sed -n 's/^pnpm = "\(.*\)"/\1/p' "$CLAUDE_PROJECT_DIR/mise.toml")
 
 # Ensure nvm is available and install the pinned Node version
 export NVM_DIR="/opt/nvm"

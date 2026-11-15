@@ -45,17 +45,5 @@
     "oxlint": "1.74.0",
     "typescript": "6.0.3",
     "vitest": "4.1.10"
-  },
-  "devEngines": {
-    "runtime": {
-      "name": "node",
-      "version": "24.15.0",
-      "onFail": "download"
-    }
-  },
-  "engines": {
-    "node": "24.15.0",
-    "pnpm": "11.15.1"
-  },
-  "packageManager": "pnpm@11.15.1"
+  }
 }
