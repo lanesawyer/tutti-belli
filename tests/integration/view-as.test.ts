@@ -4,7 +4,8 @@ import { canViewAs, resolveViewAs } from "../../src/lib/view-as.ts";
 import {
   createSession,
   createViewAsToken,
-  getUserFromSession,
+  getSession,
+  getSessionUser,
   readViewAsToken,
 } from "../../src/lib/session.ts";
 import { createUser } from "./fixtures.ts";
@@ -66,6 +67,6 @@ describe("resolveViewAs", () => {
     const member = await createUser();
 
     expect(readViewAsToken(createSession(admin!.id, 0))).toBeNull();
-    expect(await getUserFromSession(createViewAsToken(admin!.id, member!.id))).toBeNull();
+    expect(await getSessionUser(getSession(createViewAsToken(admin!.id, member!.id)))).toBeNull();
   });
 });

@@ -296,6 +296,24 @@ describe("profile.register", () => {
       ["CONFLICT"],
     );
   });
+
+  it("treats an email in other casing as the same account", async () => {
+    await expectRejected(
+      "profile.register",
+      { name: "Copycat", email: w.a.member.email.toUpperCase(), password: "secret-password" },
+      null,
+      ["CONFLICT"],
+    );
+  });
+
+  it("rejects a new password shorter than 8 characters", async () => {
+    const { error } = await callAction(actions["profile.register"], {
+      name: "Shorty",
+      email: "shorty@test.com",
+      password: "1234567",
+    });
+    expect(isInputError(error)).toBe(true);
+  });
 });
 
 describe("auth.login", () => {
@@ -320,6 +338,16 @@ describe("auth.login", () => {
       redirect: "//evil.example/steal",
     });
     expect(data).toEqual({ redirectUrl: `/ensembles/${w.a.ensemble.id}` });
+  });
+
+  it("signs in whatever the email's casing, with a password set before the 8-character minimum", async () => {
+    expect(WORLD_PASSWORD.length).toBeLessThan(8);
+    const { error, context } = await callAction(actions["auth.login"], {
+      email: ` ${w.a.member.email.toUpperCase()} `,
+      password: WORLD_PASSWORD,
+    });
+    expect(error).toBeUndefined();
+    expect(context.cookies.get("session")).toBeDefined();
   });
 
   it("locks an email out after repeated failures", async () => {
@@ -351,6 +379,15 @@ describe("auth.resetPassword", () => {
       null,
       ["BAD_REQUEST"],
     );
+  });
+
+  it("rejects a new password shorter than 8 characters", async () => {
+    const { error } = await callAction(actions["auth.resetPassword"], {
+      token: "not-a-token",
+      password: "1234567",
+      confirmPassword: "1234567",
+    });
+    expect(isInputError(error)).toBe(true);
   });
 });
 
@@ -398,6 +435,26 @@ describe("pending memberships and link URLs", () => {
       w.a.pending,
       ["FORBIDDEN"],
     );
+  });
+
+  it("keeps the last admin of an ensemble, even against a site admin", async () => {
+    for (const user of [w.a.admin, w.siteAdmin]) {
+      for (const name of ["members.demote", "members.remove", "members.reject"]) {
+        const { error } = await callAction(
+          actions[name],
+          membershipFieldsFor(w.a.adminMembership.id),
+          { user },
+        );
+        expect(error?.code).toBe("BAD_REQUEST");
+        expect(error?.message).toBe("An ensemble needs at least one admin.");
+      }
+    }
+    const admin = await db
+      .select()
+      .from(EnsembleMember)
+      .where(eq(EnsembleMember.id, w.a.adminMembership.id))
+      .get();
+    expect(admin).toMatchObject({ role: "admin", status: "active" });
   });
 
   it("refuses to promote a membership that is still pending", async () => {

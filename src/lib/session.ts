@@ -55,7 +55,7 @@ export function getSession(token: string | undefined): SessionPayload | null {
   const secret = jwtSecret();
 
   try {
-    const payload = jwt.verify(token, secret) as Partial<SessionPayload>;
+    const payload = jwt.verify(token, secret, { algorithms: ["HS256"] }) as Partial<SessionPayload>;
     // Other tokens signed with the same secret (view-as) have no userId and aren't sessions.
     return typeof payload.userId === "string" && typeof payload.sessionVersion === "number"
       ? (payload as SessionPayload)
@@ -80,16 +80,14 @@ export function createViewAsToken(adminId: string, targetId: string): string {
 
 export function readViewAsToken(token: string): { adminId: string; targetId: string } | null {
   try {
-    const payload = jwt.verify(token, jwtSecret()) as Partial<ViewAsPayload>;
+    const payload = jwt.verify(token, jwtSecret(), {
+      algorithms: ["HS256"],
+    }) as Partial<ViewAsPayload>;
     if (payload.purpose !== "view-as" || !payload.adminId || !payload.targetId) return null;
     return { adminId: payload.adminId, targetId: payload.targetId };
   } catch {
     return null;
   }
-}
-
-export async function getUserFromSession(token: string | undefined) {
-  return getSessionUser(getSession(token));
 }
 
 /** The user a verified session belongs to, or null if it was revoked. */

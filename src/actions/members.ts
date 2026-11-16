@@ -5,6 +5,7 @@ import {
   addMemberByEmail,
   approveMember,
   getEnsembleBySlugOrId,
+  LAST_ADMIN_MESSAGE,
   removeMember,
   setMemberRole,
 } from "@lib/ensemble";
@@ -83,7 +84,9 @@ export const members = {
       if (!user) throw new ActionError({ code: "UNAUTHORIZED" });
       await assertEnsembleAdmin(input.ensembleId, user);
       await assertInEnsemble("membership", input.membershipId, input.ensembleId);
-      await removeMember(input.membershipId);
+      if (!(await removeMember(input.membershipId))) {
+        throw new ActionError({ code: "BAD_REQUEST", message: LAST_ADMIN_MESSAGE });
+      }
     },
   }),
 
@@ -98,7 +101,9 @@ export const members = {
       if (!user) throw new ActionError({ code: "UNAUTHORIZED" });
       await assertEnsembleAdmin(input.ensembleId, user);
       await assertInEnsemble("membership", input.membershipId, input.ensembleId);
-      await removeMember(input.membershipId);
+      if (!(await removeMember(input.membershipId))) {
+        throw new ActionError({ code: "BAD_REQUEST", message: LAST_ADMIN_MESSAGE });
+      }
     },
   }),
 
@@ -133,7 +138,9 @@ export const members = {
       if (!user) throw new ActionError({ code: "UNAUTHORIZED" });
       await assertEnsembleAdmin(input.ensembleId, user);
       await assertInEnsemble("membership", input.membershipId, input.ensembleId);
-      await setMemberRole(input.membershipId, "member");
+      if (!(await setMemberRole(input.membershipId, "member"))) {
+        throw new ActionError({ code: "BAD_REQUEST", message: LAST_ADMIN_MESSAGE });
+      }
     },
   }),
 };

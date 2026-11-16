@@ -17,7 +17,7 @@ import {
 } from "@db";
 import { validateImageFile } from "./upload";
 import { deleteImage, uploadImage } from "./storage";
-import { hashPassword, verifyPassword } from "./auth";
+import { hashPassword, newPasswordError, verifyPassword } from "./auth";
 import { bumpSessionVersion } from "./session";
 import {
   sendEmailChangedEmail,
@@ -31,7 +31,10 @@ export async function registerUser(params: {
   email: string;
   password: string;
 }): Promise<{ userId: string }> {
-  const { name, email, password } = params;
+  const { name, password } = params;
+  const email = params.email.trim().toLowerCase();
+  const passwordError = newPasswordError(password);
+  if (passwordError) throw new Error(passwordError);
 
   const existing = await db.select({ id: User.id }).from(User).where(eq(User.email, email)).get();
   if (existing) throw new Error("An account with this email already exists.");
@@ -244,7 +247,7 @@ export async function initiateEmailChange(
 }
 
 export async function resendVerificationEmail(email: string): Promise<void> {
-  const user = await db.select().from(User).where(eq(User.email, email)).get();
+  const user = await db.select().from(User).where(eq(User.email, email.trim().toLowerCase())).get();
   if (!user || user.emailVerifiedAt) return; // silent: prevent enumeration
 
   // Invalidate any existing pending tokens
@@ -372,9 +375,8 @@ export async function resetPassword(
   token: string,
   password: string,
 ): Promise<{ type: "success" } | { type: "invalid" } | { type: "error"; message: string }> {
-  if (!password || password.length < 6) {
-    return { type: "error", message: "Password must be at least 6 characters." };
-  }
+  const passwordError = newPasswordError(password);
+  if (passwordError) return { type: "error", message: passwordError };
 
   const now = new Date();
   const [record] = await db

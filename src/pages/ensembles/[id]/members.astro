@@ -73,6 +73,7 @@ if (
 ) {
   return Astro.redirect(`/ensembles/${canonicalId}/members`);
 }
+const memberActionError = removeResult?.error ?? promoteResult?.error ?? demoteResult?.error;
 
 const membersData = await getEnsembleMembersWithUsers(ensemble.id);
 const allParts = await getEnsembleParts(ensemble.id);
@@ -171,6 +172,11 @@ const members = membersData;
         </Fragment>
       </Level>
 
+      {memberActionError && (
+        <Notification color="danger" light>
+          {memberActionError.message}
+        </Notification>
+      )}
       {addResult?.error && (
         <Notification color="danger" light>
           {addResult.error.message || "Couldn't add that member."}

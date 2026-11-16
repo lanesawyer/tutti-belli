@@ -1,4 +1,6 @@
 import { ActionError } from "astro:actions";
+import { z } from "astro/zod";
+import { newPasswordError } from "@lib/auth";
 import { getEnsembleMembership } from "@lib/ensemble";
 import { canManageEnsemble } from "@lib/permissions";
 import {
@@ -8,6 +10,12 @@ import {
   seasonsInEnsemble,
   type OwnedKind,
 } from "@lib/ownership";
+
+/** A password someone is choosing now. Not for login: older accounts have shorter passwords. */
+export const newPassword = z.string().superRefine((password, ctx) => {
+  const message = newPasswordError(password);
+  if (message) ctx.addIssue({ code: "custom", message });
+});
 
 export function assertSiteAdmin(user: { role: string } | undefined | null) {
   if (!user || user.role !== "admin") {

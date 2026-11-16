@@ -35,11 +35,3 @@ export function isEnsembleAdmin(membership: Membership): boolean {
 export function canManageEnsemble(user: User | null | undefined, membership: Membership): boolean {
   return isSiteAdmin(user) || isEnsembleAdmin(membership);
 }
-
-/**
- * Check if a user is an ensemble administrator (for backwards compatibility)
- * @deprecated Use isEnsembleAdmin instead
- */
-export function isEnsembleAdminRole(role: string | undefined): boolean {
-  return role === "admin";
-}

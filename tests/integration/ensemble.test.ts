@@ -4,8 +4,10 @@ import {
   getEnsembleBySlugOrId,
   updateEnsemble,
   getEnsembleByInviteCode,
+  removeMember,
+  setMemberRole,
 } from "../../src/lib/ensemble.ts";
-import { db, Ensemble, eq } from "@db";
+import { db, Ensemble, EnsembleMember, eq } from "@db";
 import { findUniqueSlug } from "../../src/lib/slug.ts";
 import { getAllEnsembles, getAllUsers, getSiteAdminIds } from "../../src/lib/admin.ts";
 import { createUser, createEnsemble, createInvite, createMembership } from "./fixtures.ts";
@@ -177,5 +179,61 @@ describe("site admin lists", () => {
     expect((await getAllEnsembles()).map((e) => e.id)).toEqual([ensemble.id]);
     expect((await getAllUsers()).map((u) => u.id).sort()).toEqual([admin.id, user.id].sort());
     expect(await getSiteAdminIds()).toEqual(new Set([admin.id]));
+  });
+});
+
+describe("keeping an ensemble's last admin", () => {
+  async function setup() {
+    const creator = await createUser();
+    const ensemble = await createEnsemble(creator.id);
+    const admin = await createMembership(ensemble.id, creator.id, { role: "admin" });
+    return { ensemble, admin };
+  }
+
+  const find = (id: string) =>
+    db.select().from(EnsembleMember).where(eq(EnsembleMember.id, id)).get();
+
+  it("won't demote or remove the only active admin", async () => {
+    const { admin } = await setup();
+
+    expect(await setMemberRole(admin.id, "member")).toBe(false);
+    expect(await removeMember(admin.id)).toBe(false);
+    expect(await find(admin.id)).toMatchObject({ role: "admin", status: "active" });
+  });
+
+  it("doesn't count a pending admin or another ensemble's admin", async () => {
+    const { ensemble, admin } = await setup();
+    await createMembership(ensemble.id, (await createUser()).id, {
+      role: "admin",
+      status: "pending",
+    });
+    const elsewhere = await createEnsemble(admin.userId);
+    await createMembership(elsewhere.id, (await createUser()).id, { role: "admin" });
+
+    expect(await setMemberRole(admin.id, "member")).toBe(false);
+    expect(await removeMember(admin.id)).toBe(false);
+  });
+
+  it("lets an admin go once another active admin remains", async () => {
+    const { ensemble, admin } = await setup();
+    const second = await createMembership(ensemble.id, (await createUser()).id, { role: "admin" });
+
+    expect(await setMemberRole(admin.id, "member")).toBe(true);
+    expect(await removeMember(second.id)).toBe(false);
+    expect(await setMemberRole(admin.id, "admin")).toBe(true);
+    expect(await removeMember(second.id)).toBe(true);
+    expect(await find(second.id)).toBeUndefined();
+  });
+
+  it("still removes members and pending admins", async () => {
+    const { ensemble } = await setup();
+    const member = await createMembership(ensemble.id, (await createUser()).id);
+    const pending = await createMembership(ensemble.id, (await createUser()).id, {
+      role: "admin",
+      status: "pending",
+    });
+
+    expect(await removeMember(member.id)).toBe(true);
+    expect(await removeMember(pending.id)).toBe(true);
   });
 });
