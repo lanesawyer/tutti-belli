@@ -88,7 +88,7 @@ Form mutations use **Astro Actions** (`src/actions/`). Do not use the old patter
 - Links in emails and other content that leaves the site (QR codes, set-password links) come from `getSiteUrl()`/`siteLink()` in `src/lib/site-url.ts`, never from `Astro.url`, `context.url` or request headers
 - Email HTML: escape every interpolated value with `escapeHtml` (or `textToHtml` for multi-line plain text such as announcement content) from `src/lib/email.ts`
 - Changing email needs the current password, notifies the old address, and on confirmation signs out every other session (`src/lib/profile.ts`)
-- The middleware adds the security headers from `src/lib/security-headers.ts` to every response unless the route set its own. The Content Security Policy is report-only for now
+- The middleware adds the security headers from `src/lib/security-headers.ts` to every response unless the route set its own. The Content Security Policy is enforced in a build and report-only under `astro dev`: no inline scripts, `on*` attributes or `<style is:inline>` blocks (`style=""` attributes are allowed), and any new external origin has to be added to the policy
 - Failed logins, password-reset requests and email-change requests are rate-limited in memory per account and per client IP (`src/lib/rate-limit.ts`; the IP comes from Fly's `Fly-Client-IP` header)
 
 ### Database Schema

@@ -424,8 +424,8 @@ const songFilesMap = buildSongFilesMap(ensembleSongIds, songFilesData);
       </div>
     </Modal>
 
-    <script
-      is:inline
+    <div
+      hidden
       id="songs-data"
       data-songs={JSON.stringify(songs)}
       data-song-parts={JSON.stringify(Array.from(songPartsMap.entries()))}
@@ -436,7 +436,7 @@ const songFilesMap = buildSongFilesMap(ensembleSongIds, songFilesData);
       data-open-modal={
         addError ? "addModal" : editError ? "editModal" : deleteError ? "deleteModal" : ""
       }
-    ></script>
+    />
 
     <script>
       type SongData = {
