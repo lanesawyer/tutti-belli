@@ -16,13 +16,15 @@ pnpm db:generate      # Generate a drizzle migration from db/schema.ts changes
 pnpm db:migrate       # Apply migrations to the remote Turso DB (reads .env)
 ```
 
+Node and pnpm versions are pinned in `mise.toml` (`mise install`); CI and the Dockerfile install from the same file.
+
 ## Architecture
 
-**Full-stack Astro 5 SSR app** for managing musical ensembles (rehearsals, attendance, members, repertoire). Deployed on Fly.io via Docker.
+**Full-stack Astro 7 SSR app** for managing musical ensembles (rehearsals, attendance, members, repertoire). Deployed on Fly.io via Docker.
 
 ### Key Technology Choices
 
-- **Astro 5** with `output: 'server'` — all pages are server-rendered, no client-side JS frameworks
+- **Astro 7** with `output: 'server'` — all pages are server-rendered, no client-side JS frameworks
 - **Drizzle ORM** (LibSQL/Turso) — schema in `db/schema.ts`, client + query helpers re-exported from the `@db` alias (`db/index.ts`); all queries go through `src/lib/` functions or Astro Actions; never import `@db` directly in page frontmatter
 - **Bulma 1.0** for CSS (dark mode supported via CSS custom properties + localStorage toggle)
 - **Zero client-side JS framework** — all interactions are HTML form POSTs handled via Astro Actions (`src/actions/`)
@@ -71,20 +73,22 @@ Rules:
 
 ### Request Handling Pattern
 
-Form mutations use **Astro Actions** (`src/actions/`). Do not use the old pattern of checking `Astro.request.method === 'POST'` in page frontmatter. Actions use `defineAction` with `accept: 'form'` and a Zod schema, throw `ActionError` for failures, and delegate business logic to `src/lib/`. Pages read results via `Astro.getActionResult()` and redirect on success.
+Form mutations use **Astro Actions** (`src/actions/`). Do not use the old pattern of checking `Astro.request.method === 'POST'` in page frontmatter. Actions use `defineAction` with `accept: 'form'` and a Zod schema, throw `ActionError` for failures, and delegate business logic to `src/lib/`. Pages read results via `Astro.getActionResult()` and redirect on success. The middleware runs form actions itself (`getActionContext`) so it can log one that fails with anything other than an `ActionError`; don't wrap `defineAction`.
 
 **Every ID in an action's input must be checked against the ensemble.** `assertEnsembleAdmin(ensembleId, user)` only proves the user may act on the `ensembleId` from the form; the other IDs in the same form are just as attacker-controlled. After the permission check, call `assertInEnsemble(kind, id, ensembleId)` (from `src/actions/utils.ts`, backed by `src/lib/ownership.ts`) for each record ID, and `assertUserInEnsemble(userId, ensembleId)` for any target user. Add a new kind to `ownership.ts` when you add a table that belongs to an ensemble.
 
 ### Authentication & Authorization
 
 - **Middleware** (`src/middleware.ts`): Runs on every request, extracts JWT from `session` cookie, populates `Astro.locals.user` and `Astro.locals.session`. Redirects unauthenticated users to `/login` for protected routes.
-- **Public routes**: `/`, `/login`, `/register`, `/forgot-password`, `/reset-password`, `/invite/join`, `/health`
+- **Public routes**: `/`, `/login`, `/register`, `/forgot-password`, `/reset-password`, `/invite/join`, `/verify-email`, `/verify-email-change`, `/resend-verification`, `/health`
 - **Three permission tiers**: Site admin (`User.role = 'admin'`), ensemble admin (`EnsembleMember.role = 'admin'`), and regular member
 - Sessions are JWT tokens (30-day expiry) in HTTP-only cookies, signed with `JWT_SECRET`
 - Passwords hashed with bcryptjs (10 rounds)
 - CSRF: Astro's `checkOrigin` is on. Fly terminates TLS, so `security.allowedDomains` in `astro.config.mjs` lists the hosts whose `X-Forwarded-Proto`/`X-Forwarded-Host` Astro trusts to rebuild the https URL (`@astrojs/node` takes the plain `Host` header as-is). A host served behind a proxy that sets `X-Forwarded-Host` must be listed or its form POSTs will 403. List exact hostnames (`tuttibelli.org`, `*.tuttibelli.org`, `tutti-belli.fly.dev`), never a `*.fly.dev`-style wildcard: anyone can register a Fly app name. A PR preview's own host is added from the `PREVIEW_HOSTNAME` build arg (the list is fixed at build time; see `Dockerfile` and `fly-preview.yml`)
 - Links in emails and other content that leaves the site (QR codes, set-password links) come from `getSiteUrl()`/`siteLink()` in `src/lib/site-url.ts`, never from `Astro.url`, `context.url` or request headers
 - Email HTML: escape every interpolated value with `escapeHtml` (or `textToHtml` for multi-line plain text such as announcement content) from `src/lib/email.ts`
+- Changing email needs the current password, notifies the old address, and on confirmation signs out every other session (`src/lib/profile.ts`)
+- The middleware adds the security headers from `src/lib/security-headers.ts` to every response unless the route set its own. The Content Security Policy is report-only for now
 - Failed logins, password-reset requests and email-change requests are rate-limited in memory per account and per client IP (`src/lib/rate-limit.ts`; the IP comes from Fly's `Fly-Client-IP` header)
 
 ### Database Schema
@@ -120,22 +124,27 @@ File-based routing under `src/pages/`. Ensemble pages live under `ensembles/[id]
 
 - `auth.ts` — password hashing/verification
 - `session.ts` — JWT creation, validation, user lookup from session
-- `upload.ts` — file upload validation (image types, 2MB max), base64 conversion for DB storage
+- `upload.ts` — image upload validation (type and size)
 - `avatar.ts` — generates initials and consistent colors from user names
 - `permissions.ts` — role-checking helpers
-- `email.ts` — Resend service integration for password reset emails
+- `email.ts` — every outgoing email, sent through Resend
 - `redirect.ts` — smart login redirect logic
+- `env.ts` / `check-env.ts` — required environment variables, checked when the production server starts
+- `health.ts` — database check behind `GET /health`, which Fly polls
 
 ### Environment Variables
 
 **Read server secrets from `process.env`, never `import.meta.env`.** Vite writes `import.meta.env` values into the server bundle at build time, which would bake secrets into `dist/` and the Docker image. `astro.config.mjs` loads `.env` into `process.env` for `astro dev`; in production the values are Fly secrets. Secrets are never Docker build args.
+
+The production container exits at start if a required variable is missing; add new required ones to `missingEnv` in `src/lib/env.ts`.
 
 Required in `.env` (see `.env.example`):
 
 - `ASTRO_DB_REMOTE_URL` / `ASTRO_DB_APP_TOKEN` — Turso database connection (names kept from the Astro DB era; they're baked into Fly/GitHub secrets)
 - `DATABASE_URL` — overrides the Turso connection with a local libSQL URL (set automatically by `pnpm dev` and the test configs; no auth token used)
 - `JWT_SECRET` — session token signing
-- `EMAIL_API_KEY` / `EMAIL_FROM` — Resend email service
+- `EMAIL_API_KEY` / `EMAIL_FROM` — Resend email service (not required when `EMAIL_DISABLED` is set, which logs emails instead)
+- `AWS_ENDPOINT_URL_S3` / `AWS_REGION` / `BUCKET_NAME` / `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` — Tigris file storage (not required when `STORAGE_DISABLED` is set)
 
 Optional:
 
@@ -180,6 +189,6 @@ Two recurring issues affect the `firefox-admin` (and `firefox-user`) projects:
 ### When to Write Tests
 
 - **New `src/lib/` function**: add a unit test; add an integration test if it touches the DB.
-- **New Astro Action**: the action schema/validation logic is tested via integration tests on the underlying lib function. Add an e2e test for the happy-path form flow.
+- **New Astro Action**: add it to `tests/support/action-matrix.ts` (who may call it, and a cross-ensemble case for each ID field); `tests/integration/actions.test.ts` fails until every action has an entry. Add an e2e test for the happy-path form flow.
 - **New page or feature**: add an e2e test covering the primary user flow and any permission boundaries.
 - **Bug fix**: add a test that would have caught the bug.

@@ -11,7 +11,7 @@ A web app for running musical ensembles: members and voice parts, seasons, rehea
 - **Attendance**: members check in from the event page or by scanning a per-event QR code within the check-in window; admins can mark attendance by hand. Per-member attendance stats, exportable as CSV along with the member list.
 - **Repertoire**: songs with composer, arranger, runtime, and voice parts, plus sheet music (PDF), recordings (MP3), and links. Files live in S3-compatible storage and are served only to ensemble members.
 - **Announcements**, optionally posted to Discord; **tasks** with per-member completion; a site-wide **banner** for admins.
-- **Accounts**: email verification, password reset, and email changes by email. Public registration is currently disabled.
+- **Accounts**: sign-up with email verification, password reset, and email changes confirmed by password and email.
 - Light and dark mode, mobile-friendly.
 
 ## Getting Started
@@ -51,12 +51,14 @@ See `.env.example`.
 | `ASTRO_DB_REMOTE_URL`, `ASTRO_DB_APP_TOKEN`                                                      | Turso database URL and token (names kept from the Astro DB era)                |
 | `DATABASE_URL`                                                                                   | Local libSQL URL that overrides Turso; `pnpm dev` and the tests set it for you |
 | `JWT_SECRET`                                                                                     | Signs session tokens                                                           |
+| `SITE_URL`                                                                                       | Base URL for links in emails and QR codes; optional in development             |
 | `EMAIL_API_KEY`, `EMAIL_FROM`                                                                    | Resend, for verification and password-reset email                              |
+| `EMAIL_DISABLED`                                                                                 | Set to log emails instead of sending them                                      |
 | `AWS_ENDPOINT_URL_S3`, `AWS_REGION`, `BUCKET_NAME`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` | Tigris object storage (Fly.io) for song files                                  |
 | `STORAGE_DISABLED`                                                                               | Set to skip real uploads and deletes                                           |
 | `DISCORD_DISABLED`                                                                               | Set to skip Discord posts                                                      |
 
-The storage variables are only needed to upload, download, or delete song files; the app runs without them otherwise.
+`pnpm dev` runs with whatever is set. The production image checks at start and exits if `JWT_SECRET`, the database, email or storage variables are missing, unless that service is disabled.
 
 ## Development
 
@@ -85,12 +87,12 @@ pnpm db:migrate    # Apply migrations to the remote database
 - [Bulma](https://bulma.io/) 1.0 through [`astro-bulma`](https://github.com/lanesawyer/astro-bulma) components, with [Font Awesome](https://fontawesome.com/) 6 icons
 - JWT sessions in an HTTP-only cookie; passwords hashed with bcrypt
 - [Resend](https://resend.com/) for email, Tigris (Fly.io) for file storage
-- Vitest and Playwright for tests, Oxlint for linting
+- Vitest and Playwright for tests, Oxlint and oxfmt for linting and formatting
 - Deployed on [Fly.io](https://fly.io/) with Docker, with a preview app per pull request
 
 ## Self-Hosting
 
-See [docs/self-hosting.md](docs/self-hosting.md) for the external services (Turso, Resend, Tigris), environment variables, Docker, Fly.io deployment, and first-login setup.
+See [docs/self-hosting.md](docs/self-hosting.md) for the external services (Turso, Resend, Tigris), environment variables, Docker, Fly.io deployment, and first-login setup, and [docs/backup-restore.md](docs/backup-restore.md) for backups.
 
 ## License
 
