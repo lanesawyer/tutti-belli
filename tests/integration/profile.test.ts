@@ -8,6 +8,7 @@ import {
   updateParts,
   verifyEmailToken,
   verifyEmailChangeToken,
+  initiateEmailChange,
   validatePasswordResetToken,
   resetPassword,
 } from "../../src/lib/profile.ts";
@@ -28,11 +29,18 @@ import {
   createPart,
   createMemberPart,
 } from "./fixtures.ts";
+import {
+  sendEmailChangedEmail,
+  sendEmailChangeRequestedEmail,
+  sendEmailChangeVerificationEmail,
+} from "../../src/lib/email.ts";
 
 // Mock email module — we don't want to call the real Resend API in tests
 vi.mock("../../src/lib/email.ts", () => ({
   sendEmailVerificationEmail: vi.fn().mockResolvedValue({ success: true }),
   sendEmailChangeVerificationEmail: vi.fn().mockResolvedValue({ success: true }),
+  sendEmailChangeRequestedEmail: vi.fn().mockResolvedValue({ success: true }),
+  sendEmailChangedEmail: vi.fn().mockResolvedValue({ success: true }),
   sendPasswordResetEmail: vi.fn().mockResolvedValue({ success: true }),
   sendAnnouncementEmail: vi.fn().mockResolvedValue({ success: true }),
 }));
@@ -234,6 +242,80 @@ describe("verifyEmailToken", () => {
   });
 });
 
+describe("initiateEmailChange", () => {
+  it("rejects a wrong password without sending anything", async () => {
+    const user = await createUser({ email: "wrong-pw@test.com", password: "right-password" });
+    vi.mocked(sendEmailChangeVerificationEmail).mockClear();
+    vi.mocked(sendEmailChangeRequestedEmail).mockClear();
+
+    const result = await initiateEmailChange(
+      user!.id,
+      user!.name,
+      user!.email,
+      "wrong-pw-new@test.com",
+      "wrong-password",
+    );
+
+    expect(result).toEqual({ type: "error", message: "Incorrect password. Email not changed." });
+    const tokens = await db
+      .select()
+      .from(EmailChangeToken)
+      .where(eq(EmailChangeToken.userId, user!.id))
+      .all();
+    expect(tokens).toHaveLength(0);
+    expect(sendEmailChangeVerificationEmail).not.toHaveBeenCalled();
+    expect(sendEmailChangeRequestedEmail).not.toHaveBeenCalled();
+  });
+
+  it("requires a password", async () => {
+    const user = await createUser();
+    const result = await initiateEmailChange(
+      user!.id,
+      user!.name,
+      user!.email,
+      "no-pw-new@test.com",
+      "",
+    );
+    expect(result).toEqual({
+      type: "error",
+      message: "Password is required to change your email.",
+    });
+  });
+
+  it("with the right password, emails the new address a link and tells the current one", async () => {
+    const user = await createUser({
+      name: "Mover",
+      email: "right-pw@test.com",
+      password: "right-password",
+    });
+
+    const result = await initiateEmailChange(
+      user!.id,
+      user!.name,
+      user!.email,
+      "Right-PW-New@test.com",
+      "right-password",
+    );
+
+    expect(result).toEqual({ type: "redirect", url: "/profile?emailChangePending=1" });
+    const token = await db
+      .select()
+      .from(EmailChangeToken)
+      .where(eq(EmailChangeToken.userId, user!.id))
+      .get();
+    expect(sendEmailChangeVerificationEmail).toHaveBeenCalledWith(
+      "right-pw-new@test.com",
+      "Mover",
+      token!.token,
+    );
+    expect(sendEmailChangeRequestedEmail).toHaveBeenCalledWith(
+      "right-pw@test.com",
+      "Mover",
+      "right-pw-new@test.com",
+    );
+  });
+});
+
 describe("verifyEmailChangeToken", () => {
   async function insertChangeToken(
     userId: string,
@@ -252,15 +334,25 @@ describe("verifyEmailChangeToken", () => {
     return token;
   }
 
-  it("updates the user email and marks the token used on success", async () => {
-    const user = await createUser({ email: "old-email@test.com" });
+  it("updates the user email, signs out every session and notifies the old address", async () => {
+    const user = await createUser({ name: "Changer", email: "old-email@test.com" });
     const token = await insertChangeToken(user!.id, "new-email@test.com");
 
     const result = await verifyEmailChangeToken(token);
 
-    expect(result).toEqual({ type: "success", newEmail: "new-email@test.com" });
+    expect(result).toEqual({
+      type: "success",
+      newEmail: "new-email@test.com",
+      user: { id: user!.id, sessionVersion: user!.sessionVersion + 1 },
+    });
     const updated = await db.select().from(User).where(eq(User.id, user!.id)).get();
     expect(updated!.email).toBe("new-email@test.com");
+    expect(updated!.sessionVersion).toBe(user!.sessionVersion + 1);
+    expect(sendEmailChangedEmail).toHaveBeenCalledWith(
+      "old-email@test.com",
+      "Changer",
+      "new-email@test.com",
+    );
     const tokenRow = await db
       .select()
       .from(EmailChangeToken)
@@ -381,6 +473,22 @@ describe("resetPassword", () => {
       .where(eq(PasswordResetToken.token, token))
       .get();
     expect(tokenRow!.usedAt).not.toBeNull();
+  });
+
+  it("cancels a pending email change", async () => {
+    const user = await createUser({ password: "old-password" });
+    const changeToken = crypto.randomUUID();
+    await db.insert(EmailChangeToken).values({
+      id: crypto.randomUUID(),
+      userId: user!.id,
+      newEmail: "attacker@example.com",
+      token: changeToken,
+      expiresAt: new Date(Date.now() + 60 * 60 * 1000),
+    });
+
+    await resetPassword(await insertResetToken(user!.id), "new-password-123");
+
+    expect(await verifyEmailChangeToken(changeToken)).toEqual({ type: "invalid" });
   });
 
   it("returns error for a password shorter than 6 characters", async () => {

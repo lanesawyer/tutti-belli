@@ -190,6 +190,57 @@ export async function sendEmailChangeVerificationEmail(
   );
 }
 
+/** To the current address when someone asks to move the account to another one. */
+export async function sendEmailChangeRequestedEmail(
+  toEmail: string,
+  toName: string,
+  newEmail: string,
+): Promise<EmailResult> {
+  const resetUrl = siteLink("/forgot-password");
+
+  return sendEmail(
+    {
+      from: getEnv("EMAIL_FROM", "noreply@example.com"),
+      to: toEmail,
+      subject: "Email change requested",
+      html: `
+        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2>Email change requested</h2>
+          <p>Hi ${escapeHtml(toName)},</p>
+          <p>Someone asked to change your account email to <strong>${escapeHtml(newEmail)}</strong>. Nothing changes unless the link sent to that address is used.</p>
+          <p>If this wasn't you, reset your password now.</p>
+          ${emailButton(resetUrl, "Reset Password")}
+        </div>
+      `,
+    },
+    "email change requested email",
+  );
+}
+
+/** To the old address once an email change is confirmed. */
+export async function sendEmailChangedEmail(
+  toEmail: string,
+  toName: string,
+  newEmail: string,
+): Promise<EmailResult> {
+  return sendEmail(
+    {
+      from: getEnv("EMAIL_FROM", "noreply@example.com"),
+      to: toEmail,
+      subject: "Your email address was changed",
+      html: `
+        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2>Your email address was changed</h2>
+          <p>Hi ${escapeHtml(toName)},</p>
+          <p>Your account email is now <strong>${escapeHtml(newEmail)}</strong>, and you have been signed out everywhere.</p>
+          <p>If this wasn't you, contact your ensemble administrator right away.</p>
+        </div>
+      `,
+    },
+    "email changed email",
+  );
+}
+
 export async function sendEmailVerificationEmail(
   toEmail: string,
   toName: string,

@@ -55,16 +55,14 @@ export async function createSeason(
     : [];
   await runBatch([
     ...deactivateOthers,
-    db
-      .insert(Season)
-      .values({
-        id: crypto.randomUUID(),
-        ensembleId,
-        name,
-        startDate,
-        endDate,
-        isActive: setActive ? 1 : 0,
-      }),
+    db.insert(Season).values({
+      id: crypto.randomUUID(),
+      ensembleId,
+      name,
+      startDate,
+      endDate,
+      isActive: setActive ? 1 : 0,
+    }),
   ]);
 }
 

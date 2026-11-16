@@ -76,10 +76,11 @@ describe("emails sent by lib functions", () => {
       "Changer",
       user!.email,
       "new-links@test.com",
+      "test123",
     );
     expect(result.type).toBe("redirect");
-    expect(sent).toHaveLength(1);
-    expectOnlySiteLinks(sent[0]);
+    expect(sent).toHaveLength(2);
+    for (const email of sent) expectOnlySiteLinks(email);
     expect(sent[0].html).toContain(`${SITE}/verify-email-change?token=`);
   });
 
