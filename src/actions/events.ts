@@ -6,6 +6,7 @@ import {
   assertEnsembleMember,
   assertInEnsemble,
   assertUserInEnsemble,
+  throwUserError,
 } from "./utils";
 import {
   createEvent,
@@ -49,7 +50,7 @@ export const events = {
       try {
         await createEvent({ ...input, groupId: input.groupId || undefined, rsvpEnabled });
       } catch (e) {
-        throw new ActionError({ code: "BAD_REQUEST", message: (e as Error).message });
+        throwUserError("BAD_REQUEST", e);
       }
     },
   }),
@@ -109,7 +110,7 @@ export const events = {
       try {
         await checkInToEvent({ eventId, userId: user.id, ensembleId, isAdmin });
       } catch (e) {
-        throw new ActionError({ code: "FORBIDDEN", message: (e as Error).message });
+        throwUserError("FORBIDDEN", e);
       }
     },
   }),
@@ -298,7 +299,7 @@ export const events = {
       try {
         return await checkInByCode({ code, userId: user.id });
       } catch (e) {
-        throw new ActionError({ code: "FORBIDDEN", message: (e as Error).message });
+        throwUserError("FORBIDDEN", e);
       }
     },
   }),

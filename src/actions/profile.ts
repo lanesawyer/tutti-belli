@@ -1,6 +1,6 @@
 import { defineAction, ActionError } from "astro:actions";
 import { z } from "astro/zod";
-import { assertPartsInEnsemble } from "./utils";
+import { assertPartsInEnsemble, throwUserError } from "./utils";
 import { getMembershipById } from "@lib/ensemble";
 import { revokeSessions, startSession } from "@lib/session";
 import {
@@ -51,7 +51,7 @@ export const profile = {
       try {
         await registerUser({ name, email, password });
       } catch (e) {
-        throw new ActionError({ code: "CONFLICT", message: (e as Error).message });
+        throwUserError("CONFLICT", e);
       }
       return { email };
     },

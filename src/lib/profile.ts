@@ -18,6 +18,7 @@ import {
 import { validateImageFile } from "./upload";
 import { deleteImage, uploadImage } from "./storage";
 import { hashPassword, verifyPassword } from "./auth";
+import { UserError } from "./errors";
 import { bumpSessionVersion } from "./session";
 import {
   sendEmailChangedEmail,
@@ -34,7 +35,7 @@ export async function registerUser(params: {
   const { name, email, password } = params;
 
   const existing = await db.select({ id: User.id }).from(User).where(eq(User.email, email)).get();
-  if (existing) throw new Error("An account with this email already exists.");
+  if (existing) throw new UserError("An account with this email already exists.");
 
   const userId = crypto.randomUUID();
   const passwordHash = await hashPassword(password);
