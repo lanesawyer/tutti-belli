@@ -161,6 +161,10 @@ The workflow in `.github/workflows/fly-preview.yml` automatically deploys a prev
 
 Each preview app is named `tutti-belli-pr-<number>`, and its Turso DB and Tigris bucket are named the same. The bucket starts empty, so files from the copied production data download as 404 on previews. Each preview gets its own random `JWT_SECRET` and sends no email: `EMAIL_DISABLED` is set in `fly.preview.toml`, so invite, verification and password-reset links are written to `fly logs -a tutti-belli-pr-<number>` instead. All three are automatically destroyed when the PR is closed.
 
+## Backups
+
+See [Backup and Restore](backup-restore.md) for what is backed up, how to restore the database, and a restore drill.
+
 ## First Login
 
 On first run there is no seed data in production. Use the `/register` page to create your account, then promote it to site admin directly in the database:
