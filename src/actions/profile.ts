@@ -164,8 +164,9 @@ export const profile = {
     accept: "form",
     input: z.object({
       newEmail: z.string(),
+      password: z.string(),
     }),
-    handler: async ({ newEmail }, context) => {
+    handler: async ({ newEmail, password }, context) => {
       const user = context.locals.user;
       if (!user) throw new ActionError({ code: "UNAUTHORIZED" });
       const ip = requestIp(context);
@@ -179,7 +180,7 @@ export const profile = {
       emailChangesByUser.record(user.id);
       emailChangesByIp.record(ip);
 
-      const result = await initiateEmailChange(user.id, user.name, user.email, newEmail);
+      const result = await initiateEmailChange(user.id, user.name, user.email, newEmail, password);
       if (result.type === "error") {
         throw new ActionError({ code: "BAD_REQUEST", message: result.message });
       }

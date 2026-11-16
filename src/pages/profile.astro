@@ -171,6 +171,13 @@ const tasksByEnsemble = await getUserTasksAcrossEnsembles(user.id);
                   email continues to work for login until verified.
                 </p>
                 <form method="POST" action={actions.profile.changeEmail}>
+                  <TextInput
+                    name="password"
+                    type="password"
+                    label="Current password"
+                    required
+                    autocomplete="current-password"
+                  />
                   <div class="field has-addons">
                     <div class="control is-expanded">
                       <TextInput

@@ -19,7 +19,12 @@ import { validateImageFile } from "./upload";
 import { deleteImage, uploadImage } from "./storage";
 import { hashPassword, verifyPassword } from "./auth";
 import { bumpSessionVersion } from "./session";
-import { sendEmailChangeVerificationEmail, sendEmailVerificationEmail } from "./email";
+import {
+  sendEmailChangedEmail,
+  sendEmailChangeRequestedEmail,
+  sendEmailChangeVerificationEmail,
+  sendEmailVerificationEmail,
+} from "./email";
 
 export async function registerUser(params: {
   name: string;
@@ -171,6 +176,7 @@ export async function initiateEmailChange(
   userName: string,
   currentEmail: string,
   newEmail: string | undefined,
+  password: string | undefined,
 ): Promise<ActionResult> {
   if (!newEmail?.trim()) {
     return { type: "error", message: "Please enter a new email address." };
@@ -184,6 +190,16 @@ export async function initiateEmailChange(
 
   if (trimmedEmail === currentEmail.toLowerCase()) {
     return { type: "error", message: "That is already your current email address." };
+  }
+
+  if (!password) {
+    return { type: "error", message: "Password is required to change your email." };
+  }
+
+  const fullUser = await db.select().from(User).where(eq(User.id, userId)).get();
+  const valid = fullUser ? await verifyPassword(password, fullUser.passwordHash) : false;
+  if (!valid) {
+    return { type: "error", message: "Incorrect password. Email not changed." };
   }
 
   const [existingUser] = await db
@@ -222,6 +238,7 @@ export async function initiateEmailChange(
       return { type: "error", message: `Email failed: ${emailResult.error}` };
     }
   }
+  await sendEmailChangeRequestedEmail(currentEmail, userName, trimmedEmail);
 
   return { type: "redirect", url: "/profile?emailChangePending=1" };
 }
@@ -250,15 +267,22 @@ export async function resendVerificationEmail(email: string): Promise<void> {
 }
 
 export type VerifyEmailChangeResult =
-  | { type: "success"; newEmail: string }
+  | { type: "success"; newEmail: string; user: { id: string; sessionVersion: number } }
   | { type: "conflict" }
   | { type: "invalid" };
 
 export async function verifyEmailChangeToken(token: string): Promise<VerifyEmailChangeResult> {
   const now = new Date();
   const [record] = await db
-    .select()
+    .select({
+      id: EmailChangeToken.id,
+      userId: EmailChangeToken.userId,
+      newEmail: EmailChangeToken.newEmail,
+      oldEmail: User.email,
+      name: User.name,
+    })
     .from(EmailChangeToken)
+    .innerJoin(User, eq(User.id, EmailChangeToken.userId))
     .where(
       and(
         eq(EmailChangeToken.token, token),
@@ -282,12 +306,18 @@ export async function verifyEmailChangeToken(token: string): Promise<VerifyEmail
     return { type: "conflict" };
   }
 
-  await db.batch([
-    db.update(User).set({ email: record.newEmail }).where(eq(User.id, record.userId)),
+  const [[user]] = await db.batch([
+    db
+      .update(User)
+      .set({ email: record.newEmail, sessionVersion: bumpSessionVersion })
+      .where(eq(User.id, record.userId))
+      .returning({ id: User.id, sessionVersion: User.sessionVersion }),
     db.update(EmailChangeToken).set({ usedAt: now }).where(eq(EmailChangeToken.id, record.id)),
   ]);
 
-  return { type: "success", newEmail: record.newEmail };
+  await sendEmailChangedEmail(record.oldEmail, record.name, record.newEmail);
+
+  return { type: "success", newEmail: record.newEmail, user };
 }
 
 export async function verifyEmailToken(
@@ -374,6 +404,11 @@ export async function resetPassword(
       .set({ emailVerifiedAt: now })
       .where(and(eq(User.id, record.userId), isNull(User.emailVerifiedAt))),
     db.update(PasswordResetToken).set({ usedAt: now }).where(eq(PasswordResetToken.id, record.id)),
+    // A pending email change may have been started by whoever had the old password.
+    db
+      .update(EmailChangeToken)
+      .set({ usedAt: now })
+      .where(and(eq(EmailChangeToken.userId, record.userId), isNull(EmailChangeToken.usedAt))),
   ]);
 
   return { type: "success" };
