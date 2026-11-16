@@ -1,4 +1,5 @@
-import { ActionError } from "astro:actions";
+import { ActionError, type ActionErrorCode } from "astro:actions";
+import { UserError } from "@lib/errors";
 import { getEnsembleMembership } from "@lib/ensemble";
 import { canManageEnsemble } from "@lib/permissions";
 import {
@@ -60,4 +61,10 @@ export async function assertSeasonsInEnsemble(seasonIds: string[], ensembleId: s
   if (!(await seasonsInEnsemble(seasonIds, ensembleId))) {
     throw new ActionError({ code: "NOT_FOUND" });
   }
+}
+
+/** Reports a UserError from the lib layer to the user; anything else stays a 500 and is logged. */
+export function throwUserError(code: ActionErrorCode, error: unknown): never {
+  if (error instanceof UserError) throw new ActionError({ code, message: error.message });
+  throw error;
 }
