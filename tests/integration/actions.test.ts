@@ -1,5 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { db, eq, EnsembleMember, Event, EventProgram, Group, MemberPart, SongPart } from "@db";
+import bcrypt from "bcryptjs";
+import {
+  db,
+  eq,
+  EnsembleMember,
+  Event,
+  EventProgram,
+  Group,
+  MemberPart,
+  SongPart,
+  User,
+} from "@db";
+import { DUMMY_PASSWORD_HASH } from "@lib/auth";
 import { server } from "@actions/index";
 import {
   emailAndIpKey,
@@ -25,6 +37,7 @@ vi.mock("@lib/storage", async (importOriginal) => ({
 }));
 
 vi.mock("@lib/email", () => ({
+  sendAccountExistsEmail: vi.fn().mockResolvedValue({ success: true }),
   sendAnnouncementEmail: vi.fn().mockResolvedValue({ success: true }),
   sendEmailChangeVerificationEmail: vi.fn().mockResolvedValue({ success: true }),
   sendEmailChangeRequestedEmail: vi.fn().mockResolvedValue({ success: true }),
@@ -294,22 +307,27 @@ describe("profile.deleteAccount", () => {
 });
 
 describe("profile.register", () => {
-  it("rejects an email that already has an account", async () => {
-    await expectRejected(
-      "profile.register",
-      { name: "Copycat", email: w.a.member.email, password: "secret-password" },
-      null,
-      ["CONFLICT"],
-    );
-  });
-
-  it("treats an email in other casing as the same account", async () => {
-    await expectRejected(
-      "profile.register",
-      { name: "Copycat", email: w.a.member.email.toUpperCase(), password: "secret-password" },
-      null,
-      ["CONFLICT"],
-    );
+  it("answers an email that already has an account exactly like a new one", async () => {
+    const fresh = await callAction(actions["profile.register"], {
+      name: "Newcomer",
+      email: "fresh@test.com",
+      password: "secret-password",
+    });
+    for (const email of [w.a.member.email, w.a.member.email.toUpperCase()]) {
+      const taken = await callAction(actions["profile.register"], {
+        name: "Copycat",
+        email,
+        password: "secret-password",
+      });
+      expect(taken.error).toBeUndefined();
+      expect(taken.data).toEqual({ email });
+      expect(Object.keys(taken.data as object)).toEqual(Object.keys(fresh.data as object));
+      expect([...taken.context.cookies.headers()].map((h) => h.split("=")[0])).toEqual(
+        [...fresh.context.cookies.headers()].map((h) => h.split("=")[0]),
+      );
+    }
+    const member = await db.select().from(User).where(eq(User.id, w.a.member.id)).get();
+    expect(member!.name).toBe(w.a.member.name);
   });
 
   it("remembers the browser that registered, for the verification link", async () => {
@@ -356,6 +374,37 @@ describe("auth.login", () => {
       redirect: "//evil.example/steal",
     });
     expect(data).toEqual({ redirectUrl: `/ensembles/${w.a.ensemble.id}` });
+  });
+
+  it("checks a password even when no account matches, then gives the usual answer", async () => {
+    const compare = vi.spyOn(bcrypt, "compare");
+    const { error } = await callAction(actions["auth.login"], {
+      email: "nobody-here@test.com",
+      password: "whatever",
+    });
+    expect(error).toMatchObject({ code: "UNAUTHORIZED", message: "Invalid email or password" });
+    expect(compare).toHaveBeenCalledWith("whatever", DUMMY_PASSWORD_HASH);
+    compare.mockRestore();
+  });
+
+  it("only says an account is unverified once the password is right", async () => {
+    await db.update(User).set({ emailVerifiedAt: null }).where(eq(User.id, w.a.member.id));
+    const wrong = await callAction(actions["auth.login"], {
+      email: w.a.member.email,
+      password: "nope",
+    });
+    expect(wrong.error).toMatchObject({
+      code: "UNAUTHORIZED",
+      message: "Invalid email or password",
+    });
+    failedLoginsByEmailAndIp.reset(emailAndIpKey(w.a.member.email, "127.0.0.1"));
+    failedLoginsByEmail.reset(w.a.member.email);
+
+    const right = await callAction(actions["auth.login"], {
+      email: w.a.member.email,
+      password: WORLD_PASSWORD,
+    });
+    expect(right.error?.code).toBe("FORBIDDEN");
   });
 
   it("signs in whatever the email's casing, with a password set before the 8-character minimum", async () => {

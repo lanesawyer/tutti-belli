@@ -43,14 +43,16 @@ test("successful registration shows a resend link", async ({ page }, workerInfo)
   await expect(resendLink).toBeVisible();
 });
 
-test("registering a duplicate email shows an error", async ({ page }) => {
+test("registering a taken email looks the same as a new one", async ({ page }) => {
   await page.goto("/register");
   await page.fill('input[name="name"]', "Duplicate");
   await page.fill('input[name="email"]', "admin@example.com"); // seed user
   await page.fill('input[name="password"]', "password123");
   await page.click('button[type="submit"]');
 
-  await expect(page.locator(".notification.is-danger")).toBeVisible();
+  await expect(page.locator(".notification.is-success")).toContainText("Check your inbox");
+  await expect(page.locator(".notification.is-success")).toContainText("admin@example.com");
+  await expect(page.locator(".notification.is-danger")).toHaveCount(0);
   await expect(page).toHaveURL(/\/register/);
 });
 

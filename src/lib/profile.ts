@@ -32,6 +32,7 @@ import {
   VERIFY_EMAIL_COOKIE,
 } from "./session";
 import {
+  sendAccountExistsEmail,
   sendEmailChangedEmail,
   sendEmailChangeRequestedEmail,
   sendEmailChangeVerificationEmail,
@@ -48,11 +49,22 @@ export async function registerUser(params: {
   const passwordError = newPasswordError(password);
   if (passwordError) throw new Error(passwordError);
 
-  const existing = await db.select({ id: User.id }).from(User).where(eq(User.email, email)).get();
-  if (existing) throw new Error("An account with this email already exists.");
+  // Hashed before the lookup, so a taken address takes as long as a new one.
+  const passwordHash = await hashPassword(password);
+
+  // A taken address gets the same response as a new one, so sign-up can't reveal who has an
+  // account. Its owner is emailed instead.
+  const existing = await db.select().from(User).where(eq(User.email, email)).get();
+  if (existing) {
+    if (existing.emailVerifiedAt) {
+      sendAccountExistsEmail(existing.email, existing.name).catch(() => {});
+    } else {
+      await sendNewVerificationLink(existing);
+    }
+    return { userId: existing.id };
+  }
 
   const userId = crypto.randomUUID();
-  const passwordHash = await hashPassword(password);
 
   const token = crypto.randomUUID();
   const expiresAt = new Date(Date.now() + EMAIL_VERIFICATION_TTL_MS);
@@ -223,8 +235,11 @@ export async function initiateEmailChange(
     .select({ id: User.id })
     .from(User)
     .where(eq(User.email, trimmedEmail));
+  // Answer as if the link went out: saying the address is taken would tell this member that
+  // someone has an account there. The current address is still told about the request.
   if (existingUser) {
-    return { type: "error", message: "That email address is already in use." };
+    await sendEmailChangeRequestedEmail(currentEmail, userName, trimmedEmail);
+    return { type: "redirect", url: "/profile?emailChangePending=1" };
   }
 
   // Invalidate any existing pending email change for this user
@@ -252,12 +267,16 @@ export async function initiateEmailChange(
     }),
   ]);
 
-  const emailResult = await sendEmailChangeVerificationEmail(trimmedEmail, userName, token);
-  if (!emailResult.success) {
-    console.error("Email change verification email failed:", emailResult.error);
-    if (import.meta.env.DEV) {
+  // Not awaited outside dev: waiting on the email provider only here would let the response
+  // time tell a taken address from a free one.
+  const sent = sendEmailChangeVerificationEmail(trimmedEmail, userName, token).then((result) => {
+    if (!result.success) console.error("Email change verification email failed:", result.error);
+    return result;
+  });
+  if (import.meta.env.DEV) {
+    const emailResult = await sent;
+    if (!emailResult.success)
       return { type: "error", message: `Email failed: ${emailResult.error}` };
-    }
   }
   await sendEmailChangeRequestedEmail(currentEmail, userName, trimmedEmail);
 
@@ -267,7 +286,10 @@ export async function initiateEmailChange(
 export async function resendVerificationEmail(email: string): Promise<void> {
   const user = await db.select().from(User).where(eq(User.email, email.trim().toLowerCase())).get();
   if (!user || user.emailVerifiedAt) return; // silent: prevent enumeration
+  await sendNewVerificationLink(user);
+}
 
+async function sendNewVerificationLink(user: { id: string; email: string; name: string }) {
   // Invalidate any existing pending tokens
   const now = new Date();
   const token = crypto.randomUUID();
@@ -284,7 +306,7 @@ export async function resendVerificationEmail(email: string): Promise<void> {
       .values({ id: crypto.randomUUID(), userId: user.id, token: hashToken(token), expiresAt }),
   ]);
 
-  sendEmailVerificationEmail(email, user.name, token).catch(() => {});
+  sendEmailVerificationEmail(user.email, user.name, token).catch(() => {});
 }
 
 export type VerifyEmailChangeResult =

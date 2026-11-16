@@ -10,6 +10,12 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
   return bcrypt.compare(password, hash);
 }
 
+/**
+ * A bcrypt hash of a password nobody knows, at the same cost as `hashPassword`. Login checks it
+ * when no account matches, so the response time doesn't say whether one does.
+ */
+export const DUMMY_PASSWORD_HASH = "$2b$10$UIH6QlSuqKle4wrISvwe2uvg4mZg2PkwBbTUH9I75AGLqpUs0Fuuy";
+
 export const PASSWORD_MIN_LENGTH = 8;
 // bcrypt ignores everything past 72 bytes.
 export const PASSWORD_MAX_BYTES = 72;

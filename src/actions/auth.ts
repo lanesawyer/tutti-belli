@@ -1,6 +1,11 @@
 import { defineAction, ActionError } from "astro:actions";
 import { z } from "astro/zod";
-import { getUserByEmail, verifyPassword, createPasswordResetToken } from "@lib/auth";
+import {
+  DUMMY_PASSWORD_HASH,
+  getUserByEmail,
+  verifyPassword,
+  createPasswordResetToken,
+} from "@lib/auth";
 import { startSession } from "@lib/session";
 import { getRedirectUrl } from "@lib/redirect";
 import { sendPasswordResetEmail } from "@lib/email";
@@ -41,8 +46,12 @@ export const auth = {
       }
 
       const user = await getUserByEmail(email);
+      const passwordMatches = await verifyPassword(
+        password,
+        user?.passwordHash ?? DUMMY_PASSWORD_HASH,
+      );
 
-      if (!user || !(await verifyPassword(password, user.passwordHash))) {
+      if (!user || !passwordMatches) {
         failedLoginsByEmailAndIp.record(pairKey);
         failedLoginsByIp.record(ip);
         failedLoginsByEmail.record(emailKey);
@@ -91,10 +100,15 @@ export const auth = {
 
       if (user) {
         const token = await createPasswordResetToken(user.id);
-        const result = await sendPasswordResetEmail(user.email, user.name, token);
-        if (!result.success) {
-          console.error("Email send failed:", result.error);
-          if (import.meta.env.DEV) {
+        // Not awaited outside dev: waiting on the email provider only for real accounts would
+        // let the response time say which addresses have one.
+        const sent = sendPasswordResetEmail(user.email, user.name, token).then((result) => {
+          if (!result.success) console.error("Email send failed:", result.error);
+          return result;
+        });
+        if (import.meta.env.DEV) {
+          const result = await sent;
+          if (!result.success) {
             throw new ActionError({
               code: "INTERNAL_SERVER_ERROR",
               message: `Email failed: ${result.error}`,

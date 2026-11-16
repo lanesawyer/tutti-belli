@@ -38,6 +38,7 @@ import {
 } from "../../src/lib/session.ts";
 import { createTestContext } from "../support/actions.ts";
 import {
+  sendAccountExistsEmail,
   sendEmailChangedEmail,
   sendEmailChangeRequestedEmail,
   sendEmailChangeVerificationEmail,
@@ -46,6 +47,7 @@ import {
 
 // Mock email module — we don't want to call the real Resend API in tests
 vi.mock("../../src/lib/email.ts", () => ({
+  sendAccountExistsEmail: vi.fn().mockResolvedValue({ success: true }),
   sendEmailVerificationEmail: vi.fn().mockResolvedValue({ success: true }),
   sendEmailChangeVerificationEmail: vi.fn().mockResolvedValue({ success: true }),
   sendEmailChangeRequestedEmail: vi.fn().mockResolvedValue({ success: true }),
@@ -85,11 +87,59 @@ describe("registerUser", () => {
     expect(user!.passwordHash).toMatch(/^\$2[aby]\$/);
   });
 
-  it("throws an error if the email is already in use", async () => {
-    await registerUser({ name: "First", email: "dup@test.com", password: "password1" });
-    await expect(
-      registerUser({ name: "Second", email: "dup@test.com", password: "password2" }),
-    ).rejects.toThrow("already exists");
+  it("for a verified address, changes nothing and tells the owner instead of failing", async () => {
+    const owner = await createUser({ name: "Owner", email: "dup@test.com", password: "password1" });
+    await db.update(User).set({ emailVerifiedAt: new Date() }).where(eq(User.id, owner!.id));
+    vi.mocked(sendAccountExistsEmail).mockClear();
+    vi.mocked(sendEmailVerificationEmail).mockClear();
+
+    const result = await registerUser({
+      name: "Second",
+      email: "Dup@test.com",
+      password: "password2",
+    });
+
+    expect(result).toEqual({ userId: owner!.id });
+    const users = await db.select().from(User).where(eq(User.email, "dup@test.com")).all();
+    expect(users).toHaveLength(1);
+    expect(users[0]).toMatchObject({ name: "Owner", passwordHash: owner!.passwordHash });
+    expect(sendAccountExistsEmail).toHaveBeenCalledWith("dup@test.com", "Owner");
+    expect(sendEmailVerificationEmail).not.toHaveBeenCalled();
+    const tokens = await db
+      .select()
+      .from(EmailVerificationToken)
+      .where(eq(EmailVerificationToken.userId, owner!.id))
+      .all();
+    expect(tokens).toHaveLength(0);
+  });
+
+  it("for an unverified address, sends the owner a fresh verification link", async () => {
+    const { userId } = await registerUser({
+      name: "First",
+      email: "dup-unverified@test.com",
+      password: "password1",
+    });
+    const firstToken = lastVerificationToken();
+    vi.mocked(sendAccountExistsEmail).mockClear();
+
+    const result = await registerUser({
+      name: "Second",
+      email: "dup-unverified@test.com",
+      password: "password2",
+    });
+
+    expect(result).toEqual({ userId });
+    expect(sendAccountExistsEmail).not.toHaveBeenCalled();
+    expect(sendEmailVerificationEmail).toHaveBeenLastCalledWith(
+      "dup-unverified@test.com",
+      "First",
+      expect.any(String),
+    );
+    expect(lastVerificationToken()).not.toBe(firstToken);
+    expect(await verifyEmailToken(firstToken)).toBeNull();
+    expect(await verifyEmailToken(lastVerificationToken())).toMatchObject({ id: userId });
+    const user = await db.select().from(User).where(eq(User.id, userId)).get();
+    expect(user!.name).toBe("First");
   });
 
   it("stores the email lowercased and treats other casings as the same account", async () => {
@@ -100,9 +150,9 @@ describe("registerUser", () => {
     });
     const user = await db.select().from(User).where(eq(User.id, userId)).get();
     expect(user!.email).toBe("casey@test.com");
-    await expect(
-      registerUser({ name: "Casey 2", email: "casey@test.com", password: "password123" }),
-    ).rejects.toThrow("already exists");
+    expect(
+      await registerUser({ name: "Casey 2", email: "casey@test.com", password: "password123" }),
+    ).toEqual({ userId });
   });
 
   it("rejects a password shorter than 8 or longer than 72 bytes", async () => {
@@ -395,6 +445,39 @@ describe("initiateEmailChange", () => {
       type: "error",
       message: "Password is required to change your email.",
     });
+  });
+
+  it("answers an address that is taken as if it were free, sending nothing to it", async () => {
+    const user = await createUser({
+      name: "Mover",
+      email: "mover@test.com",
+      password: "right-password",
+    });
+    await createUser({ email: "taken@test.com" });
+    vi.mocked(sendEmailChangeVerificationEmail).mockClear();
+    vi.mocked(sendEmailChangeRequestedEmail).mockClear();
+
+    const result = await initiateEmailChange(
+      user!.id,
+      user!.name,
+      user!.email,
+      "Taken@test.com",
+      "right-password",
+    );
+
+    expect(result).toEqual({ type: "redirect", url: "/profile?emailChangePending=1" });
+    expect(sendEmailChangeVerificationEmail).not.toHaveBeenCalled();
+    expect(sendEmailChangeRequestedEmail).toHaveBeenCalledWith(
+      "mover@test.com",
+      "Mover",
+      "taken@test.com",
+    );
+    const tokens = await db
+      .select()
+      .from(EmailChangeToken)
+      .where(eq(EmailChangeToken.userId, user!.id))
+      .all();
+    expect(tokens).toHaveLength(0);
   });
 
   it("with the right password, emails the new address a link and tells the current one", async () => {
