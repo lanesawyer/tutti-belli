@@ -1,5 +1,7 @@
 import { getActionContext } from "astro:actions";
+import type { APIContext, MiddlewareNext } from "astro";
 import { defineMiddleware } from "astro:middleware";
+import { securityHeaders } from "./lib/security-headers";
 import { getSession, getSessionUser } from "./lib/session";
 import { resolveViewAs, VIEW_AS_COOKIE } from "./lib/view-as";
 
@@ -29,7 +31,7 @@ function isPublicRoute(pathname: string): boolean {
   });
 }
 
-export const onRequest = defineMiddleware(async (context, next) => {
+const authenticate = async (context: APIContext, next: MiddlewareNext): Promise<Response> => {
   const sessionId = context.cookies.get("session")?.value;
   const session = getSession(sessionId);
   const user = await getSessionUser(session);
@@ -71,4 +73,15 @@ export const onRequest = defineMiddleware(async (context, next) => {
     console.error(`${context.request.method} ${context.url.pathname} failed:`, error);
     throw error;
   }
+};
+
+const SECURITY_HEADERS = Object.entries(securityHeaders(import.meta.env.PROD));
+
+export const onRequest = defineMiddleware(async (context, next) => {
+  const response = await authenticate(context, next);
+  for (const [name, value] of SECURITY_HEADERS) {
+    // A route's own value wins, e.g. /files allows same-origin framing for the PDF embed.
+    if (!response.headers.has(name)) response.headers.set(name, value);
+  }
+  return response;
 });

@@ -26,6 +26,9 @@ export const GET: APIRoute = async ({ params, locals, url, request }) => {
       : `attachment; filename="${encodeURIComponent(row.name)}"`,
     "Cache-Control": "private, max-age=300",
     "Accept-Ranges": "bytes",
+    // Song pages show PDFs in an <embed>, which the site-wide DENY would block.
+    "X-Frame-Options": "SAMEORIGIN",
+    "Content-Security-Policy-Report-Only": "frame-ancestors 'self'",
   };
   if (contentLength !== undefined) headers["Content-Length"] = String(contentLength);
   if (contentRange) headers["Content-Range"] = contentRange;
