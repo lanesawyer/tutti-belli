@@ -36,7 +36,14 @@ const endMs = startMs + durationMinutes * 60 * 1000;
 ---
 
 {timedEntries.length > 0 && (
-  <div class="rehearsal-timeline-wrap mb-5">
+  <div
+    class="rehearsal-timeline-wrap mb-5"
+    id="timeline-data"
+    data-start-ms={startMs}
+    data-end-ms={endMs}
+    data-duration-minutes={durationMinutes}
+    data-segments={JSON.stringify(segmentData)}
+  >
     <div id="live-countdown" class="live-countdown is-hidden" aria-live="polite">
       <div class="live-countdown-badge">
         <span class="live-dot" />
@@ -85,17 +92,24 @@ const endMs = startMs + durationMinutes * 60 * 1000;
   </div>
 )}
 
-<script is:inline define:vars={{ startMs, endMs, durationMinutes, segmentData }}>
+<script>
   document.addEventListener("astro:page-load", () => {
+    const data = document.getElementById("timeline-data");
     const needle = document.getElementById("now-needle");
     const countdown = document.getElementById("live-countdown");
     const segmentName = document.getElementById("live-segment-name");
     const timeRemaining = document.getElementById("live-time-remaining");
-    if (!needle || !countdown || !segmentName || !timeRemaining) return;
+    if (!data || !needle || !countdown || !segmentName || !timeRemaining) return;
+    const startMs = Number(data.dataset.startMs);
+    const endMs = Number(data.dataset.endMs);
+    const durationMinutes = Number(data.dataset.durationMinutes);
+    const segmentData: { name: string; startMin: number; endMin: number }[] = JSON.parse(
+      data.dataset.segments || "[]",
+    );
 
-    let intervalId = null;
+    let intervalId: ReturnType<typeof setInterval> | null = null;
 
-    function tick() {
+    const tick = () => {
       const now = Date.now();
       const isLive = now >= startMs && now < endMs;
 
@@ -128,7 +142,7 @@ const endMs = startMs + durationMinutes * 60 * 1000;
       } else {
         countdown.classList.add("is-hidden");
       }
-    }
+    };
 
     tick();
     if (Date.now() >= startMs && Date.now() < endMs) {

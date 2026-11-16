@@ -438,24 +438,39 @@ const songFilesMap = buildSongFilesMap(ensembleSongIds, songFilesData);
       }
     ></script>
 
-    <script is:inline>
+    <script>
+      type SongData = {
+        id: string;
+        name: string;
+        composer: string | null;
+        arranger: string | null;
+        runTime: number | null;
+      };
+      type SongFileData = { id: string; name: string; category: string };
+
       function initSongsPage() {
         const dataScript = document.getElementById("songs-data");
         if (!dataScript) return;
         const ensembleId = dataScript.dataset.ensembleId || "";
-        const songsData = JSON.parse(dataScript.dataset.songs || "[]");
-        const songPartsMapJS = new Map(JSON.parse(dataScript.dataset.songParts || "[]"));
-        const songSeasonsMapJS = new Map(JSON.parse(dataScript.dataset.songSeasons || "[]"));
-        const songFilesMapJS = new Map(JSON.parse(dataScript.dataset.songFiles || "[]"));
+        const songsData: SongData[] = JSON.parse(dataScript.dataset.songs || "[]");
+        const songPartsMapJS = new Map<string, string[]>(
+          JSON.parse(dataScript.dataset.songParts || "[]"),
+        );
+        const songSeasonsMapJS = new Map<string, string[]>(
+          JSON.parse(dataScript.dataset.songSeasons || "[]"),
+        );
+        const songFilesMapJS = new Map<string, SongFileData[]>(
+          JSON.parse(dataScript.dataset.songFiles || "[]"),
+        );
         const isAdmin = dataScript.dataset.isAdmin === "true";
 
-        function categoryLabel(cat) {
+        function categoryLabel(cat: string) {
           if (cat === "sheet_music") return "Sheet Music";
           if (cat === "rehearsal_track") return "Rehearsal Track";
           return "Other";
         }
 
-        function categoryTagClass(cat) {
+        function categoryTagClass(cat: string) {
           if (cat === "sheet_music") return "is-success";
           if (cat === "rehearsal_track") return "is-warning";
           return "is-light";
@@ -474,11 +489,11 @@ const songFilesMap = buildSongFilesMap(ensembleSongIds, songFilesData);
 
         // ── Files modal ──────────────────────────────────────────────────────────
 
-        const filesModal = document.getElementById("filesModal");
+        const filesModal = document.getElementById("filesModal")!;
 
-        function renderFilesList(songId) {
+        function renderFilesList(songId: string) {
           const files = songFilesMapJS.get(songId) || [];
-          const container = document.getElementById("filesModalList");
+          const container = document.getElementById("filesModalList")!;
           if (files.length === 0) {
             const empty = document.createElement("p");
             empty.className = "has-text-grey";
@@ -489,7 +504,7 @@ const songFilesMap = buildSongFilesMap(ensembleSongIds, songFilesData);
           container.replaceChildren(...files.map(fileRow));
         }
 
-        function hiddenInput(name, value) {
+        function hiddenInput(name: string, value: string) {
           const input = document.createElement("input");
           input.type = "hidden";
           input.name = name;
@@ -497,7 +512,7 @@ const songFilesMap = buildSongFilesMap(ensembleSongIds, songFilesData);
           return input;
         }
 
-        function fileRow(f) {
+        function fileRow(f: SongFileData) {
           const row = document.createElement("div");
           row.className = "is-flex is-align-items-center mb-2";
           row.style.gap = "0.5rem";
@@ -542,12 +557,12 @@ const songFilesMap = buildSongFilesMap(ensembleSongIds, songFilesData);
 
         document.querySelectorAll(".files-btn").forEach((btn) => {
           btn.addEventListener("click", () => {
-            const songId = btn.getAttribute("data-song-id");
+            const songId = btn.getAttribute("data-song-id") ?? "";
             const songName = btn.getAttribute("data-song-name");
-            document.getElementById("filesModalSongName").textContent = songName;
-            document.getElementById("addFileSongId").value = songId;
-            document.getElementById("fileName").value = "";
-            document.getElementById("fileUrl").value = "";
+            document.getElementById("filesModalSongName")!.textContent = songName;
+            (document.getElementById("addFileSongId") as HTMLInputElement).value = songId;
+            (document.getElementById("fileName") as HTMLInputElement).value = "";
+            (document.getElementById("fileUrl") as HTMLInputElement).value = "";
             renderFilesList(songId);
             filesModal.classList.add("is-active");
           });
@@ -555,36 +570,46 @@ const songFilesMap = buildSongFilesMap(ensembleSongIds, songFilesData);
 
         // ── Edit modal ───────────────────────────────────────────────────────────
 
-        const editModal = document.getElementById("editModal");
+        const editModal = document.getElementById("editModal")!;
 
         document.querySelectorAll(".edit-btn").forEach((btn) => {
           btn.addEventListener("click", () => {
-            const songId = btn.getAttribute("data-song-id");
+            const songId = btn.getAttribute("data-song-id") ?? "";
             const song = songsData.find((s) => s.id === songId);
             if (!song) return;
 
-            document.getElementById("editSongId").value = song.id;
-            document.getElementById("editName").value = song.name;
-            document.getElementById("editComposer").value = song.composer || "";
-            document.getElementById("editArranger").value = song.arranger || "";
+            (document.getElementById("editSongId") as HTMLInputElement).value = song.id;
+            (document.getElementById("editName") as HTMLInputElement).value = song.name;
+            (document.getElementById("editComposer") as HTMLInputElement).value =
+              song.composer || "";
+            (document.getElementById("editArranger") as HTMLInputElement).value =
+              song.arranger || "";
 
             if (song.runTime) {
-              document.getElementById("editRunTimeMinutes").value = Math.floor(song.runTime / 60);
-              document.getElementById("editRunTimeSeconds").value = song.runTime % 60;
+              (document.getElementById("editRunTimeMinutes") as HTMLInputElement).value = String(
+                Math.floor(song.runTime / 60),
+              );
+              (document.getElementById("editRunTimeSeconds") as HTMLInputElement).value = String(
+                song.runTime % 60,
+              );
             } else {
-              document.getElementById("editRunTimeMinutes").value = "";
-              document.getElementById("editRunTimeSeconds").value = "";
+              (document.getElementById("editRunTimeMinutes") as HTMLInputElement).value = "";
+              (document.getElementById("editRunTimeSeconds") as HTMLInputElement).value = "";
             }
 
             const songParts = songPartsMapJS.get(songId) || [];
-            document.querySelectorAll('#editParts input[type="checkbox"]').forEach((cb) => {
-              cb.checked = songParts.includes(cb.value);
-            });
+            document
+              .querySelectorAll<HTMLInputElement>('#editParts input[type="checkbox"]')
+              .forEach((cb) => {
+                cb.checked = songParts.includes(cb.value);
+              });
 
             const songSeasons = songSeasonsMapJS.get(songId) || [];
-            document.querySelectorAll('#editSeasons input[type="checkbox"]').forEach((cb) => {
-              cb.checked = songSeasons.includes(cb.value);
-            });
+            document
+              .querySelectorAll<HTMLInputElement>('#editSeasons input[type="checkbox"]')
+              .forEach((cb) => {
+                cb.checked = songSeasons.includes(cb.value);
+              });
 
             editModal.classList.add("is-active");
           });
@@ -592,11 +617,12 @@ const songFilesMap = buildSongFilesMap(ensembleSongIds, songFilesData);
 
         // ── Delete modal ─────────────────────────────────────────────────────────
 
-        const deleteModal = document.getElementById("deleteModal");
+        const deleteModal = document.getElementById("deleteModal")!;
 
         document.querySelectorAll(".delete-btn").forEach((btn) => {
           btn.addEventListener("click", () => {
-            document.getElementById("deleteSongId").value = btn.getAttribute("data-song-id");
+            (document.getElementById("deleteSongId") as HTMLInputElement).value =
+              btn.getAttribute("data-song-id") ?? "";
             deleteModal.classList.add("is-active");
           });
         });
