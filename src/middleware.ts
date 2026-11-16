@@ -1,3 +1,4 @@
+import { getActionContext } from "astro:actions";
 import { defineMiddleware } from "astro:middleware";
 import { getSession, getSessionUser } from "./lib/session";
 import { resolveViewAs, VIEW_AS_COOKIE } from "./lib/view-as";
@@ -55,6 +56,15 @@ export const onRequest = defineMiddleware(async (context, next) => {
   }
 
   try {
+    const { action, setActionResult, serializeActionResult } = getActionContext(context);
+    if (action?.calledFrom === "form") {
+      const result = await action.handler();
+      // Astro turns an unexpected throw in an action into this error without logging it.
+      if (result.error?.code === "INTERNAL_SERVER_ERROR") {
+        console.error(`Action ${action.name} failed:`, result.error.message);
+      }
+      setActionResult(action.name, serializeActionResult(result));
+    }
     return await next();
   } catch (error) {
     // Astro logs the error and renders the 500 page, but its log leaves out the request.
