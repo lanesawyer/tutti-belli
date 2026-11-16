@@ -100,6 +100,9 @@ async function sendEmail(params: SendParams, logContext: string): Promise<EmailR
   }
 }
 
+// Resend accepts at most 100 emails per batch request
+const BATCH_LIMIT = 100;
+
 async function sendEmailBatch(paramsList: SendParams[], logContext: string): Promise<EmailResult> {
   if (getEnv("EMAIL_DISABLED")) {
     for (const params of paramsList) logUnsentEmail(params, logContext);
@@ -109,21 +112,31 @@ async function sendEmailBatch(paramsList: SendParams[], logContext: string): Pro
   if ("error" in result) return result.error;
 
   console.log(`[email] ${logContext} to ${paramsList.length} recipients`);
+  let sentCount = 0;
   try {
-    const { error: sendError } = await result.client.batch.send(
-      paramsList.map((params) => ({
-        ...params,
-        from: result.fromEmail,
-        subject: emailSubject(params.subject),
-      })),
-    );
-    if (sendError) {
-      console.error(`Failed to send ${logContext}:`, sendError);
-      return { success: false, error: sendError.message };
+    for (let i = 0; i < paramsList.length; i += BATCH_LIMIT) {
+      const { error: sendError } = await result.client.batch.send(
+        paramsList.slice(i, i + BATCH_LIMIT).map((params) => ({
+          ...params,
+          from: result.fromEmail,
+          subject: emailSubject(params.subject),
+        })),
+      );
+      if (sendError) {
+        console.error(
+          `Failed to send ${logContext} (${sentCount} of ${paramsList.length} sent):`,
+          sendError,
+        );
+        return { success: false, error: sendError.message };
+      }
+      sentCount += Math.min(BATCH_LIMIT, paramsList.length - i);
     }
     return { success: true };
   } catch (error) {
-    console.error(`Failed to send ${logContext}:`, error);
+    console.error(
+      `Failed to send ${logContext} (${sentCount} of ${paramsList.length} sent):`,
+      error,
+    );
     return { success: false, error: String(error) };
   }
 }

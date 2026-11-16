@@ -439,7 +439,7 @@ const pastEvents = allEvents.filter((e) => {
       </Modal>
     )}
 
-    <script is:inline>
+    <script>
       document.addEventListener("astro:page-load", () => {
         document.getElementById("create-event-btn")?.addEventListener("click", () => {
           document.getElementById("create-modal")?.classList.add("is-active");
@@ -447,7 +447,8 @@ const pastEvents = allEvents.filter((e) => {
 
         document.querySelectorAll(".delete-event-btn").forEach((btn) => {
           btn.addEventListener("click", () => {
-            document.getElementById("deleteEventId").value = btn.getAttribute("data-event-id");
+            (document.getElementById("deleteEventId") as HTMLInputElement).value =
+              btn.getAttribute("data-event-id") ?? "";
             document.getElementById("delete-modal")?.classList.add("is-active");
           });
         });
