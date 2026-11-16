@@ -46,6 +46,7 @@ describe("emails sent by lib functions", () => {
     sent.length = 0;
     vi.stubEnv("EMAIL_DISABLED", "");
     vi.stubEnv("EMAIL_API_KEY", "test-key");
+    vi.stubEnv("EMAIL_FROM", "noreply@tuttibelli.org");
     vi.stubEnv("SITE_URL", SITE);
   });
   afterEach(() => vi.unstubAllEnvs());

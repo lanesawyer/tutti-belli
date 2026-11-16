@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import jwt from "jsonwebtoken";
 import { db, eq, User } from "@db";
 import { createSession, createViewAsToken, revokeSessions } from "@lib/session";
@@ -6,6 +6,16 @@ import { VIEW_AS_COOKIE } from "@lib/view-as";
 import { onRequest } from "../../src/middleware.ts";
 import { createTestContext } from "../support/actions.ts";
 import { createUser } from "./fixtures.ts";
+
+const actionContext = vi.hoisted(() => ({ get: vi.fn() }));
+vi.mock("astro:actions", async (original) => ({
+  ...(await original<typeof import("astro:actions")>()),
+  getActionContext: actionContext.get,
+}));
+
+beforeEach(() => {
+  actionContext.get.mockReturnValue({ action: undefined });
+});
 
 async function run(path: string, cookies: Record<string, string> = {}) {
   const context = createTestContext({ path, cookies });
@@ -34,6 +44,7 @@ describe("public routes", () => {
     "/verify-email",
     "/verify-email-change",
     "/resend-verification",
+    "/health",
     "/login/",
   ])("serves %s without a session", async (path) => {
     const result = await run(path);
@@ -71,6 +82,52 @@ describe("protected routes", () => {
   it("carries only the path into the redirect", async () => {
     const result = await run("/ensembles/abc?tab=members");
     expectLoginRedirect(result, "/ensembles/abc");
+  });
+});
+
+describe("errors", () => {
+  it("logs an error thrown while handling the request with its method and path", async () => {
+    const error = new Error("boom");
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    const context = createTestContext({ path: "/login", method: "POST" });
+    await expect(onRequest(context, async () => Promise.reject(error))).rejects.toBe(error);
+    expect(log).toHaveBeenCalledWith("POST /login failed:", error);
+    log.mockRestore();
+  });
+
+  function formAction(result: { data?: unknown; error?: { code: string; message: string } }) {
+    const setActionResult = vi.fn();
+    actionContext.get.mockReturnValue({
+      action: { calledFrom: "form", name: "songs.deleteSong", handler: async () => result },
+      setActionResult,
+      serializeActionResult: (value: unknown) => value,
+    });
+    return setActionResult;
+  }
+
+  it("logs a form action that failed unexpectedly and still hands its result to the page", async () => {
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    const result = { error: { code: "INTERNAL_SERVER_ERROR", message: "database is down" } };
+    const setActionResult = formAction(result);
+
+    const { next } = await run("/login");
+
+    expect(log).toHaveBeenCalledWith("Action songs.deleteSong failed:", "database is down");
+    expect(setActionResult).toHaveBeenCalledWith("songs.deleteSong", result);
+    expect(next).toHaveBeenCalledOnce();
+    log.mockRestore();
+  });
+
+  it("does not log an action that refused the request", async () => {
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    const result = { error: { code: "FORBIDDEN", message: "Not allowed" } };
+    const setActionResult = formAction(result);
+
+    await run("/login");
+
+    expect(log).not.toHaveBeenCalled();
+    expect(setActionResult).toHaveBeenCalledWith("songs.deleteSong", result);
+    log.mockRestore();
   });
 });
 

@@ -52,7 +52,9 @@ export default defineConfig({
     coverage: {
       provider: "istanbul",
       include: ["src/lib/**/*.ts", "src/actions/**/*.ts", "src/middleware.ts"],
-      exclude: ["src/lib/email.ts", "src/lib/storage.ts"],
+      // env.ts is unit-tested and check-env.ts only runs at server start; neither can count
+      // toward thresholds that are measured on the integration project.
+      exclude: ["src/lib/email.ts", "src/lib/storage.ts", "src/lib/env.ts", "src/lib/check-env.ts"],
       reporter: ["text", "html"],
       // Just under what the integration project reaches by itself, which is how CI measures it.
       // Raise them as coverage goes up.

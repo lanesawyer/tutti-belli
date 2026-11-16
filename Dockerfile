@@ -33,7 +33,10 @@ COPY --from=build /usr/src/app/dist ./dist
 COPY package.json ./
 COPY db ./db
 COPY drizzle ./drizzle
+COPY src/lib/env.ts src/lib/check-env.ts ./src/lib/
 ENV HOST=0.0.0.0
 ENV PORT=8080
 EXPOSE 8080
-CMD ["node", "./dist/server/entry.mjs"]
+RUN useradd --system --user-group --no-create-home app
+USER app
+CMD ["node", "--import", "./src/lib/check-env.ts", "./dist/server/entry.mjs"]

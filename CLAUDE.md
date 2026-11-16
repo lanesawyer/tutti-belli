@@ -78,7 +78,7 @@ Form mutations use **Astro Actions** (`src/actions/`). Do not use the old patter
 ### Authentication & Authorization
 
 - **Middleware** (`src/middleware.ts`): Runs on every request, extracts JWT from `session` cookie, populates `Astro.locals.user` and `Astro.locals.session`. Redirects unauthenticated users to `/login` for protected routes.
-- **Public routes**: `/`, `/login`, `/register`, `/forgot-password`, `/reset-password`, `/invite/join`
+- **Public routes**: `/`, `/login`, `/register`, `/forgot-password`, `/reset-password`, `/invite/join`, `/health`
 - **Three permission tiers**: Site admin (`User.role = 'admin'`), ensemble admin (`EnsembleMember.role = 'admin'`), and regular member
 - Sessions are JWT tokens (30-day expiry) in HTTP-only cookies, signed with `JWT_SECRET`
 - Passwords hashed with bcryptjs (10 rounds)
