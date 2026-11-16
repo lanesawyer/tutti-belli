@@ -14,6 +14,7 @@ import {
   retryAfter,
   tooManyAttemptsMessage,
 } from "@lib/rate-limit";
+import { VIEW_AS_COOKIE } from "@lib/view-as";
 import { newPassword } from "./utils";
 
 export const auth = {
@@ -52,6 +53,14 @@ export const auth = {
 
       const redirectUrl = await getRedirectUrl(user.id, redirect);
       return { redirectUrl };
+    },
+  }),
+
+  logout: defineAction({
+    accept: "form",
+    handler: async (_input, context) => {
+      context.cookies.delete("session", { path: "/" });
+      context.cookies.delete(VIEW_AS_COOKIE, { path: "/" });
     },
   }),
 

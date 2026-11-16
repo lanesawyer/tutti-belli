@@ -32,6 +32,7 @@ import {
 } from "@db";
 import { createPasswordResetToken, verifyPassword } from "@lib/auth";
 import { getSession } from "@lib/session";
+import { VIEW_AS_COOKIE } from "@lib/view-as";
 import { createMembership, createUser } from "../integration/fixtures.ts";
 import type { Fields, FieldValue } from "./actions.ts";
 import { WORLD_PASSWORD, type World, type WorldUser } from "./world.ts";
@@ -176,6 +177,17 @@ export const matrix: Record<string, MatrixEntry> = {
     verify: (w, { data, context }) => {
       expect(data).toEqual({ redirectUrl: `/ensembles/${w.a.ensemble.id}` });
       expect(getSession(context.cookies.get("session")?.value)?.userId).toBe(w.a.member.id);
+    },
+  },
+  "auth.logout": {
+    access: "public",
+    as: (w) => w.outsider,
+    fields: () => ({}),
+    verify: (_w, { context }) => {
+      const cleared = [...context.cookies.headers()]
+        .filter((header) => header.includes("Expires=Thu, 01 Jan 1970"))
+        .map((header) => header.split("=")[0]);
+      expect(cleared.sort()).toEqual(["session", VIEW_AS_COOKIE].sort());
     },
   },
   "auth.forgotPassword": {

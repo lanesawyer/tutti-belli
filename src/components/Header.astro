@@ -1,6 +1,7 @@
 ---
 import { APP_NAME } from "@lib/config";
 import { Button, Container, Tag, ThemeToggle } from "astro-bulma";
+import { actions } from "astro:actions";
 const user = Astro.locals.user;
 ---
 
@@ -51,9 +52,11 @@ const user = Astro.locals.user;
                 Profile
               </a>
               <hr class="navbar-divider" />
-              <a class="navbar-item" href="/logout">
-                Logout
-              </a>
+              <form method="POST" action={`/logout${actions.auth.logout}`}>
+                <button type="submit" class="navbar-item logout-button">
+                  Logout
+                </button>
+              </form>
             </div>
           </div>
         ) : (
@@ -84,6 +87,27 @@ const user = Astro.locals.user;
 
   .navbar :global(.theme-toggle:hover) {
     opacity: 0.8;
+  }
+
+  /* Bulma only gives a.navbar-item its background and hover, so match those on the button. */
+  .logout-button {
+    width: 100%;
+    border: none;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    background-color: hsla(
+      var(--bulma-navbar-h),
+      var(--bulma-navbar-s),
+      calc(var(--bulma-navbar-item-background-l) + var(--bulma-navbar-item-background-l-delta)),
+      var(--bulma-navbar-item-background-a)
+    );
+  }
+
+  .logout-button:hover,
+  .logout-button:focus {
+    --bulma-navbar-item-background-l-delta: var(--bulma-navbar-item-hover-background-l-delta);
+    --bulma-navbar-item-background-a: 1;
   }
 </style>
 
