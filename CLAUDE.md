@@ -89,7 +89,11 @@ Form mutations use **Astro Actions** (`src/actions/`). Do not use the old patter
 - Email HTML: escape every interpolated value with `escapeHtml` (or `textToHtml` for multi-line plain text such as announcement content) from `src/lib/email.ts`
 - Changing email needs the current password, notifies the old address, and on confirmation signs out every other session (`src/lib/profile.ts`)
 - The middleware adds the security headers from `src/lib/security-headers.ts` to every response unless the route set its own. The Content Security Policy is report-only for now
-- Failed logins, password-reset requests and email-change requests are rate-limited in memory per account and per client IP (`src/lib/rate-limit.ts`; the IP comes from Fly's `Fly-Client-IP` header)
+- Failed logins, password-reset requests and email-change requests are rate-limited in memory per account and per client IP (`src/lib/rate-limit.ts`; the IP comes from Fly's `Fly-Client-IP` header). The tight login lockout is keyed on email and IP together so nobody can lock another person out
+- Logout is the `auth.logout` POST action; never sign anyone out (or change any state) on a GET
+- Emailed tokens (password reset, email verification, email change) are stored as `hashToken()` SHA-256 hashes and looked up by hash; only the emailed link carries the raw token
+- No response to an unauthenticated visitor (or to one member about another address) may reveal whether an email has an account: same message, same cookies, and similar timing (bcrypt runs on both paths, emails to the provider are not awaited outside dev)
+- An email verification link signs in only in the browser that registered or asked for the link (the `verify_email` cookie); anywhere else it verifies the address and asks the person to log in
 
 ### Database Schema
 
