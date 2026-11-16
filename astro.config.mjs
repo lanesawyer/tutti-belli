@@ -38,6 +38,8 @@ export default defineConfig({
     ],
   },
   vite: {
+    // Keeps Astro from inlining small scripts into the HTML, which the Content Security Policy blocks.
+    build: { assetsInlineLimit: 0 },
     resolve: {
       alias: {
         "@db": path.resolve("./db/index.ts"),

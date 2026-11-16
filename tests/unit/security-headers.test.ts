@@ -1,8 +1,10 @@
+import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { securityHeaders } from "@lib/security-headers";
+import { securityHeaders, THEME_SCRIPT_HASH } from "@lib/security-headers";
 
-function directives(production = false) {
-  const policy = securityHeaders(production)["Content-Security-Policy-Report-Only"];
+function directives() {
+  const policy = securityHeaders(true)["Content-Security-Policy"];
   return Object.fromEntries(
     policy.split("; ").map((directive) => {
       const [name, ...sources] = directive.split(" ");
@@ -35,15 +37,20 @@ describe("securityHeaders", () => {
     }
   });
 
-  it("only reports CSP violations and never enforces", () => {
-    expect(securityHeaders(true)).not.toHaveProperty("Content-Security-Policy");
+  it("enforces the CSP in a production build and only reports under astro dev", () => {
+    expect(securityHeaders(true)).not.toHaveProperty("Content-Security-Policy-Report-Only");
+    expect(securityHeaders(false)).not.toHaveProperty("Content-Security-Policy");
+    expect(securityHeaders(false)["Content-Security-Policy-Report-Only"]).toBe(
+      securityHeaders(true)["Content-Security-Policy"],
+    );
   });
 
   it("allows exactly the origins the app loads from", () => {
     expect(directives()).toEqual({
       "default-src": ["'self'"],
-      "script-src": ["'self'"],
+      "script-src": ["'self'", THEME_SCRIPT_HASH],
       "style-src": ["'self'", "https://cdnjs.cloudflare.com"],
+      "style-src-attr": ["'unsafe-inline'"],
       "font-src": ["https://cdnjs.cloudflare.com"],
       "img-src": ["'self'", "data:"],
       "media-src": ["'self'"],
@@ -56,9 +63,19 @@ describe("securityHeaders", () => {
     });
   });
 
-  it("allows no inline scripts or styles", () => {
-    expect(securityHeaders(false)["Content-Security-Policy-Report-Only"]).not.toMatch(
-      /'unsafe-inline'|'unsafe-eval'/,
+  it("allows no inline scripts or <style> blocks, and no eval", () => {
+    const { "style-src-attr": _styleAttributes, ...rest } = directives();
+    expect(Object.values(rest).flat()).not.toContain("'unsafe-inline'");
+    expect(Object.values(directives()).flat()).not.toContain("'unsafe-eval'");
+  });
+
+  it("hashes the theme script astro-bulma ships", () => {
+    const source = readFileSync(
+      "node_modules/astro-bulma/src/components/ThemeToggle.astro",
+      "utf8",
     );
+    const script = source.match(/<script is:inline>([\s\S]*?)<\/script>/)![1];
+    const hash = createHash("sha256").update(script).digest("base64");
+    expect(THEME_SCRIPT_HASH).toBe(`'sha256-${hash}'`);
   });
 });

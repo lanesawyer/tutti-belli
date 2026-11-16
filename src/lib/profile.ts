@@ -48,7 +48,9 @@ export async function registerUser(params: {
   ]);
 
   // Fire-and-forget: don't block registration if email fails
-  sendEmailVerificationEmail(email, name, token).catch(() => {});
+  sendEmailVerificationEmail(email, name, token).catch((error) => {
+    console.error(`Verification email threw for user ${userId}:`, error);
+  });
 
   return { userId };
 }
@@ -264,7 +266,9 @@ export async function resendVerificationEmail(email: string): Promise<void> {
       .values({ id: crypto.randomUUID(), userId: user.id, token, expiresAt }),
   ]);
 
-  sendEmailVerificationEmail(email, user.name, token).catch(() => {});
+  sendEmailVerificationEmail(email, user.name, token).catch((error) => {
+    console.error(`Verification email threw for user ${user.id}:`, error);
+  });
 }
 
 export type VerifyEmailChangeResult =
