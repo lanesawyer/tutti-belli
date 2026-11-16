@@ -5,7 +5,6 @@ import {
   Icon,
   Modal,
   Notification,
-  Select,
   Table,
   Tag,
   TextInput,
@@ -272,42 +271,37 @@ const songFilesMap = buildSongFilesMap(ensembleSongIds, songFilesData);
           <hr />
 
           <Title as="h3" size={6}>
-            Add File
+            Add Link
           </Title>
           <form id="addFileForm" method="POST" action={actions.songs.addFile}>
             <input type="hidden" name="ensembleId" value={ensemble.id} />
             <input type="hidden" name="songId" id="addFileSongId" />
+            <input type="hidden" name="category" value="link" />
 
             <TextInput
               name="fileName"
               id="fileName"
               label="Display Name *"
-              placeholder="e.g. Soprano Sheet Music"
+              placeholder="e.g. Reference Recording"
               size="small"
               required
             />
             <TextInput
               name="fileUrl"
               id="fileUrl"
-              label="File URL *"
+              label="URL *"
               type="url"
               placeholder="https://..."
               size="small"
               required
-              help="Paste the download URL for this file"
+              help="To upload sheet music or a recording, open the song."
             />
-
-            <Select id="category" name="category" label="Category" size="small" fullwidth>
-              <option value="sheet_music">Sheet Music</option>
-              <option value="rehearsal_track">Rehearsal Track</option>
-              <option value="other">Other</option>
-            </Select>
 
             <div class="field">
               <div class="control">
                 <Button type="submit" color="primary" size="small">
                   <Icon icon="fa-plus" size="small" />
-                  <span>Add File</span>
+                  <span>Add Link</span>
                 </Button>
               </div>
             </div>
@@ -554,7 +548,6 @@ const songFilesMap = buildSongFilesMap(ensembleSongIds, songFilesData);
             document.getElementById("addFileSongId").value = songId;
             document.getElementById("fileName").value = "";
             document.getElementById("fileUrl").value = "";
-            document.getElementById("category").value = "sheet_music";
             renderFilesList(songId);
             filesModal.classList.add("is-active");
           });

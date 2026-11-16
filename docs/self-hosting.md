@@ -24,7 +24,7 @@ Tutti Belli uses [Turso](https://turso.tech) (LibSQL) for its database.
 
 ### 2. Resend (email)
 
-Password reset emails are sent via [Resend](https://resend.com). Sign up for a free account, create an API key, and verify a sending domain. You'll need:
+Verification, invite, password-reset and announcement emails are sent via [Resend](https://resend.com). Sign up for a free account, create an API key, and verify a sending domain. You'll need:
 
 - `EMAIL_API_KEY` — your Resend API key
 - `EMAIL_FROM` — a verified sender address (e.g. `noreply@yourdomain.com`)
@@ -47,18 +47,21 @@ Copy `.env.example` to `.env` and fill in all values:
 cp .env.example .env
 ```
 
-| Variable                | Description                                                           |
-| ----------------------- | --------------------------------------------------------------------- |
-| `ASTRO_DB_REMOTE_URL`   | Turso database URL                                                    |
-| `ASTRO_DB_APP_TOKEN`    | Turso auth token                                                      |
-| `JWT_SECRET`            | Secret used to sign session tokens — use a long random string         |
-| `EMAIL_API_KEY`         | Resend API key                                                        |
-| `EMAIL_FROM`            | Verified sender email address                                         |
-| `AWS_ENDPOINT_URL_S3`   | Object storage endpoint (`https://fly.storage.tigris.dev` for Tigris) |
-| `AWS_REGION`            | Object storage region (`auto` for Tigris)                             |
-| `BUCKET_NAME`           | Bucket for song files                                                 |
-| `AWS_ACCESS_KEY_ID`     | Object storage access key ID                                          |
-| `AWS_SECRET_ACCESS_KEY` | Object storage secret key                                             |
+| Variable                | Description                                                              |
+| ----------------------- | ------------------------------------------------------------------------ |
+| `ASTRO_DB_REMOTE_URL`   | Turso database URL                                                       |
+| `ASTRO_DB_APP_TOKEN`    | Turso auth token                                                         |
+| `JWT_SECRET`            | Secret used to sign session tokens — use a long random string            |
+| `SITE_URL`              | Base URL for links in emails and QR codes, e.g. `https://yourdomain.com` |
+| `EMAIL_API_KEY`         | Resend API key                                                           |
+| `EMAIL_FROM`            | Verified sender email address                                            |
+| `AWS_ENDPOINT_URL_S3`   | Object storage endpoint (`https://fly.storage.tigris.dev` for Tigris)    |
+| `AWS_REGION`            | Object storage region (`auto` for Tigris)                                |
+| `BUCKET_NAME`           | Bucket for song files                                                    |
+| `AWS_ACCESS_KEY_ID`     | Object storage access key ID                                             |
+| `AWS_SECRET_ACCESS_KEY` | Object storage secret key                                                |
+
+To run without a service, set `EMAIL_DISABLED=true` (emails are written to the server log instead of sent) or `STORAGE_DISABLED=true` (uploads and deletes are skipped); the matching variables are then not required.
 
 Generate a strong `JWT_SECRET`:
 
@@ -66,29 +69,43 @@ Generate a strong `JWT_SECRET`:
 openssl rand -base64 48
 ```
 
-## Push the Database Schema
+## Your Own Domain
 
-Before first run you must push the schema to Turso:
+Two settings in `astro.config.mjs` name this project's own domain. Change both before you build:
+
+- `site` is the fallback base URL for links in emails and QR codes. Setting `SITE_URL` at runtime overrides it.
+- `security.allowedDomains` lists the hosts the app accepts forwarded requests for. Behind a reverse proxy that sets `X-Forwarded-Host`, a host that is not listed gets a 403 on every form submission.
+
+## Database Migrations
+
+The schema lives in `drizzle/` as SQL migrations. Apply them before the first run and after every update:
 
 ```bash
-pnpm astro:db:push
+pnpm db:migrate
 ```
 
-This creates all tables. The app does not auto-migrate — re-run this command whenever the schema changes (see `db/config.ts`).
+This reads `ASTRO_DB_REMOTE_URL` and `ASTRO_DB_APP_TOKEN` from `.env`. On Fly.io it runs by itself on every deploy (`release_command` in `fly.toml`). With plain Docker, run it from the image:
+
+```bash
+docker run --rm \
+  -e ASTRO_DB_REMOTE_URL="$ASTRO_DB_REMOTE_URL" \
+  -e ASTRO_DB_APP_TOKEN="$ASTRO_DB_APP_TOKEN" \
+  tutti-belli node db/migrate.ts
+```
 
 ## Running with Docker
 
-The included `Dockerfile` builds a self-contained image. The database URL and token must be passed at **build time** because Astro DB bakes them into the server bundle.
+The included `Dockerfile` builds a self-contained image. Nothing secret goes into the build; every variable is read when the container starts.
 
 ```bash
-docker build \
-  --build-arg ASTRO_DB_REMOTE_URL="$ASTRO_DB_REMOTE_URL" \
-  --build-arg ASTRO_DB_APP_TOKEN="$ASTRO_DB_APP_TOKEN" \
-  -t tutti-belli .
+docker build -t tutti-belli .
 
 docker run -d \
   -p 8080:8080 \
+  -e ASTRO_DB_REMOTE_URL="$ASTRO_DB_REMOTE_URL" \
+  -e ASTRO_DB_APP_TOKEN="$ASTRO_DB_APP_TOKEN" \
   -e JWT_SECRET="$JWT_SECRET" \
+  -e SITE_URL="https://yourdomain.com" \
   -e EMAIL_API_KEY="$EMAIL_API_KEY" \
   -e EMAIL_FROM="$EMAIL_FROM" \
   -e AWS_ENDPOINT_URL_S3="$AWS_ENDPOINT_URL_S3" \
@@ -99,22 +116,23 @@ docker run -d \
   tutti-belli
 ```
 
-The server listens on port `8080`. Put a reverse proxy (nginx, Caddy, Traefik) in front of it to terminate TLS.
+The server listens on port `8080` and runs as a non-root user. Put a reverse proxy (nginx, Caddy, Traefik) in front of it to terminate TLS.
+
+If a required variable is missing, the container exits at start with a message naming it. `GET /health` returns 200 when the app can reach the database and 503 when it cannot; point your proxy's or orchestrator's health check at it.
 
 ### Docker Compose example
 
 ```yaml
 services:
   app:
-    build:
-      context: .
-      args:
-        ASTRO_DB_REMOTE_URL: ${ASTRO_DB_REMOTE_URL}
-        ASTRO_DB_APP_TOKEN: ${ASTRO_DB_APP_TOKEN}
+    build: .
     ports:
       - "8080:8080"
     environment:
+      - ASTRO_DB_REMOTE_URL=${ASTRO_DB_REMOTE_URL}
+      - ASTRO_DB_APP_TOKEN=${ASTRO_DB_APP_TOKEN}
       - JWT_SECRET=${JWT_SECRET}
+      - SITE_URL=${SITE_URL}
       - EMAIL_API_KEY=${EMAIL_API_KEY}
       - EMAIL_FROM=${EMAIL_FROM}
       - AWS_ENDPOINT_URL_S3=${AWS_ENDPOINT_URL_S3}
@@ -137,19 +155,24 @@ The repo includes a `fly.toml` and a helper script:
 3. Set secrets (runtime env vars):
    ```bash
    fly secrets set \
+     ASTRO_DB_REMOTE_URL="..." \
+     ASTRO_DB_APP_TOKEN="..." \
      JWT_SECRET="..." \
+     SITE_URL="https://yourdomain.com" \
      EMAIL_API_KEY="..." \
      EMAIL_FROM="..."
    ```
    Create the storage bucket with `fly storage create -a <app-name>` (see above); it sets the storage secrets itself.
-4. Deploy (database credentials are runtime secrets too; the image never contains them):
+4. Deploy. The release command applies database migrations first, and Fly routes traffic to a machine only while its `/health` check passes:
    ```bash
    ./deploy.sh
    ```
 
 ## GitHub Actions / PR Preview Deployments
 
-The workflow in `.github/workflows/fly-preview.yml` automatically deploys a preview app on Fly.io and a branch database on Turso for every PR. It requires the following secrets in **GitHub → Settings → Secrets and variables → Actions**:
+`.github/workflows/fly-deploy.yml` runs CI and deploys every push to `main`. It needs the Actions secrets `FLY_API_TOKEN` (`fly tokens create deploy -a <app-name>`), `ASTRO_DB_REMOTE_URL`, `ASTRO_DB_APP_TOKEN` and `JWT_SECRET`.
+
+The workflow in `.github/workflows/fly-preview.yml` automatically deploys a preview app on Fly.io and a branch database on Turso for every PR. It requires the following secrets in **GitHub → Settings → Secrets and variables → Actions**, and again under **Dependabot** in the same place if Dependabot PRs should get previews (Dependabot runs cannot read Actions secrets):
 
 | Secret            | Description                                            | How to get it                                                                |
 | ----------------- | ------------------------------------------------------ | ---------------------------------------------------------------------------- |
@@ -157,7 +180,6 @@ The workflow in `.github/workflows/fly-preview.yml` automatically deploys a prev
 | `TURSO_ORG`       | Your Turso organization slug                           | `turso org list` — use the `Name` column value                               |
 | `TURSO_MAIN_DB`   | Name of the production database to seed previews from  | `turso db list` — use the `Name` column value (e.g. `tutti-belli`)           |
 | `FLY_ORG_TOKEN`   | Fly.io org-level token (needed to create/destroy apps) | `fly tokens create org -o <your-org-slug>`                                   |
-| `FLY_API_TOKEN`   | Fly.io deploy token (used by the destroy-preview job)  | `fly tokens create deploy -a <app-name>` or reuse `FLY_ORG_TOKEN`            |
 
 Each preview app is named `tutti-belli-pr-<number>`, and its Turso DB and Tigris bucket are named the same. The bucket starts empty, so files from the copied production data download as 404 on previews. Each preview gets its own random `JWT_SECRET` and sends no email: `EMAIL_DISABLED` is set in `fly.preview.toml`, so invite, verification and password-reset links are written to `fly logs -a tutti-belli-pr-<number>` instead. All three are automatically destroyed when the PR is closed.
 
@@ -167,7 +189,7 @@ See [Backup and Restore](backup-restore.md) for what is backed up, how to restor
 
 ## First Login
 
-On first run there is no seed data in production. Use the `/register` page to create your account, then promote it to site admin directly in the database:
+On first run there is no seed data in production. Use the `/register` page to create your account, follow the verification link it emails you, then promote it to site admin directly in the database:
 
 ```bash
 turso db shell tutti-belli \

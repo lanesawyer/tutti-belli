@@ -4,7 +4,7 @@ description: Writes and runs tests for a tutti-belli feature — integration tes
 user-invocable: true
 ---
 
-You are writing tests for a feature in the tutti-belli Astro 5 SSR app. Follow these steps exactly.
+You are writing tests for a feature in the tutti-belli Astro 7 SSR app. Follow these steps exactly.
 
 ## Step 1 — Identify what to test
 
@@ -19,7 +19,7 @@ From the feature name, derive:
 Identify the relevant files:
 
 - `src/lib/<name>.ts` — lib functions to integration-test
-- `src/actions/<name>.ts` — actions (tested indirectly via lib + e2e)
+- `src/actions/<name>.ts` — actions (covered by the authorization matrix, Step 2b)
 - Any page at `src/pages/ensembles/[id]/<name>.astro` or similar
 
 Read these files before writing any tests.
@@ -32,7 +32,7 @@ Create `tests/integration/<name>.test.ts`. Test each exported lib function that 
 
 ```ts
 import { describe, it, expect } from 'vitest';
-import { db, eq, <TableNames> } from 'astro:db';
+import { db, eq, <TableNames> } from '@db';
 import { createUser, createEnsemble, /* other fixtures */ } from './fixtures.ts';
 import { myLibFunction, anotherLibFunction } from '../../src/lib/<name>.ts';
 
@@ -57,7 +57,7 @@ describe('<name> lib', () => {
 - Import the lib functions directly from `../../src/lib/<name>.ts`
 - If the lib file imports `storage.ts`, mock it at the top: `vi.mock('../../src/lib/storage.ts')`
 - Test the happy path for each function, plus key edge cases (not found, duplicate, permission boundaries)
-- Do NOT mock the DB — integration tests hit the real LibSQL test DB
+- Do NOT mock the DB — integration tests hit a real in-memory LibSQL DB, rebuilt from the `drizzle/` migrations before each test
 - Use `expect(...).toBeNull()`, `expect(...).toBe(...)`, `expect(...).toHaveLength(...)` etc.
 - Each `it` block should be independent — create fresh fixtures, don't share state
 
@@ -67,6 +67,10 @@ describe('<name> lib', () => {
 - Update functions: assert the changed fields, assert unchanged fields stay the same
 - Delete functions: assert the record is gone, assert related records are cleaned up (cascades)
 - Query/get functions: assert correct filtering, ordering, and shape of returned data
+
+## Step 2b — Add the actions to the authorization matrix
+
+Add one entry per new action to `tests/support/action-matrix.ts`, keyed `"<camelName>.<action>"`: its `access` level, valid `fields`, a `foreign` record from the other ensemble for each ID field, and a `verify` that proves the action ran. `tests/integration/actions.test.ts` fails until every action has an entry, and derives the permission and cross-ensemble cases from it.
 
 ## Step 3 — Write e2e tests
 
@@ -133,7 +137,7 @@ Run integration tests:
 pnpm test tests/integration/<name>.test.ts
 ```
 
-Run e2e tests (requires dev server running on port 4321):
+Run e2e tests (Playwright starts its own dev server on port 4321; stop any running `pnpm dev` first):
 
 ```
 pnpm test:e2e --grep "<name>"
