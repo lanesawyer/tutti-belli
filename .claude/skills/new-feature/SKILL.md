@@ -4,7 +4,7 @@ description: Scaffolds a full-stack feature for tutti-belli — lib functions, a
 user-invocable: true
 ---
 
-You are scaffolding a new feature in the tutti-belli Astro 6 SSR app. Follow these steps exactly.
+You are scaffolding a new feature in the tutti-belli Astro 7 SSR app. Follow these steps exactly.
 
 ## Step 1 — Clarify the feature
 
@@ -38,7 +38,7 @@ Also ask: **What permission level does this feature require?**
 Create the file. Use this structure as a template:
 
 ```ts
-import { db, eq, <TableNames> } from 'astro:db';
+import { db, eq, <TableNames> } from '@db';
 
 // TODO: add query functions for <name>
 
@@ -46,8 +46,7 @@ export async function get<PascalName>s(ensembleId: string) {
   return await db
     .select()
     .from(<Table>)
-    .where(eq(<Table>.ensembleId, ensembleId))
-    .all();
+    .where(eq(<Table>.ensembleId, ensembleId));
 }
 
 export async function create<PascalName>(/* params */) {
@@ -60,10 +59,10 @@ export async function create<PascalName>(/* params */) {
 
 Rules:
 
-- Import only from `astro:db` — never import `astro:db` in page frontmatter
+- Import the client, tables and query operators from `@db` — never import `@db` in page frontmatter
 - Use `crypto.randomUUID()` for all primary keys
 - Export all functions individually (no default export)
-- Use `eq`, `and`, `or`, `desc`, `asc` from `astro:db` for query operators
+- A new table goes in `db/schema.ts` with a migration from `pnpm db:generate`; if it belongs to an ensemble, add a kind for it in `src/lib/ownership.ts`
 
 ## Step 4 — Scaffold `src/actions/<name>.ts`
 
@@ -72,7 +71,7 @@ Create the file. Use this structure as a template:
 ```ts
 import { defineAction, ActionError } from 'astro:actions';
 import { z } from 'astro/zod';
-import { assertEnsembleAdmin } from './utils';  // only if admin-gated
+import { assertEnsembleAdmin, assertInEnsemble } from './utils';
 import { create<PascalName>, update<PascalName>, delete<PascalName> } from '@lib/<name>';
 
 export const <camelName> = {
@@ -88,6 +87,8 @@ export const <camelName> = {
       // permission check:
       await assertEnsembleAdmin(input.ensembleId, user);  // if admin
       // or: await assertEnsembleMember(input.ensembleId, user);  // if member
+      // every other record ID in the form:
+      // await assertInEnsemble('<kind>', input.<recordId>, input.ensembleId);
       await create<PascalName>(/* args */);
     },
   }),
@@ -100,6 +101,7 @@ Rules:
 
 - Always check `context.locals.user` first and throw `UNAUTHORIZED` if missing
 - Use `assertEnsembleAdmin` from `./utils` for ensemble admin checks
+- After the permission check, call `assertInEnsemble(kind, id, ensembleId)` for every record ID in the input and `assertUserInEnsemble` for any target user — they are as attacker-controlled as `ensembleId`
 - Use `ActionError` (from `astro:actions`) for all error cases — never return error objects
 - Keep handlers thin — delegate all logic to `@lib/<name>` functions
 - Use `accept: 'form'` for all actions (HTML form POSTs)
@@ -118,6 +120,7 @@ Create the `.astro` file at the requested path. Use this structure:
 import { actions } from 'astro:actions';
 import { getEnsembleById } from '@lib/ensemble';  // adjust as needed
 import Layout from '@layouts/BaseLayout.astro';   // or SingleColumnLayout for simple pages
+import { Container, Section } from 'astro-bulma';
 // import any needed lib functions from @lib/<name>
 
 const { id } = Astro.params;
@@ -142,25 +145,26 @@ if (createResult && !createResult.error) {
 ---
 
 <Layout title="<PascalName>">
-  <section class="section">
-    <div class="container">
+  <Section>
+    <Container>
       <!-- TODO: page content -->
-    </div>
-  </section>
+    </Container>
+  </Section>
 </Layout>
 ```
 
 Rules:
 
-- **Never import `astro:db` in page frontmatter** — all DB access goes through `@lib/*` functions
+- **Never import `@db` in page frontmatter** — all DB access goes through `@lib/*` functions
 - Use `@layouts/BaseLayout.astro` for ensemble sub-pages, `@layouts/SingleColumnLayout.astro` for narrow forms
-- Use `@components/*` imports — never raw HTML equivalents. Key components:
-  - `Box.astro` instead of `<div class="box">`
-  - `Button.astro` instead of `<button>` or `<a class="button">`
-  - `Icon.astro` instead of `<i class="fas ...">`
-  - `TextInput.astro` instead of `<input class="input">`
-  - `Select.astro` instead of `<div class="select"><select>`
-  - `Table.astro`, `Modal.astro`, `Notification.astro`, `Tag.astro` as needed
+- Use `astro-bulma` components (`import { Box, Button, ... } from 'astro-bulma'`) — never raw Bulma HTML. CLAUDE.md has the full list. Key components:
+  - `Box` instead of `<div class="box">`
+  - `Button` instead of `<button>` or `<a class="button">`
+  - `Icon` instead of `<i class="fas ...">`
+  - `TextInput` instead of `<input class="input">`
+  - `Select` instead of `<div class="select"><select>`
+  - `Table`, `Modal`, `Notification`, `Tag` as needed
+- `@components/*` holds app-specific components built on those (`MemberCard.astro`, `DashboardSection.astro`)
 - Redirect after successful action (`return Astro.redirect(...)`) to prevent double-submit
 - All client-side `<script>` DOM manipulation must be inside `document.addEventListener('astro:page-load', () => { ... })`
 
