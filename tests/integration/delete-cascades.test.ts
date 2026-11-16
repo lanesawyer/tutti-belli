@@ -72,14 +72,12 @@ describe("deleteEvent", () => {
     const event = await createEvent(ensemble.id, season.id);
     const song = await createSong(ensemble.id);
     await createEventProgramEntry(event.id, song.id);
-    await db
-      .insert(Attendance)
-      .values({
-        id: crypto.randomUUID(),
-        eventId: event.id,
-        userId: member.id,
-        checkedInMethod: "qr",
-      });
+    await db.insert(Attendance).values({
+      id: crypto.randomUUID(),
+      eventId: event.id,
+      userId: member.id,
+      checkedInMethod: "qr",
+    });
     await db
       .insert(EventRsvp)
       .values({ id: crypto.randomUUID(), eventId: event.id, userId: member.id, response: "yes" });
@@ -225,14 +223,12 @@ describe("deleting an account", () => {
     await createMemberPart(membership.id, part.id);
     await createInvite(ensemble.id, user.id);
     const event = await createEvent(ensemble.id, season.id);
-    await db
-      .insert(Attendance)
-      .values({
-        id: crypto.randomUUID(),
-        eventId: event.id,
-        userId: user.id,
-        checkedInMethod: "qr",
-      });
+    await db.insert(Attendance).values({
+      id: crypto.randomUUID(),
+      eventId: event.id,
+      userId: user.id,
+      checkedInMethod: "qr",
+    });
     await db
       .insert(EventRsvp)
       .values({ id: crypto.randomUUID(), eventId: event.id, userId: user.id, response: "no" });
@@ -241,15 +237,13 @@ describe("deleting an account", () => {
       .values({ id: crypto.randomUUID(), seasonId: season.id, userId: user.id });
     const group = await createGroup(ensemble.id);
     await createGroupMembership(group.id, user.id);
-    await db
-      .insert(Announcement)
-      .values({
-        id: crypto.randomUUID(),
-        ensembleId: ensemble.id,
-        title: "Hello",
-        content: "x",
-        createdBy: user.id,
-      });
+    await db.insert(Announcement).values({
+      id: crypto.randomUUID(),
+      ensembleId: ensemble.id,
+      title: "Hello",
+      content: "x",
+      createdBy: user.id,
+    });
     const song = await createSong(ensemble.id);
     await createSongFile(song.id, user.id, { url: "https://example.com/a", category: "link" });
     const task = await createTask(ensemble.id);
