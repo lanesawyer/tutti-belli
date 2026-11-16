@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, afterEach, vi } from "vitest";
 import { db, Attendance } from "@db";
 import {
   createUser,
@@ -6,6 +6,8 @@ import {
   createMembership,
   createSeason,
   createEvent,
+  createGroup,
+  createGroupMembership,
 } from "./fixtures.ts";
 import {
   getMemberAttendanceStats,
@@ -142,6 +144,106 @@ describe("member-attendance lib", () => {
 
       const stats = await getMemberAttendanceStats(ensemble!.id);
       expect(stats[0].pct).toBe(33);
+    });
+    describe("which events count", () => {
+      afterEach(() => {
+        vi.useRealTimers();
+      });
+
+      const HOUR = 60 * 60 * 1000;
+
+      it("does not count future events", async () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date("2026-03-01T12:00:00Z"));
+        const admin = await createUser();
+        const ensemble = await createEnsemble(admin!.id);
+        const user = await createUser();
+        await createMembership(ensemble!.id, user!.id, { status: "active" });
+        const season = await createSeason(ensemble!.id);
+        const past = await createEvent(ensemble!.id, season!.id, {
+          scheduledAt: new Date(Date.now() - 24 * HOUR),
+        });
+        await createEvent(ensemble!.id, season!.id, {
+          scheduledAt: new Date(Date.now() + 24 * HOUR),
+        });
+        await createAttendance(past!.id, user!.id);
+
+        const stats = await getMemberAttendanceStats(ensemble!.id);
+        expect(stats[0].total).toBe(1);
+        expect(stats[0].attended).toBe(1);
+        expect(stats[0].pct).toBe(100);
+      });
+
+      it("counts a group event only for members of that group", async () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date("2026-03-01T12:00:00Z"));
+        const admin = await createUser();
+        const ensemble = await createEnsemble(admin!.id);
+        const inGroup = await createUser();
+        const outOfGroup = await createUser();
+        await createMembership(ensemble!.id, inGroup!.id, { status: "active" });
+        await createMembership(ensemble!.id, outOfGroup!.id, { status: "active" });
+        const group = await createGroup(ensemble!.id);
+        await createGroupMembership(group!.id, inGroup!.id);
+        const season = await createSeason(ensemble!.id);
+        const scheduledAt = new Date(Date.now() - 24 * HOUR);
+        await createEvent(ensemble!.id, season!.id, { scheduledAt });
+        await createEvent(ensemble!.id, season!.id, { scheduledAt, groupId: group!.id });
+
+        const stats = await getMemberAttendanceStats(ensemble!.id);
+        expect(stats.find((s) => s.userId === inGroup!.id)!.total).toBe(2);
+        expect(stats.find((s) => s.userId === outOfGroup!.id)!.total).toBe(1);
+      });
+
+      it("returns 0% with no division by zero when no events count for a member", async () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date("2026-03-01T12:00:00Z"));
+        const admin = await createUser();
+        const ensemble = await createEnsemble(admin!.id);
+        const user = await createUser();
+        await createMembership(ensemble!.id, user!.id, { status: "active" });
+        const group = await createGroup(ensemble!.id);
+        const season = await createSeason(ensemble!.id);
+        const scheduledAt = new Date(Date.now() - 24 * HOUR);
+        await createEvent(ensemble!.id, season!.id, { scheduledAt, groupId: group!.id });
+        await createEvent(ensemble!.id, season!.id, {
+          scheduledAt: new Date(Date.now() + 24 * HOUR),
+        });
+
+        const stats = await getMemberAttendanceStats(ensemble!.id);
+        expect(stats[0].total).toBe(0);
+        expect(stats[0].attended).toBe(0);
+        expect(stats[0].pct).toBe(0);
+      });
+
+      it("ignores attendance at events that do not count for the member", async () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date("2026-03-01T12:00:00Z"));
+        const admin = await createUser();
+        const ensemble = await createEnsemble(admin!.id);
+        const user = await createUser();
+        await createMembership(ensemble!.id, user!.id, { status: "active" });
+        const group = await createGroup(ensemble!.id);
+        const season = await createSeason(ensemble!.id);
+        const counted = await createEvent(ensemble!.id, season!.id, {
+          scheduledAt: new Date(Date.now() - 48 * HOUR),
+        });
+        const groupEvent = await createEvent(ensemble!.id, season!.id, {
+          scheduledAt: new Date(Date.now() - 24 * HOUR),
+          groupId: group!.id,
+        });
+        const future = await createEvent(ensemble!.id, season!.id, {
+          scheduledAt: new Date(Date.now() + 24 * HOUR),
+        });
+        await createAttendance(counted!.id, user!.id);
+        await createAttendance(groupEvent!.id, user!.id);
+        await createAttendance(future!.id, user!.id);
+
+        const stats = await getMemberAttendanceStats(ensemble!.id);
+        expect(stats[0].attended).toBe(1);
+        expect(stats[0].total).toBe(1);
+        expect(stats[0].pct).toBe(100);
+      });
     });
   });
 });
