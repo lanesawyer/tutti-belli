@@ -1,7 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { db, eq, EnsembleMember, Event, EventProgram, Group, MemberPart, SongPart } from "@db";
 import { server } from "@actions/index";
-import { failedLoginsByEmail, failedLoginsByIp } from "@lib/rate-limit";
+import {
+  emailAndIpKey,
+  failedLoginsByEmail,
+  failedLoginsByEmailAndIp,
+  failedLoginsByIp,
+} from "@lib/rate-limit";
 import { uploadImage, uploadSongFile } from "@lib/storage";
 import { INPUT_SCHEMA, isInputError } from "../support/astro-actions.ts";
 import { callAction, type Fields } from "../support/actions.ts";
@@ -328,6 +333,7 @@ describe("auth.login", () => {
     });
     expect(error?.code).toBe("UNAUTHORIZED");
     expect(context.cookies.get("session")).toBeUndefined();
+    failedLoginsByEmailAndIp.reset(emailAndIpKey(w.a.member.email, "127.0.0.1"));
     failedLoginsByEmail.reset(w.a.member.email);
   });
 
@@ -350,20 +356,55 @@ describe("auth.login", () => {
     expect(context.cookies.get("session")).toBeDefined();
   });
 
-  it("locks an email out after repeated failures", async () => {
+  it("locks an email out on one client after repeated failures", async () => {
     const email = "locked-out@test.com";
+    const headers = { "fly-client-ip": "10.0.0.1" };
     for (let attempt = 0; attempt < 20; attempt++) {
       const { error } = await callAction(
         actions["auth.login"],
         { email, password: "nope" },
-        {
-          headers: { "fly-client-ip": `10.0.0.${attempt}` },
-        },
+        { headers },
       );
       if (error?.code === "TOO_MANY_REQUESTS") return;
       expect(error?.code).toBe("UNAUTHORIZED");
     }
     expect.unreachable("login was never rate limited");
+  });
+
+  it("does not lock the owner out when someone else fails from another client", async () => {
+    for (let attempt = 0; attempt < 12; attempt++) {
+      await callAction(
+        actions["auth.login"],
+        { email: w.a.member.email, password: "nope" },
+        { headers: { "fly-client-ip": "10.0.1.1" } },
+      );
+    }
+    const blocked = await callAction(
+      actions["auth.login"],
+      { email: w.a.member.email, password: WORLD_PASSWORD },
+      { headers: { "fly-client-ip": "10.0.1.1" } },
+    );
+    expect(blocked.error?.code).toBe("TOO_MANY_REQUESTS");
+
+    const { error } = await callAction(
+      actions["auth.login"],
+      { email: w.a.member.email, password: WORLD_PASSWORD },
+      { headers: { "fly-client-ip": "10.0.1.2" } },
+    );
+    expect(error).toBeUndefined();
+    failedLoginsByEmail.reset(w.a.member.email);
+  });
+
+  it("caps failures against one email across every client", async () => {
+    for (let attempt = 0; attempt < 100; attempt++) failedLoginsByEmail.record(w.a.member.email);
+
+    const { error } = await callAction(
+      actions["auth.login"],
+      { email: w.a.member.email, password: WORLD_PASSWORD },
+      { headers: { "fly-client-ip": "10.0.2.1" } },
+    );
+    expect(error?.code).toBe("TOO_MANY_REQUESTS");
+    failedLoginsByEmail.reset(w.a.member.email);
   });
 });
 

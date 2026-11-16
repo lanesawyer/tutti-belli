@@ -41,10 +41,17 @@ export class RateLimiter {
 
 const MINUTE = 60 * 1000;
 
-// Failed sign-ins: per account, so one account can't be guessed at, and per client, so one
-// client can't sweep many accounts.
-export const failedLoginsByEmail = new RateLimiter(10, 15 * MINUTE);
+// Failed sign-ins: per account and client together, so one client can't guess at an account but
+// also can't lock its owner out; per client, so one client can't sweep many accounts; and per
+// account with a much higher ceiling, so many clients together still can't guess indefinitely.
+export const failedLoginsByEmailAndIp = new RateLimiter(10, 15 * MINUTE);
 export const failedLoginsByIp = new RateLimiter(50, 15 * MINUTE);
+export const failedLoginsByEmail = new RateLimiter(100, 60 * MINUTE);
+
+/** The key for `failedLoginsByEmailAndIp`. */
+export function emailAndIpKey(email: string, ip: string): string {
+  return `${ip} ${email}`;
+}
 
 // Password-reset requests send email, so cap them per address and per client.
 export const passwordResetsByEmail = new RateLimiter(3, 60 * MINUTE);

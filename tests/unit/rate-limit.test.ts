@@ -3,6 +3,7 @@ import {
   RateLimiter,
   retryAfter,
   clientIp,
+  emailAndIpKey,
   tooManyAttemptsMessage,
 } from "../../src/lib/rate-limit.ts";
 
@@ -63,6 +64,17 @@ describe("retryAfter", () => {
         0,
       ),
     ).toBe(0);
+  });
+});
+
+describe("emailAndIpKey", () => {
+  it("is different for the same email from another client", () => {
+    expect(emailAndIpKey("a@test.com", "203.0.113.7")).not.toBe(
+      emailAndIpKey("a@test.com", "203.0.113.8"),
+    );
+    expect(emailAndIpKey("a@test.com", "203.0.113.7")).toBe(
+      emailAndIpKey("a@test.com", "203.0.113.7"),
+    );
   });
 });
 

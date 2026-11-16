@@ -6,7 +6,9 @@ import { getRedirectUrl } from "@lib/redirect";
 import { sendPasswordResetEmail } from "@lib/email";
 import { validatePasswordResetToken, resetPassword as doResetPassword } from "@lib/profile";
 import {
+  emailAndIpKey,
   failedLoginsByEmail,
+  failedLoginsByEmailAndIp,
   failedLoginsByIp,
   passwordResetsByEmail,
   passwordResetsByIp,
@@ -28,9 +30,11 @@ export const auth = {
     handler: async ({ email, password, redirect }, context) => {
       const emailKey = email.trim().toLowerCase();
       const ip = requestIp(context);
+      const pairKey = emailAndIpKey(emailKey, ip);
       const wait = retryAfter([
-        [failedLoginsByEmail, emailKey],
+        [failedLoginsByEmailAndIp, pairKey],
         [failedLoginsByIp, ip],
+        [failedLoginsByEmail, emailKey],
       ]);
       if (wait) {
         throw new ActionError({ code: "TOO_MANY_REQUESTS", message: tooManyAttemptsMessage(wait) });
@@ -39,11 +43,12 @@ export const auth = {
       const user = await getUserByEmail(email);
 
       if (!user || !(await verifyPassword(password, user.passwordHash))) {
-        failedLoginsByEmail.record(emailKey);
+        failedLoginsByEmailAndIp.record(pairKey);
         failedLoginsByIp.record(ip);
+        failedLoginsByEmail.record(emailKey);
         throw new ActionError({ code: "UNAUTHORIZED", message: "Invalid email or password" });
       }
-      failedLoginsByEmail.reset(emailKey);
+      failedLoginsByEmailAndIp.reset(pairKey);
 
       if (!user.emailVerifiedAt) {
         throw new ActionError({ code: "FORBIDDEN", message: `unverified:${email}` });
