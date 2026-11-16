@@ -29,10 +29,12 @@ import {
   createPart,
   createMemberPart,
 } from "./fixtures.ts";
+import { hashToken } from "../../src/lib/auth.ts";
 import {
   sendEmailChangedEmail,
   sendEmailChangeRequestedEmail,
   sendEmailChangeVerificationEmail,
+  sendEmailVerificationEmail,
 } from "../../src/lib/email.ts";
 
 // Mock email module — we don't want to call the real Resend API in tests
@@ -44,6 +46,11 @@ vi.mock("../../src/lib/email.ts", () => ({
   sendPasswordResetEmail: vi.fn().mockResolvedValue({ success: true }),
   sendAnnouncementEmail: vi.fn().mockResolvedValue({ success: true }),
 }));
+
+/** The raw token in the last verification email: the database only has its hash. */
+function lastVerificationToken(): string {
+  return vi.mocked(sendEmailVerificationEmail).mock.lastCall![2];
+}
 
 describe("registerUser", () => {
   it("creates a new user and returns their userId", async () => {
@@ -114,6 +121,8 @@ describe("registerUser", () => {
     expect(token).not.toBeNull();
     expect(token!.usedAt).toBeNull();
     expect(token!.expiresAt.getTime()).toBeGreaterThan(Date.now());
+    expect(token!.token).toBe(hashToken(lastVerificationToken()));
+    expect(token!.token).not.toBe(lastVerificationToken());
   });
 
   it("leaves the new user unverified (emailVerifiedAt is null)", async () => {
@@ -220,7 +229,7 @@ describe("verifyEmailToken", () => {
       .where(eq(EmailVerificationToken.userId, userId))
       .get();
 
-    const result = await verifyEmailToken(tokenRow!.token);
+    const result = await verifyEmailToken(lastVerificationToken());
 
     expect(result).not.toBeNull();
     expect(result!.id).toBe(userId);
@@ -242,19 +251,15 @@ describe("verifyEmailToken", () => {
   });
 
   it("returns null for a token that has already been used", async () => {
-    const { userId } = await registerUser({
+    await registerUser({
       name: "Used Token User",
       email: "verify-used@test.com",
       password: "password123",
     });
-    const tokenRow = await db
-      .select()
-      .from(EmailVerificationToken)
-      .where(eq(EmailVerificationToken.userId, userId))
-      .get();
 
-    await verifyEmailToken(tokenRow!.token);
-    const result = await verifyEmailToken(tokenRow!.token);
+    const token = lastVerificationToken();
+    await verifyEmailToken(token);
+    const result = await verifyEmailToken(token);
     expect(result).toBeNull();
   });
 
@@ -276,8 +281,23 @@ describe("verifyEmailToken", () => {
       .set({ expiresAt: new Date(Date.now() - 1000) })
       .where(eq(EmailVerificationToken.id, tokenRow!.id));
 
-    const result = await verifyEmailToken(tokenRow!.token);
+    const result = await verifyEmailToken(lastVerificationToken());
     expect(result).toBeNull();
+  });
+
+  it("does not accept the stored hash as a token", async () => {
+    const { userId } = await registerUser({
+      name: "Database Reader",
+      email: "verify-hash@test.com",
+      password: "password123",
+    });
+    const tokenRow = await db
+      .select()
+      .from(EmailVerificationToken)
+      .where(eq(EmailVerificationToken.userId, userId))
+      .get();
+
+    expect(await verifyEmailToken(tokenRow!.token)).toBeNull();
   });
 });
 
@@ -345,6 +365,9 @@ describe("initiateEmailChange", () => {
     expect(sendEmailChangeVerificationEmail).toHaveBeenCalledWith(
       "right-pw-new@test.com",
       "Mover",
+      expect.any(String),
+    );
+    expect(hashToken(vi.mocked(sendEmailChangeVerificationEmail).mock.lastCall![2])).toBe(
       token!.token,
     );
     expect(sendEmailChangeRequestedEmail).toHaveBeenCalledWith(
@@ -365,7 +388,7 @@ describe("verifyEmailChangeToken", () => {
     await db.insert(EmailChangeToken).values({
       id: crypto.randomUUID(),
       userId,
-      token,
+      token: hashToken(token),
       newEmail,
       expiresAt: overrides.expiresAt ?? new Date(Date.now() + 60 * 60 * 1000),
       usedAt: overrides.usedAt,
@@ -395,7 +418,7 @@ describe("verifyEmailChangeToken", () => {
     const tokenRow = await db
       .select()
       .from(EmailChangeToken)
-      .where(eq(EmailChangeToken.token, token))
+      .where(eq(EmailChangeToken.token, hashToken(token)))
       .get();
     expect(tokenRow!.usedAt).not.toBeNull();
   });
@@ -436,7 +459,7 @@ describe("verifyEmailChangeToken", () => {
     const tokenRow = await db
       .select()
       .from(EmailChangeToken)
-      .where(eq(EmailChangeToken.token, token))
+      .where(eq(EmailChangeToken.token, hashToken(token)))
       .get();
     expect(tokenRow!.usedAt).not.toBeNull();
   });
@@ -451,7 +474,7 @@ describe("validatePasswordResetToken", () => {
     await db.insert(PasswordResetToken).values({
       id: crypto.randomUUID(),
       userId,
-      token,
+      token: hashToken(token),
       expiresAt: overrides.expiresAt ?? new Date(Date.now() + 60 * 60 * 1000),
       usedAt: overrides.usedAt,
     });
@@ -490,7 +513,7 @@ describe("resetPassword", () => {
     await db.insert(PasswordResetToken).values({
       id: crypto.randomUUID(),
       userId,
-      token,
+      token: hashToken(token),
       expiresAt: overrides.expiresAt ?? new Date(Date.now() + 60 * 60 * 1000),
       usedAt: overrides.usedAt,
     });
@@ -509,7 +532,7 @@ describe("resetPassword", () => {
     const tokenRow = await db
       .select()
       .from(PasswordResetToken)
-      .where(eq(PasswordResetToken.token, token))
+      .where(eq(PasswordResetToken.token, hashToken(token)))
       .get();
     expect(tokenRow!.usedAt).not.toBeNull();
   });
@@ -521,7 +544,7 @@ describe("resetPassword", () => {
       id: crypto.randomUUID(),
       userId: user!.id,
       newEmail: "attacker@example.com",
-      token: changeToken,
+      token: hashToken(changeToken),
       expiresAt: new Date(Date.now() + 60 * 60 * 1000),
     });
 

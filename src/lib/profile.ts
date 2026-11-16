@@ -17,7 +17,7 @@ import {
 } from "@db";
 import { validateImageFile } from "./upload";
 import { deleteImage, uploadImage } from "./storage";
-import { hashPassword, newPasswordError, verifyPassword } from "./auth";
+import { hashPassword, hashToken, newPasswordError, verifyPassword } from "./auth";
 import { bumpSessionVersion } from "./session";
 import {
   sendEmailChangedEmail,
@@ -46,7 +46,9 @@ export async function registerUser(params: {
   const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
   await db.batch([
     db.insert(User).values({ id: userId, email, passwordHash, name, role: "user" }),
-    db.insert(EmailVerificationToken).values({ id: crypto.randomUUID(), userId, token, expiresAt }),
+    db
+      .insert(EmailVerificationToken)
+      .values({ id: crypto.randomUUID(), userId, token: hashToken(token), expiresAt }),
   ]);
 
   // Fire-and-forget: don't block registration if email fails
@@ -229,9 +231,13 @@ export async function initiateEmailChange(
           gt(EmailChangeToken.expiresAt, now),
         ),
       ),
-    db
-      .insert(EmailChangeToken)
-      .values({ id: crypto.randomUUID(), userId, token, newEmail: trimmedEmail, expiresAt }),
+    db.insert(EmailChangeToken).values({
+      id: crypto.randomUUID(),
+      userId,
+      token: hashToken(token),
+      newEmail: trimmedEmail,
+      expiresAt,
+    }),
   ]);
 
   const emailResult = await sendEmailChangeVerificationEmail(trimmedEmail, userName, token);
@@ -263,7 +269,7 @@ export async function resendVerificationEmail(email: string): Promise<void> {
       ),
     db
       .insert(EmailVerificationToken)
-      .values({ id: crypto.randomUUID(), userId: user.id, token, expiresAt }),
+      .values({ id: crypto.randomUUID(), userId: user.id, token: hashToken(token), expiresAt }),
   ]);
 
   sendEmailVerificationEmail(email, user.name, token).catch(() => {});
@@ -288,7 +294,7 @@ export async function verifyEmailChangeToken(token: string): Promise<VerifyEmail
     .innerJoin(User, eq(User.id, EmailChangeToken.userId))
     .where(
       and(
-        eq(EmailChangeToken.token, token),
+        eq(EmailChangeToken.token, hashToken(token)),
         gt(EmailChangeToken.expiresAt, now),
         isNull(EmailChangeToken.usedAt),
       ),
@@ -332,7 +338,7 @@ export async function verifyEmailToken(
     .from(EmailVerificationToken)
     .where(
       and(
-        eq(EmailVerificationToken.token, token),
+        eq(EmailVerificationToken.token, hashToken(token)),
         gt(EmailVerificationToken.expiresAt, now),
         isNull(EmailVerificationToken.usedAt),
       ),
@@ -363,7 +369,7 @@ export async function validatePasswordResetToken(token: string): Promise<boolean
     .from(PasswordResetToken)
     .where(
       and(
-        eq(PasswordResetToken.token, token),
+        eq(PasswordResetToken.token, hashToken(token)),
         gt(PasswordResetToken.expiresAt, now),
         isNull(PasswordResetToken.usedAt),
       ),
@@ -384,7 +390,7 @@ export async function resetPassword(
     .from(PasswordResetToken)
     .where(
       and(
-        eq(PasswordResetToken.token, token),
+        eq(PasswordResetToken.token, hashToken(token)),
         gt(PasswordResetToken.expiresAt, now),
         isNull(PasswordResetToken.usedAt),
       ),

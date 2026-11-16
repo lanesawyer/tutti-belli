@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import bcrypt from "bcryptjs";
 import { db, eq, User, PasswordResetToken } from "@db";
 
@@ -29,6 +30,11 @@ export async function getUserByEmail(email: string) {
   return user ?? null;
 }
 
+/** What the database stores for an emailed token, so a copy of the database holds no working links. */
+export function hashToken(token: string): string {
+  return createHash("sha256").update(token).digest("hex");
+}
+
 export async function createPasswordResetToken(
   userId: string,
   ttlMs = 60 * 60 * 1000,
@@ -46,6 +52,6 @@ export function passwordResetTokenInsert(userId: string, ttlMs = 60 * 60 * 1000)
     token,
     insert: db
       .insert(PasswordResetToken)
-      .values({ id: crypto.randomUUID(), userId, token, expiresAt }),
+      .values({ id: crypto.randomUUID(), userId, token: hashToken(token), expiresAt }),
   };
 }
