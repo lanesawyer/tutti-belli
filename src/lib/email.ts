@@ -200,7 +200,6 @@ export async function sendEmailChangeRequestedEmail(
 
   return sendEmail(
     {
-      from: getEnv("EMAIL_FROM", "noreply@example.com"),
       to: toEmail,
       subject: "Email change requested",
       html: `
@@ -225,7 +224,6 @@ export async function sendEmailChangedEmail(
 ): Promise<EmailResult> {
   return sendEmail(
     {
-      from: getEnv("EMAIL_FROM", "noreply@example.com"),
       to: toEmail,
       subject: "Your email address was changed",
       html: `
