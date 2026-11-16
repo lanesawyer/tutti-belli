@@ -28,6 +28,8 @@ Before a migration that rewrites or deletes data, take a copy that will outlive 
 turso db create tutti-belli-backup-2026-11-15 --from-db tutti-belli-prod
 ```
 
+If your Turso account has more than one database group, every `turso db create` here also needs `--group <group>`; `turso db list` shows which group production is in.
+
 The copy is independent of production from the moment it is created, so writes made afterwards are not in it. Take it right before the change, not hours earlier. Delete it once you are sure the change is good (`turso db destroy <name>`); copies count toward the plan's database limit.
 
 For a copy kept off Turso entirely:
@@ -86,7 +88,7 @@ After a database restore, rows may point at files that were deleted since the re
 
 ## Restore drill
 
-Run this now and then so the steps are known to work before they are needed. It touches nothing in production:
+Run this now and then so the steps are known to work before they are needed. It touches nothing in production. Compare the count with the same query against production. Last run: 2026-11-15.
 
 ```bash
 turso db create tutti-belli-drill --from-db tutti-belli-prod --timestamp "$(date -u -d '1 hour ago' +%Y-%m-%dT%H:%M:%SZ)"
