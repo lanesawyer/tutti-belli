@@ -101,3 +101,26 @@ test("song file names render as text and deleting a file asks for confirmation",
   await page.locator("tr").filter({ hasText: songName }).locator(".files-btn").click();
   await expect(page.locator("#filesModalList")).toContainText("No files yet.");
 });
+
+test("admin can add a link to a song from the files dialog", async ({ page }) => {
+  await page.goto("/ensembles");
+  await page.locator(".card").filter({ hasText: "Chamber Orchestra" }).locator("a").first().click();
+  await expect(page).toHaveURL(/\/ensembles\/.+/);
+  const ensembleUrl = page.url();
+  await page.goto(ensembleUrl + "/songs");
+
+  const songName = `Link Song ${Date.now()}`;
+  await page.getByRole("button", { name: "Add Song" }).first().click();
+  await page.fill('input[name="name"]', songName);
+  await page.locator('button[type="submit"][form="addForm"]').click();
+  await expect(page.locator("body")).toContainText(songName);
+
+  await page.locator("tr").filter({ hasText: songName }).locator(".files-btn").click();
+  await page.fill("#addFileForm #fileName", "Reference Recording");
+  await page.fill("#addFileForm #fileUrl", "https://example.com/recording");
+  await page.locator('#addFileForm button[type="submit"]').click();
+  await expect(page).toHaveURL(/\/ensembles\/.+\/songs$/);
+
+  await page.locator("tr").filter({ hasText: songName }).locator(".files-btn").click();
+  await expect(page.locator("#filesModalList .song-file-name")).toHaveText("Reference Recording");
+});
