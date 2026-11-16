@@ -1,6 +1,6 @@
 import { defineAction, ActionError } from "astro:actions";
 import { z } from "astro/zod";
-import { assertPartsInEnsemble, newPassword } from "./utils";
+import { assertPartsInEnsemble, newPassword, throwUserError } from "./utils";
 import { getMembershipById } from "@lib/ensemble";
 import { rememberVerifyingBrowser, revokeSessions, startSession } from "@lib/session";
 import {
@@ -27,7 +27,7 @@ export const profile = {
     accept: "form",
     input: z.object({
       name: z.string().min(1, "Name is required."),
-      email: z.string().email("Invalid email address."),
+      email: z.email("Invalid email address."),
       password: newPassword,
     }),
     handler: async ({ name, email, password }, context) => {
@@ -51,7 +51,7 @@ export const profile = {
       try {
         await registerUser({ name, email, password });
       } catch (e) {
-        throw new ActionError({ code: "CONFLICT", message: (e as Error).message });
+        throwUserError("CONFLICT", e);
       }
       rememberVerifyingBrowser(context.cookies, email);
       return { email };

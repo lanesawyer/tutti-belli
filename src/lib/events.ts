@@ -18,6 +18,7 @@ import {
   runBatch,
 } from "@db";
 import { randomCode } from "./codes";
+import { UserError } from "./errors";
 import { DEFAULT_TIMEZONE, zonedTimeToInstant } from "./timezone";
 
 // ─── RSVP Helpers ───────────────────────────────────────────────────────────
@@ -256,7 +257,7 @@ export async function createEvent(params: {
     .get();
 
   if (!activeSeason) {
-    throw new Error("No active season found. Please create and activate a season first.");
+    throw new UserError("No active season found. Please create and activate a season first.");
   }
 
   const scheduledAt = zonedTimeToInstant(date, time, await getEnsembleTimezone(ensembleId));
@@ -349,8 +350,8 @@ export async function checkInToEvent(params: {
     db.select().from(Ensemble).where(eq(Ensemble.id, ensembleId)).get(),
   ]);
 
-  if (!event) throw new Error("Event not found.");
-  if (!ensembleData) throw new Error("Ensemble not found.");
+  if (!event) throw new UserError("Event not found.");
+  if (!ensembleData) throw new UserError("Ensemble not found.");
 
   const now = new Date();
   const scheduledTime = new Date(event.scheduledAt);
@@ -368,11 +369,11 @@ export async function checkInToEvent(params: {
       const minutesUntilOpen = Math.ceil(
         (checkInStartTime.getTime() - now.getTime()) / (60 * 1000),
       );
-      throw new Error(
+      throw new UserError(
         `Check-in opens ${ensembleData.checkInStartMinutes} minutes before the event (in ${minutesUntilOpen} minutes).`,
       );
     } else {
-      throw new Error(
+      throw new UserError(
         `Check-in closed ${ensembleData.checkInEndMinutes} minutes after event start.`,
       );
     }
@@ -387,7 +388,7 @@ async function recordCheckIn(eventId: string, userId: string, checkedInMethod: "
     .values({ id: crypto.randomUUID(), eventId, userId, checkedInMethod })
     .onConflictDoNothing({ target: [Attendance.eventId, Attendance.userId] })
     .returning({ id: Attendance.id });
-  if (inserted.length === 0) throw new Error("You have already checked in for this event.");
+  if (inserted.length === 0) throw new UserError("You have already checked in for this event.");
 }
 
 export async function checkInByCode(params: { code: string; userId: string }) {
@@ -398,7 +399,7 @@ export async function checkInByCode(params: { code: string; userId: string }) {
     .from(Event)
     .where(eq(Event.checkInCode, code.toUpperCase()))
     .get();
-  if (!event) throw new Error("Invalid check-in code.");
+  if (!event) throw new UserError("Invalid check-in code.");
 
   // Codes are shown on screen and in QR codes at the venue, so knowing one isn't proof of membership.
   const membership = await db
@@ -412,14 +413,14 @@ export async function checkInByCode(params: { code: string; userId: string }) {
       ),
     )
     .get();
-  if (!membership) throw new Error("Invalid check-in code.");
+  if (!membership) throw new UserError("Invalid check-in code.");
 
   const ensembleData = await db
     .select()
     .from(Ensemble)
     .where(eq(Ensemble.id, event.ensembleId))
     .get();
-  if (!ensembleData) throw new Error("Ensemble not found.");
+  if (!ensembleData) throw new UserError("Ensemble not found.");
 
   const now = new Date();
   const scheduledTime = new Date(event.scheduledAt);
@@ -432,12 +433,14 @@ export async function checkInByCode(params: { code: string; userId: string }) {
 
   if (now < checkInStartTime) {
     const minutesUntilOpen = Math.ceil((checkInStartTime.getTime() - now.getTime()) / (60 * 1000));
-    throw new Error(
+    throw new UserError(
       `Check-in opens ${ensembleData.checkInStartMinutes} minutes before the event (in ${minutesUntilOpen} minutes).`,
     );
   }
   if (now > checkInEndTime) {
-    throw new Error(`Check-in closed ${ensembleData.checkInEndMinutes} minutes after event start.`);
+    throw new UserError(
+      `Check-in closed ${ensembleData.checkInEndMinutes} minutes after event start.`,
+    );
   }
 
   await recordCheckIn(event.id, userId, "qr");

@@ -18,6 +18,7 @@ import {
 import { validateImageFile } from "./upload";
 import { deleteImage, uploadImage } from "./storage";
 import type { AstroCookies } from "astro";
+import { UserError } from "./errors";
 import {
   EMAIL_VERIFICATION_TTL_MS,
   hashPassword,
@@ -47,7 +48,7 @@ export async function registerUser(params: {
   const { name, password } = params;
   const email = params.email.trim().toLowerCase();
   const passwordError = newPasswordError(password);
-  if (passwordError) throw new Error(passwordError);
+  if (passwordError) throw new UserError(passwordError);
 
   // Hashed before the lookup, so a taken address takes as long as a new one.
   const passwordHash = await hashPassword(password);
@@ -75,7 +76,9 @@ export async function registerUser(params: {
   ]);
 
   // Fire-and-forget: don't block registration if email fails
-  sendEmailVerificationEmail(email, name, token).catch(() => {});
+  sendEmailVerificationEmail(email, name, token).catch((error) => {
+    console.error(`Verification email threw for user ${userId}:`, error);
+  });
 
   return { userId };
 }
@@ -305,7 +308,9 @@ async function sendNewVerificationLink(user: { id: string; email: string; name: 
       .values({ id: crypto.randomUUID(), userId: user.id, token: hashToken(token), expiresAt }),
   ]);
 
-  sendEmailVerificationEmail(user.email, user.name, token).catch(() => {});
+  sendEmailVerificationEmail(user.email, user.name, token).catch((error) => {
+    console.error(`Verification email threw for user ${user.id}:`, error);
+  });
 }
 
 export type VerifyEmailChangeResult =
