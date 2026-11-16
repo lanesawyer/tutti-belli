@@ -1,6 +1,8 @@
 {
   "name": "tutti-belli",
   "version": "0.0.1",
+  "private": true,
+  "license": "AGPL-3.0-only",
   "type": "module",
   "scripts": {
     "dev": "node db/dev-setup.ts && DATABASE_URL=file:.astro/content.db astro dev",

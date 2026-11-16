@@ -114,6 +114,8 @@ Migrations live in `drizzle/` and are applied with `migrate()` from `drizzle-orm
 2. `pnpm db:generate` — creates a new SQL file in `drizzle/` (rename it to something descriptive and update `drizzle/meta/_journal.json` to match)
 3. `pnpm dev` applies it to the local DB automatically (via `db/dev-setup.ts`); deploys apply it to the remote Turso DB automatically (Fly `release_command` in `fly.toml`/`fly.preview.toml` runs `node db/migrate.ts`); `pnpm db:migrate` applies it manually using `.env` credentials
 
+The migration runs before the new code takes traffic, while the previous release is still serving, so it must stay compatible with that release (e.g. add a column in one deploy and drop the old one in a later deploy). Take a copy first for a risky migration: see [docs/backup-restore.md](docs/backup-restore.md#before-a-risky-change).
+
 `drizzle/0000_init.sql` is a hand-edited baseline (`CREATE TABLE IF NOT EXISTS`) that no-ops against the production database that predates drizzle — don't regenerate it.
 
 ### Routing Structure
