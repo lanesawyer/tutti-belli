@@ -157,7 +157,7 @@ export const ensembles = {
     input: z.object({
       ensembleId: z.string(),
       label: z.string().min(1, "Label is required."),
-      url: z.string().url("Please enter a valid URL.").regex(HTTP_URL, HTTP_URL_MESSAGE),
+      url: z.url("Please enter a valid URL.").regex(HTTP_URL, HTTP_URL_MESSAGE),
     }),
     handler: async (input, context) => {
       const user = context.locals.user;
