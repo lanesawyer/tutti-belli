@@ -6,6 +6,7 @@ import {
   updatePhone,
   deleteAccount,
   updateParts,
+  verifyEmail,
   verifyEmailToken,
   verifyEmailChangeToken,
   initiateEmailChange,
@@ -30,6 +31,12 @@ import {
   createMemberPart,
 } from "./fixtures.ts";
 import { hashToken } from "../../src/lib/auth.ts";
+import {
+  getSession,
+  rememberVerifyingBrowser,
+  VERIFY_EMAIL_COOKIE,
+} from "../../src/lib/session.ts";
+import { createTestContext } from "../support/actions.ts";
 import {
   sendEmailChangedEmail,
   sendEmailChangeRequestedEmail,
@@ -298,6 +305,55 @@ describe("verifyEmailToken", () => {
       .get();
 
     expect(await verifyEmailToken(tokenRow!.token)).toBeNull();
+  });
+});
+
+describe("verifyEmail", () => {
+  /** A browser's cookie jar, holding the cookie it gets when it registers `email`. */
+  function browserThatRegistered(email: string | null) {
+    const { cookies } = createTestContext();
+    if (email) rememberVerifyingBrowser(cookies, email);
+    const value = cookies.get(VERIFY_EMAIL_COOKIE)?.value;
+    return createTestContext({ cookies: value ? { [VERIFY_EMAIL_COOKIE]: value } : {} }).cookies;
+  }
+
+  async function register(email: string) {
+    const { userId } = await registerUser({ name: "Verifier", email, password: "password123" });
+    return { userId, token: lastVerificationToken() };
+  }
+
+  it("signs in the browser that registered the address", async () => {
+    const { userId, token } = await register("same-browser@test.com");
+    const cookies = browserThatRegistered("Same-Browser@test.com");
+
+    expect(await verifyEmail(token, cookies)).toEqual({ type: "signedIn", userId });
+    expect(getSession(cookies.get("session")?.value)?.userId).toBe(userId);
+    expect(cookies.get(VERIFY_EMAIL_COOKIE)).toBeUndefined();
+  });
+
+  it("verifies but does not sign in a browser without the cookie", async () => {
+    const { userId, token } = await register("other-browser@test.com");
+    const cookies = browserThatRegistered(null);
+
+    expect(await verifyEmail(token, cookies)).toEqual({ type: "verified" });
+    expect(cookies.get("session")).toBeUndefined();
+    const user = await db.select().from(User).where(eq(User.id, userId)).get();
+    expect(user!.emailVerifiedAt).not.toBeNull();
+  });
+
+  it("does not sign in a browser that registered a different address", async () => {
+    const { token } = await register("attacker@test.com");
+    const cookies = browserThatRegistered("victim@test.com");
+
+    expect(await verifyEmail(token, cookies)).toEqual({ type: "verified" });
+    expect(cookies.get("session")).toBeUndefined();
+    expect(cookies.get(VERIFY_EMAIL_COOKIE)).toBeUndefined();
+  });
+
+  it("rejects an unknown token", async () => {
+    const cookies = browserThatRegistered("nobody@test.com");
+    expect(await verifyEmail("nonexistent-token", cookies)).toEqual({ type: "invalid" });
+    expect(cookies.get("session")).toBeUndefined();
   });
 });
 

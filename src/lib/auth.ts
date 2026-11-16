@@ -30,6 +30,8 @@ export async function getUserByEmail(email: string) {
   return user ?? null;
 }
 
+export const EMAIL_VERIFICATION_TTL_MS = 60 * 60 * 1000;
+
 /** What the database stores for an emailed token, so a copy of the database holds no working links. */
 export function hashToken(token: string): string {
   return createHash("sha256").update(token).digest("hex");

@@ -2,7 +2,7 @@ import { defineAction, ActionError } from "astro:actions";
 import { z } from "astro/zod";
 import { assertPartsInEnsemble, newPassword } from "./utils";
 import { getMembershipById } from "@lib/ensemble";
-import { revokeSessions, startSession } from "@lib/session";
+import { rememberVerifyingBrowser, revokeSessions, startSession } from "@lib/session";
 import {
   emailChangesByIp,
   emailChangesByUser,
@@ -53,6 +53,7 @@ export const profile = {
       } catch (e) {
         throw new ActionError({ code: "CONFLICT", message: (e as Error).message });
       }
+      rememberVerifyingBrowser(context.cookies, email);
       return { email };
     },
   }),

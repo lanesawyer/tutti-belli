@@ -7,6 +7,7 @@ import {
   failedLoginsByEmailAndIp,
   failedLoginsByIp,
 } from "@lib/rate-limit";
+import { readVerifyingBrowser, VERIFY_EMAIL_COOKIE } from "@lib/session";
 import { uploadImage, uploadSongFile } from "@lib/storage";
 import { INPUT_SCHEMA, isInputError } from "../support/astro-actions.ts";
 import { callAction, type Fields } from "../support/actions.ts";
@@ -308,6 +309,17 @@ describe("profile.register", () => {
       { name: "Copycat", email: w.a.member.email.toUpperCase(), password: "secret-password" },
       null,
       ["CONFLICT"],
+    );
+  });
+
+  it("remembers the browser that registered, for the verification link", async () => {
+    const { context } = await callAction(actions["profile.register"], {
+      name: "Newcomer",
+      email: "Newcomer@test.com",
+      password: "secret-password",
+    });
+    expect(readVerifyingBrowser(context.cookies.get(VERIFY_EMAIL_COOKIE)?.value)).toBe(
+      "newcomer@test.com",
     );
   });
 

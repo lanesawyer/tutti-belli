@@ -17,8 +17,20 @@ import {
 } from "@db";
 import { validateImageFile } from "./upload";
 import { deleteImage, uploadImage } from "./storage";
-import { hashPassword, hashToken, newPasswordError, verifyPassword } from "./auth";
-import { bumpSessionVersion } from "./session";
+import type { AstroCookies } from "astro";
+import {
+  EMAIL_VERIFICATION_TTL_MS,
+  hashPassword,
+  hashToken,
+  newPasswordError,
+  verifyPassword,
+} from "./auth";
+import {
+  bumpSessionVersion,
+  readVerifyingBrowser,
+  startSession,
+  VERIFY_EMAIL_COOKIE,
+} from "./session";
 import {
   sendEmailChangedEmail,
   sendEmailChangeRequestedEmail,
@@ -43,7 +55,7 @@ export async function registerUser(params: {
   const passwordHash = await hashPassword(password);
 
   const token = crypto.randomUUID();
-  const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
+  const expiresAt = new Date(Date.now() + EMAIL_VERIFICATION_TTL_MS);
   await db.batch([
     db.insert(User).values({ id: userId, email, passwordHash, name, role: "user" }),
     db
@@ -259,7 +271,7 @@ export async function resendVerificationEmail(email: string): Promise<void> {
   // Invalidate any existing pending tokens
   const now = new Date();
   const token = crypto.randomUUID();
-  const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
+  const expiresAt = new Date(Date.now() + EMAIL_VERIFICATION_TTL_MS);
   await db.batch([
     db
       .update(EmailVerificationToken)
@@ -331,7 +343,7 @@ export async function verifyEmailChangeToken(token: string): Promise<VerifyEmail
 
 export async function verifyEmailToken(
   token: string,
-): Promise<{ id: string; sessionVersion: number } | null> {
+): Promise<{ id: string; sessionVersion: number; email: string } | null> {
   const now = new Date();
   const record = await db
     .select()
@@ -352,7 +364,7 @@ export async function verifyEmailToken(
       .update(User)
       .set({ emailVerifiedAt: now })
       .where(eq(User.id, record.userId))
-      .returning({ id: User.id, sessionVersion: User.sessionVersion }),
+      .returning({ id: User.id, sessionVersion: User.sessionVersion, email: User.email }),
     db
       .update(EmailVerificationToken)
       .set({ usedAt: now })
@@ -360,6 +372,25 @@ export async function verifyEmailToken(
   ]);
 
   return user ?? null;
+}
+
+/**
+ * Verifies the address in an emailed link. Only the browser that registered (or asked for the
+ * link again) is signed in, so a link someone else sends can't sign a victim into their account.
+ */
+export async function verifyEmail(
+  token: string,
+  cookies: AstroCookies,
+): Promise<{ type: "invalid" } | { type: "signedIn"; userId: string } | { type: "verified" }> {
+  const user = await verifyEmailToken(token);
+  if (!user) return { type: "invalid" };
+
+  const verifyingEmail = readVerifyingBrowser(cookies.get(VERIFY_EMAIL_COOKIE)?.value);
+  cookies.delete(VERIFY_EMAIL_COOKIE, { path: "/" });
+  if (verifyingEmail !== user.email) return { type: "verified" };
+
+  startSession(cookies, user);
+  return { type: "signedIn", userId: user.id };
 }
 
 export async function validatePasswordResetToken(token: string): Promise<boolean> {
