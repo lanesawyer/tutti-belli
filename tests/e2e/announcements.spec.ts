@@ -21,7 +21,7 @@ test.describe.serial("announcements", () => {
     const page = await context.newPage();
     await page.goto("/ensembles/chamber-orchestra/edit");
     await page.fill('input[name="discordWebhookUrl"]', "");
-    await page.click('button[type="submit"]:not([form])');
+    await page.click('main button[type="submit"]:not([form])');
     await expect(page).not.toHaveURL(/\/edit/);
     await context.close();
   });
@@ -35,7 +35,7 @@ test.describe.serial("announcements", () => {
 
     await page.fill("#create-title", "Test Announcement");
     await page.fill("#create-content", "This is a test announcement body.");
-    await page.click('button[type="submit"][form="createForm"]');
+    await page.click('main button[type="submit"][form="createForm"]');
 
     await expect(page.locator(".notification.is-success")).toBeVisible();
     await expect(page.locator("body")).toContainText("Test Announcement");
@@ -47,7 +47,7 @@ test.describe.serial("announcements", () => {
     // Ensure no webhook is set
     await page.goto(ensembleUrl + "/edit");
     await page.fill('input[name="discordWebhookUrl"]', "");
-    await page.click('button[type="submit"]:not([form])');
+    await page.click('main button[type="submit"]:not([form])');
     await expect(page).not.toHaveURL(/\/edit/);
 
     const currentUrl = page.url();
@@ -66,7 +66,7 @@ test.describe.serial("announcements", () => {
       'input[name="discordWebhookUrl"]',
       "https://discord.com/api/webhooks/000/fake-test-url",
     );
-    await page.click('button[type="submit"]:not([form])');
+    await page.click('main button[type="submit"]:not([form])');
     await expect(page).not.toHaveURL(/\/edit/);
 
     const currentUrl = page.url();
@@ -88,7 +88,7 @@ test.describe.serial("announcements", () => {
     await page.fill("#create-title", "Discord Test Announcement");
     await page.fill("#create-content", "Posted with Discord checked.");
     await page.check('#create-modal input[name="postToDiscord"]');
-    await page.click('button[type="submit"][form="createForm"]');
+    await page.click('main button[type="submit"][form="createForm"]');
 
     // Announcement creation succeeds — Discord failure is fire-and-forget
     await expect(page.locator(".notification.is-success")).toBeVisible();

@@ -31,7 +31,7 @@ test("user can update name and phone via the combined info form", async ({ page 
   await nameInput.fill("Updated Name");
   await phoneInput.fill("555-123-4567");
 
-  await page.click('button[type="submit"]');
+  await page.click('main button[type="submit"]');
 
   // On success the action redirects back to /profile
   await expect(page).toHaveURL("/profile");
@@ -54,7 +54,7 @@ test("invalid phone format shows an error notification", async ({ page }) => {
     el.removeAttribute("pattern");
   });
 
-  await page.click('button[type="submit"]');
+  await page.click('main button[type="submit"]');
 
   await expect(page.locator(".notification.is-danger")).toBeVisible();
 });

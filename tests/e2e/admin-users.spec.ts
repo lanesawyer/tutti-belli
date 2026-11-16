@@ -21,7 +21,7 @@ test("deleting a user whose name contains quotes confirms with the exact name", 
   await anonPage.fill('input[name="name"]', name);
   await anonPage.fill('input[name="email"]', email);
   await anonPage.fill('input[name="password"]', "password123");
-  await anonPage.click('button[type="submit"]');
+  await anonPage.click('main button[type="submit"]');
   await expect(anonPage.locator(".notification.is-success")).toBeVisible();
   await anon.close();
 
