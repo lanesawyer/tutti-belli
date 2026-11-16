@@ -56,11 +56,13 @@ if (Astro.request.method === "GET" && id !== canonicalId) {
   );
 }
 
-const access = await getEnsembleAccess(user, ensemble.id);
+const [access, event] = await Promise.all([
+  getEnsembleAccess(user, ensemble.id),
+  getEvent(ensemble.id, eventId),
+]);
 if (!access) return Astro.redirect("/ensembles");
 const { isAdmin } = access;
 
-const event = await getEvent(ensemble.id, eventId);
 if (!event) {
   return Astro.redirect(`/ensembles/${canonicalId}/events`);
 }
@@ -77,12 +79,7 @@ const canCheckIn = now >= checkInStartTime && now <= checkInEndTime;
 const isTooEarly = now < checkInStartTime;
 const isTooLate = now > checkInEndTime;
 
-// Re-fetch event after a potential edit so the page reflects the latest values
 const editResult = Astro.getActionResult(actions.events.edit);
-if (editResult && !editResult.error) {
-  const updatedEvent = await getEvent(ensemble.id, eventId);
-  if (updatedEvent) Object.assign(event, updatedEvent);
-}
 
 const checkInResult = Astro.getActionResult(actions.events.checkIn);
 const addAttendanceResult = Astro.getActionResult(actions.events.addAttendance);
@@ -107,17 +104,26 @@ else if (removeRsvpResult && !removeRsvpResult.error) message = "RSVP removed.";
 else if (removeRsvpResult?.error)
   message = removeRsvpResult.error.message || "Failed to remove RSVP.";
 
-// Get attendance records, RSVP records, member list (scoped to group if set), and group metadata
-const { attendanceRecords, rsvpRecords, allMembers, group } = await getEventPageData(
-  ensemble.id,
-  eventId,
-);
-
 const rsvpOn = isRsvpEnabled(event);
-const userRsvp = rsvpOn ? await getRsvpForUser(event.id, user.id) : null;
+const checkInUrl = siteLink(`/checkin/${encodeURIComponent(event.checkInCode)}`);
 
-// Fetch groups for the edit modal selector
-const groups = await getEnsembleGroups(ensemble.id);
+const [
+  // Attendance records, RSVP records, member list (scoped to group if set), and group metadata
+  { attendanceRecords, rsvpRecords, allMembers, group },
+  userRsvp,
+  // Groups for the edit modal selector
+  groups,
+  // Program data for all event types (rehearsal + performance)
+  { programEntries, availableSeasonSongs },
+  // Only admins see the check-in QR code
+  qrCodeDataUrl,
+] = await Promise.all([
+  getEventPageData(ensemble.id, event),
+  rsvpOn ? getRsvpForUser(event.id, user.id) : null,
+  getEnsembleGroups(ensemble.id),
+  getEventProgramData(event.id, event.seasonId),
+  isAdmin ? QRCode.toDataURL(checkInUrl, { width: 300, margin: 2 }) : "",
+]);
 
 const attendedUserIds = new Set(attendanceRecords.map((a) => a.userId));
 const attendanceByUserId = new Map(attendanceRecords.map((a) => [a.userId, a]));
@@ -127,13 +133,6 @@ const rsvpYesCount = rsvpRecords.filter((r) => r.response === "yes").length;
 const rsvpNoCount = rsvpRecords.filter((r) => r.response === "no").length;
 const rsvpNoResponseCount = allMembers.length - rsvpYesCount - rsvpNoCount;
 
-// Generate QR code for check-in
-const checkInUrl = siteLink(`/checkin/${encodeURIComponent(event.checkInCode)}`);
-const qrCodeDataUrl = await QRCode.toDataURL(checkInUrl, {
-  width: 300,
-  margin: 2,
-});
-
 const scheduledDate = new Date(event.scheduledAt);
 const endTime = new Date(scheduledDate.getTime() + event.durationMinutes * 60 * 1000);
 const isPast = endTime < new Date();
@@ -141,9 +140,6 @@ const isUserCheckedIn = attendedUserIds.has(user.id);
 
 // Prepare date/time for form inputs
 const { date: dateValue, time: timeValue } = instantToZonedInputs(scheduledDate, ensemble.timezone);
-
-// Fetch program data for all event types (rehearsal + performance)
-const { programEntries, availableSeasonSongs } = await getEventProgramData(eventId, event.seasonId);
 
 const isPerformance = event.category === "performance";
 const isSocial = event.category === "social";

@@ -2,7 +2,11 @@ import {
   db,
   eq,
   and,
+  or,
+  gt,
+  isNull,
   inArray,
+  sql,
   Ensemble,
   Event,
   EventProgram,
@@ -48,14 +52,12 @@ export async function getEvent(ensembleId: string, eventId: string) {
   );
 }
 
-export async function getEventPageData(ensembleId: string, eventId: string) {
-  const [event, ensembleData, attendanceRecords, rsvpRecords] = await Promise.all([
-    db
-      .select()
-      .from(Event)
-      .where(and(eq(Event.id, eventId), eq(Event.ensembleId, ensembleId)))
-      .get(),
-    db.select().from(Ensemble).where(eq(Ensemble.id, ensembleId)).get(),
+export async function getEventPageData(
+  ensembleId: string,
+  event: { id: string; groupId: string | null },
+) {
+  const eventId = event.id;
+  const [attendanceRecords, rsvpRecords] = await Promise.all([
     db
       .select({
         id: Attendance.id,
@@ -84,7 +86,7 @@ export async function getEventPageData(ensembleId: string, eventId: string) {
   let group: { id: string; name: string; color: string } | null = null;
   let allMembers: { id: string; name: string; email: string }[];
 
-  if (event?.groupId) {
+  if (event.groupId) {
     const [groupRow, groupMembers] = await Promise.all([
       db
         .select({ id: Group.id, name: Group.name, color: Group.color })
@@ -124,8 +126,6 @@ export async function getEventPageData(ensembleId: string, eventId: string) {
   }
 
   return {
-    event: event ?? null,
-    ensembleData: ensembleData ?? null,
     attendanceRecords,
     rsvpRecords,
     allMembers,
@@ -574,30 +574,32 @@ export async function getUpcomingEvents(params: {
   limit?: number;
 }) {
   const { ensembleId, userId, isAdmin, limit = 10 } = params;
-  const events = await db
+  // An event stays upcoming until it ends; strftime renders the end in the same ISO-8601 form as stored dates.
+  const endsAt = sql`strftime('%Y-%m-%dT%H:%M:%fZ', ${Event.scheduledAt}, '+' || ${Event.durationMinutes} || ' minutes')`;
+  const upcoming = await db
     .select()
     .from(Event)
-    .where(eq(Event.ensembleId, ensembleId))
+    .where(
+      and(
+        eq(Event.ensembleId, ensembleId),
+        gt(endsAt, new Date().toISOString()),
+        isAdmin
+          ? undefined
+          : or(
+              isNull(Event.groupId),
+              inArray(
+                Event.groupId,
+                db
+                  .select({ groupId: GroupMembership.groupId })
+                  .from(GroupMembership)
+                  .where(eq(GroupMembership.userId, userId)),
+              ),
+            ),
+      ),
+    )
     .orderBy(Event.scheduledAt)
+    .limit(limit)
     .all();
-
-  const userGroupIds = new Set(
-    (
-      await db
-        .select({ groupId: GroupMembership.groupId })
-        .from(GroupMembership)
-        .where(eq(GroupMembership.userId, userId))
-        .all()
-    ).map((g) => g.groupId),
-  );
-
-  const now = Date.now();
-  const upcoming = events
-    .filter((e) => {
-      const end = new Date(e.scheduledAt).getTime() + e.durationMinutes * 60 * 1000;
-      return end > now && (!e.groupId || isAdmin || userGroupIds.has(e.groupId));
-    })
-    .slice(0, limit);
 
   const programRows =
     upcoming.length > 0
