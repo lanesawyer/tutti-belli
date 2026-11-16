@@ -53,14 +53,13 @@ export async function registerUser(params: {
   const passwordHash = await hashPassword(password);
 
   // A taken address gets the same response as a new one, so sign-up can't reveal who has an
-  // account. Its owner is emailed instead.
+  // account. Its owner is emailed instead. No verification link, even if the account is
+  // unverified: whoever created it chose its password, and verifying it from here would
+  // activate that password for someone who thinks they just set their own. The email points
+  // them to a password reset, which also verifies the address.
   const existing = await db.select().from(User).where(eq(User.email, email)).get();
   if (existing) {
-    if (existing.emailVerifiedAt) {
-      sendAccountExistsEmail(existing.email, existing.name).catch(() => {});
-    } else {
-      await sendNewVerificationLink(existing);
-    }
+    sendAccountExistsEmail(existing.email, existing.name).catch(() => {});
     return { userId: existing.id };
   }
 

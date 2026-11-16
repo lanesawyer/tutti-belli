@@ -30,7 +30,7 @@ import {
   createPart,
   createMemberPart,
 } from "./fixtures.ts";
-import { hashToken } from "../../src/lib/auth.ts";
+import { hashToken, verifyPassword } from "../../src/lib/auth.ts";
 import {
   getSession,
   rememberVerifyingBrowser,
@@ -113,7 +113,7 @@ describe("registerUser", () => {
     expect(tokens).toHaveLength(0);
   });
 
-  it("for an unverified address, sends the owner a fresh verification link", async () => {
+  it("for an unverified address, sends no new verification link and keeps the first password", async () => {
     const { userId } = await registerUser({
       name: "First",
       email: "dup-unverified@test.com",
@@ -129,15 +129,12 @@ describe("registerUser", () => {
     });
 
     expect(result).toEqual({ userId });
-    expect(sendAccountExistsEmail).not.toHaveBeenCalled();
-    expect(sendEmailVerificationEmail).toHaveBeenLastCalledWith(
-      "dup-unverified@test.com",
-      "First",
-      expect.any(String),
-    );
-    expect(lastVerificationToken()).not.toBe(firstToken);
-    expect(await verifyEmailToken(firstToken)).toBeNull();
-    expect(await verifyEmailToken(lastVerificationToken())).toMatchObject({ id: userId });
+    expect(sendAccountExistsEmail).toHaveBeenCalledWith("dup-unverified@test.com", "First");
+    expect(sendEmailVerificationEmail).toHaveBeenCalledTimes(1);
+    expect(lastVerificationToken()).toBe(firstToken);
+    const [account] = await db.select().from(User).where(eq(User.id, userId));
+    expect(await verifyPassword("password1", account.passwordHash)).toBe(true);
+    expect(account.emailVerifiedAt).toBeNull();
     const user = await db.select().from(User).where(eq(User.id, userId)).get();
     expect(user!.name).toBe("First");
   });

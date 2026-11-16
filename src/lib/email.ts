@@ -284,7 +284,7 @@ export async function sendAccountExistsEmail(
           <p>Hi ${escapeHtml(toName)},</p>
           <p>Someone tried to sign up with this email address, but it already has an account. If that was you, log in instead.</p>
           ${emailButton(loginUrl, "Log In")}
-          <p>Forgot your password? <a href="${escapeHtml(resetUrl)}" style="color: #485fc7;">Reset it</a>.</p>
+          <p>Forgot your password, or never finished setting up the account? <a href="${escapeHtml(resetUrl)}" style="color: #485fc7;">Reset your password</a>.</p>
           <p>If this wasn't you, you can safely ignore this email.</p>
         </div>
       `,
