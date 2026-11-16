@@ -67,7 +67,7 @@ Rules:
 
 - **Never** call `document.querySelector`, `document.getElementById`, `document.querySelectorAll`, or attach event listeners at the top level of a `<script>`. Always put them inside an `astro:page-load` handler.
 - Plain `<script>` (Astro module scripts) are deduplicated and run once ever. Wrap their DOM work in `astro:page-load`.
-- `<script is:inline>` re-executes but still needs `astro:page-load` to target the current page's DOM. These are required when using `define:vars` to pass server data to the script.
+- Never register `astro:page-load` (or any other `document`/`window` listener) from a `<script is:inline>`. ClientRouter re-runs an inline script whenever its text is new (which `define:vars` causes whenever the data differs), and listeners on `document` survive navigation, so they pile up and keep running with stale data. Don't use `define:vars`: pass server data through `data-*` attributes (`JSON.stringify` for structured data) on an element in the page and read it inside the `astro:page-load` handler of a module script, bailing out early when that element is absent.
 - Event delegation on `document` (e.g. `document.addEventListener('click', ...)`) is the one exception — `document` persists across navigations, so those listeners survive without re-registration.
 - `<audio>` elements must have `audio.load()` called inside `astro:page-load` so the browser re-fetches the source after navigation.
 

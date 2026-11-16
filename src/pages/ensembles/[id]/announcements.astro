@@ -218,7 +218,7 @@ const announcements = await getEnsembleAnnouncements(ensemble.id);
       </Modal>
     )}
 
-    <script is:inline>
+    <script>
       document.addEventListener("astro:page-load", () => {
         document.getElementById("create-announcement-btn")?.addEventListener("click", () => {
           document.getElementById("create-modal")?.classList.add("is-active");
@@ -226,21 +226,20 @@ const announcements = await getEnsembleAnnouncements(ensemble.id);
 
         document.querySelectorAll(".edit-announcement-btn").forEach((btn) => {
           btn.addEventListener("click", () => {
-            document.getElementById("edit-announcement-id").value =
-              btn.getAttribute("data-announcement-id");
-            document.getElementById("edit-title").value =
-              btn.getAttribute("data-announcement-title");
-            document.getElementById("edit-content").value = btn.getAttribute(
-              "data-announcement-content",
-            );
+            (document.getElementById("edit-announcement-id") as HTMLInputElement).value =
+              btn.getAttribute("data-announcement-id") ?? "";
+            (document.getElementById("edit-title") as HTMLInputElement).value =
+              btn.getAttribute("data-announcement-title") ?? "";
+            (document.getElementById("edit-content") as HTMLTextAreaElement).value =
+              btn.getAttribute("data-announcement-content") ?? "";
             document.getElementById("edit-modal")?.classList.add("is-active");
           });
         });
 
         document.querySelectorAll(".delete-announcement-btn").forEach((btn) => {
           btn.addEventListener("click", () => {
-            document.getElementById("delete-announcement-id").value =
-              btn.getAttribute("data-announcement-id");
+            (document.getElementById("delete-announcement-id") as HTMLInputElement).value =
+              btn.getAttribute("data-announcement-id") ?? "";
             document.getElementById("delete-modal")?.classList.add("is-active");
           });
         });

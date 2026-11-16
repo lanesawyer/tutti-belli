@@ -306,19 +306,37 @@ const membershipsBySeasonId = seasonMemberships.reduce(
       </Modal>
     )}
 
-    <script is:inline define:vars={{ membershipsBySeasonId, ensembleId: ensemble.id }}>
+    <div
+      id="seasons-data"
+      hidden
+      data-memberships={JSON.stringify(membershipsBySeasonId)}
+      data-ensemble-id={ensemble.id}
+    />
+
+    <script>
       document.addEventListener("astro:page-load", () => {
+        const dataEl = document.getElementById("seasons-data");
+        if (!dataEl) return;
+        const membershipsBySeasonId: Record<string, { userId: string }[]> = JSON.parse(
+          dataEl.dataset.memberships || "{}",
+        );
+        const ensembleId = dataEl.dataset.ensembleId || "";
+
         document.getElementById("create-season-btn")?.addEventListener("click", () => {
           document.getElementById("create-modal")?.classList.add("is-active");
         });
 
         document.querySelectorAll(".edit-season-btn").forEach((btn) => {
           btn.addEventListener("click", () => {
-            document.getElementById("edit-seasonId").value = btn.getAttribute("data-season-id");
-            document.getElementById("edit-name").value = btn.getAttribute("data-season-name");
-            document.getElementById("edit-startDate").value = btn.getAttribute("data-season-start");
-            document.getElementById("edit-endDate").value = btn.getAttribute("data-season-end");
-            document.getElementById("edit-setActive").checked =
+            (document.getElementById("edit-seasonId") as HTMLInputElement).value =
+              btn.getAttribute("data-season-id") ?? "";
+            (document.getElementById("edit-name") as HTMLInputElement).value =
+              btn.getAttribute("data-season-name") ?? "";
+            (document.getElementById("edit-startDate") as HTMLInputElement).value =
+              btn.getAttribute("data-season-start") ?? "";
+            (document.getElementById("edit-endDate") as HTMLInputElement).value =
+              btn.getAttribute("data-season-end") ?? "";
+            (document.getElementById("edit-setActive") as HTMLInputElement).checked =
               btn.getAttribute("data-season-active") === "true";
             document.getElementById("edit-modal")?.classList.add("is-active");
           });
@@ -326,14 +344,14 @@ const membershipsBySeasonId = seasonMemberships.reduce(
 
         document.querySelectorAll(".manage-members-btn").forEach((btn) => {
           btn.addEventListener("click", () => {
-            const seasonId = btn.getAttribute("data-season-id");
-            document.getElementById("members-seasonId").value = seasonId;
+            const seasonId = btn.getAttribute("data-season-id") ?? "";
+            (document.getElementById("members-seasonId") as HTMLInputElement).value = seasonId;
 
             const seasonMembers = membershipsBySeasonId[seasonId] || [];
             const memberUserIds = new Set(seasonMembers.map((m) => m.userId));
 
-            document.querySelectorAll(".member-checkbox").forEach((checkbox) => {
-              checkbox.checked = memberUserIds.has(checkbox.getAttribute("data-user-id"));
+            document.querySelectorAll<HTMLInputElement>(".member-checkbox").forEach((checkbox) => {
+              checkbox.checked = memberUserIds.has(checkbox.getAttribute("data-user-id") ?? "");
             });
 
             document.getElementById("members-modal")?.classList.add("is-active");
@@ -342,8 +360,9 @@ const membershipsBySeasonId = seasonMemberships.reduce(
 
         document.querySelectorAll(".member-checkbox").forEach((checkbox) => {
           checkbox.addEventListener("change", async () => {
-            const seasonId = document.getElementById("members-seasonId").value;
-            const userId = checkbox.getAttribute("data-user-id");
+            const seasonId = (document.getElementById("members-seasonId") as HTMLInputElement)
+              .value;
+            const userId = checkbox.getAttribute("data-user-id") ?? "";
 
             const formData = new FormData();
             formData.append("ensembleId", ensembleId);
@@ -364,7 +383,8 @@ const membershipsBySeasonId = seasonMemberships.reduce(
 
         document.querySelectorAll(".delete-season-btn").forEach((btn) => {
           btn.addEventListener("click", () => {
-            document.getElementById("delete-seasonId").value = btn.getAttribute("data-season-id");
+            (document.getElementById("delete-seasonId") as HTMLInputElement).value =
+              btn.getAttribute("data-season-id") ?? "";
             document.getElementById("delete-modal")?.classList.add("is-active");
           });
         });
