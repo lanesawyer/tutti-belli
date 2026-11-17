@@ -70,7 +70,9 @@ export async function createAnnouncement(params: {
     .all();
 
   sendAnnouncementEmail(members, ensembleName, canonicalId, title, content, creatorName).catch(
-    () => {},
+    (error) => {
+      console.error(`Announcement email threw for ensemble ${ensembleId}:`, error);
+    },
   );
 
   if (postToDiscord && discordWebhookUrl) {

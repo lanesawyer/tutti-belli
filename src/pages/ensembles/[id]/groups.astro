@@ -316,44 +316,62 @@ const colorOptions = [
       </Modal>
     )}
 
-    <script is:inline define:vars={{ membershipsByGroupId, ensembleId: ensemble.id }}>
+    <div
+      id="groups-data"
+      hidden
+      data-memberships={JSON.stringify(membershipsByGroupId)}
+      data-ensemble-id={ensemble.id}
+    />
+
+    <script>
       document.addEventListener("astro:page-load", () => {
+        const dataEl = document.getElementById("groups-data");
+        if (!dataEl) return;
+        const membershipsByGroupId: Record<string, { userId: string; role: string | null }[]> =
+          JSON.parse(dataEl.dataset.memberships || "{}");
+        const ensembleId = dataEl.dataset.ensembleId || "";
+
         document.getElementById("create-group-btn")?.addEventListener("click", () => {
           document.getElementById("create-modal")?.classList.add("is-active");
         });
 
         document.querySelectorAll(".edit-group-btn").forEach((btn) => {
           btn.addEventListener("click", () => {
-            document.getElementById("edit-groupId").value = btn.getAttribute("data-group-id");
-            document.getElementById("edit-name").value = btn.getAttribute("data-group-name");
-            document.getElementById("edit-description").value =
-              btn.getAttribute("data-group-description");
-            document.getElementById("edit-color").value = btn.getAttribute("data-group-color");
+            (document.getElementById("edit-groupId") as HTMLInputElement).value =
+              btn.getAttribute("data-group-id") ?? "";
+            (document.getElementById("edit-name") as HTMLInputElement).value =
+              btn.getAttribute("data-group-name") ?? "";
+            (document.getElementById("edit-description") as HTMLTextAreaElement).value =
+              btn.getAttribute("data-group-description") ?? "";
+            (document.getElementById("edit-color") as HTMLSelectElement).value =
+              btn.getAttribute("data-group-color") ?? "";
             document.getElementById("edit-modal")?.classList.add("is-active");
           });
         });
 
         document.querySelectorAll(".manage-members-btn").forEach((btn) => {
           btn.addEventListener("click", () => {
-            const groupId = btn.getAttribute("data-group-id");
-            document.getElementById("members-groupId").value = groupId;
+            const groupId = btn.getAttribute("data-group-id") ?? "";
+            (document.getElementById("members-groupId") as HTMLInputElement).value = groupId;
 
             const groupMembers = membershipsByGroupId[groupId] || [];
             const memberMap = new Map(groupMembers.map((m) => [m.userId, m]));
 
             document.querySelectorAll(".member-checkbox").forEach((checkbox) => {
-              const userId = checkbox.getAttribute("data-user-id");
+              const userId = checkbox.getAttribute("data-user-id") ?? "";
               const membership = memberMap.get(userId);
-              checkbox.querySelector("input").checked = !!membership;
+              checkbox.querySelector("input")!.checked = !!membership;
 
-              const roleSelect = checkbox.closest(".is-flex")?.querySelector(".member-role-select");
+              const roleSelect = checkbox
+                .closest(".is-flex")
+                ?.querySelector<HTMLElement>(".member-role-select");
               if (roleSelect) {
                 if (membership) {
                   roleSelect.style.display = "";
-                  roleSelect.querySelector("select").value = membership.role || "";
+                  roleSelect.querySelector("select")!.value = membership.role || "";
                 } else {
                   roleSelect.style.display = "none";
-                  roleSelect.querySelector("select").value = "";
+                  roleSelect.querySelector("select")!.value = "";
                 }
               }
             });
@@ -364,9 +382,11 @@ const colorOptions = [
 
         document.querySelectorAll(".member-checkbox").forEach((checkbox) => {
           checkbox.addEventListener("change", async () => {
-            const groupId = document.getElementById("members-groupId").value;
-            const userId = checkbox.getAttribute("data-user-id");
-            const roleSelect = checkbox.closest(".is-flex")?.querySelector(".member-role-select");
+            const groupId = (document.getElementById("members-groupId") as HTMLInputElement).value;
+            const userId = checkbox.getAttribute("data-user-id") ?? "";
+            const roleSelect = checkbox
+              .closest(".is-flex")
+              ?.querySelector<HTMLElement>(".member-role-select");
 
             const formData = new FormData();
             formData.append("ensembleId", ensembleId);
@@ -379,25 +399,26 @@ const colorOptions = [
             });
 
             if (roleSelect) {
-              if (checkbox.querySelector("input").checked) {
+              if (checkbox.querySelector("input")!.checked) {
                 roleSelect.style.display = "";
-                roleSelect.querySelector("select").value = "";
+                roleSelect.querySelector("select")!.value = "";
               } else {
                 roleSelect.style.display = "none";
-                roleSelect.querySelector("select").value = "";
+                roleSelect.querySelector("select")!.value = "";
               }
             }
           });
         });
 
         document.querySelectorAll(".member-role-select").forEach((wrapper) => {
-          wrapper.querySelector("select").addEventListener("change", async (e) => {
-            const groupId = document.getElementById("members-groupId").value;
-            const userId = wrapper
-              .closest(".is-flex")
-              ?.querySelector(".member-checkbox")
-              ?.getAttribute("data-user-id");
-            const role = e.target.value;
+          wrapper.querySelector("select")!.addEventListener("change", async (e) => {
+            const groupId = (document.getElementById("members-groupId") as HTMLInputElement).value;
+            const userId =
+              wrapper
+                .closest(".is-flex")
+                ?.querySelector(".member-checkbox")
+                ?.getAttribute("data-user-id") ?? "";
+            const role = (e.target as HTMLSelectElement).value;
 
             const formData = new FormData();
             formData.append("ensembleId", ensembleId);
@@ -419,7 +440,8 @@ const colorOptions = [
 
         document.querySelectorAll(".delete-group-btn").forEach((btn) => {
           btn.addEventListener("click", () => {
-            document.getElementById("delete-groupId").value = btn.getAttribute("data-group-id");
+            (document.getElementById("delete-groupId") as HTMLInputElement).value =
+              btn.getAttribute("data-group-id") ?? "";
             document.getElementById("delete-modal")?.classList.add("is-active");
           });
         });

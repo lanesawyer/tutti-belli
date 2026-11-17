@@ -18,6 +18,7 @@ import {
 import { validateImageFile } from "./upload";
 import { deleteImage, uploadImage } from "./storage";
 import { hashPassword, verifyPassword } from "./auth";
+import { UserError } from "./errors";
 import { bumpSessionVersion } from "./session";
 import {
   sendEmailChangedEmail,
@@ -34,7 +35,7 @@ export async function registerUser(params: {
   const { name, email, password } = params;
 
   const existing = await db.select({ id: User.id }).from(User).where(eq(User.email, email)).get();
-  if (existing) throw new Error("An account with this email already exists.");
+  if (existing) throw new UserError("An account with this email already exists.");
 
   const userId = crypto.randomUUID();
   const passwordHash = await hashPassword(password);
@@ -47,7 +48,9 @@ export async function registerUser(params: {
   ]);
 
   // Fire-and-forget: don't block registration if email fails
-  sendEmailVerificationEmail(email, name, token).catch(() => {});
+  sendEmailVerificationEmail(email, name, token).catch((error) => {
+    console.error(`Verification email threw for user ${userId}:`, error);
+  });
 
   return { userId };
 }
@@ -263,7 +266,9 @@ export async function resendVerificationEmail(email: string): Promise<void> {
       .values({ id: crypto.randomUUID(), userId: user.id, token, expiresAt }),
   ]);
 
-  sendEmailVerificationEmail(email, user.name, token).catch(() => {});
+  sendEmailVerificationEmail(email, user.name, token).catch((error) => {
+    console.error(`Verification email threw for user ${user.id}:`, error);
+  });
 }
 
 export type VerifyEmailChangeResult =

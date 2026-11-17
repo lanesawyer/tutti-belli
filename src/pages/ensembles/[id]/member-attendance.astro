@@ -104,10 +104,7 @@ const selectedSeason = seasons.find((s) => s.id === seasonId);
               <div class="field has-addons">
                 <div class="control">
                   <div class="select">
-                    <select
-                      id="season-filter"
-                      onchange="window.location.href = this.value ? `?seasonId=${this.value}` : '?'"
-                    >
+                    <select id="season-filter">
                       <option value="">All seasons</option>
                       {seasons.map((s) => (
                         <option value={s.id} selected={s.id === seasonId}>
@@ -208,3 +205,12 @@ const selectedSeason = seasons.find((s) => s.id === seasonId);
     </Container>
   </Section>
 </BaseLayout>
+
+<script>
+  document.addEventListener("astro:page-load", () => {
+    const filter = document.getElementById("season-filter") as HTMLSelectElement | null;
+    filter?.addEventListener("change", () => {
+      window.location.href = filter.value ? `?seasonId=${filter.value}` : "?";
+    });
+  });
+</script>

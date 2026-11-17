@@ -168,6 +168,8 @@ The repo includes a `fly.toml` and a helper script:
    ./deploy.sh
    ```
 
+Production scales to zero, so the first request after idle (for example a room scanning the check-in code) waits for a cold start; set `min_machines_running = 1` in `fly.toml` to avoid it. Rate limits are kept in memory per machine, so run a single machine.
+
 ## GitHub Actions / PR Preview Deployments
 
 `.github/workflows/fly-deploy.yml` runs CI and deploys every push to `main`. It needs the Actions secrets `FLY_API_TOKEN` (`fly tokens create deploy -a <app-name>`), `ASTRO_DB_REMOTE_URL`, `ASTRO_DB_APP_TOKEN` and `JWT_SECRET`.

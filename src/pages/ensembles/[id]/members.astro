@@ -598,15 +598,15 @@ const members = membersData;
     </Modal>
   )}
 
-  <script is:inline>
+  <script>
     document.addEventListener("astro:page-load", () => {
       document.getElementById("add-member-btn")?.addEventListener("click", () => {
         document.getElementById("add-member-modal")?.classList.add("is-active");
       });
       document.getElementById("copy-set-password-url")?.addEventListener("click", (event) => {
-        const input = document.getElementById("set-password-url");
+        const input = document.getElementById("set-password-url") as HTMLInputElement;
         navigator.clipboard.writeText(input.value);
-        event.currentTarget.textContent = "Copied";
+        (event.currentTarget as HTMLElement).textContent = "Copied";
       });
     });
   </script>
