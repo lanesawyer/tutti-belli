@@ -3,7 +3,7 @@
  * Renders a delete (trash) button that opens a confirmation modal.
  * The form submits to actions.songs.deleteFile on confirm.
  */
-import { Button, Modal } from "astro-bulma";
+import { Button, Icon, Modal } from "astro-bulma";
 import { actions } from "astro:actions";
 
 interface Props {
@@ -16,16 +16,9 @@ const { fileId, ensembleId, fileName } = Astro.props;
 const modalId = `delete-file-${fileId}`;
 ---
 
-<button
-  type="button"
-  class="button is-danger is-small"
-  data-open-modal={modalId}
-  aria-label="Delete"
->
-  <span class="icon is-small">
-    <i class="fas fa-trash"></i>
-  </span>
-</button>
+<Button color="danger" size="small" data-open-modal={modalId} aria-label="Delete">
+  <Icon icon="fa-trash" size="small" />
+</Button>
 
 <Modal id={modalId} title="Delete Resource">
   <p>
