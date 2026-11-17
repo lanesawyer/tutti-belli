@@ -19,6 +19,7 @@ import {
   failedLoginsByEmailAndIp,
   failedLoginsByIp,
 } from "@lib/rate-limit";
+import { sendEmailVerificationEmail } from "@lib/email";
 import { readVerifyingBrowser, VERIFY_EMAIL_COOKIE } from "@lib/session";
 import { uploadImage, uploadSongFile } from "@lib/storage";
 import { INPUT_SCHEMA, isInputError } from "../support/astro-actions.ts";
@@ -307,6 +308,20 @@ describe("profile.deleteAccount", () => {
 });
 
 describe("profile.register", () => {
+  it("answers a bot that filled the hidden field like a sign-up, but creates and sends nothing", async () => {
+    vi.mocked(sendEmailVerificationEmail).mockClear();
+    const { data, error } = await callAction(actions["profile.register"], {
+      name: "Bot",
+      email: "bot-target@test.com",
+      password: "secret-password",
+      homepage: "https://example.com",
+    });
+    expect(error).toBeUndefined();
+    expect(data).toEqual({ email: "bot-target@test.com" });
+    expect(await db.select().from(User).where(eq(User.email, "bot-target@test.com"))).toEqual([]);
+    expect(sendEmailVerificationEmail).not.toHaveBeenCalled();
+  });
+
   it("answers an email that already has an account exactly like a new one", async () => {
     const fresh = await callAction(actions["profile.register"], {
       name: "Newcomer",

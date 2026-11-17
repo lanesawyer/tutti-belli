@@ -51,9 +51,9 @@ describe("emails sent by lib functions", () => {
   });
   afterEach(() => vi.unstubAllEnvs());
 
-  it("registration and resend link to the configured site and escape the name", async () => {
+  it("registration and resend link to the configured site and leave the typed name out", async () => {
     await registerUser({
-      name: "<b>Mallory</b>",
+      name: "Mallory Typed",
       email: "mallory@test.com",
       password: "password123",
     });
@@ -64,8 +64,7 @@ describe("emails sent by lib functions", () => {
     for (const email of sent) {
       expectOnlySiteLinks(email);
       expect(email.html).toContain(`${SITE}/verify-email?token=`);
-      expect(email.html).toContain("&lt;b&gt;Mallory&lt;/b&gt;");
-      expect(email.html).not.toContain("<b>Mallory");
+      expect(email.html).not.toContain("Mallory");
     }
   });
 

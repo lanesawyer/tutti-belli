@@ -24,7 +24,7 @@ import {
 import type { BatchItem } from "drizzle-orm/batch";
 import { canManageEnsemble, isSiteAdmin } from "./permissions";
 import { deleteImage } from "./storage";
-import { hashPassword, passwordResetTokenInsert } from "./auth";
+import { hashPassword, passwordResetTokenInsert, personNameError } from "./auth";
 
 /**
  * Look up an ensemble by either its slug or its UUID id.
@@ -429,6 +429,8 @@ export async function addMemberByEmail(
   if (!user) {
     if (!name)
       return { type: "error", message: "A name is required for someone without an account." };
+    const nameError = personNameError(name);
+    if (nameError) return { type: "error", message: nameError };
     const id = crypto.randomUUID();
     writes.push(
       db

@@ -12,7 +12,7 @@ test("deleting a user whose name contains quotes confirms with the exact name", 
   page,
   browser,
 }, workerInfo) => {
-  const name = `Pat O'Brien "</script><img src=x onerror=alert(1)>`;
+  const name = `Pat O'Brien "The Tenor" & Sons`;
   const email = uniqueEmail("quoted-name", workerInfo.workerIndex);
 
   const anon = await browser.newContext({ storageState: { cookies: [], origins: [] } });

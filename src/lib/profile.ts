@@ -24,6 +24,7 @@ import {
   hashPassword,
   hashToken,
   newPasswordError,
+  personNameError,
   verifyPassword,
 } from "./auth";
 import {
@@ -49,6 +50,8 @@ export async function registerUser(params: {
   const email = params.email.trim().toLowerCase();
   const passwordError = newPasswordError(password);
   if (passwordError) throw new UserError(passwordError);
+  const nameError = personNameError(name);
+  if (nameError) throw new UserError(nameError);
 
   // Hashed before the lookup, so a taken address takes as long as a new one.
   const passwordHash = await hashPassword(password);
@@ -76,7 +79,7 @@ export async function registerUser(params: {
   ]);
 
   // Fire-and-forget: don't block registration if email fails
-  sendEmailVerificationEmail(email, name, token).catch((error) => {
+  sendEmailVerificationEmail(email, token).catch((error) => {
     console.error(`Verification email threw for user ${userId}:`, error);
   });
 
@@ -143,6 +146,8 @@ export async function updateName(userId: string, name: string | undefined): Prom
   if (!name?.trim()) {
     return { type: "error", message: "Name cannot be empty" };
   }
+  const nameError = personNameError(name);
+  if (nameError) return { type: "error", message: nameError };
   await db.update(User).set({ name: name.trim() }).where(eq(User.id, userId));
   return { type: "redirect", url: "/profile" };
 }
@@ -271,7 +276,7 @@ export async function initiateEmailChange(
 
   // Not awaited outside dev: waiting on the email provider only here would let the response
   // time tell a taken address from a free one.
-  const sent = sendEmailChangeVerificationEmail(trimmedEmail, userName, token).then((result) => {
+  const sent = sendEmailChangeVerificationEmail(trimmedEmail, token).then((result) => {
     if (!result.success) console.error("Email change verification email failed:", result.error);
     return result;
   });
@@ -308,7 +313,7 @@ async function sendNewVerificationLink(user: { id: string; email: string; name: 
       .values({ id: crypto.randomUUID(), userId: user.id, token: hashToken(token), expiresAt }),
   ]);
 
-  sendEmailVerificationEmail(user.email, user.name, token).catch((error) => {
+  sendEmailVerificationEmail(user.email, token).catch((error) => {
     console.error(`Verification email threw for user ${user.id}:`, error);
   });
 }

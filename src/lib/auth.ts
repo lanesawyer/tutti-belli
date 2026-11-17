@@ -31,6 +31,22 @@ export function newPasswordError(password: string): string | null {
   return null;
 }
 
+export const NAME_MAX_LENGTH = 80;
+
+/**
+ * Why a person's name can't be saved, or null if it can. Names are shown to other members and
+ * put in emails, so they can't carry a link.
+ */
+export function personNameError(name: string): string | null {
+  if (name.trim().length > NAME_MAX_LENGTH) {
+    return `Name must be at most ${NAME_MAX_LENGTH} characters.`;
+  }
+  if (/[/\\:<>@]|www\./i.test(name)) {
+    return "Please enter a name without links or special characters.";
+  }
+  return null;
+}
+
 export async function getUserByEmail(email: string) {
   const [user] = await db.select().from(User).where(eq(User.email, email.trim().toLowerCase()));
   return user ?? null;

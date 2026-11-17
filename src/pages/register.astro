@@ -2,7 +2,7 @@
 import SingleColumnLayout from "@layouts/SingleColumnLayout.astro";
 import { Button, Notification, TextInput, Title } from "astro-bulma";
 import { actions } from "astro:actions";
-import { PASSWORD_MAX_BYTES, PASSWORD_MIN_LENGTH } from "@lib/auth";
+import { NAME_MAX_LENGTH, PASSWORD_MAX_BYTES, PASSWORD_MIN_LENGTH } from "@lib/auth";
 
 // Redirect if already logged in
 if (Astro.locals.user) {
@@ -50,6 +50,7 @@ const error = result?.error?.message ?? "";
           label="Full Name"
           placeholder="John Doe"
           iconLeft="fa-user"
+          maxlength={NAME_MAX_LENGTH}
           required
         />
         <TextInput
@@ -60,6 +61,9 @@ const error = result?.error?.message ?? "";
           iconLeft="fa-envelope"
           required
         />
+        <div class="is-sr-only" aria-hidden="true">
+          <TextInput name="homepage" label="Homepage" tabindex={-1} autocomplete="off" />
+        </div>
         <TextInput
           name="password"
           label="Password"
