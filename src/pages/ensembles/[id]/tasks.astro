@@ -362,7 +362,7 @@ const nextSortOrder =
       </div>
     </Modal>
 
-    <script is:inline>
+    <script>
       document.addEventListener("astro:page-load", () => {
         // Create task modal
         document.getElementById("create-task-btn")?.addEventListener("click", () => {
@@ -372,12 +372,14 @@ const nextSortOrder =
         // Edit task modal
         document.querySelectorAll(".edit-task-btn").forEach((btn) => {
           btn.addEventListener("click", () => {
-            document.getElementById("edit-task-id").value = btn.getAttribute("data-task-id");
-            document.getElementById("edit-title").value = btn.getAttribute("data-task-title");
-            document.getElementById("edit-description").value =
-              btn.getAttribute("data-task-description");
-            document.getElementById("edit-sortOrder").value =
-              btn.getAttribute("data-task-sort-order");
+            (document.getElementById("edit-task-id") as HTMLInputElement).value =
+              btn.getAttribute("data-task-id") ?? "";
+            (document.getElementById("edit-title") as HTMLInputElement).value =
+              btn.getAttribute("data-task-title") ?? "";
+            (document.getElementById("edit-description") as HTMLTextAreaElement).value =
+              btn.getAttribute("data-task-description") ?? "";
+            (document.getElementById("edit-sortOrder") as HTMLInputElement).value =
+              btn.getAttribute("data-task-sort-order") ?? "";
             document.getElementById("edit-modal")?.classList.add("is-active");
           });
         });
@@ -385,18 +387,19 @@ const nextSortOrder =
         // Delete task modal
         document.querySelectorAll(".delete-task-btn").forEach((btn) => {
           btn.addEventListener("click", () => {
-            document.getElementById("delete-task-id").value = btn.getAttribute("data-task-id");
-            document.getElementById("delete-task-title").textContent =
+            (document.getElementById("delete-task-id") as HTMLInputElement).value =
+              btn.getAttribute("data-task-id") ?? "";
+            document.getElementById("delete-task-title")!.textContent =
               btn.getAttribute("data-task-title");
             document.getElementById("delete-modal")?.classList.add("is-active");
           });
         });
 
         // Completion toggle forms — submit via fetch for instant feedback
-        document.querySelectorAll(".completion-form").forEach((form) => {
+        document.querySelectorAll<HTMLFormElement>(".completion-form").forEach((form) => {
           form.addEventListener("submit", async (e) => {
             e.preventDefault();
-            const btn = form.querySelector('button[type="submit"]');
+            const btn = form.querySelector<HTMLButtonElement>('button[type="submit"]');
             if (btn) btn.disabled = true;
 
             const formData = new FormData(form);

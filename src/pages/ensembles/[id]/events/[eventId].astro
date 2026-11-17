@@ -424,7 +424,6 @@ const programLabel = isPerformance ? "Set List" : "Rehearsal Plan";
                 value={checkInUrl}
                 class="is-family-monospace"
                 readonly
-                onclick="this.select()"
                 standalone
               />
             </div>
@@ -953,6 +952,9 @@ const programLabel = isPerformance ? "Set List" : "Rehearsal Plan";
       const editBtn = document.getElementById("edit-event-btn");
       const closeEditModal = document.getElementById("close-edit-modal");
       const cancelEdit = document.getElementById("cancel-edit");
+
+      const checkInUrl = document.querySelector<HTMLInputElement>('input[name="checkInUrl"]');
+      checkInUrl?.addEventListener("click", () => checkInUrl.select());
 
       const openEditModal = () => editModal?.classList.add("is-active");
       const closeModal = () => editModal?.classList.remove("is-active");
