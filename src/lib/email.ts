@@ -279,6 +279,33 @@ export async function sendEmailVerificationEmail(
   );
 }
 
+/** To an address that already has an account when someone tries to sign up with it again. */
+export async function sendAccountExistsEmail(
+  toEmail: string,
+  toName: string,
+): Promise<EmailResult> {
+  const loginUrl = siteLink("/login");
+  const resetUrl = siteLink("/forgot-password");
+
+  return sendEmail(
+    {
+      to: toEmail,
+      subject: "You already have an account",
+      html: `
+        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2>You already have an account</h2>
+          <p>Hi ${escapeHtml(toName)},</p>
+          <p>Someone tried to sign up with this email address, but it already has an account. If that was you, log in instead.</p>
+          ${emailButton(loginUrl, "Log In")}
+          <p>Forgot your password, or never finished setting up the account? <a href="${escapeHtml(resetUrl)}" style="color: #485fc7;">Reset your password</a>.</p>
+          <p>If this wasn't you, you can safely ignore this email.</p>
+        </div>
+      `,
+    },
+    "account exists email",
+  );
+}
+
 export async function sendPasswordResetEmail(
   toEmail: string,
   toName: string,

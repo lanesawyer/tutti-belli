@@ -6,6 +6,7 @@ import {
   updatePhone,
   deleteAccount,
   updateParts,
+  verifyEmail,
   verifyEmailToken,
   verifyEmailChangeToken,
   initiateEmailChange,
@@ -29,14 +30,24 @@ import {
   createPart,
   createMemberPart,
 } from "./fixtures.ts";
+import { hashToken, verifyPassword } from "../../src/lib/auth.ts";
 import {
+  getSession,
+  rememberVerifyingBrowser,
+  VERIFY_EMAIL_COOKIE,
+} from "../../src/lib/session.ts";
+import { createTestContext } from "../support/actions.ts";
+import {
+  sendAccountExistsEmail,
   sendEmailChangedEmail,
   sendEmailChangeRequestedEmail,
   sendEmailChangeVerificationEmail,
+  sendEmailVerificationEmail,
 } from "../../src/lib/email.ts";
 
 // Mock email module — we don't want to call the real Resend API in tests
 vi.mock("../../src/lib/email.ts", () => ({
+  sendAccountExistsEmail: vi.fn().mockResolvedValue({ success: true }),
   sendEmailVerificationEmail: vi.fn().mockResolvedValue({ success: true }),
   sendEmailChangeVerificationEmail: vi.fn().mockResolvedValue({ success: true }),
   sendEmailChangeRequestedEmail: vi.fn().mockResolvedValue({ success: true }),
@@ -44,6 +55,11 @@ vi.mock("../../src/lib/email.ts", () => ({
   sendPasswordResetEmail: vi.fn().mockResolvedValue({ success: true }),
   sendAnnouncementEmail: vi.fn().mockResolvedValue({ success: true }),
 }));
+
+/** The raw token in the last verification email: the database only has its hash. */
+function lastVerificationToken(): string {
+  return vi.mocked(sendEmailVerificationEmail).mock.lastCall![2];
+}
 
 describe("registerUser", () => {
   it("creates a new user and returns their userId", async () => {
@@ -71,11 +87,56 @@ describe("registerUser", () => {
     expect(user!.passwordHash).toMatch(/^\$2[aby]\$/);
   });
 
-  it("throws an error if the email is already in use", async () => {
-    await registerUser({ name: "First", email: "dup@test.com", password: "password1" });
-    await expect(
-      registerUser({ name: "Second", email: "dup@test.com", password: "password2" }),
-    ).rejects.toThrow("already exists");
+  it("for a verified address, changes nothing and tells the owner instead of failing", async () => {
+    const owner = await createUser({ name: "Owner", email: "dup@test.com", password: "password1" });
+    await db.update(User).set({ emailVerifiedAt: new Date() }).where(eq(User.id, owner!.id));
+    vi.mocked(sendAccountExistsEmail).mockClear();
+    vi.mocked(sendEmailVerificationEmail).mockClear();
+
+    const result = await registerUser({
+      name: "Second",
+      email: "Dup@test.com",
+      password: "password2",
+    });
+
+    expect(result).toEqual({ userId: owner!.id });
+    const users = await db.select().from(User).where(eq(User.email, "dup@test.com")).all();
+    expect(users).toHaveLength(1);
+    expect(users[0]).toMatchObject({ name: "Owner", passwordHash: owner!.passwordHash });
+    expect(sendAccountExistsEmail).toHaveBeenCalledWith("dup@test.com", "Owner");
+    expect(sendEmailVerificationEmail).not.toHaveBeenCalled();
+    const tokens = await db
+      .select()
+      .from(EmailVerificationToken)
+      .where(eq(EmailVerificationToken.userId, owner!.id))
+      .all();
+    expect(tokens).toHaveLength(0);
+  });
+
+  it("for an unverified address, sends no new verification link and keeps the first password", async () => {
+    const { userId } = await registerUser({
+      name: "First",
+      email: "dup-unverified@test.com",
+      password: "password1",
+    });
+    const firstToken = lastVerificationToken();
+    vi.mocked(sendAccountExistsEmail).mockClear();
+
+    const result = await registerUser({
+      name: "Second",
+      email: "dup-unverified@test.com",
+      password: "password2",
+    });
+
+    expect(result).toEqual({ userId });
+    expect(sendAccountExistsEmail).toHaveBeenCalledWith("dup-unverified@test.com", "First");
+    expect(sendEmailVerificationEmail).toHaveBeenCalledTimes(1);
+    expect(lastVerificationToken()).toBe(firstToken);
+    const [account] = await db.select().from(User).where(eq(User.id, userId));
+    expect(await verifyPassword("password1", account.passwordHash)).toBe(true);
+    expect(account.emailVerifiedAt).toBeNull();
+    const user = await db.select().from(User).where(eq(User.id, userId)).get();
+    expect(user!.name).toBe("First");
   });
 
   it("stores the email lowercased and treats other casings as the same account", async () => {
@@ -86,9 +147,9 @@ describe("registerUser", () => {
     });
     const user = await db.select().from(User).where(eq(User.id, userId)).get();
     expect(user!.email).toBe("casey@test.com");
-    await expect(
-      registerUser({ name: "Casey 2", email: "casey@test.com", password: "password123" }),
-    ).rejects.toThrow("already exists");
+    expect(
+      await registerUser({ name: "Casey 2", email: "casey@test.com", password: "password123" }),
+    ).toEqual({ userId });
   });
 
   it("rejects a password shorter than 8 or longer than 72 bytes", async () => {
@@ -114,6 +175,8 @@ describe("registerUser", () => {
     expect(token).not.toBeNull();
     expect(token!.usedAt).toBeNull();
     expect(token!.expiresAt.getTime()).toBeGreaterThan(Date.now());
+    expect(token!.token).toBe(hashToken(lastVerificationToken()));
+    expect(token!.token).not.toBe(lastVerificationToken());
   });
 
   it("leaves the new user unverified (emailVerifiedAt is null)", async () => {
@@ -220,7 +283,7 @@ describe("verifyEmailToken", () => {
       .where(eq(EmailVerificationToken.userId, userId))
       .get();
 
-    const result = await verifyEmailToken(tokenRow!.token);
+    const result = await verifyEmailToken(lastVerificationToken());
 
     expect(result).not.toBeNull();
     expect(result!.id).toBe(userId);
@@ -242,19 +305,15 @@ describe("verifyEmailToken", () => {
   });
 
   it("returns null for a token that has already been used", async () => {
-    const { userId } = await registerUser({
+    await registerUser({
       name: "Used Token User",
       email: "verify-used@test.com",
       password: "password123",
     });
-    const tokenRow = await db
-      .select()
-      .from(EmailVerificationToken)
-      .where(eq(EmailVerificationToken.userId, userId))
-      .get();
 
-    await verifyEmailToken(tokenRow!.token);
-    const result = await verifyEmailToken(tokenRow!.token);
+    const token = lastVerificationToken();
+    await verifyEmailToken(token);
+    const result = await verifyEmailToken(token);
     expect(result).toBeNull();
   });
 
@@ -276,8 +335,72 @@ describe("verifyEmailToken", () => {
       .set({ expiresAt: new Date(Date.now() - 1000) })
       .where(eq(EmailVerificationToken.id, tokenRow!.id));
 
-    const result = await verifyEmailToken(tokenRow!.token);
+    const result = await verifyEmailToken(lastVerificationToken());
     expect(result).toBeNull();
+  });
+
+  it("does not accept the stored hash as a token", async () => {
+    const { userId } = await registerUser({
+      name: "Database Reader",
+      email: "verify-hash@test.com",
+      password: "password123",
+    });
+    const tokenRow = await db
+      .select()
+      .from(EmailVerificationToken)
+      .where(eq(EmailVerificationToken.userId, userId))
+      .get();
+
+    expect(await verifyEmailToken(tokenRow!.token)).toBeNull();
+  });
+});
+
+describe("verifyEmail", () => {
+  /** A browser's cookie jar, holding the cookie it gets when it registers `email`. */
+  function browserThatRegistered(email: string | null) {
+    const { cookies } = createTestContext();
+    if (email) rememberVerifyingBrowser(cookies, email);
+    const value = cookies.get(VERIFY_EMAIL_COOKIE)?.value;
+    return createTestContext({ cookies: value ? { [VERIFY_EMAIL_COOKIE]: value } : {} }).cookies;
+  }
+
+  async function register(email: string) {
+    const { userId } = await registerUser({ name: "Verifier", email, password: "password123" });
+    return { userId, token: lastVerificationToken() };
+  }
+
+  it("signs in the browser that registered the address", async () => {
+    const { userId, token } = await register("same-browser@test.com");
+    const cookies = browserThatRegistered("Same-Browser@test.com");
+
+    expect(await verifyEmail(token, cookies)).toEqual({ type: "signedIn", userId });
+    expect(getSession(cookies.get("session")?.value)?.userId).toBe(userId);
+    expect(cookies.get(VERIFY_EMAIL_COOKIE)).toBeUndefined();
+  });
+
+  it("verifies but does not sign in a browser without the cookie", async () => {
+    const { userId, token } = await register("other-browser@test.com");
+    const cookies = browserThatRegistered(null);
+
+    expect(await verifyEmail(token, cookies)).toEqual({ type: "verified" });
+    expect(cookies.get("session")).toBeUndefined();
+    const user = await db.select().from(User).where(eq(User.id, userId)).get();
+    expect(user!.emailVerifiedAt).not.toBeNull();
+  });
+
+  it("does not sign in a browser that registered a different address", async () => {
+    const { token } = await register("attacker@test.com");
+    const cookies = browserThatRegistered("victim@test.com");
+
+    expect(await verifyEmail(token, cookies)).toEqual({ type: "verified" });
+    expect(cookies.get("session")).toBeUndefined();
+    expect(cookies.get(VERIFY_EMAIL_COOKIE)).toBeUndefined();
+  });
+
+  it("rejects an unknown token", async () => {
+    const cookies = browserThatRegistered("nobody@test.com");
+    expect(await verifyEmail("nonexistent-token", cookies)).toEqual({ type: "invalid" });
+    expect(cookies.get("session")).toBeUndefined();
   });
 });
 
@@ -321,6 +444,39 @@ describe("initiateEmailChange", () => {
     });
   });
 
+  it("answers an address that is taken as if it were free, sending nothing to it", async () => {
+    const user = await createUser({
+      name: "Mover",
+      email: "mover@test.com",
+      password: "right-password",
+    });
+    await createUser({ email: "taken@test.com" });
+    vi.mocked(sendEmailChangeVerificationEmail).mockClear();
+    vi.mocked(sendEmailChangeRequestedEmail).mockClear();
+
+    const result = await initiateEmailChange(
+      user!.id,
+      user!.name,
+      user!.email,
+      "Taken@test.com",
+      "right-password",
+    );
+
+    expect(result).toEqual({ type: "redirect", url: "/profile?emailChangePending=1" });
+    expect(sendEmailChangeVerificationEmail).not.toHaveBeenCalled();
+    expect(sendEmailChangeRequestedEmail).toHaveBeenCalledWith(
+      "mover@test.com",
+      "Mover",
+      "taken@test.com",
+    );
+    const tokens = await db
+      .select()
+      .from(EmailChangeToken)
+      .where(eq(EmailChangeToken.userId, user!.id))
+      .all();
+    expect(tokens).toHaveLength(0);
+  });
+
   it("with the right password, emails the new address a link and tells the current one", async () => {
     const user = await createUser({
       name: "Mover",
@@ -345,6 +501,9 @@ describe("initiateEmailChange", () => {
     expect(sendEmailChangeVerificationEmail).toHaveBeenCalledWith(
       "right-pw-new@test.com",
       "Mover",
+      expect.any(String),
+    );
+    expect(hashToken(vi.mocked(sendEmailChangeVerificationEmail).mock.lastCall![2])).toBe(
       token!.token,
     );
     expect(sendEmailChangeRequestedEmail).toHaveBeenCalledWith(
@@ -365,7 +524,7 @@ describe("verifyEmailChangeToken", () => {
     await db.insert(EmailChangeToken).values({
       id: crypto.randomUUID(),
       userId,
-      token,
+      token: hashToken(token),
       newEmail,
       expiresAt: overrides.expiresAt ?? new Date(Date.now() + 60 * 60 * 1000),
       usedAt: overrides.usedAt,
@@ -395,7 +554,7 @@ describe("verifyEmailChangeToken", () => {
     const tokenRow = await db
       .select()
       .from(EmailChangeToken)
-      .where(eq(EmailChangeToken.token, token))
+      .where(eq(EmailChangeToken.token, hashToken(token)))
       .get();
     expect(tokenRow!.usedAt).not.toBeNull();
   });
@@ -436,7 +595,7 @@ describe("verifyEmailChangeToken", () => {
     const tokenRow = await db
       .select()
       .from(EmailChangeToken)
-      .where(eq(EmailChangeToken.token, token))
+      .where(eq(EmailChangeToken.token, hashToken(token)))
       .get();
     expect(tokenRow!.usedAt).not.toBeNull();
   });
@@ -451,7 +610,7 @@ describe("validatePasswordResetToken", () => {
     await db.insert(PasswordResetToken).values({
       id: crypto.randomUUID(),
       userId,
-      token,
+      token: hashToken(token),
       expiresAt: overrides.expiresAt ?? new Date(Date.now() + 60 * 60 * 1000),
       usedAt: overrides.usedAt,
     });
@@ -490,7 +649,7 @@ describe("resetPassword", () => {
     await db.insert(PasswordResetToken).values({
       id: crypto.randomUUID(),
       userId,
-      token,
+      token: hashToken(token),
       expiresAt: overrides.expiresAt ?? new Date(Date.now() + 60 * 60 * 1000),
       usedAt: overrides.usedAt,
     });
@@ -509,7 +668,7 @@ describe("resetPassword", () => {
     const tokenRow = await db
       .select()
       .from(PasswordResetToken)
-      .where(eq(PasswordResetToken.token, token))
+      .where(eq(PasswordResetToken.token, hashToken(token)))
       .get();
     expect(tokenRow!.usedAt).not.toBeNull();
   });
@@ -521,7 +680,7 @@ describe("resetPassword", () => {
       id: crypto.randomUUID(),
       userId: user!.id,
       newEmail: "attacker@example.com",
-      token: changeToken,
+      token: hashToken(changeToken),
       expiresAt: new Date(Date.now() + 60 * 60 * 1000),
     });
 

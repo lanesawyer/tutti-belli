@@ -5,9 +5,13 @@ import {
   createViewAsToken,
   getSession,
   getSessionUser,
+  readVerifyingBrowser,
   readViewAsToken,
+  rememberVerifyingBrowser,
   revokeSessions,
+  VERIFY_EMAIL_COOKIE,
 } from "../../src/lib/session.ts";
+import { createTestContext } from "../support/actions.ts";
 import { createPasswordResetToken } from "../../src/lib/auth.ts";
 import { resetPassword } from "../../src/lib/profile.ts";
 import { createUser } from "./fixtures.ts";
@@ -53,6 +57,34 @@ describe("createSession + getSession roundtrip", () => {
     });
     expect(getSession(session)).toBeNull();
     expect(readViewAsToken(viewAs)).toBeNull();
+  });
+});
+
+describe("verifying-browser cookie", () => {
+  function cookieFor(email: string): string {
+    const { cookies } = createTestContext();
+    rememberVerifyingBrowser(cookies, email);
+    return cookies.get(VERIFY_EMAIL_COOKIE)!.value;
+  }
+
+  it("names the normalized address, and is neither a session nor a view-as token", () => {
+    const token = cookieFor(" Someone@Test.com ");
+    expect(readVerifyingBrowser(token)).toBe("someone@test.com");
+    expect(getSession(token)).toBeNull();
+    expect(readViewAsToken(token)).toBeNull();
+    expect(jwt.decode(token, { complete: true })?.header.alg).toBe("HS256");
+  });
+
+  it("rejects other tokens and other algorithms", () => {
+    const secret = process.env.JWT_SECRET!;
+    expect(readVerifyingBrowser(undefined)).toBeNull();
+    expect(readVerifyingBrowser(createViewAsToken("a", "b"))).toBeNull();
+    expect(readVerifyingBrowser(createSession("user-123", 0))).toBeNull();
+    expect(
+      readVerifyingBrowser(
+        jwt.sign({ purpose: "verify-email", email: "a@test.com" }, secret, { algorithm: "HS512" }),
+      ),
+    ).toBeNull();
   });
 });
 

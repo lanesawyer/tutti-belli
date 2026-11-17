@@ -1,31 +1,46 @@
 ---
 import { Button, Notification, Title } from "astro-bulma";
 import SingleColumnLayout from "@layouts/SingleColumnLayout.astro";
-import { verifyEmailToken } from "@lib/profile";
-import { startSession } from "@lib/session";
+import { verifyEmail } from "@lib/profile";
 import { getRedirectUrl } from "@lib/redirect";
 
 const token = Astro.url.searchParams.get("token");
 const customRedirect = Astro.url.searchParams.get("redirect");
 let error = "";
+let verified = false;
 
 if (!token) {
   error = "Invalid verification link.";
 } else {
-  const result = await verifyEmailToken(token);
+  const result = await verifyEmail(token, Astro.cookies);
 
-  if (!result) {
+  if (result.type === "invalid") {
     error = "This verification link is invalid or has expired.";
+  } else if (result.type === "signedIn") {
+    return Astro.redirect(await getRedirectUrl(result.userId, customRedirect));
   } else {
-    startSession(Astro.cookies, result);
-
-    return Astro.redirect(await getRedirectUrl(result.id, customRedirect));
+    verified = true;
   }
 }
+
+const loginUrl = customRedirect
+  ? `/login?redirect=${encodeURIComponent(customRedirect)}`
+  : "/login";
 ---
 
 <SingleColumnLayout title="Verify Email">
   <Title>Email Verification</Title>
+
+  {verified && (
+    <Notification color="success" light>
+      <p>Your email is verified. Log in to continue.</p>
+      <p class="mt-3">
+        <Button href={loginUrl} color="primary">
+          Log In
+        </Button>
+      </p>
+    </Notification>
+  )}
 
   {error && (
     <Notification color="danger" light>

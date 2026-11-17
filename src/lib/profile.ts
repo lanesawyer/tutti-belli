@@ -17,10 +17,23 @@ import {
 } from "@db";
 import { validateImageFile } from "./upload";
 import { deleteImage, uploadImage } from "./storage";
-import { hashPassword, newPasswordError, verifyPassword } from "./auth";
+import type { AstroCookies } from "astro";
 import { UserError } from "./errors";
-import { bumpSessionVersion } from "./session";
 import {
+  EMAIL_VERIFICATION_TTL_MS,
+  hashPassword,
+  hashToken,
+  newPasswordError,
+  verifyPassword,
+} from "./auth";
+import {
+  bumpSessionVersion,
+  readVerifyingBrowser,
+  startSession,
+  VERIFY_EMAIL_COOKIE,
+} from "./session";
+import {
+  sendAccountExistsEmail,
   sendEmailChangedEmail,
   sendEmailChangeRequestedEmail,
   sendEmailChangeVerificationEmail,
@@ -37,17 +50,29 @@ export async function registerUser(params: {
   const passwordError = newPasswordError(password);
   if (passwordError) throw new UserError(passwordError);
 
-  const existing = await db.select({ id: User.id }).from(User).where(eq(User.email, email)).get();
-  if (existing) throw new UserError("An account with this email already exists.");
-
-  const userId = crypto.randomUUID();
+  // Hashed before the lookup, so a taken address takes as long as a new one.
   const passwordHash = await hashPassword(password);
 
+  // A taken address gets the same response as a new one, so sign-up can't reveal who has an
+  // account. Its owner is emailed instead. No verification link, even if the account is
+  // unverified: whoever created it chose its password, and verifying it from here would
+  // activate that password for someone who thinks they just set their own. The email points
+  // them to a password reset, which also verifies the address.
+  const existing = await db.select().from(User).where(eq(User.email, email)).get();
+  if (existing) {
+    sendAccountExistsEmail(existing.email, existing.name).catch(() => {});
+    return { userId: existing.id };
+  }
+
+  const userId = crypto.randomUUID();
+
   const token = crypto.randomUUID();
-  const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
+  const expiresAt = new Date(Date.now() + EMAIL_VERIFICATION_TTL_MS);
   await db.batch([
     db.insert(User).values({ id: userId, email, passwordHash, name, role: "user" }),
-    db.insert(EmailVerificationToken).values({ id: crypto.randomUUID(), userId, token, expiresAt }),
+    db
+      .insert(EmailVerificationToken)
+      .values({ id: crypto.randomUUID(), userId, token: hashToken(token), expiresAt }),
   ]);
 
   // Fire-and-forget: don't block registration if email fails
@@ -212,8 +237,11 @@ export async function initiateEmailChange(
     .select({ id: User.id })
     .from(User)
     .where(eq(User.email, trimmedEmail));
+  // Answer as if the link went out: saying the address is taken would tell this member that
+  // someone has an account there. The current address is still told about the request.
   if (existingUser) {
-    return { type: "error", message: "That email address is already in use." };
+    await sendEmailChangeRequestedEmail(currentEmail, userName, trimmedEmail);
+    return { type: "redirect", url: "/profile?emailChangePending=1" };
   }
 
   // Invalidate any existing pending email change for this user
@@ -232,17 +260,25 @@ export async function initiateEmailChange(
           gt(EmailChangeToken.expiresAt, now),
         ),
       ),
-    db
-      .insert(EmailChangeToken)
-      .values({ id: crypto.randomUUID(), userId, token, newEmail: trimmedEmail, expiresAt }),
+    db.insert(EmailChangeToken).values({
+      id: crypto.randomUUID(),
+      userId,
+      token: hashToken(token),
+      newEmail: trimmedEmail,
+      expiresAt,
+    }),
   ]);
 
-  const emailResult = await sendEmailChangeVerificationEmail(trimmedEmail, userName, token);
-  if (!emailResult.success) {
-    console.error("Email change verification email failed:", emailResult.error);
-    if (import.meta.env.DEV) {
+  // Not awaited outside dev: waiting on the email provider only here would let the response
+  // time tell a taken address from a free one.
+  const sent = sendEmailChangeVerificationEmail(trimmedEmail, userName, token).then((result) => {
+    if (!result.success) console.error("Email change verification email failed:", result.error);
+    return result;
+  });
+  if (import.meta.env.DEV) {
+    const emailResult = await sent;
+    if (!emailResult.success)
       return { type: "error", message: `Email failed: ${emailResult.error}` };
-    }
   }
   await sendEmailChangeRequestedEmail(currentEmail, userName, trimmedEmail);
 
@@ -252,11 +288,14 @@ export async function initiateEmailChange(
 export async function resendVerificationEmail(email: string): Promise<void> {
   const user = await db.select().from(User).where(eq(User.email, email.trim().toLowerCase())).get();
   if (!user || user.emailVerifiedAt) return; // silent: prevent enumeration
+  await sendNewVerificationLink(user);
+}
 
+async function sendNewVerificationLink(user: { id: string; email: string; name: string }) {
   // Invalidate any existing pending tokens
   const now = new Date();
   const token = crypto.randomUUID();
-  const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
+  const expiresAt = new Date(Date.now() + EMAIL_VERIFICATION_TTL_MS);
   await db.batch([
     db
       .update(EmailVerificationToken)
@@ -266,10 +305,10 @@ export async function resendVerificationEmail(email: string): Promise<void> {
       ),
     db
       .insert(EmailVerificationToken)
-      .values({ id: crypto.randomUUID(), userId: user.id, token, expiresAt }),
+      .values({ id: crypto.randomUUID(), userId: user.id, token: hashToken(token), expiresAt }),
   ]);
 
-  sendEmailVerificationEmail(email, user.name, token).catch((error) => {
+  sendEmailVerificationEmail(user.email, user.name, token).catch((error) => {
     console.error(`Verification email threw for user ${user.id}:`, error);
   });
 }
@@ -293,7 +332,7 @@ export async function verifyEmailChangeToken(token: string): Promise<VerifyEmail
     .innerJoin(User, eq(User.id, EmailChangeToken.userId))
     .where(
       and(
-        eq(EmailChangeToken.token, token),
+        eq(EmailChangeToken.token, hashToken(token)),
         gt(EmailChangeToken.expiresAt, now),
         isNull(EmailChangeToken.usedAt),
       ),
@@ -330,14 +369,14 @@ export async function verifyEmailChangeToken(token: string): Promise<VerifyEmail
 
 export async function verifyEmailToken(
   token: string,
-): Promise<{ id: string; sessionVersion: number } | null> {
+): Promise<{ id: string; sessionVersion: number; email: string } | null> {
   const now = new Date();
   const record = await db
     .select()
     .from(EmailVerificationToken)
     .where(
       and(
-        eq(EmailVerificationToken.token, token),
+        eq(EmailVerificationToken.token, hashToken(token)),
         gt(EmailVerificationToken.expiresAt, now),
         isNull(EmailVerificationToken.usedAt),
       ),
@@ -351,7 +390,7 @@ export async function verifyEmailToken(
       .update(User)
       .set({ emailVerifiedAt: now })
       .where(eq(User.id, record.userId))
-      .returning({ id: User.id, sessionVersion: User.sessionVersion }),
+      .returning({ id: User.id, sessionVersion: User.sessionVersion, email: User.email }),
     db
       .update(EmailVerificationToken)
       .set({ usedAt: now })
@@ -361,6 +400,25 @@ export async function verifyEmailToken(
   return user ?? null;
 }
 
+/**
+ * Verifies the address in an emailed link. Only the browser that registered (or asked for the
+ * link again) is signed in, so a link someone else sends can't sign a victim into their account.
+ */
+export async function verifyEmail(
+  token: string,
+  cookies: AstroCookies,
+): Promise<{ type: "invalid" } | { type: "signedIn"; userId: string } | { type: "verified" }> {
+  const user = await verifyEmailToken(token);
+  if (!user) return { type: "invalid" };
+
+  const verifyingEmail = readVerifyingBrowser(cookies.get(VERIFY_EMAIL_COOKIE)?.value);
+  cookies.delete(VERIFY_EMAIL_COOKIE, { path: "/" });
+  if (verifyingEmail !== user.email) return { type: "verified" };
+
+  startSession(cookies, user);
+  return { type: "signedIn", userId: user.id };
+}
+
 export async function validatePasswordResetToken(token: string): Promise<boolean> {
   const now = new Date();
   const [record] = await db
@@ -368,7 +426,7 @@ export async function validatePasswordResetToken(token: string): Promise<boolean
     .from(PasswordResetToken)
     .where(
       and(
-        eq(PasswordResetToken.token, token),
+        eq(PasswordResetToken.token, hashToken(token)),
         gt(PasswordResetToken.expiresAt, now),
         isNull(PasswordResetToken.usedAt),
       ),
@@ -389,7 +447,7 @@ export async function resetPassword(
     .from(PasswordResetToken)
     .where(
       and(
-        eq(PasswordResetToken.token, token),
+        eq(PasswordResetToken.token, hashToken(token)),
         gt(PasswordResetToken.expiresAt, now),
         isNull(PasswordResetToken.usedAt),
       ),

@@ -9,13 +9,13 @@
 import { test, expect } from "@playwright/test";
 
 async function submitBanner(page: import("@playwright/test").Page) {
-  await page.click('button[type="submit"][form="set-banner-form"]');
+  await page.click('main button[type="submit"][form="set-banner-form"]');
   // Wait for the action to complete — the success notification confirms the page re-rendered
   await expect(page.locator(".notification.is-success")).toBeVisible();
 }
 
 async function clearBanner(page: import("@playwright/test").Page) {
-  await page.click('button[type="submit"][form="clear-banner-form"]');
+  await page.click('main button[type="submit"][form="clear-banner-form"]');
   await expect(page.locator(".notification.is-success")).toBeVisible();
 }
 

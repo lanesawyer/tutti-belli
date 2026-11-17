@@ -1,5 +1,20 @@
 ---
-Astro.cookies.delete("session", { path: "/" });
+import SingleColumnLayout from "@layouts/SingleColumnLayout.astro";
+import { Button, Title } from "astro-bulma";
+import { actions } from "astro:actions";
 
-return Astro.redirect("/");
+const result = Astro.getActionResult(actions.auth.logout);
+if ((result && !result.error) || !Astro.locals.user) {
+  return Astro.redirect("/");
+}
 ---
+
+<SingleColumnLayout title="Log Out">
+  <Title>Log Out</Title>
+
+  <form method="POST" action={`/logout${actions.auth.logout}`}>
+    <Button color="primary" fullwidth type="submit">
+      Log out
+    </Button>
+  </form>
+</SingleColumnLayout>

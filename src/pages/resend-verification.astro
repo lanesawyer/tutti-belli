@@ -2,6 +2,7 @@
 import SingleColumnLayout from "@layouts/SingleColumnLayout.astro";
 import { Button, Notification, TextInput, Title } from "astro-bulma";
 import { resendVerificationEmail } from "@lib/profile";
+import { rememberVerifyingBrowser } from "@lib/session";
 import {
   requestIp,
   retryAfter,
@@ -29,6 +30,7 @@ if (Astro.request.method === "POST") {
     verificationResendsByIp.record(ip);
     await resendVerificationEmail(email);
   }
+  if (email) rememberVerifyingBrowser(Astro.cookies, email);
   sent = true;
 }
 ---

@@ -9,6 +9,7 @@ import { resolveViewAs, VIEW_AS_COOKIE } from "./lib/view-as";
 const PUBLIC_ROUTES = [
   "/",
   "/login",
+  "/logout",
   "/register",
   "/forgot-password",
   "/reset-password",

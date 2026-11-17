@@ -24,6 +24,7 @@ import {
   textToHtml,
   emailSubject,
   passwordSetUrl,
+  sendAccountExistsEmail,
   sendAnnouncementEmail,
   sendEmailChangeVerificationEmail,
   sendEmailVerificationEmail,
@@ -54,6 +55,7 @@ async function sendAll(name: string, ensembleName: string, title: string, conten
     content,
     name,
   );
+  await sendAccountExistsEmail("g@example.com", name);
 }
 
 describe("escapeHtml / textToHtml / emailSubject", () => {
@@ -87,7 +89,7 @@ describe("email links", () => {
     vi.stubEnv("SITE_URL", SITE);
     await sendAll("A", "Choir", "Title", "Body");
 
-    expect(sent).toHaveLength(6);
+    expect(sent).toHaveLength(7);
     for (const email of sent) {
       expect(email.from).toBe("noreply@tuttibelli.org");
       const links = hrefs(email.html);
@@ -97,6 +99,7 @@ describe("email links", () => {
     expect(sent[0].html).toContain(`${SITE}/reset-password?token=reset-token`);
     expect(sent[3].html).toContain(`${SITE}/reset-password?token=welcome-token`);
     expect(sent[5].html).toContain(`${SITE}/ensembles/choir/announcements`);
+    expect(hrefs(sent[6].html)).toEqual([`${SITE}/login`, `${SITE}/forgot-password`]);
   });
 
   it("follow SITE_URL for a preview", async () => {
@@ -159,7 +162,7 @@ describe("email escaping", () => {
   it("escapes names, ensemble names, titles and announcement content in every email", async () => {
     await sendAll(EVIL, EVIL, EVIL, `${EVIL}\nsecond line`);
 
-    expect(sent).toHaveLength(6);
+    expect(sent).toHaveLength(7);
     for (const email of sent) {
       expect(email.html).not.toContain("<img");
       expect(email.html).toContain(EVIL_ESCAPED);

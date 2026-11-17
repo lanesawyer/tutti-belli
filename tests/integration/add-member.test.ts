@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { db, eq, and, EnsembleMember, PasswordResetToken, SeasonMembership, User } from "@db";
 import { addMemberByEmail, NEW_ACCOUNT_LINK_TTL_MS } from "../../src/lib/ensemble.ts";
 import { resetPassword } from "../../src/lib/profile.ts";
-import { verifyPassword } from "../../src/lib/auth.ts";
+import { hashToken, verifyPassword } from "../../src/lib/auth.ts";
 import { createUser, createEnsemble, createMembership, createSeason } from "./fixtures.ts";
 
 async function membership(ensembleId: string, userId: string) {
@@ -50,7 +50,7 @@ describe("addMemberByEmail", () => {
     const token = await db
       .select()
       .from(PasswordResetToken)
-      .where(eq(PasswordResetToken.token, result.setPasswordToken))
+      .where(eq(PasswordResetToken.token, hashToken(result.setPasswordToken)))
       .get();
     const ttl = token!.expiresAt.getTime() - Date.now();
     expect(ttl).toBeGreaterThan(NEW_ACCOUNT_LINK_TTL_MS - 60_000);

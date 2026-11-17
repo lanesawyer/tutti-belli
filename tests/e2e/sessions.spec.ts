@@ -16,7 +16,7 @@ async function signIn(browser: Browser): Promise<Page> {
   await page.goto("/login");
   await page.fill('input[name="email"]', EMAIL);
   await page.fill('input[name="password"]', PASSWORD);
-  await page.click('button[type="submit"]');
+  await page.click('main button[type="submit"]');
   await expect(page).not.toHaveURL(/\/login/);
   return page;
 }

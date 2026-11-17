@@ -1,6 +1,7 @@
 import type { AstroCookies } from "astro";
 import { db, eq, sql, User } from "@db";
 import jwt from "jsonwebtoken";
+import { EMAIL_VERIFICATION_TTL_MS } from "./auth";
 
 // No fallback: a default secret would let anyone forge a session for any user.
 function jwtSecret(): string {
@@ -97,6 +98,46 @@ export function readViewAsToken(token: string): { adminId: string; targetId: str
     }) as Partial<ViewAsPayload>;
     if (payload.purpose !== "view-as" || !payload.adminId || !payload.targetId) return null;
     return { adminId: payload.adminId, targetId: payload.targetId };
+  } catch {
+    return null;
+  }
+}
+
+export const VERIFY_EMAIL_COOKIE = "verify_email";
+
+interface VerifyEmailPayload {
+  purpose: "verify-email";
+  email: string;
+}
+
+/**
+ * Marks this browser as the one that asked to verify `email`: the emailed link only signs in
+ * here. It names the address as typed, not an account, so it is set the same way whether or not
+ * the address has one.
+ */
+export function rememberVerifyingBrowser(cookies: AstroCookies, email: string): void {
+  const maxAge = EMAIL_VERIFICATION_TTL_MS / 1000;
+  const payload: VerifyEmailPayload = {
+    purpose: "verify-email",
+    email: email.trim().toLowerCase(),
+  };
+  cookies.set(VERIFY_EMAIL_COOKIE, jwt.sign(payload, jwtSecret(), { expiresIn: maxAge }), {
+    path: "/",
+    httpOnly: true,
+    secure: import.meta.env.PROD,
+    sameSite: "lax",
+    maxAge,
+  });
+}
+
+/** The address this browser asked to verify, if its cookie is valid. */
+export function readVerifyingBrowser(token: string | undefined): string | null {
+  if (!token) return null;
+  try {
+    const payload = jwt.verify(token, jwtSecret(), {
+      algorithms: ["HS256"],
+    }) as Partial<VerifyEmailPayload>;
+    return payload.purpose === "verify-email" && payload.email ? payload.email : null;
   } catch {
     return null;
   }

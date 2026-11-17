@@ -22,7 +22,7 @@ test('successful registration shows a "check your inbox" message', async ({ page
   await page.fill('input[name="name"]', "New User");
   await page.fill('input[name="email"]', email);
   await page.fill('input[name="password"]', "password123");
-  await page.click('button[type="submit"]');
+  await page.click('main button[type="submit"]');
 
   await expect(page.locator(".notification.is-success")).toBeVisible();
   await expect(page.locator(".notification.is-success")).toContainText("Check your inbox");
@@ -36,21 +36,23 @@ test("successful registration shows a resend link", async ({ page }, workerInfo)
   await page.fill('input[name="name"]', "Resend Test");
   await page.fill('input[name="email"]', uniqueEmail("resend", workerInfo.workerIndex));
   await page.fill('input[name="password"]', "password123");
-  await page.click('button[type="submit"]');
+  await page.click('main button[type="submit"]');
 
   await expect(page.locator(".notification.is-success")).toBeVisible();
   const resendLink = page.locator('a[href*="/resend-verification"]');
   await expect(resendLink).toBeVisible();
 });
 
-test("registering a duplicate email shows an error", async ({ page }) => {
+test("registering a taken email looks the same as a new one", async ({ page }) => {
   await page.goto("/register");
   await page.fill('input[name="name"]', "Duplicate");
   await page.fill('input[name="email"]', "admin@example.com"); // seed user
   await page.fill('input[name="password"]', "password123");
-  await page.click('button[type="submit"]');
+  await page.click('main button[type="submit"]');
 
-  await expect(page.locator(".notification.is-danger")).toBeVisible();
+  await expect(page.locator(".notification.is-success")).toContainText("Check your inbox");
+  await expect(page.locator(".notification.is-success")).toContainText("admin@example.com");
+  await expect(page.locator(".notification.is-danger")).toHaveCount(0);
   await expect(page).toHaveURL(/\/register/);
 });
 
@@ -58,7 +60,7 @@ test("already-authenticated user visiting /register is redirected", async ({ pag
   await page.goto("/login");
   await page.fill('input[name="email"]', "test@example.com");
   await page.fill('input[name="password"]', "test123");
-  await page.click('button[type="submit"]');
+  await page.click('main button[type="submit"]');
   await expect(page).not.toHaveURL(/\/login/);
 
   await page.goto("/register");
@@ -77,14 +79,14 @@ test("unverified user cannot log in and sees a warning", async ({ page }, worker
   await page.fill('input[name="name"]', "Unverified User");
   await page.fill('input[name="email"]', email);
   await page.fill('input[name="password"]', "password123");
-  await page.click('button[type="submit"]');
+  await page.click('main button[type="submit"]');
   await expect(page.locator(".notification.is-success")).toBeVisible();
 
   // Attempt to log in without verifying
   await page.goto("/login");
   await page.fill('input[name="email"]', email);
   await page.fill('input[name="password"]', "password123");
-  await page.click('button[type="submit"]');
+  await page.click('main button[type="submit"]');
 
   await expect(page.locator(".notification.is-warning")).toBeVisible();
   await expect(page.locator(".notification.is-warning")).toContainText("Email not verified");
@@ -99,7 +101,7 @@ test("unverified login warning includes a resend link", async ({ page }, workerI
   await page.fill('input[name="name"]', "Resend From Login");
   await page.fill('input[name="email"]', email);
   await page.fill('input[name="password"]', "password123");
-  await page.click('button[type="submit"]');
+  await page.click('main button[type="submit"]');
   // Wait for the success notification before navigating away — Firefox aborts
   // page.goto() if called while ClientRouter is still mid-transition.
   await expect(page.locator(".notification.is-success")).toBeVisible({ timeout: 15000 });
@@ -107,7 +109,7 @@ test("unverified login warning includes a resend link", async ({ page }, workerI
   await page.goto("/login");
   await page.fill('input[name="email"]', email);
   await page.fill('input[name="password"]', "password123");
-  await page.click('button[type="submit"]');
+  await page.click('main button[type="submit"]');
 
   const resendLink = page.locator('a[href*="/resend-verification"]');
   await expect(resendLink).toBeVisible();
@@ -120,7 +122,7 @@ test("unverified login warning includes a resend link", async ({ page }, workerI
 test("resend-verification page shows a success message after submission", async ({ page }) => {
   await page.goto("/resend-verification");
   await page.fill('input[name="email"]', "anyone@example.com");
-  await page.click('button[type="submit"]');
+  await page.click('main button[type="submit"]');
 
   await expect(page.locator(".notification.is-success")).toBeVisible();
 });

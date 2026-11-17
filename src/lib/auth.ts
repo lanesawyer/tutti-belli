@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import bcrypt from "bcryptjs";
 import { db, eq, User, PasswordResetToken } from "@db";
 
@@ -8,6 +9,12 @@ export async function hashPassword(password: string): Promise<string> {
 export async function verifyPassword(password: string, hash: string): Promise<boolean> {
   return bcrypt.compare(password, hash);
 }
+
+/**
+ * A bcrypt hash of a password nobody knows, at the same cost as `hashPassword`. Login checks it
+ * when no account matches, so the response time doesn't say whether one does.
+ */
+export const DUMMY_PASSWORD_HASH = "$2b$10$UIH6QlSuqKle4wrISvwe2uvg4mZg2PkwBbTUH9I75AGLqpUs0Fuuy";
 
 export const PASSWORD_MIN_LENGTH = 8;
 // bcrypt ignores everything past 72 bytes.
@@ -29,6 +36,13 @@ export async function getUserByEmail(email: string) {
   return user ?? null;
 }
 
+export const EMAIL_VERIFICATION_TTL_MS = 60 * 60 * 1000;
+
+/** What the database stores for an emailed token, so a copy of the database holds no working links. */
+export function hashToken(token: string): string {
+  return createHash("sha256").update(token).digest("hex");
+}
+
 export async function createPasswordResetToken(
   userId: string,
   ttlMs = 60 * 60 * 1000,
@@ -46,6 +60,6 @@ export function passwordResetTokenInsert(userId: string, ttlMs = 60 * 60 * 1000)
     token,
     insert: db
       .insert(PasswordResetToken)
-      .values({ id: crypto.randomUUID(), userId, token, expiresAt }),
+      .values({ id: crypto.randomUUID(), userId, token: hashToken(token), expiresAt }),
   };
 }

@@ -1,5 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { hashPassword, verifyPassword } from "../../src/lib/auth.ts";
+import bcrypt from "bcryptjs";
+import {
+  DUMMY_PASSWORD_HASH,
+  hashPassword,
+  hashToken,
+  verifyPassword,
+} from "../../src/lib/auth.ts";
 
 describe("hashPassword", () => {
   it("returns a bcrypt hash string", async () => {
@@ -28,5 +34,20 @@ describe("verifyPassword", () => {
   it("returns false for an empty password", async () => {
     const hash = await hashPassword("correct-password");
     expect(await verifyPassword("", hash)).toBe(false);
+  });
+});
+
+describe("hashToken", () => {
+  it("is the hex SHA-256 of the token", () => {
+    expect(hashToken("abc")).toBe(
+      "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+    );
+  });
+});
+
+describe("DUMMY_PASSWORD_HASH", () => {
+  it("costs as much to check as a real password hash", async () => {
+    expect(bcrypt.getRounds(DUMMY_PASSWORD_HASH)).toBe(bcrypt.getRounds(await hashPassword("x")));
+    expect(await verifyPassword("password", DUMMY_PASSWORD_HASH)).toBe(false);
   });
 });

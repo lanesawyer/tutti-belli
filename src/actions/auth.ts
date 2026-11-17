@@ -1,12 +1,19 @@
 import { defineAction, ActionError } from "astro:actions";
 import { z } from "astro/zod";
-import { getUserByEmail, verifyPassword, createPasswordResetToken } from "@lib/auth";
+import {
+  DUMMY_PASSWORD_HASH,
+  getUserByEmail,
+  verifyPassword,
+  createPasswordResetToken,
+} from "@lib/auth";
 import { startSession } from "@lib/session";
 import { getRedirectUrl } from "@lib/redirect";
 import { sendPasswordResetEmail } from "@lib/email";
 import { validatePasswordResetToken, resetPassword as doResetPassword } from "@lib/profile";
 import {
+  emailAndIpKey,
   failedLoginsByEmail,
+  failedLoginsByEmailAndIp,
   failedLoginsByIp,
   passwordResetsByEmail,
   passwordResetsByIp,
@@ -14,6 +21,7 @@ import {
   retryAfter,
   tooManyAttemptsMessage,
 } from "@lib/rate-limit";
+import { VIEW_AS_COOKIE } from "@lib/view-as";
 import { newPassword } from "./utils";
 
 export const auth = {
@@ -27,22 +35,29 @@ export const auth = {
     handler: async ({ email, password, redirect }, context) => {
       const emailKey = email.trim().toLowerCase();
       const ip = requestIp(context);
+      const pairKey = emailAndIpKey(emailKey, ip);
       const wait = retryAfter([
-        [failedLoginsByEmail, emailKey],
+        [failedLoginsByEmailAndIp, pairKey],
         [failedLoginsByIp, ip],
+        [failedLoginsByEmail, emailKey],
       ]);
       if (wait) {
         throw new ActionError({ code: "TOO_MANY_REQUESTS", message: tooManyAttemptsMessage(wait) });
       }
 
       const user = await getUserByEmail(email);
+      const passwordMatches = await verifyPassword(
+        password,
+        user?.passwordHash ?? DUMMY_PASSWORD_HASH,
+      );
 
-      if (!user || !(await verifyPassword(password, user.passwordHash))) {
-        failedLoginsByEmail.record(emailKey);
+      if (!user || !passwordMatches) {
+        failedLoginsByEmailAndIp.record(pairKey);
         failedLoginsByIp.record(ip);
+        failedLoginsByEmail.record(emailKey);
         throw new ActionError({ code: "UNAUTHORIZED", message: "Invalid email or password" });
       }
-      failedLoginsByEmail.reset(emailKey);
+      failedLoginsByEmailAndIp.reset(pairKey);
 
       if (!user.emailVerifiedAt) {
         throw new ActionError({ code: "FORBIDDEN", message: `unverified:${email}` });
@@ -52,6 +67,14 @@ export const auth = {
 
       const redirectUrl = await getRedirectUrl(user.id, redirect);
       return { redirectUrl };
+    },
+  }),
+
+  logout: defineAction({
+    accept: "form",
+    handler: async (_input, context) => {
+      context.cookies.delete("session", { path: "/" });
+      context.cookies.delete(VIEW_AS_COOKIE, { path: "/" });
     },
   }),
 
@@ -77,10 +100,15 @@ export const auth = {
 
       if (user) {
         const token = await createPasswordResetToken(user.id);
-        const result = await sendPasswordResetEmail(user.email, user.name, token);
-        if (!result.success) {
-          console.error("Email send failed:", result.error);
-          if (import.meta.env.DEV) {
+        // Not awaited outside dev: waiting on the email provider only for real accounts would
+        // let the response time say which addresses have one.
+        const sent = sendPasswordResetEmail(user.email, user.name, token).then((result) => {
+          if (!result.success) console.error("Email send failed:", result.error);
+          return result;
+        });
+        if (import.meta.env.DEV) {
+          const result = await sent;
+          if (!result.success) {
             throw new ActionError({
               code: "INTERNAL_SERVER_ERROR",
               message: `Email failed: ${result.error}`,

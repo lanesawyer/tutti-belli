@@ -38,7 +38,7 @@ test("user can create a new ensemble and is redirected to it", async ({ page }) 
   await expect(page).toHaveURL("/ensembles/new");
   await page.fill('input[name="name"]', "My Test Ensemble");
   await page.fill('textarea[name="description"]', "A test ensemble created via e2e");
-  await page.click('button[type="submit"]');
+  await page.click('main button[type="submit"]');
   await expect(page).toHaveURL(/\/ensembles\/.+/);
   await expect(page).not.toHaveURL("/ensembles/new");
 });

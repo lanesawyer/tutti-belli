@@ -11,7 +11,7 @@ test("login with valid credentials redirects away from /login", async ({ page })
   await page.goto("/login");
   await page.fill('input[name="email"]', "test@example.com");
   await page.fill('input[name="password"]', "test123");
-  await page.click('button[type="submit"]');
+  await page.click('main button[type="submit"]');
   await expect(page).not.toHaveURL(/\/login/);
 });
 
@@ -19,7 +19,7 @@ test("login with invalid password shows an error notification", async ({ page })
   await page.goto("/login");
   await page.fill('input[name="email"]', "test@example.com");
   await page.fill('input[name="password"]', "wrongpassword");
-  await page.click('button[type="submit"]');
+  await page.click('main button[type="submit"]');
 
   await expect(page.locator(".notification.is-danger")).toBeVisible();
   await expect(page).toHaveURL(/\/login/);
@@ -29,7 +29,7 @@ test("login with unknown email shows an error notification", async ({ page }) =>
   await page.goto("/login");
   await page.fill('input[name="email"]', "nobody@unknown.com");
   await page.fill('input[name="password"]', "password");
-  await page.click('button[type="submit"]');
+  await page.click('main button[type="submit"]');
 
   await expect(page.locator(".notification.is-danger")).toBeVisible();
 });
@@ -51,10 +51,29 @@ test("already-authenticated user going to /login is redirected", async ({ page }
   await page.goto("/login");
   await page.fill('input[name="email"]', "test@example.com");
   await page.fill('input[name="password"]', "test123");
-  await page.click('button[type="submit"]');
+  await page.click('main button[type="submit"]');
   await expect(page).not.toHaveURL(/\/login/);
 
   // Trying to visit /login again should redirect away
   await page.goto("/login");
   await expect(page).not.toHaveURL(/\/login/);
+});
+
+test("visiting /logout does not sign out; its button does", async ({ page }) => {
+  await page.goto("/login");
+  await page.fill('input[name="email"]', "test@example.com");
+  await page.fill('input[name="password"]', "test123");
+  await page.click('main button[type="submit"]');
+  await expect(page).not.toHaveURL(/\/login/);
+
+  await page.goto("/logout");
+  await page.goto("/ensembles");
+  await expect(page).toHaveURL(/\/ensembles/);
+
+  await page.goto("/logout");
+  await page.getByRole("button", { name: "Log out" }).click();
+  await expect(page).toHaveURL("/");
+
+  await page.goto("/ensembles");
+  await expect(page).toHaveURL(/\/login/);
 });
