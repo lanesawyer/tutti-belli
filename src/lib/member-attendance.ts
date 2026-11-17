@@ -1,4 +1,14 @@
-import { db, eq, and, Attendance, Event, EnsembleMember, User } from "@db";
+import {
+  db,
+  eq,
+  and,
+  inArray,
+  Attendance,
+  Event,
+  EnsembleMember,
+  GroupMembership,
+  User,
+} from "@db";
 
 export type MemberAttendanceStat = {
   userId: string;
@@ -12,7 +22,7 @@ export type MemberAttendanceStat = {
 };
 
 /**
- * Returns attendance stats per active member for all events in the ensemble,
+ * Returns attendance stats per active member for past events each member was invited to,
  * sorted by attendance percentage ascending (worst first).
  */
 export async function getMemberAttendanceStats(
@@ -34,42 +44,50 @@ export async function getMemberAttendanceStats(
 
   if (members.length === 0) return [];
 
-  // Get relevant events
-  const events = seasonId
-    ? await db
-        .select({ id: Event.id })
-        .from(Event)
-        .where(and(eq(Event.ensembleId, ensembleId), eq(Event.seasonId, seasonId)))
-        .all()
-    : await db.select({ id: Event.id }).from(Event).where(eq(Event.ensembleId, ensembleId)).all();
-
-  const totalEvents = events.length;
-  if (totalEvents === 0) {
-    return members.map((m) => ({
-      ...m,
-      attended: 0,
-      total: 0,
-      pct: 0,
-      avatarUrl: m.avatarUrl ?? null,
-    }));
-  }
-
-  // Get all attendance records for these events via join
-  const attendanceRows = await db
-    .select({ userId: Attendance.userId })
-    .from(Attendance)
-    .innerJoin(Event, and(eq(Attendance.eventId, Event.id), eq(Event.ensembleId, ensembleId)))
-    .where(seasonId ? eq(Event.seasonId, seasonId) : eq(Event.ensembleId, ensembleId))
+  const events = await db
+    .select({ id: Event.id, scheduledAt: Event.scheduledAt, groupId: Event.groupId })
+    .from(Event)
+    .where(
+      seasonId
+        ? and(eq(Event.ensembleId, ensembleId), eq(Event.seasonId, seasonId))
+        : eq(Event.ensembleId, ensembleId),
+    )
     .all();
 
-  // Count attendance per user
-  const attendedByUser = new Map<string, number>();
-  for (const row of attendanceRows) {
-    attendedByUser.set(row.userId, (attendedByUser.get(row.userId) ?? 0) + 1);
+  const now = Date.now();
+  const pastEvents = events.filter((e) => new Date(e.scheduledAt).getTime() <= now);
+
+  const groupIds = [...new Set(pastEvents.flatMap((e) => (e.groupId ? [e.groupId] : [])))];
+  const groupMembers = new Map<string, Set<string>>();
+  if (groupIds.length > 0) {
+    const rows = await db
+      .select({ groupId: GroupMembership.groupId, userId: GroupMembership.userId })
+      .from(GroupMembership)
+      .where(inArray(GroupMembership.groupId, groupIds))
+      .all();
+    for (const row of rows) {
+      if (!groupMembers.has(row.groupId)) groupMembers.set(row.groupId, new Set());
+      groupMembers.get(row.groupId)!.add(row.userId);
+    }
+  }
+
+  const attendedKeys = new Set<string>();
+  if (pastEvents.length > 0) {
+    const attendanceRows = await db
+      .select({ userId: Attendance.userId, eventId: Attendance.eventId })
+      .from(Attendance)
+      .innerJoin(Event, and(eq(Attendance.eventId, Event.id), eq(Event.ensembleId, ensembleId)))
+      .where(seasonId ? eq(Event.seasonId, seasonId) : eq(Event.ensembleId, ensembleId))
+      .all();
+    for (const row of attendanceRows) attendedKeys.add(`${row.userId}:${row.eventId}`);
   }
 
   const stats: MemberAttendanceStat[] = members.map((m) => {
-    const attended = attendedByUser.get(m.userId) ?? 0;
+    const invited = pastEvents.filter(
+      (e) => !e.groupId || groupMembers.get(e.groupId)?.has(m.userId),
+    );
+    const total = invited.length;
+    const attended = invited.filter((e) => attendedKeys.has(`${m.userId}:${e.id}`)).length;
     return {
       userId: m.userId,
       name: m.name,
@@ -77,8 +95,8 @@ export async function getMemberAttendanceStats(
       avatarUrl: m.avatarUrl ?? null,
       role: m.role,
       attended,
-      total: totalEvents,
-      pct: totalEvents > 0 ? Math.round((attended / totalEvents) * 100) : 0,
+      total,
+      pct: total > 0 ? Math.round((attended / total) * 100) : 0,
     };
   });
 
