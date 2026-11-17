@@ -348,7 +348,7 @@ export async function createEnsembleLink(
 export async function createAttendance(
   eventId: string,
   userId: string,
-  overrides: { id?: string; checkedInMethod?: string } = {},
+  overrides: { id?: string; checkedInMethod?: "qr" | "manual" | "admin" } = {},
 ) {
   const id = overrides.id ?? crypto.randomUUID();
   await db
