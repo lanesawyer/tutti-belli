@@ -25,6 +25,7 @@ import type { BatchItem } from "drizzle-orm/batch";
 import { canManageEnsemble, isSiteAdmin } from "./permissions";
 import { deleteImage } from "./storage";
 import { hashPassword, passwordResetTokenInsert, personNameError } from "./auth";
+import { getEnsembleUrlId } from "./slug";
 
 /**
  * Look up an ensemble by either its slug or its UUID id.
@@ -68,6 +69,37 @@ export async function getEnsembleAccess(
   }
   const isAdmin = canManageEnsemble(user, membership);
   return { membership, isAdmin };
+}
+
+/**
+ * The checks every page under /ensembles/[id] starts with. Returns a `response` to send instead
+ * of the page when the ensemble doesn't exist or the viewer can't see it (both redirect to
+ * /ensembles, so the answer doesn't reveal which ensembles exist), when a GET used a URL other
+ * than the canonical one, or when `adminOnly` is set and the viewer isn't an admin.
+ */
+export async function loadEnsemblePage(
+  user: { id: string; role: string },
+  { id, method, pathname }: { id: string | undefined; method: string; pathname: string },
+  { allowPending = false, adminOnly = false } = {},
+) {
+  const ensemble = id ? await getEnsembleBySlugOrId(id) : null;
+  const access = ensemble && (await getEnsembleAccess(user, ensemble.id, { allowPending }));
+  if (!ensemble || !access) return { response: redirect("/ensembles") };
+
+  const canonicalId = getEnsembleUrlId(ensemble);
+  if (method === "GET" && id !== canonicalId) {
+    return {
+      response: redirect(pathname.replace(`/ensembles/${id}`, `/ensembles/${canonicalId}`), 301),
+    };
+  }
+  if (adminOnly && !access.isAdmin) {
+    return { response: new Response("Unauthorized", { status: 403 }) };
+  }
+  return { ensemble, canonicalId, ...access };
+}
+
+function redirect(location: string, status = 302) {
+  return new Response(null, { status, headers: { Location: location } });
 }
 
 /**
