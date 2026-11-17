@@ -31,7 +31,7 @@ import {
   User,
 } from "@db";
 import { createPasswordResetToken, verifyPassword } from "@lib/auth";
-import { getSession } from "@lib/session";
+import { getSession, readVerifyingBrowser, VERIFY_EMAIL_COOKIE } from "@lib/session";
 import { VIEW_AS_COOKIE } from "@lib/view-as";
 import { createMembership, createUser } from "../integration/fixtures.ts";
 import type { Fields, FieldValue } from "./actions.ts";
@@ -200,6 +200,15 @@ export const matrix: Record<string, MatrixEntry> = {
         .where(eq(PasswordResetToken.userId, w.a.member.id))
         .all();
       expect(tokens).toHaveLength(1);
+    },
+  },
+  "auth.resendVerification": {
+    access: "public",
+    fields: (w) => ({ email: w.a.member.email }),
+    verify: (w, { context }) => {
+      expect(readVerifyingBrowser(context.cookies.get(VERIFY_EMAIL_COOKIE)?.value)).toBe(
+        w.a.member.email,
+      );
     },
   },
   "auth.resetPassword": {
