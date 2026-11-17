@@ -72,10 +72,32 @@ describe("registerUser", () => {
   });
 
   it("throws an error if the email is already in use", async () => {
-    await registerUser({ name: "First", email: "dup@test.com", password: "pass1" });
+    await registerUser({ name: "First", email: "dup@test.com", password: "password1" });
     await expect(
-      registerUser({ name: "Second", email: "dup@test.com", password: "pass2" }),
+      registerUser({ name: "Second", email: "dup@test.com", password: "password2" }),
     ).rejects.toThrow("already exists");
+  });
+
+  it("stores the email lowercased and treats other casings as the same account", async () => {
+    const { userId } = await registerUser({
+      name: "Casey",
+      email: "  Casey@Test.COM ",
+      password: "password123",
+    });
+    const user = await db.select().from(User).where(eq(User.id, userId)).get();
+    expect(user!.email).toBe("casey@test.com");
+    await expect(
+      registerUser({ name: "Casey 2", email: "casey@test.com", password: "password123" }),
+    ).rejects.toThrow("already exists");
+  });
+
+  it("rejects a password shorter than 8 or longer than 72 bytes", async () => {
+    await expect(
+      registerUser({ name: "Short", email: "short@test.com", password: "1234567" }),
+    ).rejects.toThrow("at least 8 characters");
+    await expect(
+      registerUser({ name: "Long", email: "long@test.com", password: "a".repeat(73) }),
+    ).rejects.toThrow("at most 72 characters");
   });
 
   it("creates an email verification token for the new user", async () => {
@@ -147,6 +169,23 @@ describe("resendVerificationEmail", () => {
     // Only the newest token should be active (usedAt = null)
     const activeTokens = tokens.filter((t) => t.usedAt === null);
     expect(activeTokens).toHaveLength(1);
+  });
+
+  it("finds the account whatever the email's casing", async () => {
+    const { userId } = await registerUser({
+      name: "Gina Gray",
+      email: "gina@test.com",
+      password: "password123",
+    });
+
+    await resendVerificationEmail(" Gina@Test.com ");
+
+    const tokens = await db
+      .select()
+      .from(EmailVerificationToken)
+      .where(eq(EmailVerificationToken.userId, userId))
+      .all();
+    expect(tokens).toHaveLength(2);
   });
 
   it("does nothing silently for an unknown email", async () => {
@@ -491,11 +530,22 @@ describe("resetPassword", () => {
     expect(await verifyEmailChangeToken(changeToken)).toEqual({ type: "invalid" });
   });
 
-  it("returns error for a password shorter than 6 characters", async () => {
+  it("returns error for a password shorter than 8 characters", async () => {
     const user = await createUser();
     const token = await insertResetToken(user!.id);
-    const result = await resetPassword(token, "abc");
-    expect(result).toEqual({ type: "error", message: "Password must be at least 6 characters." });
+    const result = await resetPassword(token, "1234567");
+    expect(result).toEqual({ type: "error", message: "Password must be at least 8 characters." });
+  });
+
+  it("returns error for a password bcrypt would truncate", async () => {
+    const user = await createUser();
+    const token = await insertResetToken(user!.id);
+    // 36 two-byte characters: 72 bytes is fine, 74 is not.
+    expect(await resetPassword(token, "é".repeat(37))).toEqual({
+      type: "error",
+      message: "Password must be at most 72 characters.",
+    });
+    expect(await resetPassword(token, "é".repeat(36))).toEqual({ type: "success" });
   });
 
   it("returns invalid for a nonexistent token", async () => {

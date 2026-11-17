@@ -9,12 +9,23 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
   return bcrypt.compare(password, hash);
 }
 
-export function generateSessionToken(): string {
-  return crypto.randomUUID();
+export const PASSWORD_MIN_LENGTH = 8;
+// bcrypt ignores everything past 72 bytes.
+export const PASSWORD_MAX_BYTES = 72;
+
+/** Why a password can't be set as a new password, or null if it can. */
+export function newPasswordError(password: string): string | null {
+  if (password.length < PASSWORD_MIN_LENGTH) {
+    return `Password must be at least ${PASSWORD_MIN_LENGTH} characters.`;
+  }
+  if (new TextEncoder().encode(password).length > PASSWORD_MAX_BYTES) {
+    return `Password must be at most ${PASSWORD_MAX_BYTES} characters.`;
+  }
+  return null;
 }
 
 export async function getUserByEmail(email: string) {
-  const [user] = await db.select().from(User).where(eq(User.email, email));
+  const [user] = await db.select().from(User).where(eq(User.email, email.trim().toLowerCase()));
   return user ?? null;
 }
 

@@ -2,6 +2,7 @@
 import SingleColumnLayout from "@layouts/SingleColumnLayout.astro";
 import { Button, Notification, TextInput, Title } from "astro-bulma";
 import { actions } from "astro:actions";
+import { PASSWORD_MAX_BYTES, PASSWORD_MIN_LENGTH } from "@lib/auth";
 
 // Redirect if already logged in
 if (Astro.locals.user) {
@@ -65,9 +66,10 @@ const error = result?.error?.message ?? "";
           type="password"
           placeholder="••••••••"
           iconLeft="fa-lock"
-          minlength="6"
+          minlength={PASSWORD_MIN_LENGTH}
+          maxlength={PASSWORD_MAX_BYTES}
           required
-          help="Must be at least 6 characters"
+          help={`Must be ${PASSWORD_MIN_LENGTH} to ${PASSWORD_MAX_BYTES} characters`}
         />
 
         <div class="field">

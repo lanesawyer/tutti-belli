@@ -1,6 +1,6 @@
 import { defineAction, ActionError } from "astro:actions";
 import { z } from "astro/zod";
-import { assertPartsInEnsemble, throwUserError } from "./utils";
+import { assertPartsInEnsemble, newPassword, throwUserError } from "./utils";
 import { getMembershipById } from "@lib/ensemble";
 import { revokeSessions, startSession } from "@lib/session";
 import {
@@ -28,7 +28,7 @@ export const profile = {
     input: z.object({
       name: z.string().min(1, "Name is required."),
       email: z.email("Invalid email address."),
-      password: z.string().min(6, "Password must be at least 6 characters."),
+      password: newPassword,
     }),
     handler: async ({ name, email, password }, context) => {
       // E2E runs register many accounts from localhost against a long-lived dev server

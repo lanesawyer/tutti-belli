@@ -14,6 +14,7 @@ import {
   retryAfter,
   tooManyAttemptsMessage,
 } from "@lib/rate-limit";
+import { newPassword } from "./utils";
 
 export const auth = {
   login: defineAction({
@@ -95,7 +96,7 @@ export const auth = {
     accept: "form",
     input: z.object({
       token: z.string().min(1),
-      password: z.string().min(6, "Password must be at least 6 characters."),
+      password: newPassword,
       confirmPassword: z.string().min(1, "Please confirm your password."),
     }),
     handler: async ({ token, password, confirmPassword }) => {

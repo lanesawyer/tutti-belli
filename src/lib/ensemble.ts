@@ -6,6 +6,8 @@ import {
   ne,
   inArray,
   sql,
+  alias,
+  exists,
   Ensemble,
   EnsembleMember,
   EnsembleInvite,
@@ -210,17 +212,48 @@ export async function getMemberPartAssignments(membershipIds: string[]) {
     .all();
 }
 
+export const LAST_ADMIN_MESSAGE = "An ensemble needs at least one admin.";
+
+/** Matches any membership except its ensemble's only active admin. */
+function notLastAdmin() {
+  const other = alias(EnsembleMember, "other");
+  return or(
+    ne(EnsembleMember.role, "admin"),
+    ne(EnsembleMember.status, "active"),
+    exists(
+      db
+        .select({ id: other.id })
+        .from(other)
+        .where(
+          and(
+            eq(other.ensembleId, EnsembleMember.ensembleId),
+            ne(other.id, EnsembleMember.id),
+            eq(other.role, "admin"),
+            eq(other.status, "active"),
+          ),
+        ),
+    ),
+  );
+}
+
 /**
  * Remove a member from an ensemble.
+ * Returns false when nothing was removed, including when they are the ensemble's last admin.
  */
-export async function removeMember(membershipId: string) {
-  await db.delete(EnsembleMember).where(eq(EnsembleMember.id, membershipId));
+export async function removeMember(membershipId: string): Promise<boolean> {
+  const result = await db
+    .delete(EnsembleMember)
+    .where(and(eq(EnsembleMember.id, membershipId), notLastAdmin()));
+  return result.rowsAffected > 0;
 }
 
 /**
  * Set the role of a member.
  */
-/** Returns false when nothing changed: only an active membership can be made admin. */
+/**
+ * Returns false when nothing changed: only an active membership can be made admin, and the
+ * ensemble's last admin can't be made a member.
+ */
 export async function setMemberRole(
   membershipId: string,
   role: "admin" | "member",
@@ -231,7 +264,7 @@ export async function setMemberRole(
     .where(
       and(
         eq(EnsembleMember.id, membershipId),
-        role === "admin" ? eq(EnsembleMember.status, "active") : undefined,
+        role === "admin" ? eq(EnsembleMember.status, "active") : notLastAdmin(),
       ),
     );
   return result.rowsAffected > 0;

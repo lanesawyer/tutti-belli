@@ -32,6 +32,7 @@ import {
 } from "@db";
 import { createPasswordResetToken, verifyPassword } from "@lib/auth";
 import { getSession } from "@lib/session";
+import { createMembership, createUser } from "../integration/fixtures.ts";
 import type { Fields, FieldValue } from "./actions.ts";
 import { WORLD_PASSWORD, type World, type WorldUser } from "./world.ts";
 
@@ -554,7 +555,11 @@ export const matrix: Record<string, MatrixEntry> = {
   },
   "members.demote": {
     access: "ensembleAdmin",
-    fields: membershipFields((w) => w.a.adminMembership),
+    // An ensemble keeps at least one admin, so A needs a second one before the first can go.
+    fields: async (w) => {
+      await createMembership(w.a.ensemble.id, (await createUser()).id, { role: "admin" });
+      return membershipFields((w) => w.a.adminMembership)(w);
+    },
     foreign: { membershipId: (w) => w.b.adminMembership.id },
     verify: async (w) =>
       expect((await find(EnsembleMember, w.a.adminMembership.id))?.role).toBe("member"),
