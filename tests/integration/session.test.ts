@@ -65,6 +65,14 @@ describe("getSessionUser", () => {
     expect(fetched!.email).toBe("session-test@test.com");
   });
 
+  it("leaves the password hash and session version out of the returned user", async () => {
+    const user = await createUser({ email: "session-columns@test.com" });
+    const fetched = await getUserFromSession(createSession(user!.id, 0));
+    expect(fetched).not.toBeNull();
+    expect(fetched).not.toHaveProperty("passwordHash");
+    expect(fetched).not.toHaveProperty("sessionVersion");
+  });
+
   it("returns null when the user ID in the token does not exist in the DB", async () => {
     const token = createSession("nonexistent-user-id", 0);
     expect(await getSessionUser(getSession(token))).toBeNull();

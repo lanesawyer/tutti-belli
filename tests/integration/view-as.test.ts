@@ -31,6 +31,7 @@ describe("resolveViewAs", () => {
     const viewed = await resolveViewAs(createViewAsToken(admin!.id, member!.id), admin!);
 
     expect(viewed?.id).toBe(member!.id);
+    expect(viewed).not.toHaveProperty("passwordHash");
   });
 
   it("refuses other admins, demoted admins, admin targets, and expired or forged tokens", async () => {
