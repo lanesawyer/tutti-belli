@@ -1,0 +1,70 @@
+---
+import { Button } from "astro-bulma";
+import { actions } from "astro:actions";
+import Avatar from "@components/Avatar.astro";
+import type { getEnsembleMembersWithUsers } from "@lib/ensemble";
+
+interface Props {
+  member: Awaited<ReturnType<typeof getEnsembleMembersWithUsers>>[number];
+  ensembleId: string;
+  canonicalId: string;
+  currentUserId: string;
+  /** Site admins only: users who can't be viewed as. Null hides "View as". */
+  viewAsBlocked: Set<string> | null;
+}
+
+const { member, ensembleId, canonicalId, currentUserId, viewAsBlocked } = Astro.props;
+---
+
+<tr>
+  <td>
+    <Avatar name={member.name} avatarUrl={member.avatarUrl} size={48} />
+  </td>
+  <td>{member.name}</td>
+  <td>{member.email}</td>
+  <td>
+    <span class={`tag ${member.role === "admin" ? "is-warning" : "is-info"}`}>
+      {member.role === "admin" ? "Admin" : "Member"}
+    </span>
+  </td>
+  <td>{new Date(member.joinedAt).toLocaleDateString()}</td>
+  {member.id !== currentUserId && (
+    <td>
+      <div class="buttons are-small">
+        {viewAsBlocked && !viewAsBlocked.has(member.id) && (
+          <form method="POST" action="/view-as" style="display: inline;">
+            <input type="hidden" name="userId" value={member.id} />
+            <input type="hidden" name="returnTo" value={`/ensembles/${canonicalId}`} />
+            <Button type="submit" color="link" size="small">
+              View as
+            </Button>
+          </form>
+        )}
+        {member.role === "member" ? (
+          <form method="POST" action={actions.members.promote} style="display: inline;">
+            <input type="hidden" name="ensembleId" value={ensembleId} />
+            <input type="hidden" name="membershipId" value={member.membershipId} />
+            <Button type="submit" color="warning" size="small">
+              Make Admin
+            </Button>
+          </form>
+        ) : (
+          <form method="POST" action={actions.members.demote} style="display: inline;">
+            <input type="hidden" name="ensembleId" value={ensembleId} />
+            <input type="hidden" name="membershipId" value={member.membershipId} />
+            <Button type="submit" color="info" size="small">
+              Remove Admin
+            </Button>
+          </form>
+        )}
+        <form method="POST" action={actions.members.remove} style="display: inline;">
+          <input type="hidden" name="ensembleId" value={ensembleId} />
+          <input type="hidden" name="membershipId" value={member.membershipId} />
+          <Button type="submit" color="danger" size="small">
+            Remove
+          </Button>
+        </form>
+      </div>
+    </td>
+  )}
+</tr>
