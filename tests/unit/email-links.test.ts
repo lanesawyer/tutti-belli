@@ -43,8 +43,8 @@ function hrefs(html: string): string[] {
 
 async function sendAll(name: string, ensembleName: string, title: string, content: string) {
   await sendPasswordResetEmail("a@example.com", name, "reset-token");
-  await sendEmailVerificationEmail("b@example.com", name, "verify-token");
-  await sendEmailChangeVerificationEmail("c@example.com", name, "change-token");
+  await sendEmailVerificationEmail("b@example.com", "verify-token");
+  await sendEmailChangeVerificationEmail("c@example.com", "change-token");
   await sendWelcomeEmail("d@example.com", name, ensembleName, "welcome-token");
   await sendAddedToEnsembleEmail("e@example.com", name, ensembleName, "choir");
   await sendAnnouncementEmail(
@@ -163,15 +163,17 @@ describe("email escaping", () => {
     await sendAll(EVIL, EVIL, EVIL, `${EVIL}\nsecond line`);
 
     expect(sent).toHaveLength(7);
-    for (const email of sent) {
+    sent.forEach((email, index) => {
       expect(email.html).not.toContain("<img");
-      expect(email.html).toContain(EVIL_ESCAPED);
-    }
+      // The two verification emails go to unproven addresses and take no typed text at all.
+      if (index === 1 || index === 2) expect(email.html).not.toContain(EVIL_ESCAPED);
+      else expect(email.html).toContain(EVIL_ESCAPED);
+    });
     expect(sent[5].html).toContain(`${EVIL_ESCAPED}<br />second line`);
   });
 
   it("escapes the recipient address shown in the email-change message", async () => {
-    await sendEmailChangeVerificationEmail("a<b>@example.com", "A", "token");
+    await sendEmailChangeVerificationEmail("a<b>@example.com", "token");
     expect(sent[0].html).toContain("a&lt;b&gt;@example.com");
   });
 

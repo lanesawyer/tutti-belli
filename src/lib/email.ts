@@ -175,9 +175,10 @@ export async function sendAnnouncementEmail(
   );
 }
 
+// The two verification emails go to an address nobody has proven they own, so they carry no text
+// the requester typed (such as a name): anything there would be mailed to a stranger from us.
 export async function sendEmailChangeVerificationEmail(
   toEmail: string,
-  toName: string,
   verifyToken: string,
 ): Promise<EmailResult> {
   const verifyUrl = siteLink("/verify-email-change", { token: verifyToken });
@@ -189,7 +190,6 @@ export async function sendEmailChangeVerificationEmail(
       html: `
         <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
           <h2>Verify your new email address</h2>
-          <p>Hi ${escapeHtml(toName)},</p>
           <p>We received a request to change your account email to <strong>${escapeHtml(toEmail)}</strong>.</p>
           <p>Click the button below to confirm this change. Your current email will continue to work for login until you verify the new one.</p>
           ${emailButton(verifyUrl, "Verify New Email")}
@@ -254,7 +254,6 @@ export async function sendEmailChangedEmail(
 
 export async function sendEmailVerificationEmail(
   toEmail: string,
-  toName: string,
   verifyToken: string,
 ): Promise<EmailResult> {
   const verifyUrl = siteLink("/verify-email", { token: verifyToken });
@@ -266,7 +265,6 @@ export async function sendEmailVerificationEmail(
       html: `
         <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
           <h2>Welcome to Ensemble!</h2>
-          <p>Hi ${escapeHtml(toName)},</p>
           <p>Thanks for signing up! Please verify your email address to activate your account.</p>
           ${emailButton(verifyUrl, "Verify Email Address")}
           <p>This link will expire in 1 hour.</p>

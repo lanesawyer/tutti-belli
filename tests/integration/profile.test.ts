@@ -58,10 +58,31 @@ vi.mock("../../src/lib/email.ts", () => ({
 
 /** The raw token in the last verification email: the database only has its hash. */
 function lastVerificationToken(): string {
-  return vi.mocked(sendEmailVerificationEmail).mock.lastCall![2];
+  return vi.mocked(sendEmailVerificationEmail).mock.lastCall![1];
 }
 
 describe("registerUser", () => {
+  it("refuses a name that carries a link, creates nothing and sends nothing", async () => {
+    vi.mocked(sendEmailVerificationEmail).mockClear();
+    await expect(
+      registerUser({
+        name: "$3000 is waiting - GET > https://example.com/claim",
+        email: "stranger@test.com",
+        password: "password123",
+      }),
+    ).rejects.toThrow("without links");
+    expect(await db.select().from(User).where(eq(User.email, "stranger@test.com"))).toEqual([]);
+    expect(sendEmailVerificationEmail).not.toHaveBeenCalled();
+  });
+
+  it("sends the verification email only the address and the token, never the typed name", async () => {
+    await registerUser({ name: "Typed Name", email: "typed@test.com", password: "password123" });
+    expect(vi.mocked(sendEmailVerificationEmail).mock.lastCall).toEqual([
+      "typed@test.com",
+      expect.any(String),
+    ]);
+  });
+
   it("creates a new user and returns their userId", async () => {
     const result = await registerUser({
       name: "Alice Smith",
@@ -500,10 +521,9 @@ describe("initiateEmailChange", () => {
       .get();
     expect(sendEmailChangeVerificationEmail).toHaveBeenCalledWith(
       "right-pw-new@test.com",
-      "Mover",
       expect.any(String),
     );
-    expect(hashToken(vi.mocked(sendEmailChangeVerificationEmail).mock.lastCall![2])).toBe(
+    expect(hashToken(vi.mocked(sendEmailChangeVerificationEmail).mock.lastCall![1])).toBe(
       token!.token,
     );
     expect(sendEmailChangeRequestedEmail).toHaveBeenCalledWith(
@@ -728,6 +748,14 @@ describe("resetPassword", () => {
 });
 
 describe("updateName", () => {
+  it("refuses a name that carries a link and keeps the old one", async () => {
+    const user = await createUser({ name: "Old Name" });
+    const result = await updateName(user!.id, "Visit www.example.com");
+    expect(result).toMatchObject({ type: "error" });
+    const unchanged = await db.select().from(User).where(eq(User.id, user!.id)).get();
+    expect(unchanged!.name).toBe("Old Name");
+  });
+
   it("updates the user name in the DB", async () => {
     const user = await createUser({ name: "Old Name" });
     await updateName(user!.id, "New Name");

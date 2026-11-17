@@ -118,6 +118,20 @@ describe("addMemberByEmail", () => {
     expect(rows[0].status).toBe("active");
   });
 
+  it("refuses a new person whose name carries a link", async () => {
+    const admin = await createUser({ role: "admin" });
+    const ensemble = await createEnsemble(admin!.id);
+
+    const result = await addMemberByEmail(ensemble!.id, {
+      name: "Free money https://example.com",
+      email: "stranger@example.com",
+      role: "member",
+    });
+
+    expect(result).toMatchObject({ type: "error" });
+    expect(await db.select().from(User).where(eq(User.email, "stranger@example.com"))).toEqual([]);
+  });
+
   it("refuses someone already in the ensemble, and a new email without a name", async () => {
     const admin = await createUser({ role: "admin" });
     const ensemble = await createEnsemble(admin!.id);

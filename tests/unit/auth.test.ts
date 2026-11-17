@@ -4,8 +4,35 @@ import {
   DUMMY_PASSWORD_HASH,
   hashPassword,
   hashToken,
+  NAME_MAX_LENGTH,
+  personNameError,
   verifyPassword,
 } from "../../src/lib/auth.ts";
+
+describe("personNameError", () => {
+  it.each(["Alice Smith", "Jean-Luc O'Brien Jr.", "José Ñ. de la Cruz", "Tom & Sue", "李小龙"])(
+    "accepts %s",
+    (name) => {
+      expect(personNameError(name)).toBeNull();
+    },
+  );
+
+  it.each([
+    "$3000 is waiting - GET > https://example.com/claim",
+    "telegra.ph/3000",
+    "visit www.example.com",
+    "<b>Bold</b>",
+    "me@example.com",
+    "C:\\path",
+  ])("refuses %s", (name) => {
+    expect(personNameError(name)).toMatch(/without links/);
+  });
+
+  it("refuses a name longer than the limit", () => {
+    expect(personNameError("a".repeat(NAME_MAX_LENGTH))).toBeNull();
+    expect(personNameError("a".repeat(NAME_MAX_LENGTH + 1))).toMatch(/at most/);
+  });
+});
 
 describe("hashPassword", () => {
   it("returns a bcrypt hash string", async () => {

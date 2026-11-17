@@ -29,8 +29,10 @@ export const profile = {
       name: z.string().min(1, "Name is required."),
       email: z.email("Invalid email address."),
       password: newPassword,
+      // Hidden from people; a bot that fills every field gives itself away.
+      homepage: z.string().optional(),
     }),
-    handler: async ({ name, email, password }, context) => {
+    handler: async ({ name, email, password, homepage }, context) => {
       // E2E runs register many accounts from localhost against a long-lived dev server
       if (!import.meta.env.DEV) {
         const ip = requestIp(context);
@@ -47,6 +49,8 @@ export const profile = {
         registrationsByIp.record(ip);
         registrationsSiteWide.record("all");
       }
+
+      if (homepage) return { email };
 
       try {
         await registerUser({ name, email, password });
