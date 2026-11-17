@@ -33,10 +33,10 @@ import {
 import { getEnsembleGroups } from "@lib/groups";
 import { formatDuration } from "@lib/format";
 import { formatZonedDate, formatZonedTime, instantToZonedInputs } from "@lib/timezone";
-import Timeline from "@containers/event/Timeline.astro";
 import Rsvp from "@containers/event/Rsvp.astro";
 import CheckIn from "@containers/event/CheckIn.astro";
 import Attendance from "@containers/event/Attendance.astro";
+import Program from "@containers/event/Program.astro";
 
 const user = Astro.locals.user!;
 
@@ -275,209 +275,20 @@ const programLabel = isPerformance ? "Set List" : "Rehearsal Plan";
     )}
   </Columns>
 
-  <Box class="mt-2">
-    <Title as="h2" size={4}>
-      <span class="icon-text">
-        <Icon
-          icon="fa-music"
-          color={
-            isPerformance ? "warning" : isSocial ? "success" : isSectional ? "info" : "primary"
-          }
-        />
-        <span>{programLabel}</span>
-      </span>
-    </Title>
-
-    <Timeline
-      eventId={event.id}
-      isPerformance={isPerformance}
-      scheduledAt={scheduledDate}
-      durationMinutes={event.durationMinutes}
-      timeZone={ensemble.timezone}
-    />
-
-    {programEntries.length === 0 ? (
-      <Notification color="info" light>
-        No items added yet.
-      </Notification>
-    ) : (
-      <table class="table is-fullwidth is-striped">
-        <thead>
-          <tr>
-            <th style="width: 40px;">#</th>
-            <th>Item</th>
-            <th>Composer</th>
-            {!isPerformance && <th style="width: 90px;">Minutes</th>}
-            <th>Notes</th>
-            {isAdmin && <th style="width: 100px;" />}
-          </tr>
-        </thead>
-        <tbody>
-          {programEntries.map((entry) => {
-            const isSong = entry.type === "song";
-            const displayName = isSong ? entry.name : entry.label;
-            return (
-              <tr>
-                <td class="has-text-grey">{entry.sortOrder}</td>
-                <td>
-                  <strong>{displayName}</strong>
-                  {!isSong && (
-                    <Tag
-                      size="small"
-                      color={entry.type === "break" ? "warning" : "info"}
-                      class="ml-2"
-                    >
-                      {entry.type === "break" ? "Break" : "Other"}
-                    </Tag>
-                  )}
-                </td>
-                <td class="has-text-grey">{isSong ? (entry.composer ?? "—") : ""}</td>
-                {!isPerformance && (
-                  <td class="has-text-grey">{entry.length ? `${entry.length} min` : "—"}</td>
-                )}
-                <td>
-                  <span class="has-text-grey is-size-7">{entry.notes ?? "—"}</span>
-                </td>
-                {isAdmin && (
-                  <td>
-                    <span class="is-flex is-align-items-center" style="gap: 0.4rem;">
-                      <button
-                        type="button"
-                        class="button is-small edit-entry-btn"
-                        title="Edit entry"
-                        data-entry-id={entry.entryId}
-                        data-type={entry.type}
-                        data-label={entry.label ?? ""}
-                        data-notes={entry.notes ?? ""}
-                        data-practice-minutes={entry.length ?? ""}
-                        data-sort-order={entry.sortOrder}
-                      >
-                        <Icon icon="fa-pencil" size="small" />
-                      </button>
-                      <form
-                        method="POST"
-                        action={actions.events.removeProgramSong}
-                        style="display: inline;"
-                      >
-                        <input type="hidden" name="ensembleId" value={ensemble.id} />
-                        <input type="hidden" name="programEntryId" value={entry.entryId} />
-                        <Button type="submit" color="danger" size="small">
-                          <Icon icon="fa-times" size="small" />
-                        </Button>
-                      </form>
-                    </span>
-                  </td>
-                )}
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    )}
-
-    {isAdmin && availableSeasonSongs.length > 0 && (
-      <form method="POST" action={actions.events.addProgramSong} class="mt-4">
-        <input type="hidden" name="ensembleId" value={ensemble.id} />
-        <input type="hidden" name="eventId" value={event.id} />
-
-        <Select name="songId" label="Song" size="small" fullwidth>
-          {availableSeasonSongs.map((s) => (
-            <option value={s.id}>
-              {s.name}
-              {s.composer ? ` — ${s.composer}` : ""}
-            </option>
-          ))}
-        </Select>
-
-        {!isPerformance && (
-          <TextInput
-            name="length"
-            label="Minutes (optional)"
-            type="number"
-            size="small"
-            min="1"
-            max="480"
-            placeholder="e.g. 15"
-          />
-        )}
-
-        <Textarea
-          name="notes"
-          label="Notes (optional)"
-          size="small"
-          rows={2}
-          placeholder="Rehearsal focus, cues, timing notes..."
-        />
-
-        <div class="field">
-          <div class="control">
-            <Button type="submit" color="primary">
-              <Icon icon="fa-plus" />
-              <span>Add to {programLabel}</span>
-            </Button>
-          </div>
-        </div>
-
-        <p class="help">Only songs from the current season's repertoire can be added.</p>
-      </form>
-    )}
-
-    {isAdmin && availableSeasonSongs.length === 0 && (
-      <p class="is-size-7 has-text-grey mt-3">
-        No more songs available from the current season's repertoire.
-        <a href={`/ensembles/${canonicalId}/songs`}> Add songs to the season</a> to see them here.
-      </p>
-    )}
-
-    {isAdmin && !isPerformance && (
-      <>
-        <hr />
-        <p class="label is-small">Add Break / Other Item</p>
-        <form method="POST" action={actions.events.addProgramItem}>
-          <input type="hidden" name="ensembleId" value={ensemble.id} />
-          <input type="hidden" name="eventId" value={event.id} />
-
-          <div class="field is-grouped">
-            <div class="control">
-              <Select name="type" label="Type" size="small" standalone>
-                <option value="break">Break</option>
-                <option value="other">Other</option>
-              </Select>
-            </div>
-            <div class="control is-expanded">
-              <TextInput
-                name="label"
-                label="Label"
-                type="text"
-                size="small"
-                placeholder="e.g. 15-min break, Announcements"
-                required
-                standalone
-              />
-            </div>
-            <div class="control">
-              <TextInput
-                name="length"
-                label="Minutes (optional)"
-                type="number"
-                size="small"
-                min="1"
-                max="480"
-                placeholder="e.g. 10"
-                standalone
-              />
-            </div>
-            <div class="control" style="align-self: flex-end;">
-              <Button type="submit" color="info" size="small">
-                <Icon icon="fa-plus" />
-                <span>Add</span>
-              </Button>
-            </div>
-          </div>
-        </form>
-      </>
-    )}
-  </Box>
+  <Program
+    ensembleId={ensemble.id}
+    canonicalId={canonicalId}
+    eventId={event.id}
+    isAdmin={isAdmin}
+    isPerformance={isPerformance}
+    programLabel={programLabel}
+    iconColor={categoryColor}
+    scheduledAt={scheduledDate}
+    durationMinutes={event.durationMinutes}
+    timeZone={ensemble.timezone}
+    programEntries={programEntries}
+    availableSeasonSongs={availableSeasonSongs}
+  />
 
   <!-- Edit Event Modal -->
   {isAdmin && (
