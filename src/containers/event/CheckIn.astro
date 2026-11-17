@@ -1,0 +1,124 @@
+---
+import { Box, Button, Icon, Image, Notification, TextInput, Title } from "astro-bulma";
+import { actions } from "astro:actions";
+
+interface Props {
+  ensembleId: string;
+  eventId: string;
+  isAdmin: boolean;
+  isPast: boolean;
+  isUserCheckedIn: boolean;
+  canCheckIn: boolean;
+  isTooEarly: boolean;
+  isTooLate: boolean;
+  checkInStartMinutes: number;
+  checkInEndMinutes: number;
+  checkInUrl: string;
+  qrCodeDataUrl: string;
+}
+
+const {
+  ensembleId,
+  eventId,
+  isAdmin,
+  isPast,
+  isUserCheckedIn,
+  canCheckIn,
+  isTooEarly,
+  isTooLate,
+  checkInStartMinutes,
+  checkInEndMinutes,
+  checkInUrl,
+  qrCodeDataUrl,
+} = Astro.props;
+---
+
+<Box>
+  <Title as="h2" size={4}>
+    Check-In
+  </Title>
+
+  {!isPast && (
+    <Notification color="info" light class="mb-4">
+      <p class="has-text-weight-semibold">Check-in Window:</p>
+      <p>Opens {checkInStartMinutes} minutes before event</p>
+      <p>Closes {checkInEndMinutes} minutes after event start</p>
+    </Notification>
+  )}
+
+  {!isPast && !isUserCheckedIn && canCheckIn && (
+    <form method="POST" action={actions.events.checkIn}>
+      <input type="hidden" name="ensembleId" value={ensembleId} />
+      <input type="hidden" name="eventId" value={eventId} />
+      <Button type="submit" color="primary" size="large" fullwidth>
+        <Icon icon="fa-check" />
+        <span>Check In Now</span>
+      </Button>
+    </form>
+  )}
+
+  {!isPast && !isUserCheckedIn && !canCheckIn && !isAdmin && (
+    <div>
+      <Button type="button" size="large" fullwidth disabled>
+        <Icon icon="fa-lock" />
+        <span>Check-in {isTooEarly ? "Not Yet Available" : "Closed"}</span>
+      </Button>
+      <p class="help mt-2 has-text-centered">
+        {isTooEarly && `Check-in opens ${checkInStartMinutes} minutes before event`}
+        {isTooLate && `Check-in closed ${checkInEndMinutes} minutes after event start`}
+      </p>
+    </div>
+  )}
+
+  {!isPast && !isUserCheckedIn && !canCheckIn && isAdmin && (
+    <form method="POST" action={actions.events.checkIn}>
+      <input type="hidden" name="ensembleId" value={ensembleId} />
+      <input type="hidden" name="eventId" value={eventId} />
+      <Button type="submit" color="warning" size="large" fullwidth>
+        <Icon icon="fa-user-shield" />
+        <span>Admin Check-In (Bypasses Time Window)</span>
+      </Button>
+    </form>
+  )}
+
+  {!isPast && isUserCheckedIn && (
+    <Notification color="success">
+      <p class="has-text-centered">
+        <Icon icon="fa-check-circle fa-2x" size="large" />
+      </p>
+      <p class="has-text-centered has-text-weight-bold">You're checked in!</p>
+    </Notification>
+  )}
+
+  {isPast && !isUserCheckedIn && (
+    <Notification color="warning">This event has passed and you did not check in.</Notification>
+  )}
+</Box>
+
+{isAdmin && (
+  <Box>
+    <Title as="h2" size={4}>
+      QR Code Check-In
+    </Title>
+    <p class="mb-4">Display this QR code for members to scan and check in</p>
+
+    <div class="has-text-centered">
+      <Image src={qrCodeDataUrl} alt="QR Code for check-in" class="is-inline-block" />
+    </div>
+
+    <div class="field mt-4">
+      <label class="label">Check-in URL</label>
+      <div class="control">
+        <TextInput
+          name="checkInUrl"
+          type="text"
+          value={checkInUrl}
+          class="is-family-monospace"
+          readonly
+          standalone
+        />
+      </div>
+      <p class="help">Members can scan the QR code or visit this URL to check in</p>
+    </div>
+  </Box>
+)}
