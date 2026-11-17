@@ -1,0 +1,71 @@
+---
+import { Button, Delete, TextInput, Textarea } from "astro-bulma";
+import { actions } from "astro:actions";
+
+interface Props {
+  ensembleId: string;
+  isPerformance: boolean;
+}
+
+const { ensembleId, isPerformance } = Astro.props;
+---
+
+<div class="modal" id="edit-entry-modal">
+  <div class="modal-background" />
+  <div class="modal-card">
+    <header class="modal-card-head">
+      <p class="modal-card-title">Edit Entry</p>
+      <Delete label="close" data-close-entry-modal />
+    </header>
+    <form id="edit-entry-form" method="POST" action={actions.events.updateProgramEntry}>
+      <section class="modal-card-body">
+        <input type="hidden" name="ensembleId" value={ensembleId} />
+        <input type="hidden" name="programEntryId" id="edit-entry-id" />
+        <div id="edit-entry-label-field">
+          <TextInput
+            name="label"
+            label="Label"
+            type="text"
+            id="edit-entry-label"
+            placeholder="e.g. 15-min break, Announcements"
+          />
+        </div>
+        <TextInput
+          name="sortOrder"
+          label="Order"
+          type="number"
+          id="edit-entry-sort-order"
+          min="1"
+          placeholder="1"
+        />
+        {!isPerformance && (
+          <TextInput
+            name="length"
+            label="Minutes"
+            type="number"
+            id="edit-entry-practice-minutes"
+            min="1"
+            max="480"
+            placeholder="e.g. 15"
+          />
+        )}
+        <Textarea
+          id="edit-entry-notes"
+          name="notes"
+          label="Notes"
+          rows={4}
+          placeholder="Rehearsal focus, cues, timing notes..."
+          help="Leave blank to clear notes."
+        />
+      </section>
+      <footer class="modal-card-foot">
+        <Button type="submit" color="primary">
+          Save
+        </Button>
+        <Button type="button" data-close-entry-modal>
+          Cancel
+        </Button>
+      </footer>
+    </form>
+  </div>
+</div>

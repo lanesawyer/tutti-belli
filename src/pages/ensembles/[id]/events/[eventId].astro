@@ -5,16 +5,11 @@ import {
   Column,
   Columns,
   Content,
-  Delete,
   Icon,
-  Image,
   Level,
   Notification,
-  Select,
   Subtitle,
   Tag,
-  TextInput,
-  Textarea,
   Title,
 } from "astro-bulma";
 import BaseLayout from "@layouts/BaseLayout.astro";
@@ -32,11 +27,13 @@ import {
 } from "@lib/events";
 import { getEnsembleGroups } from "@lib/groups";
 import { formatDuration } from "@lib/format";
-import { formatZonedDate, formatZonedTime, instantToZonedInputs } from "@lib/timezone";
+import { formatZonedDate, formatZonedTime } from "@lib/timezone";
 import Rsvp from "@containers/event/Rsvp.astro";
 import CheckIn from "@containers/event/CheckIn.astro";
 import Attendance from "@containers/event/Attendance.astro";
 import Program from "@containers/event/Program.astro";
+import EditEventModal from "@containers/event/EditEventModal.astro";
+import EditEntryModal from "@containers/event/EditEntryModal.astro";
 
 const user = Astro.locals.user!;
 
@@ -116,9 +113,6 @@ const scheduledDate = new Date(event.scheduledAt);
 const endTime = new Date(scheduledDate.getTime() + event.durationMinutes * 60 * 1000);
 const isPast = endTime < new Date();
 const isUserCheckedIn = attendedUserIds.has(user.id);
-
-// Prepare date/time for form inputs
-const { date: dateValue, time: timeValue } = instantToZonedInputs(scheduledDate, ensemble.timezone);
 
 const isPerformance = event.category === "performance";
 const isSocial = event.category === "social";
@@ -292,181 +286,16 @@ const programLabel = isPerformance ? "Set List" : "Rehearsal Plan";
 
   <!-- Edit Event Modal -->
   {isAdmin && (
-    <div class="modal" id="edit-modal">
-      <div class="modal-background" />
-      <div class="modal-card">
-        <header class="modal-card-head">
-          <p class="modal-card-title">Edit Event</p>
-          <Delete label="close" id="close-edit-modal" />
-        </header>
-        <form method="POST" action={actions.events.edit}>
-          <section class="modal-card-body">
-            <input type="hidden" name="ensembleId" value={ensemble.id} />
-            <input type="hidden" name="eventId" value={event.id} />
-
-            <TextInput name="title" id="edit-title" label="Title" value={event.title} required />
-
-            <Textarea
-              id="edit-description"
-              name="description"
-              label="Description"
-              rows={3}
-              value={event.description || ""}
-            />
-
-            <Columns>
-              <Column size={4}>
-                <TextInput
-                  name="date"
-                  id="edit-date"
-                  label="Date"
-                  type="date"
-                  value={dateValue}
-                  required
-                />
-              </Column>
-              <Column size={4}>
-                <TextInput
-                  name="time"
-                  id="edit-time"
-                  label="Time"
-                  type="time"
-                  value={timeValue}
-                  required
-                  help={ensemble.timezone.replaceAll("_", " ")}
-                />
-              </Column>
-              <Column size={4}>
-                <TextInput
-                  name="durationMinutes"
-                  id="edit-duration"
-                  label="Duration (min)"
-                  type="number"
-                  value={event.durationMinutes}
-                  min="15"
-                  max="480"
-                  required
-                />
-              </Column>
-            </Columns>
-
-            <TextInput
-              name="location"
-              id="edit-location"
-              label="Location"
-              value={event.location || ""}
-            />
-
-            {groups.length > 0 && (
-              <Select
-                id="edit-groupId"
-                name="groupId"
-                label="Group (optional)"
-                fullwidth
-                help="Restrict attendance tracking to this group's members."
-              >
-                <option value="">— All Members —</option>
-                {groups.map((g) => (
-                  <option value={g.id} selected={event.groupId === g.id}>
-                    {g.name}
-                  </option>
-                ))}
-              </Select>
-            )}
-
-            <Select
-              id="edit-rsvpEnabled"
-              name="rsvpEnabled"
-              label="RSVP"
-              fullwidth
-              help="Whether members can RSVP for this event."
-            >
-              <option value="" selected={event.rsvpEnabled === null}>
-                Default (based on type)
-              </option>
-              <option value="1" selected={event.rsvpEnabled === 1}>
-                Enabled
-              </option>
-              <option value="0" selected={event.rsvpEnabled === 0}>
-                Disabled
-              </option>
-            </Select>
-          </section>
-          <footer class="modal-card-foot">
-            <Button color="primary" type="submit">
-              Save Changes
-            </Button>
-            <Button type="button" id="cancel-edit">
-              Cancel
-            </Button>
-          </footer>
-        </form>
-      </div>
-    </div>
+    <EditEventModal
+      ensembleId={ensemble.id}
+      event={event}
+      groups={groups}
+      timeZone={ensemble.timezone}
+    />
   )}
 
   <!-- Edit Entry Modal -->
-  {isAdmin && (
-    <div class="modal" id="edit-entry-modal">
-      <div class="modal-background" />
-      <div class="modal-card">
-        <header class="modal-card-head">
-          <p class="modal-card-title">Edit Entry</p>
-          <Delete label="close" data-close-entry-modal />
-        </header>
-        <form id="edit-entry-form" method="POST" action={actions.events.updateProgramEntry}>
-          <section class="modal-card-body">
-            <input type="hidden" name="ensembleId" value={ensemble.id} />
-            <input type="hidden" name="programEntryId" id="edit-entry-id" />
-            <div id="edit-entry-label-field">
-              <TextInput
-                name="label"
-                label="Label"
-                type="text"
-                id="edit-entry-label"
-                placeholder="e.g. 15-min break, Announcements"
-              />
-            </div>
-            <TextInput
-              name="sortOrder"
-              label="Order"
-              type="number"
-              id="edit-entry-sort-order"
-              min="1"
-              placeholder="1"
-            />
-            {!isPerformance && (
-              <TextInput
-                name="length"
-                label="Minutes"
-                type="number"
-                id="edit-entry-practice-minutes"
-                min="1"
-                max="480"
-                placeholder="e.g. 15"
-              />
-            )}
-            <Textarea
-              id="edit-entry-notes"
-              name="notes"
-              label="Notes"
-              rows={4}
-              placeholder="Rehearsal focus, cues, timing notes..."
-              help="Leave blank to clear notes."
-            />
-          </section>
-          <footer class="modal-card-foot">
-            <Button type="submit" color="primary">
-              Save
-            </Button>
-            <Button type="button" data-close-entry-modal>
-              Cancel
-            </Button>
-          </footer>
-        </form>
-      </div>
-    </div>
-  )}
+  {isAdmin && <EditEntryModal ensembleId={ensemble.id} isPerformance={isPerformance} />}
 
   <script>
     document.addEventListener("astro:page-load", () => {
