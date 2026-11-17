@@ -14,6 +14,18 @@ export interface SessionPayload {
   sessionVersion: number;
 }
 
+/** The User columns a request carries in `locals.user`: never the password hash. */
+export const sessionUserColumns = {
+  id: User.id,
+  email: User.email,
+  name: User.name,
+  avatarUrl: User.avatarUrl,
+  phone: User.phone,
+  role: User.role,
+};
+
+export type SessionUser = Pick<typeof User.$inferSelect, keyof typeof sessionUserColumns>;
+
 const SESSION_MAX_AGE = 60 * 60 * 24 * 30;
 
 export function createSession(userId: string, sessionVersion: number): string {
@@ -93,10 +105,14 @@ export async function getUserFromSession(token: string | undefined) {
 }
 
 /** The user a verified session belongs to, or null if it was revoked. */
-export async function getSessionUser(session: SessionPayload | null) {
+export async function getSessionUser(session: SessionPayload | null): Promise<SessionUser | null> {
   if (!session) return null;
 
-  const [user] = await db.select().from(User).where(eq(User.id, session.userId));
-  if (!user || session.sessionVersion !== user.sessionVersion) return null;
+  const [row] = await db
+    .select({ ...sessionUserColumns, sessionVersion: User.sessionVersion })
+    .from(User)
+    .where(eq(User.id, session.userId));
+  if (!row || session.sessionVersion !== row.sessionVersion) return null;
+  const { sessionVersion: _, ...user } = row;
   return user;
 }

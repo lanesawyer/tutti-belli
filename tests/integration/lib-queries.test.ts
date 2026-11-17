@@ -194,6 +194,41 @@ describe("getUpcomingEvents", () => {
     );
   });
 
+  it("keeps an event until it ends and applies the limit after the group filter", async () => {
+    const admin = await createUser();
+    const member = await createUser();
+    const ensemble = await createEnsemble(admin!.id);
+    const season = await createSeason(ensemble!.id);
+    const other = await createGroup(ensemble!.id, { name: "Other" });
+    const running = await createEvent(ensemble!.id, season!.id, {
+      title: "Running",
+      scheduledAt: new Date(Date.now() - 7 * HOUR),
+      durationMinutes: 480,
+    });
+    await createEvent(ensemble!.id, season!.id, {
+      title: "Just ended",
+      scheduledAt: new Date(Date.now() - 2 * HOUR),
+      durationMinutes: 90,
+    });
+    await createEvent(ensemble!.id, season!.id, {
+      title: "Theirs",
+      scheduledAt: new Date(Date.now() + HOUR),
+      groupId: other!.id,
+    });
+    const next = await createEvent(ensemble!.id, season!.id, {
+      title: "Next",
+      scheduledAt: new Date(Date.now() + 2 * HOUR),
+    });
+
+    const forMember = await getUpcomingEvents({
+      ensembleId: ensemble!.id,
+      userId: member!.id,
+      isAdmin: false,
+      limit: 2,
+    });
+    expect(forMember.events.map((e) => e.id)).toEqual([running!.id, next!.id]);
+  });
+
   it("attaches each event program in order", async () => {
     const admin = await createUser();
     const ensemble = await createEnsemble(admin!.id);

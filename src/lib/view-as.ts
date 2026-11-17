@@ -1,6 +1,6 @@
 import { db, eq, User } from "@db";
 import { isSiteAdmin } from "./permissions";
-import { readViewAsToken } from "./session";
+import { readViewAsToken, sessionUserColumns, type SessionUser } from "./session";
 
 export const VIEW_AS_COOKIE = "view_as";
 
@@ -16,9 +16,14 @@ export function canViewAs(
  * The user a view-as cookie points at, if the cookie is valid for this signed-in site admin.
  * Anything else (expired, forged, another admin's cookie, a site admin as the target) returns null.
  */
-export async function resolveViewAs(token: string, realUser: { id: string; role: string }) {
+export async function resolveViewAs(
+  token: string,
+  realUser: { id: string; role: string },
+): Promise<SessionUser | null> {
   const payload = readViewAsToken(token);
   if (!payload || payload.adminId !== realUser.id) return null;
-  const target = (await db.select().from(User).where(eq(User.id, payload.targetId)).get()) ?? null;
+  const target =
+    (await db.select(sessionUserColumns).from(User).where(eq(User.id, payload.targetId)).get()) ??
+    null;
   return target && canViewAs(realUser, target) ? target : null;
 }

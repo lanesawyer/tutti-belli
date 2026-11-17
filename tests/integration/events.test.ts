@@ -784,7 +784,7 @@ describe("getEventPageData — RSVP records", () => {
 
     await setRsvp(event!.id, member!.id, "yes");
 
-    const { rsvpRecords } = await getEventPageData(ensemble!.id, event!.id);
+    const { rsvpRecords } = await getEventPageData(ensemble!.id, event!);
 
     expect(rsvpRecords).toHaveLength(1);
     expect(rsvpRecords[0].userId).toBe(member!.id);
@@ -804,7 +804,7 @@ describe("getEventPageData — group scoping", () => {
     const season = await createSeason(ensemble!.id);
     const event = await createEvent(ensemble!.id, season!.id); // no groupId
 
-    const { allMembers, group } = await getEventPageData(ensemble!.id, event!.id);
+    const { allMembers, group } = await getEventPageData(ensemble!.id, event!);
 
     expect(allMembers).toHaveLength(3);
     expect(group).toBeNull();
@@ -827,7 +827,7 @@ describe("getEventPageData — group scoping", () => {
     const season = await createSeason(ensemble!.id);
     const event = await createEvent(ensemble!.id, season!.id, { groupId: grp!.id });
 
-    const { allMembers, group } = await getEventPageData(ensemble!.id, event!.id);
+    const { allMembers, group } = await getEventPageData(ensemble!.id, event!);
 
     expect(allMembers).toHaveLength(2);
     expect(allMembers.map((m) => m.id)).toContain(admin!.id);
@@ -847,7 +847,7 @@ describe("getEventPageData — group scoping", () => {
     const season = await createSeason(ensemble!.id);
     const event = await createEvent(ensemble!.id, season!.id, { groupId: grp!.id });
 
-    const { allMembers } = await getEventPageData(ensemble!.id, event!.id);
+    const { allMembers } = await getEventPageData(ensemble!.id, event!);
 
     expect(allMembers).toHaveLength(1);
     expect(allMembers[0].id).toBe(admin!.id);
@@ -870,7 +870,10 @@ describe("getEventPageData — group scoping", () => {
     await db.update(Event).set({ groupId: "deleted-group-id" }).where(eq(Event.id, event!.id));
     await db.run("PRAGMA foreign_keys = ON");
 
-    const { allMembers, group } = await getEventPageData(ensemble!.id, event!.id);
+    const { allMembers, group } = await getEventPageData(ensemble!.id, {
+      ...event!,
+      groupId: "deleted-group-id",
+    });
 
     expect(group).toBeNull();
     expect(allMembers).toHaveLength(2);
@@ -886,17 +889,5 @@ describe("getEvent", () => {
 
     expect((await getEvent(a!.id, event!.id))?.id).toBe(event!.id);
     expect(await getEvent(b!.id, event!.id)).toBeNull();
-  });
-});
-
-describe("getEventPageData — ensemble scoping", () => {
-  it("returns no event when it belongs to another ensemble", async () => {
-    const admin = await createUser({ role: "admin" });
-    const a = await createEnsemble(admin!.id);
-    const b = await createEnsemble(admin!.id);
-    const event = await createEvent(a!.id, (await createSeason(a!.id))!.id);
-
-    const { event: found } = await getEventPageData(b!.id, event!.id);
-    expect(found).toBeNull();
   });
 });
