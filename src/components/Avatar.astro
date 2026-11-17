@@ -1,0 +1,39 @@
+---
+import { Image } from "astro-bulma";
+import { getInitials, getColorFromInitials } from "@lib/avatar";
+
+type Size = 32 | 48 | 96;
+
+interface Props {
+  name: string;
+  avatarUrl?: string | null;
+  size: Size;
+  class?: string;
+}
+
+const imageSizes = { 32: "32x32", 48: "48x48", 96: "96x96" } as const;
+const fontSizes: Record<Size, string> = { 32: "0.75rem", 48: "1.25rem", 96: "2rem" };
+
+const { name, avatarUrl, size, class: className } = Astro.props;
+const initials = getInitials(name);
+const figureClass = [`image is-${imageSizes[size]}`, className].filter(Boolean).join(" ");
+---
+
+{avatarUrl ? (
+  <Image
+    src={avatarUrl}
+    alt={name}
+    size={imageSizes[size]}
+    rounded
+    class={className}
+    imgStyle="object-fit: cover;"
+  />
+) : (
+  <figure class={figureClass}>
+    <div
+      style={`width: ${size}px; height: ${size}px; border-radius: 50%; background-color: ${getColorFromInitials(initials)}; display: flex; align-items: center; justify-content: center; color: white; font-size: ${fontSizes[size]}; font-weight: bold;`}
+    >
+      {initials}
+    </div>
+  </figure>
+)}

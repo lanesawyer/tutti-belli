@@ -1,8 +1,8 @@
 ---
 import { getPendingMembers } from "@lib/ensemble";
 import { actions } from "astro:actions";
-import { Box, Button, Content, Icon, Image, Media, Title } from "astro-bulma";
-import { getInitials, getColorFromInitials } from "@lib/avatar";
+import { Box, Button, Content, Icon, Media, Title } from "astro-bulma";
+import Avatar from "@components/Avatar.astro";
 
 interface Props {
   ensembleId: string;
@@ -29,23 +29,7 @@ if (pendingMembers.length === 0) return;
       <Box class="p-2 mb-2">
         <Media>
           <Fragment slot="left">
-            {member.avatarUrl ? (
-              <Image
-                src={member.avatarUrl}
-                alt={member.name}
-                size="32x32"
-                rounded
-                imgStyle="object-fit: cover;"
-              />
-            ) : (
-              <figure class="image is-32x32">
-                <div
-                  style={`width: 32px; height: 32px; border-radius: 50%; background-color: ${getColorFromInitials(getInitials(member.name))}; display: flex; align-items: center; justify-content: center; color: white; font-size: 0.75rem; font-weight: bold;`}
-                >
-                  {getInitials(member.name)}
-                </div>
-              </figure>
-            )}
+            <Avatar name={member.name} avatarUrl={member.avatarUrl} size={32} />
           </Fragment>
           <p class="is-size-7 has-text-weight-semibold pending-wrap">{member.name}</p>
           <p class="is-size-7 has-text-grey pending-wrap">{member.email}</p>
