@@ -13,34 +13,29 @@ import {
 } from "astro-bulma";
 import EnsemblePageLayout from "@layouts/EnsemblePageLayout.astro";
 import { getSongDetailData, formatRuntime } from "@lib/songs";
-import { getEnsembleAccess } from "@lib/ensemble";
+import { loadEnsemblePage } from "@lib/ensemble";
 import SongPdfFile from "@components/song/SongPdfFile.astro";
 import SongAudioFile from "@components/song/SongAudioFile.astro";
 import SongLinkFile from "@components/song/SongLinkFile.astro";
-import { getEnsembleUrlId } from "@lib/slug";
 import { actions } from "astro:actions";
 
 const user = Astro.locals.user!;
-const { id, songId } = Astro.params;
+const { songId } = Astro.params;
 
-const { ensemble, song, parts, seasons, songPartsData, seasonSongsData, songFiles } =
-  await getSongDetailData(id!, songId!);
+const page = await loadEnsemblePage(user, {
+  id: Astro.params.id,
+  method: Astro.request.method,
+  pathname: Astro.url.pathname,
+});
+if (page.response) return page.response;
+const { ensemble, canonicalId, isAdmin } = page;
 
-if (!ensemble) return new Response("Ensemble not found", { status: 404 });
+const { song, parts, seasons, songPartsData, seasonSongsData, songFiles } = await getSongDetailData(
+  ensemble.id,
+  songId!,
+);
 if (!song || song.ensembleId !== ensemble.id)
   return new Response("Song not found", { status: 404 });
-
-const canonicalId = getEnsembleUrlId(ensemble);
-if (id !== canonicalId) {
-  return Astro.redirect(
-    Astro.url.pathname.replace(`/ensembles/${id}`, `/ensembles/${canonicalId}`),
-    301,
-  );
-}
-
-const access = await getEnsembleAccess(user, ensemble.id);
-if (!access) return Astro.redirect("/ensembles");
-const { isAdmin } = access;
 
 const deleteFileResult = Astro.getActionResult(actions.songs.deleteFile);
 if (deleteFileResult && !deleteFileResult.error) {

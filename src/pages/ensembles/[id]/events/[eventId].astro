@@ -21,8 +21,7 @@ import BaseLayout from "@layouts/BaseLayout.astro";
 import { actions } from "astro:actions";
 import QRCode from "qrcode";
 import { ensembleAdminTools } from "@lib/config";
-import { getEnsembleBySlugOrId, getEnsembleAccess } from "@lib/ensemble";
-import { getEnsembleUrlId } from "@lib/slug";
+import { loadEnsemblePage } from "@lib/ensemble";
 import { siteLink } from "@lib/site-url";
 import {
   getEvent,
@@ -38,31 +37,15 @@ import Timeline from "@containers/event/Timeline.astro";
 
 const user = Astro.locals.user!;
 
-const { id, eventId } = Astro.params;
-if (!id || !eventId) {
-  return Astro.redirect("/ensembles");
-}
+const page = await loadEnsemblePage(user, {
+  id: Astro.params.id,
+  method: Astro.request.method,
+  pathname: Astro.url.pathname,
+});
+if (page.response) return page.response;
+const { ensemble, canonicalId, isAdmin } = page;
 
-const ensemble = await getEnsembleBySlugOrId(id);
-if (!ensemble) {
-  return Astro.redirect("/ensembles");
-}
-
-const canonicalId = getEnsembleUrlId(ensemble);
-if (Astro.request.method === "GET" && id !== canonicalId) {
-  return Astro.redirect(
-    Astro.url.pathname.replace(`/ensembles/${id}`, `/ensembles/${canonicalId}`),
-    301,
-  );
-}
-
-const [access, event] = await Promise.all([
-  getEnsembleAccess(user, ensemble.id),
-  getEvent(ensemble.id, eventId),
-]);
-if (!access) return Astro.redirect("/ensembles");
-const { isAdmin } = access;
-
+const event = await getEvent(ensemble.id, Astro.params.eventId!);
 if (!event) {
   return Astro.redirect(`/ensembles/${canonicalId}/events`);
 }

@@ -16,40 +16,22 @@ import {
 } from "astro-bulma";
 import EnsemblePageLayout from "@layouts/EnsemblePageLayout.astro";
 import { actions } from "astro:actions";
-import { canManageEnsemble } from "@lib/permissions";
 import {
-  getEnsembleBySlugOrId,
-  getEnsembleMembership,
+  loadEnsemblePage,
   getActiveSeasonForEnsemble,
   getActiveEnsembleMembers,
 } from "@lib/ensemble";
-import { getEnsembleUrlId } from "@lib/slug";
 import { getEnsembleTasks, getTaskCompletionsForEnsemble } from "@lib/tasks";
 
 const user = Astro.locals.user!;
 
-const { id } = Astro.params;
-const ensemble = await getEnsembleBySlugOrId(id!);
-
-if (!ensemble) {
-  return new Response("Ensemble not found", { status: 404 });
-}
-
-const canonicalId = getEnsembleUrlId(ensemble);
-if (Astro.request.method === "GET" && id !== canonicalId) {
-  return Astro.redirect(
-    Astro.url.pathname.replace(`/ensembles/${id}`, `/ensembles/${canonicalId}`),
-    301,
-  );
-}
-
-const membership = await getEnsembleMembership(ensemble.id, user.id);
-
-const isAdmin = canManageEnsemble(user, membership);
-
-if (!isAdmin) {
-  return new Response("Forbidden", { status: 403 });
-}
+const page = await loadEnsemblePage(
+  user,
+  { id: Astro.params.id, method: Astro.request.method, pathname: Astro.url.pathname },
+  { adminOnly: true },
+);
+if (page.response) return page.response;
+const { ensemble, canonicalId, isAdmin } = page;
 
 // Action results
 const createResult = Astro.getActionResult(actions.tasks.createTask);

@@ -14,8 +14,7 @@ import {
 } from "astro-bulma";
 import type { Color } from "@lib/bulma";
 import { actions } from "astro:actions";
-import { getEnsembleBySlugOrId, getEnsembleAccess } from "@lib/ensemble";
-import { getEnsembleUrlId } from "@lib/slug";
+import { loadEnsemblePage } from "@lib/ensemble";
 import {
   getEnsembleGroups,
   getGroupMembershipsWithUsers,
@@ -24,24 +23,13 @@ import {
 
 const user = Astro.locals.user!;
 
-const { id } = Astro.params;
-const ensemble = await getEnsembleBySlugOrId(id!);
-
-if (!ensemble) {
-  return new Response("Ensemble not found", { status: 404 });
-}
-
-const canonicalId = getEnsembleUrlId(ensemble);
-if (Astro.request.method === "GET" && id !== canonicalId) {
-  return Astro.redirect(
-    Astro.url.pathname.replace(`/ensembles/${id}`, `/ensembles/${canonicalId}`),
-    301,
-  );
-}
-
-const access = await getEnsembleAccess(user, ensemble.id);
-if (!access) return new Response("Unauthorized - Not a member", { status: 403 });
-const { isAdmin } = access;
+const page = await loadEnsemblePage(user, {
+  id: Astro.params.id,
+  method: Astro.request.method,
+  pathname: Astro.url.pathname,
+});
+if (page.response) return page.response;
+const { ensemble, canonicalId, isAdmin } = page;
 
 const createResult = Astro.getActionResult(actions.groups.create);
 const updateResult = Astro.getActionResult(actions.groups.update);
