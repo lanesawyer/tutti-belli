@@ -350,8 +350,10 @@ const membershipsBySeasonId = seasonMemberships.reduce(
             const seasonMembers = membershipsBySeasonId[seasonId] || [];
             const memberUserIds = new Set(seasonMembers.map((m) => m.userId));
 
-            document.querySelectorAll<HTMLInputElement>(".member-checkbox").forEach((checkbox) => {
-              checkbox.checked = memberUserIds.has(checkbox.getAttribute("data-user-id") ?? "");
+            document.querySelectorAll(".member-checkbox").forEach((checkbox) => {
+              checkbox.querySelector("input")!.checked = memberUserIds.has(
+                checkbox.getAttribute("data-user-id") ?? "",
+              );
             });
 
             document.getElementById("members-modal")?.classList.add("is-active");
