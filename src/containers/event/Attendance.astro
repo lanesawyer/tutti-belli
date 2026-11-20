@@ -1,0 +1,155 @@
+---
+import { Box, Button, Icon, Notification, Tag, Title } from "astro-bulma";
+import { actions } from "astro:actions";
+import type { getEventPageData } from "@lib/events";
+import { formatZonedTime } from "@lib/timezone";
+
+type EventPageData = Awaited<ReturnType<typeof getEventPageData>>;
+
+interface Props {
+  ensembleId: string;
+  eventId: string;
+  timeZone: string;
+  rsvpOn: boolean;
+  group: EventPageData["group"];
+  allMembers: EventPageData["allMembers"];
+  attendanceRecords: EventPageData["attendanceRecords"];
+  rsvpRecords: EventPageData["rsvpRecords"];
+}
+
+const { ensembleId, eventId, timeZone, rsvpOn, group, allMembers, attendanceRecords, rsvpRecords } =
+  Astro.props;
+
+const attendanceByUserId = new Map(attendanceRecords.map((a) => [a.userId, a]));
+const rsvpByUserId = new Map(rsvpRecords.map((r) => [r.userId, r.response as "yes" | "no"]));
+
+const rsvpYesCount = rsvpRecords.filter((r) => r.response === "yes").length;
+const rsvpNoCount = rsvpRecords.filter((r) => r.response === "no").length;
+const rsvpNoResponseCount = allMembers.length - rsvpYesCount - rsvpNoCount;
+---
+
+<Box>
+  <Title as="h2" size={4}>
+    Attendance ({attendanceRecords.length} / {allMembers.length})
+    {group && (
+      <Tag color={group.color as any} size="small" class="ml-2">
+        {group.name}
+      </Tag>
+    )}
+  </Title>
+
+  {rsvpOn && (
+    <div class="tags mb-3">
+      <Tag color="success">
+        <Icon icon="fa-check" size="small" class="mr-1" />
+        Attending: {rsvpYesCount}
+      </Tag>
+      <Tag color="danger">
+        <Icon icon="fa-times" size="small" class="mr-1" />
+        Not Attending: {rsvpNoCount}
+      </Tag>
+      <Tag>No Response: {rsvpNoResponseCount}</Tag>
+    </div>
+  )}
+
+  {allMembers.length > 0 ? (
+    <table class="table is-fullwidth is-striped is-size-7">
+      <thead>
+        <tr>
+          <th>Name</th>
+          {rsvpOn && <th>RSVP</th>}
+          <th>Checked In</th>
+          <th>Method</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {allMembers.map((member) => {
+          const attendance = attendanceByUserId.get(member.id);
+          const memberRsvp = rsvpByUserId.get(member.id) ?? null;
+          return (
+            <tr>
+              <td>{member.name}</td>
+              {rsvpOn && (
+                <td>
+                  {memberRsvp === "yes" ? (
+                    <Tag color="success" size="small">
+                      Yes
+                    </Tag>
+                  ) : memberRsvp === "no" ? (
+                    <Tag color="danger" size="small">
+                      No
+                    </Tag>
+                  ) : (
+                    <span class="has-text-grey-light">—</span>
+                  )}
+                </td>
+              )}
+              <td>
+                {attendance ? (
+                  formatZonedTime(new Date(attendance.checkedInAt), timeZone)
+                ) : (
+                  <span class="has-text-grey-light">—</span>
+                )}
+              </td>
+              <td>
+                {attendance ? (
+                  <Tag
+                    size="small"
+                    color={
+                      attendance.checkedInMethod === "qr"
+                        ? "success"
+                        : attendance.checkedInMethod === "manual"
+                          ? "info"
+                          : "warning"
+                    }
+                  >
+                    {attendance.checkedInMethod === "qr"
+                      ? "QR Scan"
+                      : attendance.checkedInMethod === "manual"
+                        ? "Manual"
+                        : "Admin"}
+                  </Tag>
+                ) : (
+                  <span class="has-text-grey-light">—</span>
+                )}
+              </td>
+              <td>
+                {attendance ? (
+                  <form
+                    method="POST"
+                    action={actions.events.removeAttendance}
+                    style="display: inline;"
+                  >
+                    <input type="hidden" name="ensembleId" value={ensembleId} />
+                    <input type="hidden" name="attendanceId" value={attendance.id} />
+                    <Button type="submit" color="danger" size="small">
+                      Remove
+                    </Button>
+                  </form>
+                ) : (
+                  <form
+                    method="POST"
+                    action={actions.events.addAttendance}
+                    style="display: inline;"
+                  >
+                    <input type="hidden" name="ensembleId" value={ensembleId} />
+                    <input type="hidden" name="eventId" value={eventId} />
+                    <input type="hidden" name="userId" value={member.id} />
+                    <Button type="submit" color="success" size="small">
+                      Mark Present
+                    </Button>
+                  </form>
+                )}
+              </td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
+  ) : (
+    <Notification color="info" light>
+      No members found for this event.
+    </Notification>
+  )}
+</Box>

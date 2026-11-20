@@ -1,0 +1,89 @@
+---
+import { Box, Button, Icon, Notification, Title } from "astro-bulma";
+import { actions } from "astro:actions";
+
+interface Props {
+  ensembleId: string;
+  eventId: string;
+  userRsvp: "yes" | "no" | null;
+}
+
+const { ensembleId, eventId, userRsvp } = Astro.props;
+---
+
+<Box>
+  <Title as="h2" size={4}>
+    RSVP
+  </Title>
+  {userRsvp === "yes" ? (
+    <>
+      <Notification color="success" light>
+        <Icon icon="fa-check-circle" /> You're planning to attend!
+      </Notification>
+      <div class="buttons">
+        <form method="POST" action={actions.events.rsvp}>
+          <input type="hidden" name="ensembleId" value={ensembleId} />
+          <input type="hidden" name="eventId" value={eventId} />
+          <input type="hidden" name="response" value="no" />
+          <Button type="submit" color="danger" size="small">
+            Change to Not Attending
+          </Button>
+        </form>
+        <form method="POST" action={actions.events.removeRsvp}>
+          <input type="hidden" name="ensembleId" value={ensembleId} />
+          <input type="hidden" name="eventId" value={eventId} />
+          <Button type="submit" size="small">
+            Remove RSVP
+          </Button>
+        </form>
+      </div>
+    </>
+  ) : userRsvp === "no" ? (
+    <>
+      <Notification color="warning" light>
+        <Icon icon="fa-times-circle" /> You've marked yourself as not attending.
+      </Notification>
+      <div class="buttons">
+        <form method="POST" action={actions.events.rsvp}>
+          <input type="hidden" name="ensembleId" value={ensembleId} />
+          <input type="hidden" name="eventId" value={eventId} />
+          <input type="hidden" name="response" value="yes" />
+          <Button type="submit" color="success" size="small">
+            Change to Attending
+          </Button>
+        </form>
+        <form method="POST" action={actions.events.removeRsvp}>
+          <input type="hidden" name="ensembleId" value={ensembleId} />
+          <input type="hidden" name="eventId" value={eventId} />
+          <Button type="submit" size="small">
+            Remove RSVP
+          </Button>
+        </form>
+      </div>
+    </>
+  ) : (
+    <>
+      <p class="mb-3">Will you attend this event?</p>
+      <div class="buttons">
+        <form method="POST" action={actions.events.rsvp}>
+          <input type="hidden" name="ensembleId" value={ensembleId} />
+          <input type="hidden" name="eventId" value={eventId} />
+          <input type="hidden" name="response" value="yes" />
+          <Button type="submit" color="success">
+            <Icon icon="fa-check" />
+            <span>Yes, I'll attend</span>
+          </Button>
+        </form>
+        <form method="POST" action={actions.events.rsvp}>
+          <input type="hidden" name="ensembleId" value={ensembleId} />
+          <input type="hidden" name="eventId" value={eventId} />
+          <input type="hidden" name="response" value="no" />
+          <Button type="submit" color="danger">
+            <Icon icon="fa-times" />
+            <span>No, I can't make it</span>
+          </Button>
+        </form>
+      </div>
+    </>
+  )}
+</Box>
