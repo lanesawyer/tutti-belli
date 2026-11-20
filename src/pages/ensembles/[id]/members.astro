@@ -1,23 +1,7 @@
 ---
-import {
-  Box,
-  Breadcrumb,
-  Button,
-  Container,
-  Icon,
-  Level,
-  Modal,
-  Notification,
-  Section,
-  Select,
-  Subtitle,
-  Table,
-  TextInput,
-  Title,
-} from "astro-bulma";
-import BaseLayout from "@layouts/BaseLayout.astro";
+import { Box, Button, Icon, Modal, Notification, Select, Table, TextInput } from "astro-bulma";
+import EnsemblePageLayout from "@layouts/EnsemblePageLayout.astro";
 import { actions } from "astro:actions";
-import { ensembleAdminTools } from "@lib/config";
 import MemberRow from "@components/MemberRow.astro";
 import {
   loadEnsemblePage,
@@ -81,225 +65,186 @@ const membersWithoutPart = membersData.filter((m) => !membersWithPartIds.has(m.m
 const members = membersData;
 ---
 
-<BaseLayout title={`Manage Members - ${ensemble.name}`}>
-  <div class="navbar-item has-dropdown is-hoverable" slot="navbar-start">
-    <a class="navbar-link">{ensemble.name}</a>
-    <div class="navbar-dropdown">
-      <a
-        class={`navbar-item${Astro.url.pathname === `/ensembles/${canonicalId}` ? " is-active" : ""}`}
-        href={`/ensembles/${canonicalId}`}
-      >
-        <Icon icon="fa-home" size="small" class="mr-1" />
-        Dashboard
-      </a>
-      <hr class="navbar-divider" />
-      {ensembleAdminTools.map((tool) => {
-        const href = tool.href(canonicalId);
-        return (
-          <a
-            class={`navbar-item${Astro.url.pathname.startsWith(href) ? " is-active" : ""}`}
-            href={href}
-          >
-            <Icon icon={tool.icon} size="small" class="mr-1" />
-            {tool.label}
-          </a>
-        );
-      })}
+<EnsemblePageLayout
+  title={`Manage Members - ${ensemble.name}`}
+  ensembleName={ensemble.name}
+  ensembleId={canonicalId}
+  pageTitle="Manage Members"
+  pageSubtitle={`Total Members: ${members.length}`}
+  isAdmin
+>
+  <Fragment slot="action">
+    {canAddMembers && (
+      <div class="level-item">
+        <Button color="primary" id="add-member-btn">
+          <Icon icon="fa-user-plus" />
+          <span>Add Member</span>
+        </Button>
+      </div>
+    )}
+    <div class="level-item">
+      <Button href={`/ensembles/${canonicalId}/member-attendance`}>
+        <Icon icon="fa-chart-bar" />
+        <span>Attendance</span>
+      </Button>
     </div>
-  </div>
-  <Section>
-    <Container>
-      <Breadcrumb
-        items={[
-          { label: ensemble.name, href: `/ensembles/${canonicalId}` },
-          { label: "Manage Members" },
-        ]}
-      />
+    <div class="level-item">
+      <Button href={`/ensembles/${canonicalId}/export/members`}>
+        <Icon icon="fa-download" />
+        <span>Export CSV</span>
+      </Button>
+    </div>
+    <div class="level-item">
+      <Button href={`/ensembles/${canonicalId}`}>
+        <Icon icon="fa-arrow-left" />
+        <span>Back to Ensemble</span>
+      </Button>
+    </div>
+  </Fragment>
 
-      <Level class="mb-5">
-        <Fragment slot="left">
-          <div class="level-item">
-            <div>
-              <Title>Manage Members</Title>
-              <Subtitle as="p">Total Members: {members.length}</Subtitle>
+  {memberActionError && (
+    <Notification color="danger" light>
+      {memberActionError.message}
+    </Notification>
+  )}
+  {addResult?.error && (
+    <Notification color="danger" light>
+      {addResult.error.message || "Couldn't add that member."}
+    </Notification>
+  )}
+  {addResult?.data && (
+    <Notification color="success" light>
+      <p>
+        Added <strong>{addResult.data.name}</strong> to {ensemble.name}.{" "}
+        {addResult.data.emailSent
+          ? "We emailed them to let them know."
+          : "The email to them couldn't be sent, so they haven't been told."}
+      </p>
+      {addResult.data.setPasswordUrl && (
+        <div class="mt-3">
+          <p class="mb-2">
+            They're new, so they need to set a password.
+            {addResult.data.emailSent
+              ? " The email has this link; you can also send it yourself."
+              : " Send them this link"}{" "}
+            (valid for 7 days):
+          </p>
+          <div class="field has-addons">
+            <div class="control is-expanded">
+              <input
+                id="set-password-url"
+                class="input is-small"
+                readonly
+                value={addResult.data.setPasswordUrl}
+              />
             </div>
-          </div>
-        </Fragment>
-        <Fragment slot="right">
-          {canAddMembers && (
-            <div class="level-item">
-              <Button color="primary" id="add-member-btn">
-                <Icon icon="fa-user-plus" />
-                <span>Add Member</span>
+            <div class="control">
+              <Button size="small" id="copy-set-password-url">
+                Copy
               </Button>
             </div>
-          )}
-          <div class="level-item">
-            <Button href={`/ensembles/${canonicalId}/member-attendance`}>
-              <Icon icon="fa-chart-bar" />
-              <span>Attendance</span>
-            </Button>
           </div>
-          <div class="level-item">
-            <Button href={`/ensembles/${canonicalId}/export/members`}>
-              <Icon icon="fa-download" />
-              <span>Export CSV</span>
-            </Button>
-          </div>
-          <div class="level-item">
-            <Button href={`/ensembles/${canonicalId}`}>
-              <Icon icon="fa-arrow-left" />
-              <span>Back to Ensemble</span>
-            </Button>
-          </div>
-        </Fragment>
-      </Level>
+        </div>
+      )}
+    </Notification>
+  )}
 
-      {memberActionError && (
-        <Notification color="danger" light>
-          {memberActionError.message}
-        </Notification>
-      )}
-      {addResult?.error && (
-        <Notification color="danger" light>
-          {addResult.error.message || "Couldn't add that member."}
-        </Notification>
-      )}
-      {addResult?.data && (
-        <Notification color="success" light>
-          <p>
-            Added <strong>{addResult.data.name}</strong> to {ensemble.name}.{" "}
-            {addResult.data.emailSent
-              ? "We emailed them to let them know."
-              : "The email to them couldn't be sent, so they haven't been told."}
-          </p>
-          {addResult.data.setPasswordUrl && (
-            <div class="mt-3">
-              <p class="mb-2">
-                They're new, so they need to set a password.
-                {addResult.data.emailSent
-                  ? " The email has this link; you can also send it yourself."
-                  : " Send them this link"}{" "}
-                (valid for 7 days):
-              </p>
-              <div class="field has-addons">
-                <div class="control is-expanded">
-                  <input
-                    id="set-password-url"
-                    class="input is-small"
-                    readonly
-                    value={addResult.data.setPasswordUrl}
-                  />
-                </div>
-                <div class="control">
-                  <Button size="small" id="copy-set-password-url">
-                    Copy
-                  </Button>
-                </div>
-              </div>
+  <Box>
+    {allParts.length > 0 ? (
+      <>
+        {allParts.map((part) => {
+          const partMembers = membersByPart.get(part.id) || [];
+          if (partMembers.length === 0) return null;
+
+          return (
+            <div class="mb-5">
+              <Table
+                title={`${part.name} (${partMembers.length})`}
+                className="has-text-primary is-vcentered"
+              >
+                <thead>
+                  <tr>
+                    <th style="width: 60px;" />
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Joined</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {partMembers.map((member) => (
+                    <MemberRow
+                      member={member}
+                      ensembleId={ensemble.id}
+                      canonicalId={canonicalId}
+                      currentUserId={user.id}
+                      viewAsBlocked={viewAsBlocked}
+                    />
+                  ))}
+                </tbody>
+              </Table>
             </div>
-          )}
-        </Notification>
-      )}
+          );
+        })}
 
-      <Box>
-        {allParts.length > 0 ? (
-          <>
-            {allParts.map((part) => {
-              const partMembers = membersByPart.get(part.id) || [];
-              if (partMembers.length === 0) return null;
-
-              return (
-                <div class="mb-5">
-                  <Table
-                    title={`${part.name} (${partMembers.length})`}
-                    className="has-text-primary is-vcentered"
-                  >
-                    <thead>
-                      <tr>
-                        <th style="width: 60px;" />
-                        <th>Name</th>
-                        <th>Email</th>
-                        <th>Role</th>
-                        <th>Joined</th>
-                        <th>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {partMembers.map((member) => (
-                        <MemberRow
-                          member={member}
-                          ensembleId={ensemble.id}
-                          canonicalId={canonicalId}
-                          currentUserId={user.id}
-                          viewAsBlocked={viewAsBlocked}
-                        />
-                      ))}
-                    </tbody>
-                  </Table>
-                </div>
-              );
-            })}
-
-            {membersWithoutPart.length > 0 && (
-              <div class="mb-5">
-                <Table
-                  title={`No Part Assigned (${membersWithoutPart.length})`}
-                  className="is-vcentered"
-                >
-                  <thead>
-                    <tr>
-                      <th style="width: 60px;" />
-                      <th>Name</th>
-                      <th>Email</th>
-                      <th>Role</th>
-                      <th>Joined</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {membersWithoutPart.map((member) => (
-                      <MemberRow
-                        member={member}
-                        ensembleId={ensemble.id}
-                        canonicalId={canonicalId}
-                        currentUserId={user.id}
-                        viewAsBlocked={viewAsBlocked}
-                      />
-                    ))}
-                  </tbody>
-                </Table>
-              </div>
-            )}
-          </>
-        ) : (
-          <Table className="is-vcentered">
-            <thead>
-              <tr>
-                <th style="width: 60px;" />
-                <th>Name</th>
-                <th>Email</th>
-                <th>Role</th>
-                <th>Joined</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {members.map((member) => (
-                <MemberRow
-                  member={member}
-                  ensembleId={ensemble.id}
-                  canonicalId={canonicalId}
-                  currentUserId={user.id}
-                  viewAsBlocked={viewAsBlocked}
-                />
-              ))}
-            </tbody>
-          </Table>
+        {membersWithoutPart.length > 0 && (
+          <div class="mb-5">
+            <Table
+              title={`No Part Assigned (${membersWithoutPart.length})`}
+              className="is-vcentered"
+            >
+              <thead>
+                <tr>
+                  <th style="width: 60px;" />
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Role</th>
+                  <th>Joined</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {membersWithoutPart.map((member) => (
+                  <MemberRow
+                    member={member}
+                    ensembleId={ensemble.id}
+                    canonicalId={canonicalId}
+                    currentUserId={user.id}
+                    viewAsBlocked={viewAsBlocked}
+                  />
+                ))}
+              </tbody>
+            </Table>
+          </div>
         )}
-      </Box>
-    </Container>
-  </Section>
+      </>
+    ) : (
+      <Table className="is-vcentered">
+        <thead>
+          <tr>
+            <th style="width: 60px;" />
+            <th>Name</th>
+            <th>Email</th>
+            <th>Role</th>
+            <th>Joined</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {members.map((member) => (
+            <MemberRow
+              member={member}
+              ensembleId={ensemble.id}
+              canonicalId={canonicalId}
+              currentUserId={user.id}
+              viewAsBlocked={viewAsBlocked}
+            />
+          ))}
+        </tbody>
+      </Table>
+    )}
+  </Box>
 
   {canAddMembers && (
     <Modal id="add-member-modal" title="Add Member">
@@ -342,4 +287,4 @@ const members = membersData;
       });
     });
   </script>
-</BaseLayout>
+</EnsemblePageLayout>
