@@ -11,7 +11,7 @@ import {
   Title,
 } from "astro-bulma";
 import EnsemblePageLayout from "@layouts/EnsemblePageLayout.astro";
-import { getEnsembleAccess } from "@lib/ensemble";
+import { loadEnsemblePage } from "@lib/ensemble";
 import {
   getSongsPageData,
   buildSongPartsMap,
@@ -19,30 +19,20 @@ import {
   buildSongFilesMap,
   formatRuntime,
 } from "@lib/songs";
-import { getEnsembleUrlId } from "@lib/slug";
 import { actions } from "astro:actions";
 
 const user = Astro.locals.user!;
-const { id } = Astro.params;
 
-const { ensemble, songs, parts, seasons, songPartsData, seasonSongsData, songFilesData } =
-  await getSongsPageData(id!);
+const page = await loadEnsemblePage(user, {
+  id: Astro.params.id,
+  method: Astro.request.method,
+  pathname: Astro.url.pathname,
+});
+if (page.response) return page.response;
+const { ensemble, canonicalId, isAdmin } = page;
 
-if (!ensemble) {
-  return new Response("Ensemble not found", { status: 404 });
-}
-
-const canonicalId = getEnsembleUrlId(ensemble);
-if (id !== canonicalId) {
-  return Astro.redirect(
-    Astro.url.pathname.replace(`/ensembles/${id}`, `/ensembles/${canonicalId}`),
-    301,
-  );
-}
-
-const access = await getEnsembleAccess(user, ensemble.id);
-if (!access) return Astro.redirect("/ensembles");
-const { isAdmin } = access;
+const { songs, parts, seasons, songPartsData, seasonSongsData, songFilesData } =
+  await getSongsPageData(ensemble.id);
 
 const addResult = Astro.getActionResult(actions.songs.add);
 const editResult = Astro.getActionResult(actions.songs.edit);

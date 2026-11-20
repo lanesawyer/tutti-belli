@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   getEnsembleAccess,
   getEnsembleBySlugOrId,
+  loadEnsemblePage,
   updateEnsemble,
   getEnsembleByInviteCode,
   removeMember,
@@ -156,6 +157,112 @@ describe("getEnsembleAccess", () => {
     const access = await getEnsembleAccess(siteAdmin!, ensemble!.id);
     expect(access?.membership).toBeNull();
     expect(access?.isAdmin).toBe(true);
+  });
+});
+
+describe("loadEnsemblePage", () => {
+  async function setup() {
+    const admin = await createUser();
+    const member = await createUser();
+    const pending = await createUser();
+    const outsider = await createUser();
+    const siteAdmin = await createUser({ role: "admin" });
+    const ensemble = await createEnsemble(admin.id, { slug: "page-choir" });
+    await createMembership(ensemble.id, admin.id, { role: "admin" });
+    await createMembership(ensemble.id, member.id);
+    await createMembership(ensemble.id, pending.id, { status: "pending" });
+    return { admin, member, pending, outsider, siteAdmin, ensemble };
+  }
+
+  const get = (id: string | undefined, pathname = `/ensembles/${id}/songs`) => ({
+    id,
+    method: "GET",
+    pathname,
+  });
+
+  function expectRedirect(page: { response?: Response }, location: string, status = 302) {
+    expect(page.response?.status).toBe(status);
+    expect(page.response?.headers.get("Location")).toBe(location);
+  }
+
+  it("sends an unknown or missing ensemble to /ensembles", async () => {
+    const { admin } = await setup();
+    expectRedirect(await loadEnsemblePage(admin, get("no-such-ensemble")), "/ensembles");
+    expectRedirect(await loadEnsemblePage(admin, get(undefined)), "/ensembles");
+  });
+
+  it("sends non-members to /ensembles, the same answer as for a missing ensemble", async () => {
+    const { outsider } = await setup();
+    expectRedirect(await loadEnsemblePage(outsider, get("page-choir")), "/ensembles");
+  });
+
+  it("keeps out pending members unless the page allows them", async () => {
+    const { pending } = await setup();
+    expectRedirect(await loadEnsemblePage(pending, get("page-choir")), "/ensembles");
+
+    const page = await loadEnsemblePage(pending, get("page-choir"), { allowPending: true });
+    if (page.response) throw new Error("expected the page to load");
+    expect(page.membership?.status).toBe("pending");
+    expect(page.isAdmin).toBe(false);
+  });
+
+  it("lets members see a page, but answers 403 on an admin-only one", async () => {
+    const { member, ensemble } = await setup();
+    const page = await loadEnsemblePage(member, get("page-choir"));
+    if (page.response) throw new Error("expected the page to load");
+    expect(page.ensemble.id).toBe(ensemble.id);
+    expect(page.canonicalId).toBe("page-choir");
+    expect(page.isAdmin).toBe(false);
+
+    const adminPage = await loadEnsemblePage(member, get("page-choir"), { adminOnly: true });
+    expect(adminPage.response?.status).toBe(403);
+    expect(await adminPage.response?.text()).toBe("Unauthorized");
+  });
+
+  it("lets ensemble admins and site admins without a membership onto admin-only pages", async () => {
+    const { admin, siteAdmin } = await setup();
+    const adminPage = await loadEnsemblePage(admin, get("page-choir"), { adminOnly: true });
+    if (adminPage.response) throw new Error("expected the page to load");
+    expect(adminPage.isAdmin).toBe(true);
+
+    const sitePage = await loadEnsemblePage(siteAdmin, get("page-choir"), { adminOnly: true });
+    if (sitePage.response) throw new Error("expected the page to load");
+    expect(sitePage.isAdmin).toBe(true);
+    expect(sitePage.membership).toBeNull();
+  });
+
+  it("redirects a GET by id to the slug URL, keeping the rest of the path", async () => {
+    const { member, ensemble } = await setup();
+    expectRedirect(
+      await loadEnsemblePage(member, get(ensemble.id, `/ensembles/${ensemble.id}/songs/s1`)),
+      "/ensembles/page-choir/songs/s1",
+      301,
+    );
+  });
+
+  it("loads a POST by id without redirecting, so the action result isn't lost", async () => {
+    const { member, ensemble } = await setup();
+    const page = await loadEnsemblePage(member, {
+      id: ensemble.id,
+      method: "POST",
+      pathname: `/ensembles/${ensemble.id}/songs`,
+    });
+    if (page.response) throw new Error("expected the page to load");
+    expect(page.canonicalId).toBe("page-choir");
+  });
+
+  it("uses the id as the canonical URL for an ensemble without a slug", async () => {
+    const { member } = await setup();
+    const plain = await createEnsemble(member.id);
+    await createMembership(plain.id, member.id);
+    const page = await loadEnsemblePage(member, get(plain.id));
+    if (page.response) throw new Error("expected the page to load");
+    expect(page.canonicalId).toBe(plain.id);
+  });
+
+  it("checks access before revealing the canonical URL", async () => {
+    const { outsider, ensemble } = await setup();
+    expectRedirect(await loadEnsemblePage(outsider, get(ensemble.id)), "/ensembles");
   });
 });
 

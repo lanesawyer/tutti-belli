@@ -19,33 +19,19 @@ import {
 } from "astro-bulma";
 import BaseLayout from "@layouts/BaseLayout.astro";
 import { actions } from "astro:actions";
-import { canManageEnsemble } from "@lib/permissions";
 import { ensembleAdminTools } from "@lib/config";
-import { getEnsembleBySlugOrId, getEnsembleMembership, getEnsembleLinks } from "@lib/ensemble";
-import { getEnsembleUrlId } from "@lib/slug";
+import { loadEnsemblePage, getEnsembleLinks } from "@lib/ensemble";
 import { timeZoneOptions } from "@lib/timezone";
 
 const user = Astro.locals.user!;
 
-const { id } = Astro.params;
-
-const ensemble = await getEnsembleBySlugOrId(id!);
-
-if (!ensemble) {
-  return new Response("Ensemble not found", { status: 404 });
-}
-
-const canonicalId = getEnsembleUrlId(ensemble);
-if (Astro.request.method === "GET" && id !== canonicalId) {
-  return Astro.redirect(`/ensembles/${canonicalId}/edit`, 301);
-}
-
-const membership = await getEnsembleMembership(ensemble.id, user.id);
-const isAdmin = canManageEnsemble(user, membership);
-
-if (!isAdmin) {
-  return new Response("Unauthorized", { status: 403 });
-}
+const page = await loadEnsemblePage(
+  user,
+  { id: Astro.params.id, method: Astro.request.method, pathname: Astro.url.pathname },
+  { adminOnly: true },
+);
+if (page.response) return page.response;
+const { ensemble, canonicalId } = page;
 
 const updateResult = Astro.getActionResult(actions.ensembles.update);
 const addLinkResult = Astro.getActionResult(actions.ensembles.addLink);

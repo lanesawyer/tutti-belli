@@ -15,31 +15,20 @@ import {
 } from "astro-bulma";
 import EnsemblePageLayout from "@layouts/EnsemblePageLayout.astro";
 import { actions } from "astro:actions";
-import { getEnsembleBySlugOrId, getEnsembleAccess } from "@lib/ensemble";
-import { getEnsembleUrlId } from "@lib/slug";
+import { loadEnsemblePage } from "@lib/ensemble";
 import { formatDuration } from "@lib/format";
 import { formatZonedDate, formatZonedTime } from "@lib/timezone";
 import { getEventsPageData, isRsvpEnabled } from "@lib/events";
 
 const user = Astro.locals.user!;
 
-const { id } = Astro.params;
-const ensemble = await getEnsembleBySlugOrId(id!);
-if (!ensemble) {
-  return Astro.redirect("/ensembles");
-}
-
-const canonicalId = getEnsembleUrlId(ensemble);
-if (Astro.request.method === "GET" && id !== canonicalId) {
-  return Astro.redirect(
-    Astro.url.pathname.replace(`/ensembles/${id}`, `/ensembles/${canonicalId}`),
-    301,
-  );
-}
-
-const access = await getEnsembleAccess(user, ensemble.id);
-if (!access) return Astro.redirect("/ensembles");
-const { isAdmin } = access;
+const page = await loadEnsemblePage(user, {
+  id: Astro.params.id,
+  method: Astro.request.method,
+  pathname: Astro.url.pathname,
+});
+if (page.response) return page.response;
+const { ensemble, canonicalId, isAdmin } = page;
 
 const createResult = Astro.getActionResult(actions.events.create);
 const deleteResult = Astro.getActionResult(actions.events.delete);
