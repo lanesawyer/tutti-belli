@@ -86,6 +86,10 @@ test("admin can edit a program entry to set practice minutes and order", async (
   await expect(page.locator("#edit-entry-modal")).not.toHaveClass(/is-active/);
   // The updated minutes should appear in the table
   await expect(page.locator("td").filter({ hasText: "20 min" }).first()).toBeVisible();
+
+  // Reopening the dialog shows the saved minutes
+  await page.locator(".edit-entry-btn").first().click();
+  await expect(page.locator("#edit-entry-practice-minutes")).toHaveValue("20");
 });
 
 test("admin can add a song to the rehearsal plan with practice minutes", async ({ page }) => {
