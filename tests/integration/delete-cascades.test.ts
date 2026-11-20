@@ -37,6 +37,7 @@ import { deleteGroup } from "../../src/lib/groups.ts";
 import { deleteSong } from "../../src/lib/songs.ts";
 import { deleteSeason } from "../../src/lib/seasons.ts";
 import { adminDeleteUser, deleteAccount } from "../../src/lib/profile.ts";
+import { UserError } from "../../src/lib/errors.ts";
 import { getEnsembleAnnouncements } from "../../src/lib/announcements.ts";
 import { getSongDetailData } from "../../src/lib/songs.ts";
 import {
@@ -219,6 +220,7 @@ describe("deleting an account", () => {
     const user = await createUser({ password: "pw123456" });
     const owned = await createEnsemble(user.id, { name: "Founded by user" });
     const membership = await createMembership(ensemble.id, user.id, { role: "admin" });
+    await createMembership(ensemble.id, admin.id, { role: "admin" });
     const part = await createPart(ensemble.id);
     await createMemberPart(membership.id, part.id);
     await createInvite(ensemble.id, user.id);
@@ -295,6 +297,21 @@ describe("deleting an account", () => {
     expect(announcements).toEqual([expect.objectContaining({ title: "Hello", creatorName: null })]);
     const songDetail = await getSongDetailData(ensemble.id, song.id);
     expect(songDetail.songFiles).toEqual([expect.objectContaining({ uploaderName: null })]);
+  });
+
+  it("refuses to delete the only admin of an ensemble until someone else is one", async () => {
+    const { admin, ensemble } = await setup();
+    const user = await createUser({ password: "pw123456" });
+    await createMembership(ensemble.id, user.id, { role: "admin" });
+    await createMembership(ensemble.id, admin.id);
+
+    expect(await deleteAccount(user.id, "user", "pw123456")).toMatchObject({ type: "error" });
+    await expect(adminDeleteUser(user.id)).rejects.toThrow(UserError);
+    expect(await db.select().from(User).where(eq(User.id, user.id)).get()).toBeDefined();
+
+    await createMembership(ensemble.id, (await createUser()).id, { role: "admin" });
+    await adminDeleteUser(user.id);
+    expect(await db.select().from(User).where(eq(User.id, user.id)).get()).toBeUndefined();
   });
 
   it("deleteAccount lets a busy user delete their own account", async () => {

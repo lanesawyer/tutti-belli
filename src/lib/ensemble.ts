@@ -4,6 +4,7 @@ import {
   or,
   and,
   ne,
+  not,
   inArray,
   sql,
   alias,
@@ -266,6 +267,16 @@ function notLastAdmin() {
         ),
     ),
   );
+}
+
+/** True when the user is the only active admin of at least one ensemble. */
+export async function isLastAdminOfAnEnsemble(userId: string): Promise<boolean> {
+  const membership = await db
+    .select({ id: EnsembleMember.id })
+    .from(EnsembleMember)
+    .where(and(eq(EnsembleMember.userId, userId), not(notLastAdmin()!)))
+    .get();
+  return membership !== undefined;
 }
 
 /**

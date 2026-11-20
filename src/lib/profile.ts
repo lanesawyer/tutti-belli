@@ -19,6 +19,7 @@ import { validateImageFile } from "./upload";
 import { deleteImage, uploadImage } from "./storage";
 import type { AstroCookies } from "astro";
 import { UserError } from "./errors";
+import { isLastAdminOfAnEnsemble } from "./ensemble";
 import {
   EMAIL_VERIFICATION_TTL_MS,
   hashPassword,
@@ -493,6 +494,9 @@ async function deleteUserData(userId: string): Promise<void> {
   await deleteImage(deleted?.avatarUrl);
 }
 
+const LAST_ADMIN_DELETE_MESSAGE =
+  "This account is the only admin of an ensemble. Make someone else an admin or delete the ensemble first.";
+
 // Self-service account deletion: requires password, blocks admins from deleting themselves.
 export async function deleteAccount(
   userId: string,
@@ -515,11 +519,16 @@ export async function deleteAccount(
     return { type: "error", message: "Incorrect password. Account not deleted." };
   }
 
+  if (await isLastAdminOfAnEnsemble(userId)) {
+    return { type: "error", message: LAST_ADMIN_DELETE_MESSAGE };
+  }
+
   await deleteUserData(userId);
   return { type: "redirect", url: "/" };
 }
 
 // Admin-initiated deletion: no password required, can delete any non-self user.
 export async function adminDeleteUser(userId: string): Promise<void> {
+  if (await isLastAdminOfAnEnsemble(userId)) throw new UserError(LAST_ADMIN_DELETE_MESSAGE);
   await deleteUserData(userId);
 }

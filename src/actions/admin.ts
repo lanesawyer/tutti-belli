@@ -3,7 +3,7 @@ import { z } from "astro/zod";
 import { adminDeleteUser } from "@lib/profile";
 import { createEnsemble, deleteEnsemble, getUserById, setUserRole } from "@lib/admin";
 import { getEnsembleUrlId } from "@lib/slug";
-import { assertSiteAdmin } from "./utils";
+import { assertSiteAdmin, throwUserError } from "./utils";
 import { setBanner, clearBanner } from "@lib/banner";
 
 export const admin = {
@@ -83,7 +83,11 @@ export const admin = {
         throw new ActionError({ code: "NOT_FOUND", message: "User not found." });
       }
 
-      await adminDeleteUser(userId);
+      try {
+        await adminDeleteUser(userId);
+      } catch (e) {
+        throwUserError("BAD_REQUEST", e);
+      }
 
       return { name: targetUser.name };
     },
