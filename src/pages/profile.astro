@@ -83,12 +83,10 @@ const tasksByEnsemble = await getUserTasksAcrossEnsembles(user.id);
                 imgStyle="object-fit: cover;"
               />
             ) : (
-              <span
-                class="icon"
+              <Icon
+                icon="fa-user-circle"
                 style="flex-shrink: 0; width: 96px; height: 96px; font-size: 96px; line-height: 1;"
-              >
-                <i class="fas fa-user-circle" />
-              </span>
+              />
             )}
             <div>
               <Title as="p" size={4} class="mb-1">

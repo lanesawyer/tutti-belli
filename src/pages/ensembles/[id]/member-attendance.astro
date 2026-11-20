@@ -5,7 +5,6 @@ import {
   Button,
   Container,
   Icon,
-  Image,
   Level,
   Progress,
   Section,
@@ -15,7 +14,7 @@ import {
 } from "astro-bulma";
 import BaseLayout from "@layouts/BaseLayout.astro";
 import { ensembleAdminTools } from "@lib/config";
-import { getInitials, getColorFromInitials } from "@lib/avatar";
+import Avatar from "@components/Avatar.astro";
 import { loadEnsemblePage } from "@lib/ensemble";
 import { getMemberAttendanceStats } from "@lib/member-attendance";
 import { getEnsembleSeasons } from "@lib/seasons";
@@ -137,23 +136,7 @@ const selectedSeason = seasons.find((s) => s.id === seasonId);
               {stats.map((member) => (
                 <tr>
                   <td>
-                    {member.avatarUrl ? (
-                      <Image
-                        src={member.avatarUrl}
-                        alt={member.name}
-                        size="48x48"
-                        rounded
-                        imgStyle="object-fit: cover;"
-                      />
-                    ) : (
-                      <figure class="image is-48x48">
-                        <div
-                          style={`width: 48px; height: 48px; border-radius: 50%; background-color: ${getColorFromInitials(getInitials(member.name))}; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.25rem; font-weight: bold;`}
-                        >
-                          {getInitials(member.name)}
-                        </div>
-                      </figure>
-                    )}
+                    <Avatar name={member.name} avatarUrl={member.avatarUrl} size={48} />
                   </td>
                   <td>
                     <div>{member.name}</div>

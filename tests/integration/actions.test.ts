@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import {
   db,
   eq,
+  EmailVerificationToken,
   EnsembleMember,
   Event,
   EventProgram,
@@ -18,6 +19,8 @@ import {
   failedLoginsByEmail,
   failedLoginsByEmailAndIp,
   failedLoginsByIp,
+  verificationResendsByEmail,
+  verificationResendsByIp,
 } from "@lib/rate-limit";
 import { sendEmailVerificationEmail } from "@lib/email";
 import { readVerifyingBrowser, VERIFY_EMAIL_COOKIE } from "@lib/session";
@@ -26,7 +29,7 @@ import { INPUT_SCHEMA, isInputError } from "../support/astro-actions.ts";
 import { callAction, type Fields } from "../support/actions.ts";
 import { matrix, type Access, type MatrixEntry } from "../support/action-matrix.ts";
 import { createWorld, WORLD_PASSWORD, type World, type WorldUser } from "../support/world.ts";
-import { createTask } from "./fixtures.ts";
+import { createTask, createUser } from "./fixtures.ts";
 
 vi.mock("@lib/storage", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@lib/storage")>()),
@@ -505,6 +508,76 @@ describe("auth.resetPassword", () => {
       confirmPassword: "1234567",
     });
     expect(isInputError(error)).toBe(true);
+  });
+});
+
+describe("auth.resendVerification", () => {
+  const cookieNames = (context: { cookies: { headers(): Iterable<string> } }) =>
+    [...context.cookies.headers()].map((header) => header.split("=")[0]);
+
+  beforeEach(() => {
+    vi.mocked(sendEmailVerificationEmail).mockClear();
+    verificationResendsByIp.reset("127.0.0.1");
+  });
+
+  it("sends an unverified account a new link and remembers the browser", async () => {
+    const user = await createUser({ email: "unverified@test.com" });
+    verificationResendsByEmail.reset(user.email);
+    const { data, error, context } = await callAction(actions["auth.resendVerification"], {
+      email: " Unverified@Test.com ",
+    });
+    expect(error).toBeUndefined();
+    expect(data).toBeUndefined();
+    const tokens = await db
+      .select()
+      .from(EmailVerificationToken)
+      .where(eq(EmailVerificationToken.userId, user.id))
+      .all();
+    expect(tokens).toHaveLength(1);
+    expect(sendEmailVerificationEmail).toHaveBeenCalledOnce();
+    expect(readVerifyingBrowser(context.cookies.get(VERIFY_EMAIL_COOKIE)?.value)).toBe(
+      "unverified@test.com",
+    );
+  });
+
+  it("answers an address without an unverified account exactly like one with", async () => {
+    await createUser({ email: "unverified@test.com" });
+    const answers = [];
+    for (const email of ["unverified@test.com", "nobody@test.com", w.a.member.email]) {
+      verificationResendsByEmail.reset(email);
+      const { data, error, context } = await callAction(actions["auth.resendVerification"], {
+        email,
+      });
+      expect(readVerifyingBrowser(context.cookies.get(VERIFY_EMAIL_COOKIE)?.value)).toBe(email);
+      answers.push({ data, error, cookies: cookieNames(context) });
+    }
+    expect(answers[1]).toEqual(answers[0]);
+    expect(answers[2]).toEqual(answers[0]);
+    expect(sendEmailVerificationEmail).toHaveBeenCalledOnce();
+  });
+
+  it("stops sending past the per-address limit but answers and remembers the browser as before", async () => {
+    await createUser({ email: "unverified@test.com" });
+    verificationResendsByEmail.reset("unverified@test.com");
+    for (let i = 0; i < 4; i++) {
+      const { error, context } = await callAction(actions["auth.resendVerification"], {
+        email: "unverified@test.com",
+      });
+      expect(error).toBeUndefined();
+      expect(readVerifyingBrowser(context.cookies.get(VERIFY_EMAIL_COOKIE)?.value)).toBe(
+        "unverified@test.com",
+      );
+    }
+    expect(sendEmailVerificationEmail).toHaveBeenCalledTimes(3);
+  });
+
+  it("sets no cookie and sends nothing for a blank address", async () => {
+    const { error, context } = await callAction(actions["auth.resendVerification"], {
+      email: "  ",
+    });
+    expect(error).toBeUndefined();
+    expect(cookieNames(context)).toEqual([]);
+    expect(sendEmailVerificationEmail).not.toHaveBeenCalled();
   });
 });
 

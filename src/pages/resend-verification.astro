@@ -1,38 +1,11 @@
 ---
 import SingleColumnLayout from "@layouts/SingleColumnLayout.astro";
 import { Button, Notification, TextInput, Title } from "astro-bulma";
-import { resendVerificationEmail } from "@lib/profile";
-import { rememberVerifyingBrowser } from "@lib/session";
-import {
-  requestIp,
-  retryAfter,
-  verificationResendsByEmail,
-  verificationResendsByIp,
-} from "@lib/rate-limit";
+import { actions } from "astro:actions";
 
 const prefillEmail = Astro.url.searchParams.get("email") ?? "";
-let sent = false;
-
-if (Astro.request.method === "POST") {
-  const formData = await Astro.request.formData();
-  const email = formData.get("email")?.toString().trim().toLowerCase() ?? "";
-  const ip = requestIp(Astro);
-  // Over the limit, skip the email but show the same message so the page can't be used
-  // to probe for accounts or limits.
-  if (
-    email &&
-    !retryAfter([
-      [verificationResendsByEmail, email],
-      [verificationResendsByIp, ip],
-    ])
-  ) {
-    verificationResendsByEmail.record(email);
-    verificationResendsByIp.record(ip);
-    await resendVerificationEmail(email);
-  }
-  if (email) rememberVerifyingBrowser(Astro.cookies, email);
-  sent = true;
-}
+const result = Astro.getActionResult(actions.auth.resendVerification);
+const sent = !!result && !result.error;
 ---
 
 <SingleColumnLayout title="Resend Verification Email">
@@ -54,7 +27,7 @@ if (Astro.request.method === "POST") {
     <>
       <p class="mb-4">Enter your email address and we'll resend the verification link.</p>
 
-      <form method="POST">
+      <form method="POST" action={actions.auth.resendVerification}>
         <TextInput
           name="email"
           label="Email"

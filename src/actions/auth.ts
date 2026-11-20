@@ -6,10 +6,14 @@ import {
   verifyPassword,
   createPasswordResetToken,
 } from "@lib/auth";
-import { startSession } from "@lib/session";
+import { rememberVerifyingBrowser, startSession } from "@lib/session";
 import { getRedirectUrl } from "@lib/redirect";
 import { sendPasswordResetEmail } from "@lib/email";
-import { validatePasswordResetToken, resetPassword as doResetPassword } from "@lib/profile";
+import {
+  validatePasswordResetToken,
+  resetPassword as doResetPassword,
+  resendVerificationEmail,
+} from "@lib/profile";
 import {
   emailAndIpKey,
   failedLoginsByEmail,
@@ -20,6 +24,8 @@ import {
   requestIp,
   retryAfter,
   tooManyAttemptsMessage,
+  verificationResendsByEmail,
+  verificationResendsByIp,
 } from "@lib/rate-limit";
 import { VIEW_AS_COOKIE } from "@lib/view-as";
 import { newPassword } from "./utils";
@@ -117,6 +123,31 @@ export const auth = {
         }
       }
       // Always return success to avoid leaking whether the email exists
+    },
+  }),
+
+  resendVerification: defineAction({
+    accept: "form",
+    input: z.object({
+      email: z.string().optional(),
+    }),
+    handler: async (input, context) => {
+      const email = input.email?.trim().toLowerCase() ?? "";
+      const ip = requestIp(context);
+      // Over the limit, skip the email but answer the same way so the page can't be used
+      // to probe for accounts or limits.
+      if (
+        email &&
+        !retryAfter([
+          [verificationResendsByEmail, email],
+          [verificationResendsByIp, ip],
+        ])
+      ) {
+        verificationResendsByEmail.record(email);
+        verificationResendsByIp.record(ip);
+        await resendVerificationEmail(email);
+      }
+      if (email) rememberVerifyingBrowser(context.cookies, email);
     },
   }),
 

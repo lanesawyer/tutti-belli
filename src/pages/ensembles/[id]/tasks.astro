@@ -219,9 +219,11 @@ const nextSortOrder =
                     >
                       <input type="hidden" name="taskId" value={task.id} />
                       <input type="hidden" name="userId" value={member.id} />
-                      <button
+                      <Button
                         type="submit"
-                        class={`button is-fullwidth is-small ${isComplete ? "is-success" : "is-light"}`}
+                        color={isComplete ? "success" : "light"}
+                        size="small"
+                        fullwidth
                         title={isComplete ? "Mark incomplete" : "Mark complete"}
                       >
                         {isComplete ? (
@@ -235,7 +237,7 @@ const nextSortOrder =
                         >
                           {member.name}
                         </span>
-                      </button>
+                      </Button>
                     </form>
                   </Column>
                 );
