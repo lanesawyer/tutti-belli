@@ -61,8 +61,12 @@ export const EnsembleMember = sqliteTable(
     userId: text("userId")
       .notNull()
       .references(() => User.id, { onDelete: "cascade" }),
-    role: text("role").notNull().default("member"), // 'admin', 'member'
-    status: text("status").notNull().default("pending"), // 'pending', 'active'
+    role: text("role", { enum: ["admin", "member"] })
+      .notNull()
+      .default("member"),
+    status: text("status", { enum: ["pending", "active"] })
+      .notNull()
+      .default("pending"),
     agreedToCodeOfConductAt: date("agreedToCodeOfConductAt"),
     joinedAt: date("joinedAt").notNull().default(NOW),
   },
@@ -227,7 +231,7 @@ export const Attendance = sqliteTable(
       .notNull()
       .references(() => User.id, { onDelete: "cascade" }),
     checkedInAt: date("checkedInAt").notNull().default(NOW),
-    checkedInMethod: text("checkedInMethod").notNull(), // 'qr', 'manual', 'admin'
+    checkedInMethod: text("checkedInMethod", { enum: ["qr", "manual", "admin"] }).notNull(),
   },
   (t) => [
     uniqueIndex("Attendance_eventId_userId_unique").on(t.eventId, t.userId),
@@ -245,7 +249,7 @@ export const EventRsvp = sqliteTable(
     userId: text("userId")
       .notNull()
       .references(() => User.id, { onDelete: "cascade" }),
-    response: text("response").notNull(), // 'yes' | 'no'
+    response: text("response", { enum: ["yes", "no"] }).notNull(),
     respondedAt: date("respondedAt").notNull().default(NOW),
   },
   (t) => [
