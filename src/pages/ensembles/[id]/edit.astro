@@ -1,25 +1,21 @@
 ---
 import {
   Box,
-  Breadcrumb,
   Button,
   Checkbox,
   Column,
   Columns,
-  Container,
   Content,
   FileInput,
   Icon,
   Image,
-  Section,
   Select,
   TextInput,
   Textarea,
   Title,
 } from "astro-bulma";
-import BaseLayout from "@layouts/BaseLayout.astro";
+import EnsemblePageLayout from "@layouts/EnsemblePageLayout.astro";
 import { actions } from "astro:actions";
-import { ensembleAdminTools } from "@lib/config";
 import { loadEnsemblePage, getEnsembleLinks } from "@lib/ensemble";
 import { timeZoneOptions } from "@lib/timezone";
 
@@ -51,7 +47,7 @@ if (deleteLinkResult && !deleteLinkResult.error) {
 const ensembleLinks = await getEnsembleLinks(ensemble.id);
 
 let message = "";
-let messageType = "";
+let messageType: "danger" | undefined;
 if (updateResult?.error) {
   message = updateResult.error.message ?? "Failed to update ensemble.";
   messageType = "danger";
@@ -64,295 +60,261 @@ if (updateResult?.error) {
 }
 ---
 
-<BaseLayout title={`Edit ${ensemble.name}`}>
-  <div class="navbar-item has-dropdown is-hoverable" slot="navbar-start">
-    <a class="navbar-link">{ensemble.name}</a>
-    <div class="navbar-dropdown">
-      <a
-        class={`navbar-item${Astro.url.pathname === `/ensembles/${canonicalId}` ? " is-active" : ""}`}
-        href={`/ensembles/${canonicalId}`}
-      >
-        <Icon icon="fa-home" size="small" class="mr-1" />
-        Dashboard
-      </a>
-      <hr class="navbar-divider" />
-      {ensembleAdminTools.map((tool) => {
-        const href = tool.href(canonicalId);
-        return (
-          <a
-            class={`navbar-item${Astro.url.pathname.startsWith(href) ? " is-active" : ""}`}
-            href={href}
-          >
-            <Icon icon={tool.icon} size="small" class="mr-1" />
-            {tool.label}
-          </a>
-        );
-      })}
-    </div>
-  </div>
-  <Section>
-    <Container>
-      <Breadcrumb
-        items={[{ label: ensemble.name, href: `/ensembles/${canonicalId}` }, { label: "Edit" }]}
-      />
-
-      <Title>Edit Ensemble</Title>
-
-      {message && <div class={`notification is-${messageType}`}>{message}</div>}
-
-      <Columns>
-        <Column size="two-thirds">
-          <Box>
-            <form method="POST" enctype="multipart/form-data" action={actions.ensembles.update}>
-              <input type="hidden" name="ensembleId" value={ensemble.id} />
-              <TextInput name="name" label="Ensemble Name" value={ensemble.name} required />
-              <div class="field">
-                <label class="label" for="slug">
-                  URL Slug
-                </label>
-                <div class="control">
-                  <TextInput
-                    name="slug"
-                    id="slug"
-                    value={ensemble.slug || ""}
-                    placeholder="my-ensemble-name"
-                    standalone
-                  />
-                </div>
-                <p class="help">
-                  Used in URLs: <code>/ensembles/{ensemble.slug || ensemble.id}</code>. Lowercase
-                  letters, numbers, and hyphens only. Leave blank to use the ID.
-                </p>
-              </div>
-
-              <Textarea
-                id="description"
-                name="description"
-                label="Description"
-                rows={4}
-                placeholder="Optional description..."
-                value={ensemble.description || ""}
-              />
-
+<EnsemblePageLayout
+  title={`Edit ${ensemble.name}`}
+  ensembleName={ensemble.name}
+  ensembleId={canonicalId}
+  pageTitle="Edit Ensemble"
+  message={message}
+  messageType={messageType}
+  isAdmin
+>
+  <Columns>
+    <Column size="two-thirds">
+      <Box>
+        <form method="POST" enctype="multipart/form-data" action={actions.ensembles.update}>
+          <input type="hidden" name="ensembleId" value={ensemble.id} />
+          <TextInput name="name" label="Ensemble Name" value={ensemble.name} required />
+          <div class="field">
+            <label class="label" for="slug">
+              URL Slug
+            </label>
+            <div class="control">
               <TextInput
-                name="discordLink"
-                label="Discord Link"
-                type="url"
-                value={ensemble.discordLink || ""}
-                placeholder="https://discord.gg/..."
-                iconLeft="fa-discord"
-                iconLeftVariant="fab"
-                help="Optional Discord server invite link for this ensemble"
+                name="slug"
+                id="slug"
+                value={ensemble.slug || ""}
+                placeholder="my-ensemble-name"
+                standalone
               />
+            </div>
+            <p class="help">
+              Used in URLs: <code>/ensembles/{ensemble.slug || ensemble.id}</code>. Lowercase
+              letters, numbers, and hyphens only. Leave blank to use the ID.
+            </p>
+          </div>
 
-              <TextInput
-                name="discordWebhookUrl"
-                label="Discord Webhook URL"
-                type="url"
-                value={ensemble.discordWebhookUrl || ""}
-                placeholder="https://discord.com/api/webhooks/..."
-                iconLeft="fa-discord"
-                iconLeftVariant="fab"
-                help="Paste a Discord webhook URL to enable posting announcements to a channel"
-              />
+          <Textarea
+            id="description"
+            name="description"
+            label="Description"
+            rows={4}
+            placeholder="Optional description..."
+            value={ensemble.description || ""}
+          />
 
-              <div class="field">
-                <label class="label">Links</label>
-                <p class="help mb-3">
-                  Add arbitrary links (e.g. sheet music, website, calendar) shown on the ensemble
-                  page
-                </p>
+          <TextInput
+            name="discordLink"
+            label="Discord Link"
+            type="url"
+            value={ensemble.discordLink || ""}
+            placeholder="https://discord.gg/..."
+            iconLeft="fa-discord"
+            iconLeftVariant="fab"
+            help="Optional Discord server invite link for this ensemble"
+          />
 
-                {ensembleLinks.length > 0 && (
-                  <div class="mb-3">
-                    {ensembleLinks.map((link) => (
-                      <div class="field has-addons mb-2">
-                        <div class="control is-expanded">
-                          <TextInput
-                            name="_link-display"
-                            type="text"
-                            value={`${link.label} — ${link.url}`}
-                            static
-                            readonly
-                            standalone
-                          />
-                        </div>
-                        <div class="control">
-                          <Button
-                            type="submit"
-                            form={`delete-link-${link.id}`}
-                            color="danger"
-                            light
-                            title="Remove link"
-                          >
-                            <Icon icon="fa-times" />
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
+          <TextInput
+            name="discordWebhookUrl"
+            label="Discord Webhook URL"
+            type="url"
+            value={ensemble.discordWebhookUrl || ""}
+            placeholder="https://discord.com/api/webhooks/..."
+            iconLeft="fa-discord"
+            iconLeftVariant="fab"
+            help="Paste a Discord webhook URL to enable posting announcements to a channel"
+          />
 
-                <div class="field is-grouped">
-                  <div class="control" style="flex: 0 0 10rem;">
-                    <TextInput
-                      name="label"
-                      type="text"
-                      form="add-link-form"
-                      placeholder="Label"
-                      maxlength="50"
-                      standalone
-                    />
+          <div class="field">
+            <label class="label">Links</label>
+            <p class="help mb-3">
+              Add arbitrary links (e.g. sheet music, website, calendar) shown on the ensemble page
+            </p>
+
+            {ensembleLinks.length > 0 && (
+              <div class="mb-3">
+                {ensembleLinks.map((link) => (
+                  <div class="field has-addons mb-2">
+                    <div class="control is-expanded">
+                      <TextInput
+                        name="_link-display"
+                        type="text"
+                        value={`${link.label} — ${link.url}`}
+                        static
+                        readonly
+                        standalone
+                      />
+                    </div>
+                    <div class="control">
+                      <Button
+                        type="submit"
+                        form={`delete-link-${link.id}`}
+                        color="danger"
+                        light
+                        title="Remove link"
+                      >
+                        <Icon icon="fa-times" />
+                      </Button>
+                    </div>
                   </div>
-                  <div class="control is-expanded">
-                    <TextInput
-                      name="url"
-                      type="url"
-                      form="add-link-form"
-                      placeholder="https://..."
-                      standalone
-                    />
-                  </div>
-                  <div class="control">
-                    <Button type="submit" form="add-link-form" color="link" light>
-                      <Icon icon="fa-plus" />
-                      <span>Add</span>
-                    </Button>
-                  </div>
-                </div>
+                ))}
               </div>
+            )}
 
-              <Textarea
-                id="codeOfConduct"
-                name="codeOfConduct"
-                label="Code of Conduct"
-                rows={8}
-                placeholder="Optional code of conduct for new members. If set, new members must agree to these terms before joining."
-                value={ensemble.codeOfConduct || ""}
-                help="New members will be required to read and agree to this code of conduct before joining"
-              />
-
-              <div class="field">
-                <label class="label">Ensemble Image</label>
-                {ensemble.imageUrl && (
-                  <div class="mb-3">
-                    <p class="mb-2 has-text-weight-semibold">Current Image:</p>
-                    <Image
-                      src={ensemble.imageUrl}
-                      alt={ensemble.name}
-                      size="128x128"
-                      imgStyle="object-fit: cover; border-radius: 8px;"
-                    />
-                    <Checkbox
-                      name="removeImage"
-                      value="true"
-                      label="Remove current image"
-                      class="mt-2"
-                    />
-                  </div>
-                )}
-                <FileInput
-                  name="image"
-                  id="imageInput"
-                  accept="image/png,image/jpeg,image/webp,image/gif"
-                  ctaLabel={ensemble.imageUrl ? "Replace image…" : "Choose an image…"}
-                  help="Maximum file size: 5MB. Supported formats: JPG, PNG, GIF, WebP"
+            <div class="field is-grouped">
+              <div class="control" style="flex: 0 0 10rem;">
+                <TextInput
+                  name="label"
+                  type="text"
+                  form="add-link-form"
+                  placeholder="Label"
+                  maxlength="50"
+                  standalone
                 />
               </div>
-
-              <Select
-                name="timezone"
-                label="Timezone"
-                fullwidth
-                help="Event times are entered and shown in this timezone."
-              >
-                {timeZoneOptions().map((zone) => (
-                  <option value={zone} selected={zone === ensemble.timezone}>
-                    {zone.replaceAll("_", " ")}
-                  </option>
-                ))}
-              </Select>
-
-              <div class="field">
-                <label class="label">Check-in Window Settings</label>
-                <p class="help mb-3">Configure when members can check in for rehearsals</p>
-
-                <Columns>
-                  <Column size={6}>
-                    <TextInput
-                      name="checkInStartMinutes"
-                      label="Check-in opens (minutes before)"
-                      type="number"
-                      value={ensemble.checkInStartMinutes}
-                      min="0"
-                      max="180"
-                      required
-                      help="Default: 30 minutes before rehearsal"
-                    />
-                  </Column>
-                  <Column size={6}>
-                    <TextInput
-                      name="checkInEndMinutes"
-                      label="Check-in closes (minutes after start)"
-                      type="number"
-                      value={ensemble.checkInEndMinutes}
-                      min="0"
-                      max="180"
-                      required
-                      help="Default: 15 minutes after rehearsal starts"
-                    />
-                  </Column>
-                </Columns>
+              <div class="control is-expanded">
+                <TextInput
+                  name="url"
+                  type="url"
+                  form="add-link-form"
+                  placeholder="https://..."
+                  standalone
+                />
               </div>
-
-              <div class="field is-grouped">
-                <div class="control">
-                  <Button type="submit" color="primary">
-                    <Icon icon="fa-save" />
-                    <span>Save Changes</span>
-                  </Button>
-                </div>
-                <div class="control">
-                  <Button href={`/ensembles/${canonicalId}`} color="light">
-                    Cancel
-                  </Button>
-                </div>
+              <div class="control">
+                <Button type="submit" form="add-link-form" color="link" light>
+                  <Icon icon="fa-plus" />
+                  <span>Add</span>
+                </Button>
               </div>
-            </form>
+            </div>
+          </div>
 
-            <!-- Out-of-band forms for links (nested forms are invalid HTML) -->
-            <form id="add-link-form" method="POST" action={actions.ensembles.addLink}>
-              <input type="hidden" name="ensembleId" value={ensemble.id} />
-            </form>
-            {ensembleLinks.map((link) => (
-              <form
-                id={`delete-link-${link.id}`}
-                method="POST"
-                action={actions.ensembles.deleteLink}
-              >
-                <input type="hidden" name="ensembleId" value={ensemble.id} />
-                <input type="hidden" name="linkId" value={link.id} />
-              </form>
+          <Textarea
+            id="codeOfConduct"
+            name="codeOfConduct"
+            label="Code of Conduct"
+            rows={8}
+            placeholder="Optional code of conduct for new members. If set, new members must agree to these terms before joining."
+            value={ensemble.codeOfConduct || ""}
+            help="New members will be required to read and agree to this code of conduct before joining"
+          />
+
+          <div class="field">
+            <label class="label">Ensemble Image</label>
+            {ensemble.imageUrl && (
+              <div class="mb-3">
+                <p class="mb-2 has-text-weight-semibold">Current Image:</p>
+                <Image
+                  src={ensemble.imageUrl}
+                  alt={ensemble.name}
+                  size="128x128"
+                  imgStyle="object-fit: cover; border-radius: 8px;"
+                />
+                <Checkbox
+                  name="removeImage"
+                  value="true"
+                  label="Remove current image"
+                  class="mt-2"
+                />
+              </div>
+            )}
+            <FileInput
+              name="image"
+              id="imageInput"
+              accept="image/png,image/jpeg,image/webp,image/gif"
+              ctaLabel={ensemble.imageUrl ? "Replace image…" : "Choose an image…"}
+              help="Maximum file size: 5MB. Supported formats: JPG, PNG, GIF, WebP"
+            />
+          </div>
+
+          <Select
+            name="timezone"
+            label="Timezone"
+            fullwidth
+            help="Event times are entered and shown in this timezone."
+          >
+            {timeZoneOptions().map((zone) => (
+              <option value={zone} selected={zone === ensemble.timezone}>
+                {zone.replaceAll("_", " ")}
+              </option>
             ))}
-          </Box>
-        </Column>
+          </Select>
 
-        <Column>
-          <Box>
-            <Title as="h2" size={5}>
-              Tips
-            </Title>
-            <Content>
-              <ul>
-                <li>Choose a descriptive name for your ensemble</li>
-                <li>Add a description to help members understand the ensemble's purpose</li>
-                <li>Upload a logo or photo that represents your ensemble</li>
-                <li>Square images work best for display</li>
-              </ul>
-            </Content>
-          </Box>
-        </Column>
-      </Columns>
-    </Container>
-  </Section>
-</BaseLayout>
+          <div class="field">
+            <label class="label">Check-in Window Settings</label>
+            <p class="help mb-3">Configure when members can check in for rehearsals</p>
+
+            <Columns>
+              <Column size={6}>
+                <TextInput
+                  name="checkInStartMinutes"
+                  label="Check-in opens (minutes before)"
+                  type="number"
+                  value={ensemble.checkInStartMinutes}
+                  min="0"
+                  max="180"
+                  required
+                  help="Default: 30 minutes before rehearsal"
+                />
+              </Column>
+              <Column size={6}>
+                <TextInput
+                  name="checkInEndMinutes"
+                  label="Check-in closes (minutes after start)"
+                  type="number"
+                  value={ensemble.checkInEndMinutes}
+                  min="0"
+                  max="180"
+                  required
+                  help="Default: 15 minutes after rehearsal starts"
+                />
+              </Column>
+            </Columns>
+          </div>
+
+          <div class="field is-grouped">
+            <div class="control">
+              <Button type="submit" color="primary">
+                <Icon icon="fa-save" />
+                <span>Save Changes</span>
+              </Button>
+            </div>
+            <div class="control">
+              <Button href={`/ensembles/${canonicalId}`} color="light">
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </form>
+
+        <!-- Out-of-band forms for links (nested forms are invalid HTML) -->
+        <form id="add-link-form" method="POST" action={actions.ensembles.addLink}>
+          <input type="hidden" name="ensembleId" value={ensemble.id} />
+        </form>
+        {ensembleLinks.map((link) => (
+          <form id={`delete-link-${link.id}`} method="POST" action={actions.ensembles.deleteLink}>
+            <input type="hidden" name="ensembleId" value={ensemble.id} />
+            <input type="hidden" name="linkId" value={link.id} />
+          </form>
+        ))}
+      </Box>
+    </Column>
+
+    <Column>
+      <Box>
+        <Title as="h2" size={5}>
+          Tips
+        </Title>
+        <Content>
+          <ul>
+            <li>Choose a descriptive name for your ensemble</li>
+            <li>Add a description to help members understand the ensemble's purpose</li>
+            <li>Upload a logo or photo that represents your ensemble</li>
+            <li>Square images work best for display</li>
+          </ul>
+        </Content>
+      </Box>
+    </Column>
+  </Columns>
+</EnsemblePageLayout>
