@@ -341,7 +341,7 @@ const programLabel = isPerformance ? "Set List" : "Rehearsal Plan";
             if (labelField) labelField.style.display = isSong ? "none" : "";
             if (labelInput) labelInput.value = el.dataset.label ?? "";
             if (sortOrderInput) sortOrderInput.value = el.dataset.sortOrder ?? "";
-            if (lengthInput) lengthInput.value = el.dataset.length ?? "";
+            if (lengthInput) lengthInput.value = el.dataset.practiceMinutes ?? "";
             if (notesTextarea) notesTextarea.value = el.dataset.notes ?? "";
             entryModal.classList.add("is-active");
           });
