@@ -23,28 +23,28 @@
     "test:e2e:ui": "playwright test --ui"
   },
   "dependencies": {
-    "@astrojs/node": "11.1.11",
-    "@aws-sdk/client-s3": "3.1164.0",
+    "@astrojs/node": "11.1.13",
+    "@aws-sdk/client-s3": "3.1169.0",
     "@libsql/client": "0.18.0",
-    "astro": "7.4.7",
+    "astro": "7.4.12",
     "astro-bulma": "0.6.0",
     "bcryptjs": "3.0.3",
     "bulma": "1.0.4",
     "drizzle-orm": "0.45.4",
     "jsonwebtoken": "9.0.3",
     "qrcode": "1.5.4",
-    "resend": "6.37.0"
+    "resend": "6.38.1"
   },
   "devDependencies": {
     "@astrojs/check": "0.9.12",
-    "@astrojs/compiler-rs": "0.5.2",
-    "@playwright/test": "1.65.0",
+    "@astrojs/compiler-rs": "0.5.3",
+    "@playwright/test": "1.65.1",
     "@types/jsonwebtoken": "9.0.10",
     "@types/qrcode": "1.5.6",
     "@vitest/coverage-istanbul": "4.1.10",
     "drizzle-kit": "0.31.11",
-    "oxfmt": "0.77.0",
-    "oxlint": "1.92.0",
+    "oxfmt": "0.78.0",
+    "oxlint": "1.93.0",
     "typescript": "6.0.3",
     "vitest": "4.1.10"
   }
